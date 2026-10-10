@@ -66,7 +66,8 @@ final class Walker {
         }
 
         // Sta fermo mentre parla o mentre lo trascini col mouse.
-        let beingDragged = NSEvent.pressedMouseButtons & 1 != 0 && petWindow.frame.contains(NSEvent.mouseLocation)
+        let beingDragged = petWindow.isPicked
+            || (NSEvent.pressedMouseButtons & 1 != 0 && petWindow.frame.contains(NSEvent.mouseLocation))
         if speaker.isSpeaking || beingDragged {
             petWindow.setPose(speaker.isSpeaking ? (pet.talkFrame ?? pet.restStage) : pet.restStage)
             // La passeggiata riprende da dove era: sposto in avanti il termine della fase.

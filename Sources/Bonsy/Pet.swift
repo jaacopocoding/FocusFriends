@@ -28,6 +28,12 @@ struct Pet: Equatable {
     var talkFrame: Int? = nil
     /// Le immagini guardano a destra: quando va a sinistra vengono specchiate.
     var facesRight: Bool = false
+    /// Disegno mostrato mentre l'utente lo solleva col mouse (nil = si trascina in modo normale).
+    var pickedResource: String? = nil
+    /// Dimensione della finestra mentre è sollevato, in punti.
+    var pickedSize: NSSize = .zero
+    /// Dove tiene il cursore sul disegno sollevato (frazioni di larghezza e altezza, origine in basso a sinistra).
+    var pickedGrab: CGPoint = CGPoint(x: 0.5, y: 0.5)
 
     var stageCount: Int { imageResources.count }
     var finalStage: Int { stageCount - 1 }
@@ -113,7 +119,10 @@ struct Pet: Equatable {
         walks: true,
         walkFrames: [1, 2, 3, 2],   // passo, passaggio, passo, passaggio
         talkFrame: 4,               // orecchie che saltellano
-        facesRight: true
+        facesRight: true,
+        pickedResource: "porcellino_picked",   // le mani che lo sollevano, spaventato
+        pickedSize: NSSize(width: 130, height: 120),
+        pickedGrab: CGPoint(x: 0.30, y: 0.60)   // il cursore sta sulle mani
     )
 
     static let all = [bonsy, pianty, porcellino, spidy, simulazione]

@@ -54,7 +54,8 @@ li rimette in cammino. Se le immagini guardano a destra (come il porcellino), ve
 vanno a sinistra.
 
 Il Porcellino ha un ciclo di passi a 4 fotogrammi, una posa con le orecchie che saltellano mentre
-parla, e le sue frasi in `assets/frasi_porcellino.txt`. Simulazione usa le frasi di Spidy.
+parla, e le sue frasi in `assets/frasi_porcellino.txt`. Quando lo trascini col mouse compare un disegno in cui
+viene sollevato da due mani, spaventato (con un leggero tremolio); lasciandolo, torna in piedi dove si trova. Simulazione usa le frasi di Spidy.
 
 ## Installazione
 
@@ -103,6 +104,7 @@ assets/
   simulazione/frame1..3.png   le tre pose di Simulazione (generate da tools/make_simulazione.sh)
   porcellino/original.png     immagine di partenza del porcellino (5 fotogrammi)
   porcellino/frame1..5.png    fotogrammi ritagliati (generati da tools/cutout_porcellino.py)
+  porcellino/picked_original.png, picked.png   il porcellino sollevato (tools/cutout_picked.py)
   AppIcon.icns          icona dell'app (generata da tools/make_icon.py)
 tools/                  script per ritagli, icona e pose di Simulazione (Python con Pillow e numpy; make_simulazione.sh usa Swift)
 build.sh                compila e crea build/Bonsy.app
@@ -110,7 +112,7 @@ build.sh                compila e crea build/Bonsy.app
 
 ## Aggiungere o cambiare un personaggio
 
-Un personaggio è una riga in `Pet.swift`: immagini (una per stadio, tutte sullo stesso formato e
+Un personaggio è una riga in `Pet.swift` (con `pickedResource` può avere un disegno diverso mentre lo si trascina): immagini (una per stadio, tutte sullo stesso formato e
 allineate sulla linea di terra), file delle frasi, dimensione della finestra. Un solo stadio = personaggio
 fisso, più stadi = cresce con il timer; con `walks: true` le immagini sono pose e il personaggio
 cammina. Per ritagliare un'immagine su sfondo bianco si può partire da

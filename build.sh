@@ -11,6 +11,7 @@ swiftc -O -o "$APP/Contents/MacOS/Bonsy" Sources/Bonsy/*.swift
 cp assets/spidy.png assets/bubble.png assets/frasi.txt assets/frasi_bonsy.txt assets/frasi_porcellino.txt assets/AppIcon.icns "$APP/Contents/Resources/"
 for i in 1 2 3; do cp "assets/simulazione/frame$i.png" "$APP/Contents/Resources/simulazione_frame$i.png"; done
 for i in 1 2 3 4 5; do cp "assets/porcellino/frame$i.png" "$APP/Contents/Resources/porcellino_frame$i.png"; done
+cp assets/porcellino/picked.png "$APP/Contents/Resources/porcellino_picked.png"
 for i in 1 2 3 4 5; do
     cp "assets/bonsy/stage$i.png" "$APP/Contents/Resources/bonsy_stage$i.png"
     cp "assets/pianty/stage$i.png" "$APP/Contents/Resources/pianty_stage$i.png"

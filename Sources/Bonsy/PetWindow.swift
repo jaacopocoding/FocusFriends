@@ -7,6 +7,9 @@ final class PetWindow: NSWindow {
 
     private(set) var pet: Pet
     private let petView: PetView
+    /// Sta venendo sollevato col mouse (solo per i personaggi con un disegno "sollevato").
+    private(set) var isPicked = false
+    private var restSize = NSSize.zero
 
     init(pet: Pet) {
         self.pet = pet
@@ -23,7 +26,9 @@ final class PetWindow: NSWindow {
         hasShadow = false
         level = .floating
         isReleasedWhenClosed = false
-        isMovableByWindowBackground = true   // si può trascinare dove si vuole
+        // Si può trascinare dove si vuole. Chi ha il disegno "sollevato" gestisce il trascinamento da sé,
+        // perché la finestra cambia dimensione mentre la si sposta.
+        isMovableByWindowBackground = pet.pickedResource == nil
         collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
         contentView = view
         view.configure(for: pet)
@@ -43,6 +48,8 @@ final class PetWindow: NSWindow {
     /// Cambia personaggio: la finestra si ridimensiona tenendo fermi i piedi (centro del lato basso).
     func apply(_ newPet: Pet) {
         guard newPet != pet else { return }
+        endPick()
+        isMovableByWindowBackground = newPet.pickedResource == nil
         let anchor = NSPoint(x: frame.midX, y: frame.minY)
         pet = newPet
         petView.configure(for: newPet)
@@ -56,6 +63,38 @@ final class PetWindow: NSWindow {
     /// Mostra lo stadio di crescita (con una dissolvenza). Per i personaggi fissi non fa nulla.
     func setStage(_ stage: Int) {
         petView.setStage(stage, animated: true)
+    }
+
+    // MARK: - Sollevamento col mouse
+
+    /// Comincia a sollevarlo: mostra il disegno "sollevato" e ridimensiona la finestra.
+    func beginPick() {
+        guard !isPicked, pet.pickedResource != nil else { return }
+        isPicked = true
+        restSize = frame.size
+        petView.setPicked(true)
+        movePicked()
+    }
+
+    /// Tiene il cursore sul punto di presa del disegno.
+    func movePicked() {
+        guard isPicked else { return }
+        let mouse = NSEvent.mouseLocation
+        let size = pet.pickedSize
+        let origin = NSPoint(x: mouse.x - pet.pickedGrab.x * size.width, y: mouse.y - pet.pickedGrab.y * size.height)
+        setFrame(NSRect(origin: origin, size: size), display: true)
+    }
+
+    /// Lo rimette giù: dimensione normale, con i piedi (centro del lato basso) dove si trova.
+    func endPick() {
+        guard isPicked else { return }
+        isPicked = false
+        petView.setPicked(false)
+        let anchor = NSPoint(x: frame.midX, y: frame.minY)
+        setFrame(
+            NSRect(x: anchor.x - restSize.width / 2, y: anchor.y, width: restSize.width, height: restSize.height),
+            display: true
+        )
     }
 
     /// Per chi ha le immagini rivolte a destra: specchia l'immagine quando va a sinistra.
@@ -113,7 +152,59 @@ final class PetView: NSView {
     private var fadeTimer: Timer?
     private static let fadeDuration: TimeInterval = 0.8
 
-    override var mouseDownCanMoveWindow: Bool { true }
+    // Sollevamento col mouse
+    private var pickedImage: NSImage?
+    private var pickedGrab = CGPoint(x: 0.5, y: 0.5)
+    private var isPickedUp = false
+    private var dragStart: NSPoint?
+    private var wobbleTimer: Timer?
+    private var wobbleStart = Date()
+
+    private var hasPickedPose: Bool { pickedImage != nil }
+
+    /// Chi ha il disegno "sollevato" gestisce il trascinamento da sé (vedi mouseDragged).
+    override var mouseDownCanMoveWindow: Bool { !hasPickedPose }
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+
+    override func mouseDown(with event: NSEvent) {
+        guard hasPickedPose else { super.mouseDown(with: event); return }
+        dragStart = NSEvent.mouseLocation
+    }
+
+    override func mouseDragged(with event: NSEvent) {
+        guard hasPickedPose, let petWindow = window as? PetWindow, let start = dragStart else {
+            super.mouseDragged(with: event)
+            return
+        }
+        let mouse = NSEvent.mouseLocation
+        if !petWindow.isPicked {
+            // Un semplice click non è un sollevamento: serve un piccolo spostamento.
+            guard hypot(mouse.x - start.x, mouse.y - start.y) > 3 else { return }
+            petWindow.beginPick()
+        }
+        petWindow.movePicked()
+    }
+
+    override func mouseUp(with event: NSEvent) {
+        guard hasPickedPose else { super.mouseUp(with: event); return }
+        dragStart = nil
+        (window as? PetWindow)?.endPick()
+    }
+
+    /// Mostra o toglie il disegno "sollevato", che trema leggermente finché è in aria.
+    func setPicked(_ picked: Bool) {
+        guard picked != isPickedUp else { return }
+        isPickedUp = picked
+        wobbleTimer?.invalidate()
+        wobbleTimer = nil
+        if picked {
+            wobbleStart = Date()
+            let timer = Timer(timeInterval: 1.0 / 30, repeats: true) { [weak self] _ in self?.needsDisplay = true }
+            RunLoop.main.add(timer, forMode: .common)
+            wobbleTimer = timer
+        }
+        needsDisplay = true
+    }
 
     func configure(for pet: Pet) {
         images = pet.imageResources.compactMap { name in
@@ -121,6 +212,11 @@ final class PetView: NSView {
         }
         topFractions = images.map { $0.opaqueTopFraction }
         mirrored = false
+        pickedImage = pet.pickedResource.flatMap { name in
+            Bundle.main.url(forResource: name, withExtension: "png").flatMap { NSImage(contentsOf: $0) }
+        }
+        pickedGrab = pet.pickedGrab
+        setPicked(false)
         shadowFraction = pet.shadowWidthFraction
         groundFraction = pet.groundFraction
         fadeTimer?.invalidate()
@@ -157,9 +253,30 @@ final class PetView: NSView {
 
     /// Altezza (in coordinate vista, dal basso) a cui arriva il disegno dello stadio attuale.
     var artTop: CGFloat {
+        if isPickedUp { return bounds.height }
         let rect = imageRect
         guard stage < topFractions.count else { return bounds.height }
         return rect.maxY - topFractions[stage] * rect.height
+    }
+
+    /// Il disegno "sollevato", con un leggero tremolio attorno al punto in cui lo tiene il cursore.
+    private func drawPicked(_ image: NSImage) {
+        let scale = min(bounds.width / image.size.width, bounds.height / image.size.height)
+        let size = NSSize(width: image.size.width * scale, height: image.size.height * scale)
+        let target = NSRect(x: bounds.midX - size.width / 2, y: bounds.midY - size.height / 2, width: size.width, height: size.height)
+
+        let t = Date().timeIntervalSince(wobbleStart)
+        let angle = sin(t * 2 * .pi * 5) * 2.5   // gradi, 5 oscillazioni al secondo
+        let pivot = NSPoint(x: bounds.width * pickedGrab.x, y: bounds.height * pickedGrab.y)
+
+        NSGraphicsContext.saveGraphicsState()
+        defer { NSGraphicsContext.restoreGraphicsState() }
+        let rotate = NSAffineTransform()
+        rotate.translateX(by: pivot.x, yBy: pivot.y)
+        rotate.rotate(byDegrees: CGFloat(angle))
+        rotate.translateX(by: -pivot.x, yBy: -pivot.y)
+        rotate.concat()
+        image.draw(in: target, from: .zero, operation: .sourceOver, fraction: 1)
     }
 
     /// Adatta l'immagine allo spazio mantenendo le proporzioni, appoggiata in basso.
@@ -172,6 +289,10 @@ final class PetView: NSView {
     }
 
     override func draw(_ dirtyRect: NSRect) {
+        if isPickedUp, let pickedImage {
+            drawPicked(pickedImage)
+            return
+        }
         guard !images.isEmpty else { return }
 
         // Specchio: tutto il disegno viene ribaltato attorno al centro della vista.
