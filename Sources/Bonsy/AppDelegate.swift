@@ -1,7 +1,7 @@
 import AppKit
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    private var window: SpidyWindow?
+    private var window: PetWindow?
     private var speaker: Speaker?
     private var pomodoro: Pomodoro?
     private var menu: MenuController?
@@ -10,16 +10,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Nessuna icona nel Dock, nessuna finestra "normale".
         NSApp.setActivationPolicy(.accessory)
 
-        let window = SpidyWindow(pet: Pet.saved)
+        let window = PetWindow(pet: Pet.saved)
         window.placeOnGround()
         window.orderFrontRegardless()
         self.window = window
 
-        let speaker = Speaker(spidy: window)
+        let speaker = Speaker(petWindow: window)
         speaker.start()
         self.speaker = speaker
 
-        let pomodoro = Pomodoro(spidy: window, speaker: speaker)
+        let pomodoro = Pomodoro(petWindow: window, speaker: speaker)
         self.pomodoro = pomodoro
         menu = MenuController(window: window, speaker: speaker, pomodoro: pomodoro)
     }

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Crea l'icona dell'app: assets/spidy.png -> assets/AppIcon.icns (e assets/AppIcon.png)."""
+"""Crea l'icona dell'app: assets/bonsy/stage5.png -> assets/AppIcon.icns (e assets/AppIcon.png)."""
 import os
 import shutil
 import subprocess
@@ -34,9 +34,9 @@ def glow(size, color, center, radius, strength):
 
 icon = Image.new("RGBA", (SIZE, SIZE), (0, 0, 0, 0))
 
-# Corpo: rettangolo arrotondato con gradiente blu.
-body = gradient(BODY, (58, 112, 214), (17, 36, 102)).convert("RGBA")
-body.alpha_composite(glow(BODY, (255, 255, 255), (BODY * 0.35, BODY * 0.18), BODY * 0.75, 0.30))
+# Corpo: rettangolo arrotondato con gradiente verde-azzurro scuro.
+body = gradient(BODY, (62, 128, 120), (18, 52, 58)).convert("RGBA")
+body.alpha_composite(glow(BODY, (255, 255, 235), (BODY * 0.5, BODY * 0.12), BODY * 0.8, 0.34))
 mask = Image.new("L", (BODY, BODY), 0)
 ImageDraw.Draw(mask).rounded_rectangle((0, 0, BODY - 1, BODY - 1), RADIUS, fill=255)
 
@@ -46,19 +46,19 @@ shadow.paste((0, 0, 0, 120), (MARGIN, MARGIN + 14), mask)
 icon.alpha_composite(shadow.filter(ImageFilter.GaussianBlur(18)))
 icon.paste(body, (MARGIN, MARGIN), mask)
 
-# Spidy: ingrandito, leggermente ammorbidito e poi riaffilato per non vedere i pixel.
-spidy = Image.open("assets/spidy.png").convert("RGBA")
-target_h = 690
+# Bonsai adulto: ingrandito e poi riaffilato per non vedere i pixel.
+spidy = Image.open("assets/bonsy/stage5.png").convert("RGBA")
+target_h = 660
 scale = target_h / spidy.height
 spidy = spidy.resize((round(spidy.width * scale), target_h), Image.LANCZOS)
 spidy = spidy.filter(ImageFilter.UnsharpMask(radius=2, percent=60, threshold=2))
 
 x = (SIZE - spidy.width) // 2
-y = MARGIN + BODY - target_h - 38
+y = MARGIN + BODY - target_h - 30
 
 # Ombra a terra e ombra del personaggio.
 ground = Image.new("RGBA", (SIZE, SIZE), (0, 0, 0, 0))
-ImageDraw.Draw(ground).ellipse((x + 60, y + target_h - 40, x + spidy.width - 40, y + target_h + 12), fill=(0, 0, 0, 110))
+ImageDraw.Draw(ground).ellipse((x + spidy.width * 0.14, y + target_h - 62, x + spidy.width * 0.86, y + target_h - 8), fill=(0, 0, 0, 110))
 icon.alpha_composite(ground.filter(ImageFilter.GaussianBlur(14)))
 
 drop = Image.new("RGBA", (SIZE, SIZE), (0, 0, 0, 0))

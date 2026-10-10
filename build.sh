@@ -1,13 +1,13 @@
 #!/bin/bash
-# Compila Spidy e crea build/Spidy.app
+# Compila Bonsy e crea build/Bonsy.app
 set -euo pipefail
 cd "$(dirname "$0")"
 
-APP="build/Spidy.app"
+APP="build/Bonsy.app"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 
-swiftc -O -o "$APP/Contents/MacOS/Spidy" Sources/Spidy/*.swift
+swiftc -O -o "$APP/Contents/MacOS/Bonsy" Sources/Bonsy/*.swift
 cp assets/spidy.png assets/bubble.png assets/frasi.txt assets/frasi_bonsy.txt assets/AppIcon.icns "$APP/Contents/Resources/"
 for i in 1 2 3 4 5; do cp "assets/bonsy/stage$i.png" "$APP/Contents/Resources/bonsy_stage$i.png"; done
 
@@ -16,10 +16,10 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <key>CFBundleName</key><string>Spidy</string>
-    <key>CFBundleDisplayName</key><string>Spidy</string>
-    <key>CFBundleIdentifier</key><string>com.jacopo.spidy</string>
-    <key>CFBundleExecutable</key><string>Spidy</string>
+    <key>CFBundleName</key><string>Bonsy</string>
+    <key>CFBundleDisplayName</key><string>Bonsy</string>
+    <key>CFBundleIdentifier</key><string>com.jacopo.bonsy</string>
+    <key>CFBundleExecutable</key><string>Bonsy</string>
     <key>CFBundleIconFile</key><string>AppIcon</string>
     <key>CFBundlePackageType</key><string>APPL</string>
     <key>CFBundleShortVersionString</key><string>0.1</string>

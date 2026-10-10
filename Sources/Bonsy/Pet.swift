@@ -9,7 +9,7 @@ struct Pet: Equatable {
     /// Dimensione della finestra, in punti.
     let size: NSSize
     let quotesResource: String
-    /// Nome del file con cui l'utente può sostituire le frasi (in Application Support/Spidy).
+    /// Nome del file con cui l'utente può sostituire le frasi (in Application Support/Bonsy).
     let quotesUserFile: String
     let fallbackQuote: String
     let greeting: String
@@ -52,7 +52,8 @@ struct Pet: Equatable {
         iconCrop: nil
     )
 
-    static let all = [spidy, bonsy]
+    /// Bonsy è il personaggio principale: viene per primo ed è quello di partenza.
+    static let all = [bonsy, spidy]
 
     // MARK: - Scelta ricordata
 
@@ -60,7 +61,7 @@ struct Pet: Equatable {
 
     static var saved: Pet {
         let id = UserDefaults.standard.string(forKey: defaultsKey)
-        return all.first { $0.id == id } ?? spidy
+        return all.first { $0.id == id } ?? bonsy
     }
 
     func remember() {

@@ -1,6 +1,6 @@
 import AppKit
 
-/// Finestra del timer, sotto Spidy.
+/// Finestra del timer, sotto il personaggio.
 final class TimerWindow: OverlayWindow {
     static let size = NSSize(width: 132, height: 76)
 

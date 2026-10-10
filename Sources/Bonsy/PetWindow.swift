@@ -2,16 +2,16 @@ import AppKit
 
 /// Finestra trasparente, senza bordi, sempre sopra le altre, visibile su tutti gli Spaces.
 /// Mostra il personaggio scelto (Spidy, Bonsy...) e, se ha più stadi, quello attuale.
-final class SpidyWindow: NSWindow {
+final class PetWindow: NSWindow {
     private static let margin: CGFloat = 24
 
     private(set) var pet: Pet
-    private let spidyView: SpidyView
+    private let petView: PetView
 
     init(pet: Pet) {
         self.pet = pet
-        let view = SpidyView(frame: NSRect(origin: .zero, size: pet.size))
-        spidyView = view
+        let view = PetView(frame: NSRect(origin: .zero, size: pet.size))
+        petView = view
         super.init(
             contentRect: NSRect(origin: .zero, size: pet.size),
             styleMask: [.borderless],
@@ -45,8 +45,8 @@ final class SpidyWindow: NSWindow {
         guard newPet != pet else { return }
         let anchor = NSPoint(x: frame.midX, y: frame.minY)
         pet = newPet
-        spidyView.configure(for: newPet)
-        spidyView.setStage(newPet.finalStage, animated: false)
+        petView.configure(for: newPet)
+        petView.setStage(newPet.finalStage, animated: false)
         setFrame(
             NSRect(x: anchor.x - newPet.size.width / 2, y: anchor.y, width: newPet.size.width, height: newPet.size.height),
             display: true
@@ -55,13 +55,13 @@ final class SpidyWindow: NSWindow {
 
     /// Mostra lo stadio di crescita (con una dissolvenza). Per i personaggi fissi non fa nulla.
     func setStage(_ stage: Int) {
-        spidyView.setStage(stage, animated: true)
+        petView.setStage(stage, animated: true)
     }
 
     /// La parte della finestra in cui c'è davvero il disegno (dai piedi alla cima), in coordinate schermo.
     /// Serve a posizionare fumetto e orologio e a capire quando il mouse è "su" il personaggio.
     var artFrame: NSRect {
-        let top = spidyView.artTop
+        let top = petView.artTop
         return NSRect(x: frame.minX, y: frame.minY, width: frame.width, height: max(top, 1))
     }
 
@@ -86,7 +86,7 @@ private extension NSImage {
 }
 
 /// Mostra l'immagine dello stadio attuale appoggiata sul fondo, con una piccola ombra a terra.
-final class SpidyView: NSView {
+final class PetView: NSView {
     private var images: [NSImage] = []
     private var topFractions: [CGFloat] = []
     private var shadowFraction: CGFloat = 0.65

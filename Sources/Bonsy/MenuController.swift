@@ -3,7 +3,7 @@ import ServiceManagement
 
 /// Menu dell'app: icona nella barra dei menu e tasto destro sul personaggio.
 final class MenuController: NSObject, NSMenuDelegate {
-    private let window: SpidyWindow
+    private let window: PetWindow
     private let speaker: Speaker
     private let pomodoro: Pomodoro
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -15,18 +15,18 @@ final class MenuController: NSObject, NSMenuDelegate {
     private let stopTimerItem = NSMenuItem()
     private var breakItems: [NSMenuItem] = []
 
-    init(window: SpidyWindow, speaker: Speaker, pomodoro: Pomodoro) {
+    init(window: PetWindow, speaker: Speaker, pomodoro: Pomodoro) {
         self.window = window
         self.speaker = speaker
         self.pomodoro = pomodoro
         super.init()
 
-        toggleItem.title = "Nascondi Spidy"
+        toggleItem.title = "Nascondi Bonsy"
         toggleItem.action = #selector(toggleVisibility)
         toggleItem.target = self
         menu.addItem(toggleItem)
 
-        speakItem.title = "Fai parlare Spidy"
+        speakItem.title = "Fai parlare Bonsy"
         speakItem.action = #selector(makeSpeak)
         speakItem.target = self
         menu.addItem(speakItem)
@@ -47,14 +47,14 @@ final class MenuController: NSObject, NSMenuDelegate {
 
         menu.addItem(.separator())
 
-        let quit = NSMenuItem(title: "Esci da Spidy", action: #selector(quit), keyEquivalent: "q")
+        let quit = NSMenuItem(title: "Esci da Bonsy", action: #selector(quit), keyEquivalent: "q")
         quit.target = self
         menu.addItem(quit)
 
         menu.delegate = self
         statusItem.menu = menu
         updateStatusIcon()
-        statusItem.button?.toolTip = "Spidy"
+        statusItem.button?.toolTip = "Bonsy"
 
         // Tasto destro sul personaggio: stesso menu.
         window.contentView?.menu = menu
@@ -136,12 +136,12 @@ final class MenuController: NSObject, NSMenuDelegate {
     }
 
     @objc private func startFocus(_ sender: NSMenuItem) {
-        showSpidyIfHidden()
+        showPetIfHidden()
         pomodoro.startFocus(minutes: sender.tag)
     }
 
     @objc private func startBreak(_ sender: NSMenuItem) {
-        showSpidyIfHidden()
+        showPetIfHidden()
         pomodoro.startBreak(minutes: sender.tag)
     }
 
@@ -149,7 +149,7 @@ final class MenuController: NSObject, NSMenuDelegate {
         pomodoro.stop()
     }
 
-    private func showSpidyIfHidden() {
+    private func showPetIfHidden() {
         if !window.isVisible {
             window.orderFrontRegardless()
             speaker.start()
@@ -162,7 +162,7 @@ final class MenuController: NSObject, NSMenuDelegate {
         pet.remember()
         window.apply(pet)
         updateStatusIcon()
-        showSpidyIfHidden()
+        showPetIfHidden()
         speaker.say(pet.greeting)
     }
 
@@ -186,19 +186,23 @@ final class MenuController: NSObject, NSMenuDelegate {
         if service.status == .requiresApproval {
             showAlert(
                 "Serve la tua approvazione",
-                "Apri Impostazioni di Sistema → Generali → Elementi login e consenti a Spidy di avviarsi."
+                "Apri Impostazioni di Sistema → Generali → Elementi login e consenti a Bonsy di avviarsi."
             )
         }
     }
 
     @objc private func openQuotesFile() {
         let fm = FileManager.default
-        let dir = fm.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support/Spidy")
         let pet = window.pet
-        let file = dir.appendingPathComponent(pet.quotesUserFile)
+        let file = Quotes.userFile(for: pet)
         if !fm.fileExists(atPath: file.path) {
-            try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
-            if let bundled = Bundle.main.url(forResource: pet.quotesResource, withExtension: "txt") {
+            try? fm.createDirectory(at: Quotes.userDirectory, withIntermediateDirectories: true)
+            // Parto dal file della vecchia cartella (se l'utente l'aveva già modificato), altrimenti da quello dell'app.
+            let legacy = Quotes.legacyDirectory.appendingPathComponent(pet.quotesUserFile)
+            let bundled = Bundle.main.url(forResource: pet.quotesResource, withExtension: "txt")
+            if fm.fileExists(atPath: legacy.path) {
+                try? fm.copyItem(at: legacy, to: file)
+            } else if let bundled {
                 try? fm.copyItem(at: bundled, to: file)
             }
         }

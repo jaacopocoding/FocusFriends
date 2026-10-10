@@ -1,6 +1,6 @@
 import AppKit
 
-/// Finestra trasparente per gli elementi che stanno attorno a Spidy: non cattura i click.
+/// Finestra trasparente per gli elementi che stanno attorno al personaggio: non cattura i click.
 class OverlayWindow: NSWindow {
     init(content: NSView) {
         super.init(contentRect: .zero, styleMask: [.borderless], backing: .buffered, defer: false)
