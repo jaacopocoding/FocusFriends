@@ -2,6 +2,7 @@ import AppKit
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var window: SpidyWindow?
+    private var speaker: Speaker?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Nessuna icona nel Dock, nessuna finestra "normale".
@@ -11,5 +12,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window.placeOnGround()
         window.orderFrontRegardless()
         self.window = window
+
+        let speaker = Speaker(spidy: window)
+        speaker.start()
+        self.speaker = speaker
     }
 }

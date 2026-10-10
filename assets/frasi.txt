@@ -1,0 +1,22 @@
+# Frasi di Spidy: una per riga. Le righe che iniziano con # sono ignorate.
+# Per usare le tue, copia questo file in:
+#   ~/Library/Application Support/Spidy/frasi.txt
+Da grandi poteri derivano grandi responsabilità.
+Sei più forte di quanto pensi.
+Un passo alla volta: anche i supereroi iniziano così.
+Cadere fa parte del gioco. Rialzarsi è ciò che conta.
+Alzati, sistema la maschera e riprova!
+Ogni errore è un'occasione per imparare qualcosa di nuovo.
+Respira. Hai già affrontato giorni peggiori.
+Non devi essere perfetto, devi solo provarci.
+Sii gentile: è il superpotere più sottovalutato.
+Anche un eroe ha bisogno di una pausa. Bevi un po' d'acqua!
+Il tuo amichevole Spidy di quartiere è qui con te.
+Che giornata fantastica per fare qualcosa di coraggioso!
+Credi in te stesso, io lo faccio già.
+Se ti senti stanco, ricorda perché hai iniziato.
+Le cose belle richiedono tempo. Tu stai andando benissimo.
+Oggi fai una cosa di cui il te di domani sarà fiero.
+Non serve non avere paura: serve andare avanti lo stesso.
+Fai una pausa e guarda lontano: gli occhi ringraziano.
+Ogni giorno è una nuova occasione per essere un eroe.
