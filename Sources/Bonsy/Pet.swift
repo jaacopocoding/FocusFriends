@@ -6,7 +6,6 @@ enum PetActivity {
     case none
     case sleeping       // durante il focus
     case celebrating    // appena finito un focus
-    case eating         // durante la pausa
 }
 
 /// Un personaggio che può stare sul desktop: immagini (una per stadio di crescita), frasi e misure.
@@ -40,6 +39,7 @@ struct Pet: Equatable {
     /// Fotogrammi (indici in imageResources) delle azioni legate al timer, in ordine di riproduzione ciclica.
     var sleepFrames: [Int] = []
     var celebrateFrames: [Int] = []
+    /// Fotogrammi di quando mangia: lo fa ogni tanto, in momenti casuali, mentre gira per lo schermo.
     var eatFrames: [Int] = []
 
     func frames(for activity: PetActivity) -> [Int] {
@@ -47,7 +47,6 @@ struct Pet: Equatable {
         case .none: return []
         case .sleeping: return sleepFrames
         case .celebrating: return celebrateFrames
-        case .eating: return eatFrames
         }
     }
 

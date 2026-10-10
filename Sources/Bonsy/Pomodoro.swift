@@ -19,7 +19,7 @@ final class Pomodoro {
     /// Quanto resta visibile dopo che il mouse esce dal personaggio.
     private static let hoverLinger: TimeInterval = 1
     private static let curtainDuration: TimeInterval = 0.35
-    /// Quanto dura la festa a fine focus, prima di mettersi a mangiare.
+    /// Quanto dura la festa a fine focus.
     private static let celebrationSeconds: TimeInterval = 6
 
     private static let chatterWhileFocusing: ClosedRange<TimeInterval> = 240...480
@@ -90,7 +90,7 @@ final class Pomodoro {
         phaseStart = Date()
         endDate = phaseStart.addingTimeInterval(Double(minutes) * Self.secondsPerMinute)
         speaker.interval = phase == .focus ? Self.chatterWhileFocusing : Self.chatterNormally
-        petWindow.activity = phase == .focus ? .sleeping : .eating
+        petWindow.activity = phase == .focus ? .sleeping : .none
 
         if window == nil { window = TimerWindow() }
         window?.timerView.label = phase.label
@@ -137,13 +137,13 @@ final class Pomodoro {
         }
     }
 
-    /// Se il personaggio sa festeggiare, lo fa per qualche secondo prima di mettersi a mangiare.
+    /// Se il personaggio sa festeggiare, lo fa per qualche secondo quando finisce un focus.
     private func celebrateBeforeEating() {
         guard !petWindow.pet.celebrateFrames.isEmpty else { return }
         petWindow.activity = .celebrating
         DispatchQueue.main.asyncAfter(deadline: .now() + Self.celebrationSeconds) { [weak self] in
-            guard let self, self.phase == .rest, self.petWindow.activity == .celebrating else { return }
-            self.petWindow.activity = .eating
+            guard let self, self.petWindow.activity == .celebrating else { return }
+            self.petWindow.activity = .none
         }
     }
 

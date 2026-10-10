@@ -54,9 +54,9 @@ li rimette in cammino. Se le immagini guardano a destra (come il porcellino), ve
 vanno a sinistra.
 
 Il Porcellino ha un ciclo di passi a 4 fotogrammi, una posa con le orecchie che saltellano mentre
-parla, e le sue frasi in `assets/frasi_porcellino.txt`. Segue anche il Pomofocus: durante la pausa si ferma e
-mangia una carota (e, quando ci saranno le immagini, dorme durante il focus e fa il "popcorning" quando
-finisce un focus). Quando lo trascini col mouse compare un disegno in cui
+parla, e le sue frasi in `assets/frasi_porcellino.txt`. Ogni tanto, in momenti casuali mentre gira per lo
+schermo, si ferma a mangiare una carota per una decina di secondi (non due volte di fila). Quando ci
+saranno le immagini, dormirà durante il focus e farà il "popcorning" quando ne finisce uno. Quando lo trascini col mouse compare un disegno in cui
 viene sollevato da due mani, spaventato (con un leggero tremolio); lasciandolo, torna in piedi dove si trova. Simulazione usa le frasi di Spidy.
 
 ## Installazione
