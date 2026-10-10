@@ -4,7 +4,8 @@ Un bonsai che se ne sta sul desktop del Mac, ti accompagna nel Pomofocus e ogni 
 frase gentile. Cresce mentre lavori: parte da un seme e, man mano che il tempo del focus passa,
 diventa un albero. Non fa altro: è solo una cosa carina sullo schermo.
 
-C'è anche un secondo personaggio, **Spidy** (un mini Spider-Man), che si sceglie dal menu.
+Dal menu si possono scegliere altri personaggi: **Pianty** (una succulenta che cresce allo stesso modo,
+con le stesse frasi) e **Spidy** (un mini Spider-Man, fisso).
 
 ## Cosa fa
 
@@ -20,7 +21,7 @@ C'è anche un secondo personaggio, **Spidy** (un mini Spider-Man), che si scegli
 | Nascondi / Mostra | Lo toglie dallo schermo o lo rimette |
 | Fai parlare | Mostra subito una frase |
 | Pomofocus ▸ | Timer: *Focus 30/50 min*, *Pausa 5/10 min*, *Ferma timer* |
-| Personaggio ▸ | Sceglie tra Bonsy e Spidy (la scelta resta alla riapertura) |
+| Personaggio ▸ | Sceglie tra Bonsy, Pianty e Spidy (la scelta resta alla riapertura) |
 | Avvia al login | Si avvia da solo all'accensione del Mac |
 | Modifica le frasi… | Apre il file delle frasi del personaggio attivo |
 | Esci da Bonsy | Chiude l'app |
@@ -35,9 +36,9 @@ visibile quando mancano 5 minuti o meno. Alla fine del focus suona un avviso e p
 Alla fine della pausa l'orologio sparisce. Durante il focus il personaggio parla più di rado, per non
 distrarti.
 
-## La crescita di Bonsy
+## La crescita di Bonsy e Pianty
 
-Bonsy ha cinque stadi, dal seme al bonsai adulto. Durante un focus parte dal primo stadio e passa al
+Bonsy e Pianty hanno cinque stadi ciascuno, dal seme alla pianta adulta. Durante un focus parte dal primo stadio e passa al
 successivo ogni quinto del tempo (con un focus da 50 minuti: ai minuti 0, 10, 20, 30 e 40). Durante la
 pausa e quando non c'è nessun timer resta allo stadio finale.
 
@@ -56,7 +57,7 @@ l'approvazione in Impostazioni di Sistema → Generali → Elementi login.
 
 ## Frasi
 
-Le frasi di partenza sono in `assets/frasi_bonsy.txt` (Bonsy) e `assets/frasi.txt` (Spidy), una per riga
+Le frasi di partenza sono in `assets/frasi_bonsy.txt` (Bonsy e Pianty, condivise) e `assets/frasi.txt` (Spidy), una per riga
 (le righe che iniziano con `#` sono ignorate). Per usare le tue senza ricompilare, scegli *Modifica le
 frasi…* dal menu: crea e apre `~/Library/Application Support/Bonsy/frasi_bonsy.txt` (o `frasi.txt` per
 Spidy), che ha la precedenza sul file incluso nell'app. Le modifiche valgono dalla frase successiva.
@@ -68,7 +69,7 @@ Se esiste ancora la vecchia cartella `Application Support/Spidy`, viene letta co
 Sources/Bonsy/
   main.swift            avvio dell'app
   AppDelegate.swift     crea finestra, fumetti, timer e menu
-  Pet.swift             i personaggi (Bonsy, Spidy): immagini, frasi, misure
+  Pet.swift             i personaggi (Bonsy, Pianty, Spidy): immagini, frasi, misure
   PetWindow.swift       finestra trasparente con il personaggio e i suoi stadi
   Speaker.swift         tempi e comparsa dei fumetti
   SpeechBubble.swift    fumetto: immagine scalata sul testo
@@ -79,6 +80,8 @@ Sources/Bonsy/
 assets/
   bonsy/original.png    immagine di partenza di Bonsy (5 stadi)
   bonsy/stage1..5.png   stadi ritagliati (generati da tools/cutout_bonsy.py)
+  pianty/original.png   immagine di partenza di Pianty (5 stadi)
+  pianty/stage1..5.png  stadi ritagliati (generati da tools/cutout_pianty.py)
   original.png, spidy.png   immagine di Spidy e ritaglio (tools/cutout.py)
   bubble_original.png, bubble.png   fumetto e ritaglio (tools/cutout_bubble.py)
   frasi_bonsy.txt, frasi.txt        frasi incluse nell'app

@@ -53,7 +53,22 @@ struct Pet: Equatable {
     )
 
     /// Bonsy è il personaggio principale: viene per primo ed è quello di partenza.
-    static let all = [bonsy, spidy]
+    /// Una succulenta che cresce come Bonsy e ne condivide le frasi.
+    static let pianty = Pet(
+        id: "pianty",
+        name: "Pianty",
+        imageResources: (1...5).map { "pianty_stage\($0)" },
+        size: NSSize(width: 73, height: 127),
+        quotesResource: "frasi_bonsy",
+        quotesUserFile: "frasi_bonsy.txt",
+        fallbackQuote: "Un passo alla volta: anch'io sono partito da un seme.",
+        greeting: "Ciao! Sono Pianty. Cresciamo insieme, con calma.",
+        shadowWidthFraction: 0.72,
+        groundFraction: 0.069,
+        iconCrop: nil
+    )
+
+    static let all = [bonsy, pianty, spidy]
 
     // MARK: - Scelta ricordata
 
