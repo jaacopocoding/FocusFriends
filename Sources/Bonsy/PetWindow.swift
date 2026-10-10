@@ -10,6 +10,8 @@ final class PetWindow: NSWindow {
     /// Sta venendo sollevato col mouse (solo per i personaggi con un disegno "sollevato").
     private(set) var isPicked = false
     private var restSize = NSSize.zero
+    /// Cosa sta facendo in relazione al timer (lo imposta Pomodoro, lo anima Walker).
+    var activity: PetActivity = .none
 
     init(pet: Pet) {
         self.pet = pet
@@ -38,12 +40,16 @@ final class PetWindow: NSWindow {
     override var canBecomeKey: Bool { false }
     override var canBecomeMain: Bool { false }
 
-    /// Appoggia la finestra nell'angolo in basso a destra, sopra il Dock.
+    /// Appoggia i piedi del personaggio sopra il Dock, nell'angolo in basso a destra.
+    /// (Sotto i piedi la finestra può avere dello spazio vuoto, ad esempio per le foglie di una carota.)
     func placeOnGround() {
         guard let screen = NSScreen.main else { return }
         let ground = screen.visibleFrame
-        setFrameOrigin(NSPoint(x: ground.maxX - pet.size.width - Self.margin, y: ground.minY))
+        setFrameOrigin(NSPoint(x: ground.maxX - pet.size.width - Self.margin, y: ground.minY - petView.feetHeight))
     }
+
+    /// Altezza dei piedi del personaggio, in coordinate schermo.
+    var feetY: CGFloat { frame.minY + petView.feetHeight }
 
     /// Cambia personaggio: la finestra si ridimensiona tenendo fermi i piedi (centro del lato basso).
     func apply(_ newPet: Pet) {
@@ -249,6 +255,12 @@ final class PetView: NSView {
         }
         stage = target
         needsDisplay = true
+    }
+
+    /// Altezza dei piedi (la linea di terra del disegno) dal bordo basso della vista.
+    var feetHeight: CGFloat {
+        let rect = imageRect
+        return rect.minY + groundFraction * rect.height
     }
 
     /// Altezza (in coordinate vista, dal basso) a cui arriva il disegno dello stadio attuale.

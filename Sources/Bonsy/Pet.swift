@@ -1,5 +1,14 @@
 import AppKit
 
+/// Cosa sta facendo il personaggio in relazione al timer. Chi ha i fotogrammi corrispondenti li mostra,
+/// gli altri ignorano l'azione e continuano come sempre.
+enum PetActivity {
+    case none
+    case sleeping       // durante il focus
+    case celebrating    // appena finito un focus
+    case eating         // durante la pausa
+}
+
 /// Un personaggio che può stare sul desktop: immagini (una per stadio di crescita), frasi e misure.
 struct Pet: Equatable {
     let id: String
@@ -28,6 +37,20 @@ struct Pet: Equatable {
     var talkFrame: Int? = nil
     /// Le immagini guardano a destra: quando va a sinistra vengono specchiate.
     var facesRight: Bool = false
+    /// Fotogrammi (indici in imageResources) delle azioni legate al timer, in ordine di riproduzione ciclica.
+    var sleepFrames: [Int] = []
+    var celebrateFrames: [Int] = []
+    var eatFrames: [Int] = []
+
+    func frames(for activity: PetActivity) -> [Int] {
+        switch activity {
+        case .none: return []
+        case .sleeping: return sleepFrames
+        case .celebrating: return celebrateFrames
+        case .eating: return eatFrames
+        }
+    }
+
     /// Disegno mostrato mentre l'utente lo solleva col mouse (nil = si trascina in modo normale).
     var pickedResource: String? = nil
     /// Dimensione della finestra mentre è sollevato, in punti.
@@ -107,19 +130,20 @@ struct Pet: Equatable {
     static let porcellino = Pet(
         id: "porcellino",
         name: "Porcellino",
-        imageResources: (1...5).map { "porcellino_frame\($0)" },
-        size: NSSize(width: 100, height: 70),
+        imageResources: (1...10).map { "porcellino_frame\($0)" },   // 1-5 cammino, 6-10 mangia
+        size: NSSize(width: 107, height: 82),
         quotesResource: "frasi_porcellino",
         quotesUserFile: "frasi_porcellino.txt",
         fallbackQuote: "Ce la fai: un passo alla volta.",
         greeting: "Ciao! Sono il porcellino. Facciamo due passi?",
         shadowWidthFraction: 0.7,
-        groundFraction: 0.05,
-        iconCrop: NSRect(x: 0.4, y: 0.2, width: 0.6, height: 0.8),   // la testa
+        groundFraction: 0.189,
+        iconCrop: NSRect(x: 0.46, y: 0.5, width: 0.5, height: 0.47),   // la testa
         walks: true,
         walkFrames: [1, 2, 3, 2],   // passo, passaggio, passo, passaggio
         talkFrame: 4,               // orecchie che saltellano
         facesRight: true,
+        eatFrames: [5, 6, 7, 8, 9, 8, 7, 6],   // tiene la carota, morde, mastica, e torna indietro
         pickedResource: "porcellino_picked",   // le mani che lo sollevano, spaventato
         pickedSize: NSSize(width: 130, height: 120),
         pickedGrab: CGPoint(x: 0.30, y: 0.60)   // il cursore sta sulle mani

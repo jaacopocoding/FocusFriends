@@ -54,7 +54,9 @@ li rimette in cammino. Se le immagini guardano a destra (come il porcellino), ve
 vanno a sinistra.
 
 Il Porcellino ha un ciclo di passi a 4 fotogrammi, una posa con le orecchie che saltellano mentre
-parla, e le sue frasi in `assets/frasi_porcellino.txt`. Quando lo trascini col mouse compare un disegno in cui
+parla, e le sue frasi in `assets/frasi_porcellino.txt`. Segue anche il Pomofocus: durante la pausa si ferma e
+mangia una carota (e, quando ci saranno le immagini, dorme durante il focus e fa il "popcorning" quando
+finisce un focus). Quando lo trascini col mouse compare un disegno in cui
 viene sollevato da due mani, spaventato (con un leggero tremolio); lasciandolo, torna in piedi dove si trova. Simulazione usa le frasi di Spidy.
 
 ## Installazione
@@ -103,7 +105,8 @@ assets/
   frasi_bonsy.txt, frasi.txt, frasi_porcellino.txt   frasi incluse nell'app
   simulazione/frame1..3.png   le tre pose di Simulazione (generate da tools/make_simulazione.sh)
   porcellino/original.png     immagine di partenza del porcellino (5 fotogrammi)
-  porcellino/frame1..5.png    fotogrammi ritagliati (generati da tools/cutout_porcellino.py)
+  porcellino/eat_original.png il foglio della carota (stesso formato; anche sleep_original.png e jump_original.png)
+  porcellino/frame*.png       fotogrammi ritagliati e allineati (1-5 cammino, 6-10 mangia), da tools/cutout_porcellino.py
   porcellino/picked_original.png, picked.png   il porcellino sollevato (tools/cutout_picked.py)
   AppIcon.icns          icona dell'app (generata da tools/make_icon.py)
 tools/                  script per ritagli, icona e pose di Simulazione (Python con Pillow e numpy; make_simulazione.sh usa Swift)

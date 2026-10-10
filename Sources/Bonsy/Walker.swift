@@ -25,6 +25,8 @@ final class Walker {
     /// la velocità reale verrebbe falsata. Qui accumulo i decimali.
     private var exactX: CGFloat?
     private var appliedX: CGFloat = 0
+    private var activityClock: TimeInterval = 0
+    private var wasInActivity = false
 
     private static let movementKey = "movement"
 
@@ -58,6 +60,31 @@ final class Walker {
         let pet = petWindow.pet
         guard pet.walks, petWindow.isVisible else { return }
 
+        // Sta fermo mentre lo trascini col mouse.
+        let beingDragged = petWindow.isPicked
+            || (NSEvent.pressedMouseButtons & 1 != 0 && petWindow.frame.contains(NSEvent.mouseLocation))
+
+        // Azioni legate al timer (dorme, festeggia, mangia): restano al loro posto e animano i fotogrammi.
+        let activityFrames = pet.frames(for: petWindow.activity)
+        if !beingDragged, !activityFrames.isEmpty {
+            wasInActivity = true
+            activityClock += dt
+            let interval: TimeInterval
+            switch petWindow.activity {
+            case .sleeping: interval = 0.9      // respiro lento
+            case .celebrating: interval = 0.14  // salti veloci
+            default: interval = 0.28            // mastica
+            }
+            petWindow.setPose(activityFrames[Int(activityClock / interval) % activityFrames.count])
+            return
+        }
+        if wasInActivity {
+            // Finita l'azione: riparte con calma, senza scattare subito.
+            wasInActivity = false
+            activityClock = 0
+            state = .resting(until: now.addingTimeInterval(1.5))
+        }
+
         // "Fermo" dal menu: resta nella posa a riposo (e quando riparte aspetta un attimo prima di muoversi).
         guard Self.isMovementEnabled else {
             petWindow.setPose(pet.restStage)
@@ -65,9 +92,7 @@ final class Walker {
             return
         }
 
-        // Sta fermo mentre parla o mentre lo trascini col mouse.
-        let beingDragged = petWindow.isPicked
-            || (NSEvent.pressedMouseButtons & 1 != 0 && petWindow.frame.contains(NSEvent.mouseLocation))
+        // Sta fermo mentre parla.
         if speaker.isSpeaking || beingDragged {
             petWindow.setPose(speaker.isSpeaking ? (pet.talkFrame ?? pet.restStage) : pet.restStage)
             // La passeggiata riprende da dove era: sposto in avanti il termine della fase.
