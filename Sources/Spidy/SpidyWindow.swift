@@ -17,7 +17,7 @@ final class SpidyWindow: NSWindow {
         level = .floating
         isReleasedWhenClosed = false
         collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
-        contentView = PlaceholderView(frame: NSRect(origin: .zero, size: Self.size))
+        contentView = SpidyView(frame: NSRect(origin: .zero, size: Self.size))
     }
 
     override var canBecomeKey: Bool { false }
@@ -31,10 +31,13 @@ final class SpidyWindow: NSWindow {
     }
 }
 
-/// Segnaposto dello Step 1: un quadrato rosso arrotondato. Verrà sostituito dal vero Spidy.
-final class PlaceholderView: NSView {
+/// Mostra Spidy nella finestra. L'animazione della camminata arriva allo Step 3.
+final class SpidyView: NSView {
+    var pose: SpidyPose = .idle {
+        didSet { needsDisplay = true }
+    }
+
     override func draw(_ dirtyRect: NSRect) {
-        NSColor(calibratedRed: 0.86, green: 0.1, blue: 0.12, alpha: 1).setFill()
-        NSBezierPath(roundedRect: bounds.insetBy(dx: 8, dy: 8), xRadius: 16, yRadius: 16).fill()
+        SpidyArt.draw(pose, in: bounds)
     }
 }
