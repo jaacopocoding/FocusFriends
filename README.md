@@ -16,9 +16,17 @@ Non fa altro: è solo una cosa carina sullo schermo.
 |---|---|
 | Nascondi / Mostra Spidy | Lo toglie dallo schermo o lo rimette |
 | Fai parlare Spidy | Mostra subito una frase |
+| Pomofocus ▸ | Timer: *Focus 30/50 min*, *Pausa 5/10 min*, *Ferma timer* |
 | Avvia al login | Si avvia da solo all'accensione del Mac |
 | Modifica le frasi… | Apre il file delle frasi |
 | Esci da Spidy | Chiude l'app |
+
+## Pomofocus
+
+Dal menu *Pomofocus* scegli un focus di 30 o 50 minuti: sotto Spidy compare un mini orologio digitale
+con il conto alla rovescia. Alla fine del focus suona un avviso e parte da sola la pausa (5 minuti,
+oppure l'ultima durata scelta tra *Pausa 5 min* e *Pausa 10 min*, segnata con la spunta). Alla fine della
+pausa l'orologio sparisce. Durante il focus Spidy parla più di rado, per non distrarti.
 
 ## Installazione
 
@@ -50,6 +58,8 @@ Sources/Spidy/
   Speaker.swift         tempi e comparsa dei fumetti
   SpeechBubble.swift    fumetto: immagine scalata sul testo
   Quotes.swift          caricamento delle frasi
+  Pomodoro.swift        logica del timer focus/pausa
+  TimerBubble.swift     orologio digitale sotto Spidy
   MenuController.swift  icona nella barra, menu, avvio al login
 assets/
   original.png          immagine di partenza

@@ -8,6 +8,9 @@ final class Speaker {
     private var hideTimer: Timer?
     private var lastQuote: String?
 
+    /// Pausa (in secondi) tra una frase spontanea e la successiva.
+    var interval: ClosedRange<TimeInterval> = 40...110
+
     init(spidy: NSWindow) {
         self.spidy = spidy
     }
@@ -64,7 +67,7 @@ final class Speaker {
         let visibleFor = max(4.5, 2.5 + Double(text.count) * 0.06)
         hideTimer = Timer.scheduledTimer(withTimeInterval: visibleFor, repeats: false) { [weak self] _ in
             self?.dismissBubble(animated: true)
-            self?.scheduleNext(after: .random(in: 40...110))
+            if let self { self.scheduleNext(after: .random(in: self.interval)) }
         }
     }
 

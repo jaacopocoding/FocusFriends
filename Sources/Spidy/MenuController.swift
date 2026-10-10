@@ -5,14 +5,18 @@ import ServiceManagement
 final class MenuController: NSObject, NSMenuDelegate {
     private let window: SpidyWindow
     private let speaker: Speaker
+    private let pomodoro: Pomodoro
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let menu = NSMenu()
     private let toggleItem = NSMenuItem()
     private let loginItem = NSMenuItem()
+    private let stopTimerItem = NSMenuItem()
+    private var breakItems: [NSMenuItem] = []
 
-    init(window: SpidyWindow, speaker: Speaker) {
+    init(window: SpidyWindow, speaker: Speaker, pomodoro: Pomodoro) {
         self.window = window
         self.speaker = speaker
+        self.pomodoro = pomodoro
         super.init()
 
         toggleItem.title = "Nascondi Spidy"
@@ -23,6 +27,8 @@ final class MenuController: NSObject, NSMenuDelegate {
         let speak = NSMenuItem(title: "Fai parlare Spidy", action: #selector(makeSpeak), keyEquivalent: "")
         speak.target = self
         menu.addItem(speak)
+
+        menu.addItem(makePomofocusItem())
 
         menu.addItem(.separator())
 
@@ -54,11 +60,48 @@ final class MenuController: NSObject, NSMenuDelegate {
         window.contentView?.menu = menu
     }
 
+    private func makePomofocusItem() -> NSMenuItem {
+        let parent = NSMenuItem(title: "Pomofocus", action: nil, keyEquivalent: "")
+        let sub = NSMenu(title: "Pomofocus")
+
+        for minutes in [30, 50] {
+            let item = NSMenuItem(title: "Focus \(minutes) min", action: #selector(startFocus(_:)), keyEquivalent: "")
+            item.target = self
+            item.tag = minutes
+            sub.addItem(item)
+        }
+        sub.addItem(.separator())
+
+        // La durata scelta vale anche per la pausa che parte da sola dopo il focus (spunta).
+        for minutes in [5, 10] {
+            let item = NSMenuItem(title: "Pausa \(minutes) min", action: #selector(startBreak(_:)), keyEquivalent: "")
+            item.target = self
+            item.tag = minutes
+            sub.addItem(item)
+            breakItems.append(item)
+        }
+        sub.addItem(.separator())
+
+        stopTimerItem.title = "Ferma timer"
+        stopTimerItem.action = #selector(stopTimer)
+        stopTimerItem.target = self
+        sub.addItem(stopTimerItem)
+
+        parent.submenu = sub
+        return parent
+    }
+
     // MARK: - Aggiornamento voci
 
     func menuNeedsUpdate(_ menu: NSMenu) {
         toggleItem.title = window.isVisible ? "Nascondi Spidy" : "Mostra Spidy"
         loginItem.state = SMAppService.mainApp.status == .enabled ? .on : .off
+
+        for item in breakItems {
+            item.state = item.tag == pomodoro.breakMinutes ? .on : .off
+        }
+        stopTimerItem.isEnabled = pomodoro.isRunning
+        stopTimerItem.title = pomodoro.isRunning ? "Ferma timer (\(pomodoro.remainingText))" : "Ferma timer"
     }
 
     // MARK: - Azioni
@@ -68,6 +111,27 @@ final class MenuController: NSObject, NSMenuDelegate {
             speaker.stop()
             window.orderOut(nil)
         } else {
+            window.orderFrontRegardless()
+            speaker.start()
+        }
+    }
+
+    @objc private func startFocus(_ sender: NSMenuItem) {
+        showSpidyIfHidden()
+        pomodoro.startFocus(minutes: sender.tag)
+    }
+
+    @objc private func startBreak(_ sender: NSMenuItem) {
+        showSpidyIfHidden()
+        pomodoro.startBreak(minutes: sender.tag)
+    }
+
+    @objc private func stopTimer() {
+        pomodoro.stop()
+    }
+
+    private func showSpidyIfHidden() {
+        if !window.isVisible {
             window.orderFrontRegardless()
             speaker.start()
         }

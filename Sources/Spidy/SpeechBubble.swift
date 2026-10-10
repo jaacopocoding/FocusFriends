@@ -1,10 +1,8 @@
 import AppKit
 
-/// Finestra del fumetto: trasparente, non cattura i click.
-final class BubbleWindow: NSWindow {
-    let bubbleView = BubbleView(frame: .zero)
-
-    init() {
+/// Finestra trasparente per gli elementi che stanno attorno a Spidy: non cattura i click.
+class OverlayWindow: NSWindow {
+    init(content: NSView) {
         super.init(contentRect: .zero, styleMask: [.borderless], backing: .buffered, defer: false)
         isOpaque = false
         backgroundColor = .clear
@@ -13,17 +11,28 @@ final class BubbleWindow: NSWindow {
         isReleasedWhenClosed = false
         ignoresMouseEvents = true
         collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
-        contentView = bubbleView
+        contentView = content
     }
 
     override var canBecomeKey: Bool { false }
     override var canBecomeMain: Bool { false }
 }
 
+/// Finestra del fumetto con la frase.
+final class BubbleWindow: OverlayWindow {
+    let bubbleView: BubbleView
+
+    init() {
+        let view = BubbleView(frame: .zero)
+        bubbleView = view
+        super.init(content: view)
+    }
+}
+
 /// Disegna il fumetto (assets/bubble.png) scalato sul testo, con la frase centrata nell'ovale.
 final class BubbleView: NSView {
     // Geometria dell'immagine, misurata da tools/cutout_bubble.py.
-    private static let ellipseHeightFraction: CGFloat = 0.837   // l'ovale occupa il 83,7% dell'altezza, il resto è la codina
+    static let ellipseHeightFraction: CGFloat = 0.837   // l'ovale occupa il 83,7% dell'altezza, il resto è la codina
     private static let ellipseAspect: CGFloat = 1.63            // larghezza / altezza dell'ovale
     /// Posizione orizzontale della punta della codina, come frazione della larghezza.
     static let tailTipFraction: CGFloat = 0.825
@@ -32,7 +41,7 @@ final class BubbleView: NSView {
     private static let textWidthFraction: CGFloat = 0.65
     private static let textHeightFraction: CGFloat = 0.55
 
-    private static let image: NSImage? = {
+    static let image: NSImage? = {
         guard let url = Bundle.main.url(forResource: "bubble", withExtension: "png") else { return nil }
         return NSImage(contentsOf: url)
     }()
