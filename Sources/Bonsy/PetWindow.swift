@@ -103,6 +103,11 @@ final class PetWindow: NSWindow {
         )
     }
 
+    /// Mostra gli "Zzz" sopra la testa (quando dorme).
+    func setSleepMarks(_ on: Bool) {
+        petView.showsSleepMarks = on
+    }
+
     /// Per chi ha le immagini rivolte a destra: specchia l'immagine quando va a sinistra.
     func setFacing(right: Bool) {
         petView.mirrored = !right && pet.facesRight
@@ -146,6 +151,24 @@ final class PetView: NSView {
     private var topFractions: [CGFloat] = []
     private var shadowFraction: CGFloat = 0.65
     private var groundFraction: CGFloat = 0
+
+    /// Gli "Zzz" che salgono sopra la testa mentre dorme.
+    var showsSleepMarks = false {
+        didSet {
+            guard showsSleepMarks != oldValue else { return }
+            sleepTimer?.invalidate()
+            sleepTimer = nil
+            if showsSleepMarks {
+                sleepStart = Date()
+                let timer = Timer(timeInterval: 1.0 / 15, repeats: true) { [weak self] _ in self?.needsDisplay = true }
+                RunLoop.main.add(timer, forMode: .common)
+                sleepTimer = timer
+            }
+            needsDisplay = true
+        }
+    }
+    private var sleepTimer: Timer?
+    private var sleepStart = Date()
 
     /// Disegna l'immagine specchiata in orizzontale (il personaggio va verso sinistra).
     var mirrored = false {
@@ -300,7 +323,31 @@ final class PetView: NSView {
         return NSRect(x: available.midX - size.width / 2, y: available.minY, width: size.width, height: size.height)
     }
 
+    /// Tre lettere "z" che salgono una dopo l'altra sopra la testa e svaniscono.
+    private func drawSleepMarks() {
+        let t = Date().timeIntervalSince(sleepStart)
+        let headX = bounds.width * (mirrored ? 0.2 : 0.8)       // la testa sta a destra (a sinistra se specchiato)
+        let baseY = artTop + 2
+        let letters: [(text: String, size: CGFloat, dx: CGFloat)] = [("z", 9, 0), ("Z", 12, 7), ("z", 9, 14)]
+        let direction: CGFloat = mirrored ? -1 : 1
+
+        for (i, letter) in letters.enumerated() {
+            let phase = (t - Double(i) * 0.7).truncatingRemainder(dividingBy: 2.8)
+            guard phase >= 0 else { continue }
+            let p = CGFloat(phase / 2.8)                          // 0...1
+            let alpha = sin(p * .pi)                              // compare, resta, svanisce
+            let font = NSFont(name: "MarkerFelt-Wide", size: letter.size) ?? NSFont.systemFont(ofSize: letter.size, weight: .bold)
+            let attrs: [NSAttributedString.Key: Any] = [
+                .font: font,
+                .foregroundColor: NSColor(calibratedRed: 0.36, green: 0.30, blue: 0.24, alpha: alpha),
+            ]
+            let point = NSPoint(x: headX + direction * letter.dx, y: baseY + p * 14)
+            (letter.text as NSString).draw(at: point, withAttributes: attrs)
+        }
+    }
+
     override func draw(_ dirtyRect: NSRect) {
+        if showsSleepMarks { drawSleepMarks() }
         if isPickedUp, let pickedImage {
             drawPicked(pickedImage)
             return

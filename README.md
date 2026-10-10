@@ -55,8 +55,10 @@ vanno a sinistra.
 
 Il Porcellino ha un ciclo di passi a 4 fotogrammi, una posa con le orecchie che saltellano mentre
 parla, e le sue frasi in `assets/frasi_porcellino.txt`. Ogni tanto, in momenti casuali mentre gira per lo
-schermo, si ferma a mangiare una carota per una decina di secondi (non due volte di fila). Quando ci
-saranno le immagini, dormirà durante il focus e farà il "popcorning" quando ne finisce uno. Quando lo trascini col mouse compare un disegno in cui
+schermo, si ferma a mangiare una carota per una decina di secondi (circa una pausa su tre) o a fare un
+pisolino di 12–30 secondi, con gli "Zzz" che salgono sopra la testa (una pausa su sette). Dopo aver
+mangiato o dormito riparte sempre a camminare. Quando ci saranno le immagini, farà il "popcorning"
+quando finisce un focus. Quando lo trascini col mouse compare un disegno in cui
 viene sollevato da due mani, spaventato (con un leggero tremolio); lasciandolo, torna in piedi dove si trova. Simulazione usa le frasi di Spidy.
 
 ## Installazione
@@ -105,8 +107,8 @@ assets/
   frasi_bonsy.txt, frasi.txt, frasi_porcellino.txt   frasi incluse nell'app
   simulazione/frame1..3.png   le tre pose di Simulazione (generate da tools/make_simulazione.sh)
   porcellino/original.png     immagine di partenza del porcellino (5 fotogrammi)
-  porcellino/eat_original.png il foglio della carota (stesso formato; anche sleep_original.png e jump_original.png)
-  porcellino/frame*.png       fotogrammi ritagliati e allineati (1-5 cammino, 6-10 mangia), da tools/cutout_porcellino.py
+  porcellino/eat_original.png, sleep_original.png   i fogli della carota e del sonno (e jump_original.png, in attesa)
+  porcellino/frame*.png       fotogrammi ritagliati e allineati (1-5 cammino, 6-10 mangia, 11-14 dorme), da tools/cutout_porcellino.py
   porcellino/picked_original.png, picked.png   il porcellino sollevato (tools/cutout_picked.py)
   AppIcon.icns          icona dell'app (generata da tools/make_icon.py)
 tools/                  script per ritagli, icona e pose di Simulazione (Python con Pillow e numpy; make_simulazione.sh usa Swift)

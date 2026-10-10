@@ -30,6 +30,8 @@ SHEETS = [
 BG_MIN = 246
 MIN_PART = 0.02
 PAD = 4
+# Spazio vuoto sopra il disegno: serve agli "Zzz" che salgono (e al popcorning, che salta in alto).
+HEADROOM = 28
 
 
 def flood(passable, seeds, four=True):
@@ -152,7 +154,7 @@ for name, mode in SHEETS:
 assert all_frames, "nessun foglio trovato"
 
 # --- formato comune ---
-up = max(f["ground"] - f["top"] for _, _, f in all_frames) + PAD
+up = max(f["ground"] - f["top"] for _, _, f in all_frames) + PAD + HEADROOM
 down = max(f["bottom"] - f["ground"] for _, _, f in all_frames) + PAD
 half = int(np.ceil(max(max(f["cx"] - f["xmin"], f["xmax"] - f["cx"]) for _, _, f in all_frames))) + PAD
 CW, CH = 2 * half, int(up + down + 1)

@@ -90,7 +90,7 @@ final class Pomodoro {
         phaseStart = Date()
         endDate = phaseStart.addingTimeInterval(Double(minutes) * Self.secondsPerMinute)
         speaker.interval = phase == .focus ? Self.chatterWhileFocusing : Self.chatterNormally
-        petWindow.activity = phase == .focus ? .sleeping : .none
+        petWindow.activity = .none
 
         if window == nil { window = TimerWindow() }
         window?.timerView.label = phase.label
