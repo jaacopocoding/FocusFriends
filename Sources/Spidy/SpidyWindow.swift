@@ -2,8 +2,8 @@ import AppKit
 
 /// Finestra trasparente, senza bordi, sempre sopra le altre, visibile su tutti gli Spaces.
 final class SpidyWindow: NSWindow {
-    static let size = NSSize(width: 124, height: 154)
-    private static let margin: CGFloat = 32
+    static let size = NSSize(width: 80, height: 100)
+    private static let margin: CGFloat = 24
 
     init() {
         super.init(
@@ -46,10 +46,10 @@ final class SpidyView: NSView {
         guard let image else { return }
 
         NSColor.black.withAlphaComponent(0.16).setFill()
-        NSBezierPath(ovalIn: NSRect(x: bounds.midX - 40, y: 1, width: 80, height: 9)).fill()
+        NSBezierPath(ovalIn: NSRect(x: bounds.midX - 26, y: 1, width: 52, height: 6)).fill()
 
         // Adatta l'immagine allo spazio disponibile mantenendo le proporzioni, appoggiata in basso.
-        let available = NSRect(x: 0, y: 5, width: bounds.width, height: bounds.height - 5)
+        let available = NSRect(x: 0, y: 3, width: bounds.width, height: bounds.height - 3)
         let scale = min(available.width / image.size.width, available.height / image.size.height)
         let size = NSSize(width: image.size.width * scale, height: image.size.height * scale)
         let target = NSRect(x: available.midX - size.width / 2, y: available.minY, width: size.width, height: size.height)
