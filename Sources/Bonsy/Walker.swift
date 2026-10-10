@@ -9,6 +9,7 @@ final class Walker {
         case walking(until: Date, direction: CGFloat)    // direction: -1 sinistra, +1 destra
         case eating(until: Date)                         // si ferma a mangiare (per chi ha i fotogrammi)
         case sleeping(start: Date, until: Date)          // dorme (per chi ha i fotogrammi)
+        case popcorning(until: Date)                     // saltelli di gioia (per chi ha i fotogrammi)
     }
 
     // Camminata
@@ -21,6 +22,9 @@ final class Walker {
     // Momenti casuali: dopo una pausa può mangiare, dormire, oppure ripartire.
     private static let eatChance = 0.3
     private static let sleepChance = 0.15
+    private static let popcornChance = 0.12
+    private static let popcornDuration: ClosedRange<TimeInterval> = 3...6
+    private static let popcornInterval: TimeInterval = 0.16
     private static let eatDuration: ClosedRange<TimeInterval> = 6...12
     private static let sleepDuration: ClosedRange<TimeInterval> = 12...30
     private static let chewInterval: TimeInterval = 0.28
@@ -42,8 +46,6 @@ final class Walker {
     private var state: State = .resting(until: Date().addingTimeInterval(2))
     private var lastTick = Date()
     private var stepClock: TimeInterval = 0
-    private var activityClock: TimeInterval = 0
-    private var wasInTimerActivity = false
     /// Appena finito di mangiare o dormire: la prossima scelta è per forza una camminata.
     private var justRested = false
     /// Posizione orizzontale "esatta": AppKit arrotonda a punti interi, e sommando passi di 1,4 punti
@@ -91,21 +93,6 @@ final class Walker {
             return
         }
 
-        // Festa a fine focus (legata al timer): resta al suo posto e anima i fotogrammi.
-        let timerFrames = pet.frames(for: petWindow.activity)
-        if !timerFrames.isEmpty {
-            wasInTimerActivity = true
-            activityClock += dt
-            petWindow.setSleepMarks(false)
-            petWindow.setPose(timerFrames[Int(activityClock / 0.14) % timerFrames.count])
-            return
-        }
-        if wasInTimerActivity {
-            wasInTimerActivity = false
-            activityClock = 0
-            state = .resting(until: now.addingTimeInterval(Self.afterActivityPause))
-        }
-
         // "Fermo" dal menu: resta nella posa a riposo (e quando riparte aspetta un attimo).
         guard Self.isMovementEnabled else {
             petWindow.setPose(pet.restStage)
@@ -114,7 +101,7 @@ final class Walker {
             return
         }
 
-        // Sta fermo mentre parla, ma se mangia o dorme resta nella sua posa.
+        // Sta fermo mentre parla, ma se mangia, dorme o salta resta nella sua posa.
         if speaker.isSpeaking, !isEatingOrSleeping {
             petWindow.setPose(pet.talkFrame ?? pet.restStage)
             delayState(by: dt)
@@ -137,6 +124,13 @@ final class Walker {
             petWindow.setPose(frames[Int(stepClock / Self.chewInterval) % frames.count])
             if now >= until { finishActivity(now: now, pet: pet) }
 
+        case .popcorning(let until):
+            // Saltelli di gioia: resta dov'è e ripete il salto (pronto, slancio, in aria, atterraggio).
+            stepClock += dt
+            let frames = pet.popcornFrames
+            petWindow.setPose(frames[Int(stepClock / Self.popcornInterval) % frames.count])
+            if now >= until { finishActivity(now: now, pet: pet) }
+
         case .sleeping(let start, let until):
             // Assopito, poi respira piano (con gli "Zzz"), poi di nuovo assopito prima di svegliarsi.
             let t = now.timeIntervalSince(start)
@@ -155,7 +149,7 @@ final class Walker {
 
     private var isEatingOrSleeping: Bool {
         switch state {
-        case .eating, .sleeping: return true
+        case .eating, .sleeping, .popcorning: return true
         default: return false
         }
     }
@@ -166,6 +160,7 @@ final class Walker {
         case .resting(let until): state = .resting(until: until.addingTimeInterval(dt))
         case .walking(let until, let d): state = .walking(until: until.addingTimeInterval(dt), direction: d)
         case .eating(let until): state = .eating(until: until.addingTimeInterval(dt))
+        case .popcorning(let until): state = .popcorning(until: until.addingTimeInterval(dt))
         case .sleeping(let start, let until):
             state = .sleeping(start: start.addingTimeInterval(dt), until: until.addingTimeInterval(dt))
         }
@@ -173,18 +168,32 @@ final class Walker {
 
     // MARK: - Scelte
 
-    /// Finita una pausa: a sorte mangia, dorme o riparte. Dopo aver mangiato o dormito riparte per forza.
+    /// Finita una pausa: a sorte mangia, dorme, fa il popcorning o riparte. Dopo una di queste soste
+    /// riparte per forza a camminare. Un personaggio senza i fotogrammi di un'azione non la sceglie mai.
     private func chooseNext(now: Date, pet: Pet) {
-        let roll = Double.random(in: 0..<1)
-        let canEat = !pet.eatFrames.isEmpty && !justRested
-        let canSleep = !pet.sleepFrames.isEmpty && !justRested
+        var roll = Double.random(in: 0..<1)
+        let canRest = !justRested
+        var choice = "walk"
+        for (name, chance, available) in [
+            ("eat", Self.eatChance, !pet.eatFrames.isEmpty),
+            ("sleep", Self.sleepChance, !pet.sleepFrames.isEmpty),
+            ("popcorn", Self.popcornChance, !pet.popcornFrames.isEmpty),
+        ] {
+            guard canRest, available else { continue }
+            if roll < chance { choice = name; break }
+            roll -= chance
+        }
 
-        if canEat && roll < Self.eatChance {
+        switch choice {
+        case "eat":
             state = .eating(until: now.addingTimeInterval(.random(in: Self.eatDuration)))
             stepClock = 0
-        } else if canSleep && roll >= Self.eatChance && roll < Self.eatChance + Self.sleepChance {
+        case "sleep":
             state = .sleeping(start: now, until: now.addingTimeInterval(.random(in: Self.sleepDuration)))
-        } else {
+        case "popcorn":
+            state = .popcorning(until: now.addingTimeInterval(.random(in: Self.popcornDuration)))
+            stepClock = 0
+        default:
             justRested = false
             let direction = chooseDirection()
             state = .walking(until: now.addingTimeInterval(.random(in: Self.walkDuration)), direction: direction)

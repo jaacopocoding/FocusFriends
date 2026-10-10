@@ -1,12 +1,5 @@
 import AppKit
 
-/// Cosa sta facendo il personaggio in relazione al timer. Chi ha i fotogrammi corrispondenti li mostra,
-/// gli altri ignorano l'azione e continuano come sempre.
-enum PetActivity {
-    case none
-    case celebrating    // appena finito un focus
-}
-
 /// Un personaggio che può stare sul desktop: immagini (una per stadio di crescita), frasi e misure.
 struct Pet: Equatable {
     let id: String
@@ -35,20 +28,13 @@ struct Pet: Equatable {
     var talkFrame: Int? = nil
     /// Le immagini guardano a destra: quando va a sinistra vengono specchiate.
     var facesRight: Bool = false
-    /// Fotogrammi (indici in imageResources) di cosa fa quando finisce un focus.
-    var celebrateFrames: [Int] = []
     /// Fotogrammi di quando mangia: lo fa ogni tanto, in momenti casuali, mentre gira per lo schermo.
     var eatFrames: [Int] = []
     /// Dorme ogni tanto, in momenti casuali: prima la posa "assopito", poi il respiro in ciclo.
     var sleepIntroFrame: Int? = nil
     var sleepFrames: [Int] = []
-
-    func frames(for activity: PetActivity) -> [Int] {
-        switch activity {
-        case .none: return []
-        case .celebrating: return celebrateFrames
-        }
-    }
+    /// Ogni tanto, in momenti casuali, fa il "popcorning": saltelli di gioia, uno dopo l'altro.
+    var popcornFrames: [Int] = []
 
     /// Disegno mostrato mentre l'utente lo solleva col mouse (nil = si trascina in modo normale).
     var pickedResource: String? = nil
@@ -129,15 +115,15 @@ struct Pet: Equatable {
     static let porcellino = Pet(
         id: "porcellino",
         name: "Porcellino",
-        imageResources: (1...14).map { "porcellino_frame\($0)" },   // 1-5 cammino, 6-10 mangia, 11-14 dorme
-        size: NSSize(width: 118, height: 96),
+        imageResources: (1...19).map { "porcellino_frame\($0)" },   // 1-5 cammino, 6-10 mangia, 11-14 dorme, 15-19 popcorning
+        size: NSSize(width: 118, height: 121),
         quotesResource: "frasi_porcellino",
         quotesUserFile: "frasi_porcellino.txt",
         fallbackQuote: "Ce la fai: un passo alla volta.",
         greeting: "Ciao! Sono il porcellino. Facciamo due passi?",
         shadowWidthFraction: 0.7,
-        groundFraction: 0.161,
-        iconCrop: NSRect(x: 0.5, y: 0.45, width: 0.46, height: 0.37),   // la testa
+        groundFraction: 0.129,
+        iconCrop: NSRect(x: 0.487, y: 0.355, width: 0.381, height: 0.288),   // la testa
         walks: true,
         walkFrames: [1, 2, 3, 2],   // passo, passaggio, passo, passaggio
         talkFrame: 4,               // orecchie che saltellano
@@ -145,6 +131,7 @@ struct Pet: Equatable {
         eatFrames: [5, 6, 7, 8, 9, 8, 7, 6],   // tiene la carota, morde, mastica, e torna indietro
         sleepIntroFrame: 10,                    // assopito
         sleepFrames: [11, 12, 11, 12, 11, 12, 13, 12],   // respiro lento, ogni tanto l'orecchio si muove
+        popcornFrames: [14, 15, 16, 17, 18],     // pronto, slancio, in aria, atterraggio, pronto
         pickedResource: "porcellino_picked",   // le mani che lo sollevano, spaventato
         pickedSize: NSSize(width: 130, height: 120),
         pickedGrab: CGPoint(x: 0.30, y: 0.60)   // il cursore sta sulle mani

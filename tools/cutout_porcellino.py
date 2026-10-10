@@ -20,18 +20,19 @@ DIR = "assets/porcellino"
 # (file, come trovare la linea di terra, come centrare)
 #   ground: "bottom" = il punto più basso del disegno; "rear" = il punto più basso della parte posteriore
 #           (serve quando c'è un oggetto che sporge sotto i piedi, come la carota);
-#           "sheet" = lo stesso piano per tutto il foglio (per i salti: il punto più basso di tutti)
+#           "jump" = per i salti: i fotogrammi a terra si allineano ai propri piedi, quelli in aria usano
+#           come terra il piano degli altri (così l'altezza del salto si vede)
 SHEETS = [
     ("original.png", "bottom"),
     ("eat_original.png", "rear"),
     ("sleep_original.png", "bottom"),
-    ("jump_original.png", "sheet"),
+    ("jump_original.png", "jump"),
 ]
 BG_MIN = 246
 MIN_PART = 0.02
 PAD = 4
 # Spazio vuoto sopra il disegno: serve agli "Zzz" che salgono (e al popcorning, che salta in alto).
-HEADROOM = 28
+HEADROOM = 0     # non serve più: il fotogramma in aria del salto dà già tutto lo spazio sopra
 
 
 def flood(passable, seeds, four=True):
@@ -138,10 +139,12 @@ for name, mode in SHEETS:
         print(f"(salto {name}: non c'è)")
         continue
     frames = cut_sheet(path, mode)
-    if mode == "sheet":
-        lowest = max(f["bottom"] for f in frames)    # il piano d'appoggio è il punto più basso di tutti
+    if mode == "jump":
+        lowest = max(f["bottom"] for f in frames)
+        grounded = [f["bottom"] for f in frames if lowest - f["bottom"] <= 10]
+        ref = int(np.median(grounded))               # il piano d'appoggio: dove stanno i fotogrammi a terra
         for f in frames:
-            f["ground"] = lowest
+            f["ground"] = f["bottom"] if lowest - f["bottom"] <= 10 else ref
     if left_offset is None:
         left_offset = float(np.median([f["cx_centroid"] - f["xmin_upper"] for f in frames]))
     for f in frames:

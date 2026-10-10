@@ -10,8 +10,6 @@ final class PetWindow: NSWindow {
     /// Sta venendo sollevato col mouse (solo per i personaggi con un disegno "sollevato").
     private(set) var isPicked = false
     private var restSize = NSSize.zero
-    /// Cosa sta facendo in relazione al timer (lo imposta Pomodoro, lo anima Walker).
-    var activity: PetActivity = .none
 
     init(pet: Pet) {
         self.pet = pet
