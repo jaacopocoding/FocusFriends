@@ -20,85 +20,83 @@ final class BubbleWindow: NSWindow {
     override var canBecomeMain: Bool { false }
 }
 
+/// Disegna il fumetto (assets/bubble.png) scalato sul testo, con la frase centrata nell'ovale.
 final class BubbleView: NSView {
-    private static let maxTextWidth: CGFloat = 180
-    private static let padding: CGFloat = 12
-    private static let tailHeight: CGFloat = 10
-    private static let tailHalfWidth: CGFloat = 8
-    static let minTailInset: CGFloat = 18
+    // Geometria dell'immagine, misurata da tools/cutout_bubble.py.
+    private static let ellipseHeightFraction: CGFloat = 0.837   // l'ovale occupa il 83,7% dell'altezza, il resto è la codina
+    private static let ellipseAspect: CGFloat = 1.63            // larghezza / altezza dell'ovale
+    /// Posizione orizzontale della punta della codina, come frazione della larghezza.
+    static let tailTipFraction: CGFloat = 0.825
+
+    // Parte dell'ovale in cui il testo sta comodo.
+    private static let textWidthFraction: CGFloat = 0.65
+    private static let textHeightFraction: CGFloat = 0.55
+
+    private static let image: NSImage? = {
+        guard let url = Bundle.main.url(forResource: "bubble", withExtension: "png") else { return nil }
+        return NSImage(contentsOf: url)
+    }()
 
     private static let attributes: [NSAttributedString.Key: Any] = {
-        var font = NSFont.systemFont(ofSize: 13, weight: .semibold)
-        if let rounded = font.fontDescriptor.withDesign(.rounded), let f = NSFont(descriptor: rounded, size: 13) {
-            font = f
-        }
+        let font = NSFont(name: "MarkerFelt-Wide", size: 14)
+            ?? NSFont.systemFont(ofSize: 13, weight: .semibold)
         let style = NSMutableParagraphStyle()
         style.alignment = .center
         style.lineBreakMode = .byWordWrapping
-        return [.font: font, .foregroundColor: NSColor(calibratedWhite: 0.1, alpha: 1), .paragraphStyle: style]
+        return [
+            .font: font,
+            .foregroundColor: NSColor(calibratedRed: 0.14, green: 0.09, blue: 0.05, alpha: 1),
+            .paragraphStyle: style,
+        ]
     }()
 
     var text = "" { didSet { needsDisplay = true } }
-    /// Ascissa (nella vista) della punta della codina.
-    var tailX: CGFloat = 40 { didSet { needsDisplay = true } }
 
-    private static func textSize(for text: String) -> NSSize {
+    private static func textSize(_ text: String, width: CGFloat) -> NSSize {
         let rect = (text as NSString).boundingRect(
-            with: NSSize(width: maxTextWidth, height: .greatestFiniteMagnitude),
+            with: NSSize(width: width, height: .greatestFiniteMagnitude),
             options: [.usesLineFragmentOrigin, .usesFontLeading],
             attributes: attributes
         )
         return NSSize(width: ceil(rect.width), height: ceil(rect.height))
     }
 
+    /// Dimensione del fumetto per questa frase: prova varie larghezze del testo e sceglie
+    /// quella che dà un ovale con proporzioni più simili a quelle dell'immagine.
     static func size(for text: String) -> NSSize {
-        let t = textSize(for: text)
-        return NSSize(width: max(t.width, 60) + padding * 2, height: t.height + padding * 2 + tailHeight)
+        var best: (ellipse: NSSize, score: CGFloat)?
+        for wrap in stride(from: 110.0, through: 260.0, by: 10.0) {
+            let t = textSize(text, width: wrap)
+            let ew = max(t.width / textWidthFraction, 130)
+            let eh = max(t.height / textHeightFraction, ew / ellipseAspect * 0.6)
+            // Più l'ovale è vicino alle proporzioni dell'immagine, meno viene deformata.
+            let score = abs(log((ew / eh) / ellipseAspect)) + (ew * eh) / 400_000
+            if best == nil || score < best!.score {
+                best = (NSSize(width: ew, height: eh), score)
+            }
+        }
+        let ellipse = best?.ellipse ?? NSSize(width: 180, height: 110)
+        return NSSize(width: ceil(ellipse.width), height: ceil(ellipse.height / ellipseHeightFraction))
     }
 
     override func draw(_ dirtyRect: NSRect) {
-        let tail = Self.tailHeight
-        let body = NSRect(x: 1, y: tail, width: bounds.width - 2, height: bounds.height - tail - 1)
-        let outline = NSColor(calibratedWhite: 0.1, alpha: 1)
-        let fill = NSColor(calibratedWhite: 0.99, alpha: 1)
+        if let image = Self.image {
+            image.draw(in: bounds, from: .zero, operation: .sourceOver, fraction: 1)
+        } else {
+            NSColor(calibratedRed: 0.97, green: 0.92, blue: 0.80, alpha: 1).setFill()
+            NSBezierPath(roundedRect: bounds, xRadius: 16, yRadius: 16).fill()
+        }
 
-        let bubble = NSBezierPath(roundedRect: body, xRadius: 14, yRadius: 14)
-        fill.setFill()
-        bubble.fill()
-        outline.setStroke()
-        bubble.lineWidth = 1.5
-        bubble.stroke()
-
-        // Codina: copre il tratto del contorno sotto di sé, poi disegna solo i due lati inclinati.
-        let hw = Self.tailHalfWidth
-        let left = NSPoint(x: tailX - hw, y: tail + 0.8)
-        let tip = NSPoint(x: tailX, y: 1)
-        let right = NSPoint(x: tailX + hw, y: tail + 0.8)
-
-        let tailFill = NSBezierPath()
-        tailFill.move(to: left)
-        tailFill.line(to: tip)
-        tailFill.line(to: right)
-        tailFill.close()
-        fill.setFill()
-        tailFill.fill()
-
-        let tailEdge = NSBezierPath()
-        tailEdge.move(to: left)
-        tailEdge.line(to: tip)
-        tailEdge.line(to: right)
-        tailEdge.lineWidth = 1.5
-        tailEdge.lineJoinStyle = .round
-        tailEdge.lineCapStyle = .round
-        outline.setStroke()
-        tailEdge.stroke()
-
-        let textRect = NSRect(
-            x: Self.padding,
-            y: tail + Self.padding,
-            width: bounds.width - Self.padding * 2,
-            height: bounds.height - tail - Self.padding * 2
+        // Ovale = parte alta della vista. Il testo sta centrato lì dentro.
+        let ellipseHeight = bounds.height * Self.ellipseHeightFraction
+        let box = NSRect(
+            x: bounds.midX - bounds.width * Self.textWidthFraction / 2,
+            y: bounds.height - ellipseHeight / 2 - ellipseHeight * Self.textHeightFraction / 2,
+            width: bounds.width * Self.textWidthFraction,
+            height: ellipseHeight * Self.textHeightFraction
         )
-        (text as NSString).draw(with: textRect, options: [.usesLineFragmentOrigin, .usesFontLeading], attributes: Self.attributes)
+        let used = Self.textSize(text, width: box.width)
+        let target = NSRect(x: box.minX, y: box.midY - used.height / 2, width: box.width, height: used.height)
+        (text as NSString).draw(with: target, options: [.usesLineFragmentOrigin, .usesFontLeading], attributes: Self.attributes)
     }
 }

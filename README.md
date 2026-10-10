@@ -48,14 +48,17 @@ Sources/Spidy/
   AppDelegate.swift     crea finestra, fumetti e menu
   SpidyWindow.swift     finestra trasparente con il personaggio
   Speaker.swift         tempi e comparsa dei fumetti
-  SpeechBubble.swift    disegno del fumetto
+  SpeechBubble.swift    fumetto: immagine scalata sul testo
   Quotes.swift          caricamento delle frasi
   MenuController.swift  icona nella barra, menu, avvio al login
 assets/
   original.png          immagine di partenza
   spidy.png             personaggio ritagliato (generato da tools/cutout.py)
+  bubble_original.png   immagine di partenza del fumetto
+  bubble.png            fumetto ritagliato (generato da tools/cutout_bubble.py)
   frasi.txt             frasi incluse nell'app
-tools/cutout.py         ritaglia lo sfondo bianco (richiede Pillow e numpy)
+tools/cutout.py         ritaglia lo sfondo bianco di Spidy (richiede Pillow e numpy)
+tools/cutout_bubble.py  ritaglia il fumetto dalla carta
 build.sh                compila e crea build/Spidy.app
 ```
 

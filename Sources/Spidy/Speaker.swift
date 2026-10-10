@@ -42,14 +42,13 @@ final class Speaker {
         let anchor = spidy.frame
         let screen = (spidy.screen ?? NSScreen.main)?.visibleFrame ?? .zero
 
-        // Fumetto sopra la testa, spostato a sinistra così la codina resta verso destra.
-        var x = anchor.midX - size.width + 30
+        // Fumetto sopra la testa: la punta della codina (fissa nell'immagine) va sopra Spidy.
+        var x = anchor.midX - size.width * BubbleView.tailTipFraction
         x = min(max(x, screen.minX + 6), screen.maxX - size.width - 6)
-        var y = anchor.maxY - 4
+        var y = anchor.maxY - 6
         y = min(y, screen.maxY - size.height - 4)
 
         window.bubbleView.text = text
-        window.bubbleView.tailX = min(max(anchor.midX - x, BubbleView.minTailInset), size.width - BubbleView.minTailInset)
         window.setFrame(NSRect(origin: NSPoint(x: x, y: y), size: size), display: true)
         window.alphaValue = 0
 
