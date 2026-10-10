@@ -67,8 +67,10 @@ assets/
   bubble_original.png   immagine di partenza del fumetto
   bubble.png            fumetto ritagliato (generato da tools/cutout_bubble.py)
   frasi.txt             frasi incluse nell'app
+  AppIcon.icns          icona dell'app (generata da tools/make_icon.py)
 tools/cutout.py         ritaglia lo sfondo bianco di Spidy (richiede Pillow e numpy)
 tools/cutout_bubble.py  ritaglia il fumetto dalla carta
+tools/make_icon.py      crea l'icona dell'app da assets/spidy.png
 build.sh                compila e crea build/Spidy.app
 ```
 
