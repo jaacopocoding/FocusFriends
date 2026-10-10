@@ -22,6 +22,12 @@ struct Pet: Equatable {
     /// Se cammina per lo schermo. In quel caso le immagini non sono stadi di crescita ma pose:
     /// 0 = fermo, 1 e 2 = i due passi.
     var walks: Bool = false
+    /// Per chi cammina: la sequenza di immagini (indici) da ripetere mentre cammina.
+    var walkFrames: [Int] = [1, 2]
+    /// Per chi cammina: la posa mentre parla (nil = resta ferma nella posa a riposo).
+    var talkFrame: Int? = nil
+    /// Le immagini guardano a destra: quando va a sinistra vengono specchiate.
+    var facesRight: Bool = false
 
     var stageCount: Int { imageResources.count }
     var finalStage: Int { stageCount - 1 }
@@ -91,7 +97,26 @@ struct Pet: Equatable {
         walks: true
     )
 
-    static let all = [bonsy, pianty, spidy, simulazione]
+    /// Un porcellino d'India: cammina per lo schermo e le incoraggia.
+    static let porcellino = Pet(
+        id: "porcellino",
+        name: "Porcellino",
+        imageResources: (1...5).map { "porcellino_frame\($0)" },
+        size: NSSize(width: 100, height: 70),
+        quotesResource: "frasi_porcellino",
+        quotesUserFile: "frasi_porcellino.txt",
+        fallbackQuote: "Ce la fai: un passo alla volta.",
+        greeting: "Ciao! Sono il porcellino. Facciamo due passi?",
+        shadowWidthFraction: 0.7,
+        groundFraction: 0.05,
+        iconCrop: NSRect(x: 0.4, y: 0.2, width: 0.6, height: 0.8),   // la testa
+        walks: true,
+        walkFrames: [1, 2, 3, 2],   // passo, passaggio, passo, passaggio
+        talkFrame: 4,               // orecchie che saltellano
+        facesRight: true
+    )
+
+    static let all = [bonsy, pianty, porcellino, spidy, simulazione]
 
     // MARK: - Scelta ricordata
 

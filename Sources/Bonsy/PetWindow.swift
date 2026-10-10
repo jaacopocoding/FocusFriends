@@ -58,6 +58,11 @@ final class PetWindow: NSWindow {
         petView.setStage(stage, animated: true)
     }
 
+    /// Per chi ha le immagini rivolte a destra: specchia l'immagine quando va a sinistra.
+    func setFacing(right: Bool) {
+        petView.mirrored = !right && pet.facesRight
+    }
+
     /// Cambia posa all'istante (per chi cammina: fermo, passo sinistro, passo destro).
     func setPose(_ pose: Int) {
         petView.setStage(pose, animated: false)
@@ -97,6 +102,11 @@ final class PetView: NSView {
     private var shadowFraction: CGFloat = 0.65
     private var groundFraction: CGFloat = 0
 
+    /// Disegna l'immagine specchiata in orizzontale (il personaggio va verso sinistra).
+    var mirrored = false {
+        didSet { if mirrored != oldValue { needsDisplay = true } }
+    }
+
     private var stage = 0
     private var fadingFrom: Int?
     private var fadeStart = Date()
@@ -110,6 +120,7 @@ final class PetView: NSView {
             Bundle.main.url(forResource: name, withExtension: "png").flatMap { NSImage(contentsOf: $0) }
         }
         topFractions = images.map { $0.opaqueTopFraction }
+        mirrored = false
         shadowFraction = pet.shadowWidthFraction
         groundFraction = pet.groundFraction
         fadeTimer?.invalidate()
@@ -162,6 +173,16 @@ final class PetView: NSView {
 
     override func draw(_ dirtyRect: NSRect) {
         guard !images.isEmpty else { return }
+
+        // Specchio: tutto il disegno viene ribaltato attorno al centro della vista.
+        if mirrored {
+            NSGraphicsContext.saveGraphicsState()
+            let flip = NSAffineTransform()
+            flip.translateX(by: bounds.width, yBy: 0)
+            flip.scaleX(by: -1, yBy: 1)
+            flip.concat()
+        }
+        defer { if mirrored { NSGraphicsContext.restoreGraphicsState() } }
 
         let target = imageRect
 

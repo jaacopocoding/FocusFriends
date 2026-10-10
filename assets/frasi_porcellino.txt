@@ -1,0 +1,31 @@
+# Frasi del Porcellino: una per riga. Le righe che iniziano con # sono ignorate.
+# Per usare le tue, scegli "Modifica le frasi…" dal menu: crea e apre
+#   ~/Library/Application Support/Bonsy/frasi_porcellino.txt
+Un passo alla volta: io arrivo ovunque trotterellando.
+Sei più forte di quanto pensi.
+Respira. Hai già fatto la parte più difficile: cominciare.
+Ogni piccolo sforzo conta. Anche una corsetta di tre passi!
+Fai una pausa quando serve: anche i porcellini fanno i pisolini.
+Non serve essere perfetti: basta provarci.
+Se la fatica si fa sentire, ricorda perché hai iniziato. Io sono qui con te.
+Bevi un po' d'acqua! Lo faccio anch'io, ogni tanto.
+Hai già superato giorni più difficili. Questo è niente, in confronto.
+Ogni errore insegna qualcosa: stai migliorando.
+Un po' di fieno, un po' di riposo, e poi di nuovo in pista!
+Credo in te. Sempre. Anche quando non ci credi tu.
+Un passetto dopo l'altro si arriva lontano.
+Fermati un attimo e guarda quanta strada hai fatto.
+Le cose grandi si fanno a piccoli morsi, come una carota.
+Stai andando meglio di quanto ti sembra.
+Se ti blocchi, cambia strada: i porcellini lo fanno sempre.
+Una cosa per volta. Il resto aspetta: il fieno non scappa.
+Prenditi il tuo tempo: la fretta fa inciampare anche chi ha quattro zampe.
+Oggi fai una cosa che domani ti farà sorridere.
+Sii gentile con gli altri, e anche con te.
+Rialzarsi è già una vittoria.
+Un respiro profondo, due carote, e si riparte.
+Non devi fare tutto subito. Basta fare il prossimo passo.
+Che bella giornata per fare qualcosa di coraggioso!
+Il tuo impegno si vede, anche se non lo dice nessuno.
+Io tifo per te: in modo molto piccolo, ma molto forte.
+Anche oggi stai facendo del tuo meglio, e va benissimo così.

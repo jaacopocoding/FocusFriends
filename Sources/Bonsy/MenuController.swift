@@ -12,6 +12,7 @@ final class MenuController: NSObject, NSMenuDelegate {
     private let speakItem = NSMenuItem()
     private let loginItem = NSMenuItem()
     private var petItems: [NSMenuItem] = []
+    private var movementItems: [NSMenuItem] = []
     private let stopTimerItem = NSMenuItem()
     private var breakItems: [NSMenuItem] = []
 
@@ -33,6 +34,7 @@ final class MenuController: NSObject, NSMenuDelegate {
 
         menu.addItem(makePomofocusItem())
         menu.addItem(makePetItem())
+        menu.addItem(makeMovementItem())
 
         menu.addItem(.separator())
 
@@ -51,6 +53,8 @@ final class MenuController: NSObject, NSMenuDelegate {
         quit.target = self
         menu.addItem(quit)
 
+        // Stato delle voci gestito a mano (es. "Ferma timer" attiva solo se il timer gira).
+        menu.autoenablesItems = false
         menu.delegate = self
         statusItem.menu = menu
         updateStatusIcon()
@@ -63,6 +67,7 @@ final class MenuController: NSObject, NSMenuDelegate {
     private func makePetItem() -> NSMenuItem {
         let parent = NSMenuItem(title: "Personaggio", action: nil, keyEquivalent: "")
         let sub = NSMenu(title: "Personaggio")
+        sub.autoenablesItems = false
         for pet in Pet.all {
             let item = NSMenuItem(title: pet.name, action: #selector(choosePet(_:)), keyEquivalent: "")
             item.target = self
@@ -74,9 +79,25 @@ final class MenuController: NSObject, NSMenuDelegate {
         return parent
     }
 
+    private func makeMovementItem() -> NSMenuItem {
+        let parent = NSMenuItem(title: "Movimento", action: nil, keyEquivalent: "")
+        let sub = NSMenu(title: "Movimento")
+        sub.autoenablesItems = false
+        for (title, moving) in [("In movimento", true), ("Fermo", false)] {
+            let item = NSMenuItem(title: title, action: #selector(setMovement(_:)), keyEquivalent: "")
+            item.target = self
+            item.tag = moving ? 1 : 0
+            sub.addItem(item)
+            movementItems.append(item)
+        }
+        parent.submenu = sub
+        return parent
+    }
+
     private func makePomofocusItem() -> NSMenuItem {
         let parent = NSMenuItem(title: "Pomofocus", action: nil, keyEquivalent: "")
         let sub = NSMenu(title: "Pomofocus")
+        sub.autoenablesItems = false
 
         for minutes in [30, 50] {
             let item = NSMenuItem(title: "Focus \(minutes) min", action: #selector(startFocus(_:)), keyEquivalent: "")
@@ -111,6 +132,11 @@ final class MenuController: NSObject, NSMenuDelegate {
         let name = window.pet.name
         toggleItem.title = window.isVisible ? "Nascondi \(name)" : "Mostra \(name)"
         speakItem.title = "Fai parlare \(name)"
+        // Il movimento ha senso solo per i personaggi che camminano.
+        for item in movementItems {
+            item.isEnabled = window.pet.walks
+            item.state = (item.tag == 1) == Walker.isMovementEnabled ? .on : .off
+        }
         for item in petItems {
             item.state = (item.representedObject as? String) == window.pet.id ? .on : .off
         }
@@ -154,6 +180,10 @@ final class MenuController: NSObject, NSMenuDelegate {
             window.orderFrontRegardless()
             speaker.start()
         }
+    }
+
+    @objc private func setMovement(_ sender: NSMenuItem) {
+        Walker.isMovementEnabled = sender.tag == 1
     }
 
     @objc private func choosePet(_ sender: NSMenuItem) {

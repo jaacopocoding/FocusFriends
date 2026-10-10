@@ -5,8 +5,8 @@ frase gentile. Cresce mentre lavori: parte da un seme e, man mano che il tempo d
 diventa un albero. Non fa altro: è solo una cosa carina sullo schermo.
 
 Dal menu si possono scegliere altri personaggi: **Pianty** (una succulenta che cresce allo stesso modo,
-con le stesse frasi), **Spidy** (un mini Spider-Man, fisso) e **Simulazione** (una prova: fa le stesse
-cose di Spidy ma cammina per lo schermo).
+con le stesse frasi), il **Porcellino** (cammina per lo schermo, con frasi sue),
+**Spidy** (un mini Spider-Man, fisso) e **Simulazione** (una prova: Spidy che cammina per lo schermo).
 
 ## Cosa fa
 
@@ -22,7 +22,8 @@ cose di Spidy ma cammina per lo schermo).
 | Nascondi / Mostra | Lo toglie dallo schermo o lo rimette |
 | Fai parlare | Mostra subito una frase |
 | Pomofocus ▸ | Timer: *Focus 30/50 min*, *Pausa 5/10 min*, *Ferma timer* |
-| Personaggio ▸ | Sceglie tra Bonsy, Pianty, Spidy e Simulazione (la scelta resta alla riapertura) |
+| Personaggio ▸ | Sceglie il personaggio (la scelta resta alla riapertura) |
+| Movimento ▸ | *In movimento* / *Fermo*: per i personaggi che camminano |
 | Avvia al login | Si avvia da solo all'accensione del Mac |
 | Modifica le frasi… | Apre il file delle frasi del personaggio attivo |
 | Esci da Bonsy | Chiude l'app |
@@ -43,12 +44,17 @@ Bonsy e Pianty hanno cinque stadi ciascuno, dal seme alla pianta adulta. Durante
 successivo ogni quinto del tempo (con un focus da 50 minuti: ai minuti 0, 10, 20, 30 e 40). Durante la
 pausa e quando non c'è nessun timer resta allo stadio finale.
 
-## Simulazione
+## Personaggi che camminano
 
-È un personaggio di prova che cammina per lo schermo: fa qualche passo in una direzione (3–8 secondi,
-42 punti al secondo), si ferma 4–10 secondi, poi riparte, rimbalzando ai bordi. Sta fermo mentre parla
-o mentre lo trascini col mouse. Cammina solo in orizzontale, all'altezza a cui si trova. Usa le frasi di
-Spidy.
+Il Porcellino e Simulazione camminano per lo schermo: fanno qualche passo in una direzione
+(3–8 secondi, 42 punti al secondo), si fermano 4–10 secondi, poi ripartono, rimbalzando ai bordi.
+Stanno fermi mentre parlano o mentre li trascini col mouse. Camminano solo in orizzontale, all'altezza
+a cui si trovano. Dal menu *Movimento ▸ Fermo* smettono di camminare e restano dove sono; *In movimento*
+li rimette in cammino. Se le immagini guardano a destra (come il porcellino), vengono specchiate quando
+vanno a sinistra.
+
+Il Porcellino ha un ciclo di passi a 4 fotogrammi, una posa con le orecchie che saltellano mentre
+parla, e le sue frasi in `assets/frasi_porcellino.txt`. Simulazione usa le frasi di Spidy.
 
 ## Installazione
 
@@ -77,10 +83,10 @@ Se esiste ancora la vecchia cartella `Application Support/Spidy`, viene letta co
 Sources/Bonsy/
   main.swift            avvio dell'app
   AppDelegate.swift     crea finestra, fumetti, timer e menu
-  Pet.swift             i personaggi (Bonsy, Pianty, Spidy): immagini, frasi, misure
+  Pet.swift             i personaggi: immagini, frasi, misure, come camminano
   PetWindow.swift       finestra trasparente con il personaggio e i suoi stadi
   Speaker.swift         tempi e comparsa dei fumetti
-  Walker.swift          camminata dei personaggi che camminano (Simulazione)
+  Walker.swift          camminata dei personaggi che camminano
   SpeechBubble.swift    fumetto: immagine scalata sul testo
   Quotes.swift          caricamento delle frasi
   Pomodoro.swift        logica del timer focus/pausa e crescita
@@ -93,8 +99,10 @@ assets/
   pianty/stage1..5.png  stadi ritagliati (generati da tools/cutout_pianty.py)
   original.png, spidy.png   immagine di Spidy e ritaglio (tools/cutout.py)
   bubble_original.png, bubble.png   fumetto e ritaglio (tools/cutout_bubble.py)
-  frasi_bonsy.txt, frasi.txt        frasi incluse nell'app
+  frasi_bonsy.txt, frasi.txt, frasi_porcellino.txt   frasi incluse nell'app
   simulazione/frame1..3.png   le tre pose di Simulazione (generate da tools/make_simulazione.sh)
+  porcellino/original.png     immagine di partenza del porcellino (5 fotogrammi)
+  porcellino/frame1..5.png    fotogrammi ritagliati (generati da tools/cutout_porcellino.py)
   AppIcon.icns          icona dell'app (generata da tools/make_icon.py)
 tools/                  script per ritagli, icona e pose di Simulazione (Python con Pillow e numpy; make_simulazione.sh usa Swift)
 build.sh                compila e crea build/Bonsy.app
