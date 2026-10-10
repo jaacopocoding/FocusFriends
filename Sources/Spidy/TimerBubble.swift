@@ -29,7 +29,18 @@ final class TimerView: NSView {
     var label = "FOCUS" { didSet { needsDisplay = true } }
     var time = "00:00" { didSet { if time != oldValue { needsDisplay = true } } }
 
+    /// Il disegno completo, a grandezza piena, indipendentemente dall'altezza attuale della finestra.
+    private var full: NSRect { NSRect(origin: .zero, size: TimerWindow.size) }
+
     override func draw(_ dirtyRect: NSRect) {
+        // Ancoro il disegno in alto: quando la finestra è più bassa se ne vede solo la parte alta,
+        // e crescendo si "srotola" verso il basso come una tendina.
+        NSGraphicsContext.saveGraphicsState()
+        defer { NSGraphicsContext.restoreGraphicsState() }
+        let anchor = NSAffineTransform()
+        anchor.translateX(by: 0, yBy: bounds.height - full.height)
+        anchor.concat()
+
         drawCase()
         let screen = screenRect
         drawScreen(screen)
@@ -40,17 +51,17 @@ final class TimerView: NSView {
     // MARK: - Cassa e schermo
 
     private var screenRect: NSRect {
-        NSRect(x: 11, y: 10, width: bounds.width - 22, height: bounds.height - 25)
+        NSRect(x: 11, y: 10, width: full.width - 22, height: full.height - 25)
     }
 
     private func drawCase() {
-        let body = NSBezierPath(roundedRect: bounds.insetBy(dx: 1, dy: 1), xRadius: 10, yRadius: 10)
+        let body = NSBezierPath(roundedRect: full.insetBy(dx: 1, dy: 1), xRadius: 10, yRadius: 10)
         NSGradient(colors: [NSColor(calibratedWhite: 0.30, alpha: 1), NSColor(calibratedWhite: 0.07, alpha: 1)])!
             .draw(in: body, angle: -90)
 
         // Piastra superiore, un po' più chiara, come il coperchio dell'orologio.
         let lip = NSBezierPath(
-            roundedRect: NSRect(x: 5, y: bounds.height - 13, width: bounds.width - 10, height: 9),
+            roundedRect: NSRect(x: 5, y: full.height - 13, width: full.width - 10, height: 9),
             xRadius: 4, yRadius: 4
         )
         NSColor(calibratedWhite: 0.20, alpha: 1).setFill()
