@@ -3,15 +3,13 @@ import AppKit
 /// Fa comparire ogni tanto un fumetto con una frase sopra la testa di Spidy.
 final class Speaker {
     private let spidy: NSWindow
-    private let quotes: [String]
     private var bubble: BubbleWindow?
     private var nextTimer: Timer?
     private var hideTimer: Timer?
     private var lastQuote: String?
 
-    init(spidy: NSWindow, quotes: [String] = Quotes.load()) {
+    init(spidy: NSWindow) {
         self.spidy = spidy
-        self.quotes = quotes
     }
 
     /// Prima frase dopo qualche secondo, poi a intervalli casuali.
@@ -27,6 +25,8 @@ final class Speaker {
 
     /// Pesca una frase a caso, diversa dall'ultima.
     func sayRandom() {
+        // Rilegge il file a ogni frase: le modifiche si vedono subito, senza riavviare.
+        let quotes = Quotes.load()
         let choices = quotes.count > 1 ? quotes.filter { $0 != lastQuote } : quotes
         say(choices.randomElement() ?? Quotes.fallback)
     }
