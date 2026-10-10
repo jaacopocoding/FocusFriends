@@ -8,7 +8,8 @@ rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 
 swiftc -O -o "$APP/Contents/MacOS/Spidy" Sources/Spidy/*.swift
-cp assets/spidy.png assets/bubble.png assets/frasi.txt assets/AppIcon.icns "$APP/Contents/Resources/"
+cp assets/spidy.png assets/bubble.png assets/frasi.txt assets/frasi_bonsy.txt assets/AppIcon.icns "$APP/Contents/Resources/"
+for i in 1 2 3 4 5; do cp "assets/bonsy/stage$i.png" "$APP/Contents/Resources/bonsy_stage$i.png"; done
 
 cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>

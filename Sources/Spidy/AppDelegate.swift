@@ -10,7 +10,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Nessuna icona nel Dock, nessuna finestra "normale".
         NSApp.setActivationPolicy(.accessory)
 
-        let window = SpidyWindow()
+        let window = SpidyWindow(pet: Pet.saved)
         window.placeOnGround()
         window.orderFrontRegardless()
         self.window = window

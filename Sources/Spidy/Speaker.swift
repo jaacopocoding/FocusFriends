@@ -1,8 +1,8 @@
 import AppKit
 
-/// Fa comparire ogni tanto un fumetto con una frase sopra la testa di Spidy.
+/// Fa comparire ogni tanto un fumetto con una frase sopra la testa del personaggio.
 final class Speaker {
-    private let spidy: NSWindow
+    private let spidy: SpidyWindow
     private var bubble: BubbleWindow?
     private var nextTimer: Timer?
     private var hideTimer: Timer?
@@ -11,7 +11,7 @@ final class Speaker {
     /// Pausa (in secondi) tra una frase spontanea e la successiva.
     var interval: ClosedRange<TimeInterval> = 40...110
 
-    init(spidy: NSWindow) {
+    init(spidy: SpidyWindow) {
         self.spidy = spidy
     }
 
@@ -29,9 +29,9 @@ final class Speaker {
     /// Pesca una frase a caso, diversa dall'ultima.
     func sayRandom() {
         // Rilegge il file a ogni frase: le modifiche si vedono subito, senza riavviare.
-        let quotes = Quotes.load()
+        let quotes = Quotes.load(for: spidy.pet)
         let choices = quotes.count > 1 ? quotes.filter { $0 != lastQuote } : quotes
-        say(choices.randomElement() ?? Quotes.fallback)
+        say(choices.randomElement() ?? spidy.pet.fallbackQuote)
     }
 
     func say(_ text: String) {
@@ -45,10 +45,10 @@ final class Speaker {
         let anchor = spidy.frame
         let screen = (spidy.screen ?? NSScreen.main)?.visibleFrame ?? .zero
 
-        // Fumetto sopra la testa: la punta della codina (fissa nell'immagine) va sopra Spidy.
+        // Fumetto sopra la testa: la punta della codina (fissa nell'immagine) va sopra il personaggio.
         var x = anchor.midX - size.width * BubbleView.tailTipFraction
         x = min(max(x, screen.minX + 6), screen.maxX - size.width - 6)
-        var y = anchor.maxY - 6
+        var y = spidy.headTopY - 6
         y = min(y, screen.maxY - size.height - 4)
 
         window.bubbleView.text = text

@@ -23,7 +23,7 @@ final class Pomodoro {
     private static let chatterWhileFocusing: ClosedRange<TimeInterval> = 240...480
     private static let chatterNormally: ClosedRange<TimeInterval> = 40...110
 
-    private let spidy: NSWindow
+    private let spidy: SpidyWindow
     private let speaker: Speaker
     private var window: TimerWindow?
     private var ticker: Timer?
@@ -37,7 +37,7 @@ final class Pomodoro {
     private(set) var phase: Phase?
     private(set) var breakMinutes = 5
 
-    init(spidy: NSWindow, speaker: Speaker) {
+    init(spidy: SpidyWindow, speaker: Speaker) {
         self.spidy = spidy
         self.speaker = speaker
     }
@@ -69,6 +69,7 @@ final class Pomodoro {
         ticker = nil
         phase = nil
         speaker.interval = Self.chatterNormally
+        updateStage()   // senza timer il personaggio sta allo stadio finale
 
         if let window {
             spidy.removeChildWindow(window)
@@ -91,6 +92,8 @@ final class Pomodoro {
         window?.timerView.label = phase.label
         window?.timerView.time = remainingText
 
+        updateStage()
+
         // Spidy si alza subito (se serve) e resta lì per tutta la sessione: così la posizione
         // non cambia quando l'orologio compare e scompare.
         ensureRoomBelowSpidy()
@@ -109,6 +112,7 @@ final class Pomodoro {
             return
         }
         window?.timerView.time = remainingText
+        updateStage()
         evaluateVisibility()
     }
 
@@ -128,6 +132,22 @@ final class Pomodoro {
         }
     }
 
+    // MARK: - Crescita
+
+    /// Per i personaggi che crescono (Bonsy): durante il focus lo stadio avanza con il tempo,
+    /// in tutti gli altri momenti sta allo stadio finale.
+    private func updateStage() {
+        let pet = spidy.pet
+        guard pet.growsWithTimer else { return }
+        guard phase == .focus else {
+            spidy.setStage(pet.finalStage)
+            return
+        }
+        let total = endDate.timeIntervalSince(phaseStart)
+        let progress = total > 0 ? Date().timeIntervalSince(phaseStart) / total : 1
+        spidy.setStage(pet.stage(forProgress: progress))
+    }
+
     // MARK: - Quando mostrare l'orologio
 
     /// Visibile: nei primi minuti di ogni fase, negli ultimi minuti, e finché il mouse sta su Spidy.
@@ -136,7 +156,7 @@ final class Pomodoro {
         let now = Date()
         let minute = Self.secondsPerMinute
 
-        if spidy.isVisible, spidy.frame.contains(NSEvent.mouseLocation) {
+        if spidy.isVisible, spidy.artFrame.contains(NSEvent.mouseLocation) {
             hoverUntil = now.addingTimeInterval(Self.hoverLinger)
         }
         let wanted = now.timeIntervalSince(phaseStart) < Self.introMinutes * minute

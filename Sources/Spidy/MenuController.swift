@@ -1,7 +1,7 @@
 import AppKit
 import ServiceManagement
 
-/// Menu di Spidy: icona nella barra dei menu e tasto destro sul personaggio.
+/// Menu dell'app: icona nella barra dei menu e tasto destro sul personaggio.
 final class MenuController: NSObject, NSMenuDelegate {
     private let window: SpidyWindow
     private let speaker: Speaker
@@ -9,7 +9,9 @@ final class MenuController: NSObject, NSMenuDelegate {
     private let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
     private let menu = NSMenu()
     private let toggleItem = NSMenuItem()
+    private let speakItem = NSMenuItem()
     private let loginItem = NSMenuItem()
+    private var petItems: [NSMenuItem] = []
     private let stopTimerItem = NSMenuItem()
     private var breakItems: [NSMenuItem] = []
 
@@ -24,11 +26,13 @@ final class MenuController: NSObject, NSMenuDelegate {
         toggleItem.target = self
         menu.addItem(toggleItem)
 
-        let speak = NSMenuItem(title: "Fai parlare Spidy", action: #selector(makeSpeak), keyEquivalent: "")
-        speak.target = self
-        menu.addItem(speak)
+        speakItem.title = "Fai parlare Spidy"
+        speakItem.action = #selector(makeSpeak)
+        speakItem.target = self
+        menu.addItem(speakItem)
 
         menu.addItem(makePomofocusItem())
+        menu.addItem(makePetItem())
 
         menu.addItem(.separator())
 
@@ -49,15 +53,25 @@ final class MenuController: NSObject, NSMenuDelegate {
 
         menu.delegate = self
         statusItem.menu = menu
-        if let icon = Self.menuBarIcon() {
-            statusItem.button?.image = icon
-        } else {
-            statusItem.button?.title = "🕷"
-        }
+        updateStatusIcon()
         statusItem.button?.toolTip = "Spidy"
 
         // Tasto destro sul personaggio: stesso menu.
         window.contentView?.menu = menu
+    }
+
+    private func makePetItem() -> NSMenuItem {
+        let parent = NSMenuItem(title: "Personaggio", action: nil, keyEquivalent: "")
+        let sub = NSMenu(title: "Personaggio")
+        for pet in Pet.all {
+            let item = NSMenuItem(title: pet.name, action: #selector(choosePet(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = pet.id
+            sub.addItem(item)
+            petItems.append(item)
+        }
+        parent.submenu = sub
+        return parent
     }
 
     private func makePomofocusItem() -> NSMenuItem {
@@ -94,7 +108,12 @@ final class MenuController: NSObject, NSMenuDelegate {
     // MARK: - Aggiornamento voci
 
     func menuNeedsUpdate(_ menu: NSMenu) {
-        toggleItem.title = window.isVisible ? "Nascondi Spidy" : "Mostra Spidy"
+        let name = window.pet.name
+        toggleItem.title = window.isVisible ? "Nascondi \(name)" : "Mostra \(name)"
+        speakItem.title = "Fai parlare \(name)"
+        for item in petItems {
+            item.state = (item.representedObject as? String) == window.pet.id ? .on : .off
+        }
         loginItem.state = SMAppService.mainApp.status == .enabled ? .on : .off
 
         for item in breakItems {
@@ -137,6 +156,16 @@ final class MenuController: NSObject, NSMenuDelegate {
         }
     }
 
+    @objc private func choosePet(_ sender: NSMenuItem) {
+        guard let id = sender.representedObject as? String,
+              let pet = Pet.all.first(where: { $0.id == id }), pet != window.pet else { return }
+        pet.remember()
+        window.apply(pet)
+        updateStatusIcon()
+        showSpidyIfHidden()
+        speaker.say(pet.greeting)
+    }
+
     @objc private func makeSpeak() {
         if !window.isVisible { window.orderFrontRegardless() }
         speaker.sayRandom()
@@ -165,10 +194,11 @@ final class MenuController: NSObject, NSMenuDelegate {
     @objc private func openQuotesFile() {
         let fm = FileManager.default
         let dir = fm.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support/Spidy")
-        let file = dir.appendingPathComponent("frasi.txt")
+        let pet = window.pet
+        let file = dir.appendingPathComponent(pet.quotesUserFile)
         if !fm.fileExists(atPath: file.path) {
             try? fm.createDirectory(at: dir, withIntermediateDirectories: true)
-            if let bundled = Bundle.main.url(forResource: "frasi", withExtension: "txt") {
+            if let bundled = Bundle.main.url(forResource: pet.quotesResource, withExtension: "txt") {
                 try? fm.copyItem(at: bundled, to: file)
             }
         }
@@ -189,16 +219,32 @@ final class MenuController: NSObject, NSMenuDelegate {
 
     // MARK: - Icona
 
-    /// La testa di Spidy, ritagliata dall'immagine del personaggio.
-    private static func menuBarIcon() -> NSImage? {
-        guard let url = Bundle.main.url(forResource: "spidy", withExtension: "png"),
+    private func updateStatusIcon() {
+        if let icon = Self.menuBarIcon(for: window.pet) {
+            statusItem.button?.title = ""
+            statusItem.button?.image = icon
+        } else {
+            statusItem.button?.image = nil
+            statusItem.button?.title = window.pet.name
+        }
+    }
+
+    /// Il personaggio (o solo la sua testa) ritagliato dall'immagine, alto quanto la barra dei menu.
+    private static func menuBarIcon(for pet: Pet) -> NSImage? {
+        guard let last = pet.imageResources.last,
+              let url = Bundle.main.url(forResource: last, withExtension: "png"),
               let source = NSImage(contentsOf: url) else { return nil }
-        let size = NSSize(width: 20, height: 22)
-        let head = NSRect(x: 70, y: source.size.height - 255, width: 215, height: 250)
-        let icon = NSImage(size: size, flipped: false) { rect in
-            source.draw(in: rect, from: head, operation: .sourceOver, fraction: 1)
+
+        let crop = pet.iconCrop ?? NSRect(x: 0, y: 0, width: 1, height: 1)
+        let from = NSRect(
+            x: crop.minX * source.size.width, y: crop.minY * source.size.height,
+            width: crop.width * source.size.width, height: crop.height * source.size.height
+        )
+        let height: CGFloat = 22
+        let size = NSSize(width: ceil(height * from.width / from.height), height: height)
+        return NSImage(size: size, flipped: false) { rect in
+            source.draw(in: rect, from: from, operation: .sourceOver, fraction: 1)
             return true
         }
-        return icon
     }
 }

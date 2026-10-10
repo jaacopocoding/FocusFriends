@@ -1,13 +1,19 @@
 import AppKit
 
 /// Finestra trasparente, senza bordi, sempre sopra le altre, visibile su tutti gli Spaces.
+/// Mostra il personaggio scelto (Spidy, Bonsy...) e, se ha più stadi, quello attuale.
 final class SpidyWindow: NSWindow {
-    static let size = NSSize(width: 80, height: 100)
     private static let margin: CGFloat = 24
 
-    init() {
+    private(set) var pet: Pet
+    private let spidyView: SpidyView
+
+    init(pet: Pet) {
+        self.pet = pet
+        let view = SpidyView(frame: NSRect(origin: .zero, size: pet.size))
+        spidyView = view
         super.init(
-            contentRect: NSRect(origin: .zero, size: Self.size),
+            contentRect: NSRect(origin: .zero, size: pet.size),
             styleMask: [.borderless],
             backing: .buffered,
             defer: false
@@ -19,7 +25,9 @@ final class SpidyWindow: NSWindow {
         isReleasedWhenClosed = false
         isMovableByWindowBackground = true   // si può trascinare dove si vuole
         collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
-        contentView = SpidyView(frame: NSRect(origin: .zero, size: Self.size))
+        contentView = view
+        view.configure(for: pet)
+        view.setStage(pet.finalStage, animated: false)
     }
 
     override var canBecomeKey: Bool { false }
@@ -29,30 +37,141 @@ final class SpidyWindow: NSWindow {
     func placeOnGround() {
         guard let screen = NSScreen.main else { return }
         let ground = screen.visibleFrame
-        setFrameOrigin(NSPoint(x: ground.maxX - Self.size.width - Self.margin, y: ground.minY))
+        setFrameOrigin(NSPoint(x: ground.maxX - pet.size.width - Self.margin, y: ground.minY))
+    }
+
+    /// Cambia personaggio: la finestra si ridimensiona tenendo fermi i piedi (centro del lato basso).
+    func apply(_ newPet: Pet) {
+        guard newPet != pet else { return }
+        let anchor = NSPoint(x: frame.midX, y: frame.minY)
+        pet = newPet
+        spidyView.configure(for: newPet)
+        spidyView.setStage(newPet.finalStage, animated: false)
+        setFrame(
+            NSRect(x: anchor.x - newPet.size.width / 2, y: anchor.y, width: newPet.size.width, height: newPet.size.height),
+            display: true
+        )
+    }
+
+    /// Mostra lo stadio di crescita (con una dissolvenza). Per i personaggi fissi non fa nulla.
+    func setStage(_ stage: Int) {
+        spidyView.setStage(stage, animated: true)
+    }
+
+    /// La parte della finestra in cui c'è davvero il disegno (dai piedi alla cima), in coordinate schermo.
+    /// Serve a posizionare fumetto e orologio e a capire quando il mouse è "su" il personaggio.
+    var artFrame: NSRect {
+        let top = spidyView.artTop
+        return NSRect(x: frame.minX, y: frame.minY, width: frame.width, height: max(top, 1))
+    }
+
+    var headTopY: CGFloat { artFrame.maxY }
+}
+
+private extension NSImage {
+    /// Frazione dell'altezza, misurata dall'alto, in cui comincia il disegno visibile.
+    var opaqueTopFraction: CGFloat {
+        guard let cg = cgImage(forProposedRect: nil, context: nil, hints: nil) else { return 0 }
+        let rep = NSBitmapImageRep(cgImage: cg)
+        guard rep.hasAlpha, let data = rep.bitmapData else { return 0 }
+        let spp = rep.samplesPerPixel
+        let alphaOffset = rep.bitmapFormat.contains(.alphaFirst) ? 0 : spp - 1
+        for y in 0..<rep.pixelsHigh {
+            for x in 0..<rep.pixelsWide where data[y * rep.bytesPerRow + x * spp + alphaOffset] > 25 {
+                return CGFloat(y) / CGFloat(rep.pixelsHigh)
+            }
+        }
+        return 0
     }
 }
 
-/// Mostra l'immagine di Spidy appoggiata sul fondo della finestra, con una piccola ombra a terra.
+/// Mostra l'immagine dello stadio attuale appoggiata sul fondo, con una piccola ombra a terra.
 final class SpidyView: NSView {
-    private let image: NSImage? = {
-        guard let url = Bundle.main.url(forResource: "spidy", withExtension: "png") else { return nil }
-        return NSImage(contentsOf: url)
-    }()
+    private var images: [NSImage] = []
+    private var topFractions: [CGFloat] = []
+    private var shadowFraction: CGFloat = 0.65
+    private var groundFraction: CGFloat = 0
+
+    private var stage = 0
+    private var fadingFrom: Int?
+    private var fadeStart = Date()
+    private var fadeTimer: Timer?
+    private static let fadeDuration: TimeInterval = 0.8
 
     override var mouseDownCanMoveWindow: Bool { true }
 
-    override func draw(_ dirtyRect: NSRect) {
-        guard let image else { return }
+    func configure(for pet: Pet) {
+        images = pet.imageResources.compactMap { name in
+            Bundle.main.url(forResource: name, withExtension: "png").flatMap { NSImage(contentsOf: $0) }
+        }
+        topFractions = images.map { $0.opaqueTopFraction }
+        shadowFraction = pet.shadowWidthFraction
+        groundFraction = pet.groundFraction
+        fadeTimer?.invalidate()
+        fadingFrom = nil
+        stage = min(stage, max(images.count - 1, 0))
+        needsDisplay = true
+    }
 
-        NSColor.black.withAlphaComponent(0.16).setFill()
-        NSBezierPath(ovalIn: NSRect(x: bounds.midX - 26, y: 1, width: 52, height: 6)).fill()
+    func setStage(_ new: Int, animated: Bool) {
+        guard !images.isEmpty else { return }
+        let target = min(max(new, 0), images.count - 1)
+        guard target != stage else { return }
 
-        // Adatta l'immagine allo spazio disponibile mantenendo le proporzioni, appoggiata in basso.
+        if animated {
+            fadingFrom = stage
+            fadeStart = Date()
+            fadeTimer?.invalidate()
+            let timer = Timer(timeInterval: 1.0 / 30, repeats: true) { [weak self] t in
+                guard let self else { t.invalidate(); return }
+                if Date().timeIntervalSince(self.fadeStart) >= Self.fadeDuration {
+                    self.fadingFrom = nil
+                    t.invalidate()
+                }
+                self.needsDisplay = true
+            }
+            RunLoop.main.add(timer, forMode: .common)
+            fadeTimer = timer
+        } else {
+            fadingFrom = nil
+        }
+        stage = target
+        needsDisplay = true
+    }
+
+    /// Altezza (in coordinate vista, dal basso) a cui arriva il disegno dello stadio attuale.
+    var artTop: CGFloat {
+        let rect = imageRect
+        guard stage < topFractions.count else { return bounds.height }
+        return rect.maxY - topFractions[stage] * rect.height
+    }
+
+    /// Adatta l'immagine allo spazio mantenendo le proporzioni, appoggiata in basso.
+    private var imageRect: NSRect {
+        guard let image = images.first else { return bounds }
         let available = NSRect(x: 0, y: 3, width: bounds.width, height: bounds.height - 3)
         let scale = min(available.width / image.size.width, available.height / image.size.height)
         let size = NSSize(width: image.size.width * scale, height: image.size.height * scale)
-        let target = NSRect(x: available.midX - size.width / 2, y: available.minY, width: size.width, height: size.height)
-        image.draw(in: target, from: .zero, operation: .sourceOver, fraction: 1)
+        return NSRect(x: available.midX - size.width / 2, y: available.minY, width: size.width, height: size.height)
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        guard !images.isEmpty else { return }
+
+        let target = imageRect
+
+        // Ombra centrata sulla linea di terra del disegno.
+        let shadowWidth = bounds.width * shadowFraction
+        let groundY = target.minY + groundFraction * target.height
+        NSColor.black.withAlphaComponent(0.16).setFill()
+        NSBezierPath(ovalIn: NSRect(x: bounds.midX - shadowWidth / 2, y: groundY - 3.5, width: shadowWidth, height: 7)).fill()
+
+        if let from = fadingFrom, from < images.count {
+            let t = min(1, Date().timeIntervalSince(fadeStart) / Self.fadeDuration)
+            images[from].draw(in: target, from: .zero, operation: .sourceOver, fraction: 1)
+            images[stage].draw(in: target, from: .zero, operation: .sourceOver, fraction: CGFloat(t))
+        } else {
+            images[stage].draw(in: target, from: .zero, operation: .sourceOver, fraction: 1)
+        }
     }
 }

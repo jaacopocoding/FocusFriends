@@ -1,13 +1,11 @@
 import Foundation
 
-/// Carica le frasi di Spidy. Prima cerca il file dell'utente, poi quello incluso nell'app.
+/// Carica le frasi di un personaggio. Prima cerca il file dell'utente, poi quello incluso nell'app.
 enum Quotes {
-    static let fallback = "Da grandi poteri derivano grandi responsabilità."
-
-    static func load() -> [String] {
+    static func load(for pet: Pet) -> [String] {
         let userFile = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent("Library/Application Support/Spidy/frasi.txt")
-        let bundled = Bundle.main.url(forResource: "frasi", withExtension: "txt")
+            .appendingPathComponent("Library/Application Support/Spidy/\(pet.quotesUserFile)")
+        let bundled = Bundle.main.url(forResource: pet.quotesResource, withExtension: "txt")
 
         for url in [userFile, bundled].compactMap({ $0 }) {
             guard let text = try? String(contentsOf: url, encoding: .utf8) else { continue }
@@ -17,6 +15,6 @@ enum Quotes {
                 .filter { !$0.isEmpty && !$0.hasPrefix("#") }
             if !lines.isEmpty { return lines }
         }
-        return [fallback]
+        return [pet.fallbackQuote]
     }
 }
