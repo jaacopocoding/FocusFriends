@@ -79,7 +79,6 @@ struct Pet: Equatable {
         iconCrop: nil
     )
 
-    /// Bonsy è il personaggio principale: viene per primo ed è quello di partenza.
     /// Una succulenta che cresce come Bonsy e ne condivide le frasi.
     static let pianty = Pet(
         id: "pianty",
@@ -137,6 +136,7 @@ struct Pet: Equatable {
         pickedGrab: CGPoint(x: 0.30, y: 0.60)   // il cursore sta sulle mani
     )
 
+    /// Bonsy è il personaggio principale: viene per primo ed è quello di partenza.
     static let all = [bonsy, pianty, porcellino, spidy, simulazione]
 
     // MARK: - Scelta ricordata
