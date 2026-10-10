@@ -4,6 +4,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var window: PetWindow?
     private var speaker: Speaker?
     private var pomodoro: Pomodoro?
+    private var walker: Walker?
     private var menu: MenuController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -18,6 +19,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let speaker = Speaker(petWindow: window)
         speaker.start()
         self.speaker = speaker
+
+        let walker = Walker(petWindow: window, speaker: speaker)
+        walker.start()
+        self.walker = walker
 
         let pomodoro = Pomodoro(petWindow: window, speaker: speaker)
         self.pomodoro = pomodoro

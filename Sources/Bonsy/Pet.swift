@@ -19,10 +19,17 @@ struct Pet: Equatable {
     let groundFraction: CGFloat
     /// Porzione dell'ultima immagine da usare come icona nella barra dei menu (coordinate 0...1, origine in basso).
     let iconCrop: NSRect?
+    /// Se cammina per lo schermo. In quel caso le immagini non sono stadi di crescita ma pose:
+    /// 0 = fermo, 1 e 2 = i due passi.
+    var walks: Bool = false
 
     var stageCount: Int { imageResources.count }
     var finalStage: Int { stageCount - 1 }
-    var growsWithTimer: Bool { stageCount > 1 }
+    /// Lo stadio con cui sta fermo: l'ultimo per chi cresce, la posa "fermo" per chi cammina.
+    var restStage: Int { walks ? 0 : finalStage }
+    var growsWithTimer: Bool { stageCount > 1 && !walks }
+    /// L'immagine da cui si ricava l'icona nella barra dei menu.
+    var iconResource: String { walks ? imageResources[0] : imageResources[finalStage] }
 
     static let spidy = Pet(
         id: "spidy",
@@ -68,7 +75,23 @@ struct Pet: Equatable {
         iconCrop: nil
     )
 
-    static let all = [bonsy, pianty, spidy]
+    /// Prova: stesse cose di Spidy (stesse frasi), ma cammina per lo schermo.
+    static let simulazione = Pet(
+        id: "simulazione",
+        name: "Simulazione",
+        imageResources: (1...3).map { "simulazione_frame\($0)" },
+        size: NSSize(width: 84, height: 84),
+        quotesResource: "frasi",
+        quotesUserFile: "frasi.txt",
+        fallbackQuote: "Da grandi poteri derivano grandi responsabilità.",
+        greeting: "Ciao! Faccio due passi per lo schermo, ci vediamo in giro.",
+        shadowWidthFraction: 0,           // l'ombra è già nel disegno
+        groundFraction: 0,
+        iconCrop: NSRect(x: 0.2, y: 0.42, width: 0.6, height: 0.56),   // la testa
+        walks: true
+    )
+
+    static let all = [bonsy, pianty, spidy, simulazione]
 
     // MARK: - Scelta ricordata
 

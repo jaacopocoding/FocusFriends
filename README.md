@@ -5,7 +5,8 @@ frase gentile. Cresce mentre lavori: parte da un seme e, man mano che il tempo d
 diventa un albero. Non fa altro: è solo una cosa carina sullo schermo.
 
 Dal menu si possono scegliere altri personaggi: **Pianty** (una succulenta che cresce allo stesso modo,
-con le stesse frasi) e **Spidy** (un mini Spider-Man, fisso).
+con le stesse frasi), **Spidy** (un mini Spider-Man, fisso) e **Simulazione** (una prova: fa le stesse
+cose di Spidy ma cammina per lo schermo).
 
 ## Cosa fa
 
@@ -21,7 +22,7 @@ con le stesse frasi) e **Spidy** (un mini Spider-Man, fisso).
 | Nascondi / Mostra | Lo toglie dallo schermo o lo rimette |
 | Fai parlare | Mostra subito una frase |
 | Pomofocus ▸ | Timer: *Focus 30/50 min*, *Pausa 5/10 min*, *Ferma timer* |
-| Personaggio ▸ | Sceglie tra Bonsy, Pianty e Spidy (la scelta resta alla riapertura) |
+| Personaggio ▸ | Sceglie tra Bonsy, Pianty, Spidy e Simulazione (la scelta resta alla riapertura) |
 | Avvia al login | Si avvia da solo all'accensione del Mac |
 | Modifica le frasi… | Apre il file delle frasi del personaggio attivo |
 | Esci da Bonsy | Chiude l'app |
@@ -41,6 +42,13 @@ distrarti.
 Bonsy e Pianty hanno cinque stadi ciascuno, dal seme alla pianta adulta. Durante un focus parte dal primo stadio e passa al
 successivo ogni quinto del tempo (con un focus da 50 minuti: ai minuti 0, 10, 20, 30 e 40). Durante la
 pausa e quando non c'è nessun timer resta allo stadio finale.
+
+## Simulazione
+
+È un personaggio di prova che cammina per lo schermo: fa qualche passo in una direzione (3–8 secondi,
+42 punti al secondo), si ferma 4–10 secondi, poi riparte, rimbalzando ai bordi. Sta fermo mentre parla
+o mentre lo trascini col mouse. Cammina solo in orizzontale, all'altezza a cui si trova. Usa le frasi di
+Spidy.
 
 ## Installazione
 
@@ -72,6 +80,7 @@ Sources/Bonsy/
   Pet.swift             i personaggi (Bonsy, Pianty, Spidy): immagini, frasi, misure
   PetWindow.swift       finestra trasparente con il personaggio e i suoi stadi
   Speaker.swift         tempi e comparsa dei fumetti
+  Walker.swift          camminata dei personaggi che camminano (Simulazione)
   SpeechBubble.swift    fumetto: immagine scalata sul testo
   Quotes.swift          caricamento delle frasi
   Pomodoro.swift        logica del timer focus/pausa e crescita
@@ -85,8 +94,9 @@ assets/
   original.png, spidy.png   immagine di Spidy e ritaglio (tools/cutout.py)
   bubble_original.png, bubble.png   fumetto e ritaglio (tools/cutout_bubble.py)
   frasi_bonsy.txt, frasi.txt        frasi incluse nell'app
+  simulazione/frame1..3.png   le tre pose di Simulazione (generate da tools/make_simulazione.sh)
   AppIcon.icns          icona dell'app (generata da tools/make_icon.py)
-tools/                  script Python (richiedono Pillow e numpy) per ritagli e icona
+tools/                  script per ritagli, icona e pose di Simulazione (Python con Pillow e numpy; make_simulazione.sh usa Swift)
 build.sh                compila e crea build/Bonsy.app
 ```
 
@@ -94,5 +104,6 @@ build.sh                compila e crea build/Bonsy.app
 
 Un personaggio è una riga in `Pet.swift`: immagini (una per stadio, tutte sullo stesso formato e
 allineate sulla linea di terra), file delle frasi, dimensione della finestra. Un solo stadio = personaggio
-fisso, più stadi = cresce con il timer. Per ritagliare un'immagine su sfondo bianco si può partire da
+fisso, più stadi = cresce con il timer; con `walks: true` le immagini sono pose e il personaggio
+cammina. Per ritagliare un'immagine su sfondo bianco si può partire da
 `tools/cutout.py`.

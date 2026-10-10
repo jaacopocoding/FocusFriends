@@ -235,8 +235,7 @@ final class MenuController: NSObject, NSMenuDelegate {
 
     /// Il personaggio (o solo la sua testa) ritagliato dall'immagine, alto quanto la barra dei menu.
     private static func menuBarIcon(for pet: Pet) -> NSImage? {
-        guard let last = pet.imageResources.last,
-              let url = Bundle.main.url(forResource: last, withExtension: "png"),
+        guard let url = Bundle.main.url(forResource: pet.iconResource, withExtension: "png"),
               let source = NSImage(contentsOf: url) else { return nil }
 
         let crop = pet.iconCrop ?? NSRect(x: 0, y: 0, width: 1, height: 1)

@@ -27,7 +27,7 @@ final class PetWindow: NSWindow {
         collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
         contentView = view
         view.configure(for: pet)
-        view.setStage(pet.finalStage, animated: false)
+        view.setStage(pet.restStage, animated: false)
     }
 
     override var canBecomeKey: Bool { false }
@@ -46,7 +46,7 @@ final class PetWindow: NSWindow {
         let anchor = NSPoint(x: frame.midX, y: frame.minY)
         pet = newPet
         petView.configure(for: newPet)
-        petView.setStage(newPet.finalStage, animated: false)
+        petView.setStage(newPet.restStage, animated: false)
         setFrame(
             NSRect(x: anchor.x - newPet.size.width / 2, y: anchor.y, width: newPet.size.width, height: newPet.size.height),
             display: true
@@ -56,6 +56,11 @@ final class PetWindow: NSWindow {
     /// Mostra lo stadio di crescita (con una dissolvenza). Per i personaggi fissi non fa nulla.
     func setStage(_ stage: Int) {
         petView.setStage(stage, animated: true)
+    }
+
+    /// Cambia posa all'istante (per chi cammina: fermo, passo sinistro, passo destro).
+    func setPose(_ pose: Int) {
+        petView.setStage(pose, animated: false)
     }
 
     /// La parte della finestra in cui c'è davvero il disegno (dai piedi alla cima), in coordinate schermo.

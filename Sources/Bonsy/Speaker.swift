@@ -8,6 +8,9 @@ final class Speaker {
     private var hideTimer: Timer?
     private var lastQuote: String?
 
+    /// C'è un fumetto sullo schermo in questo momento.
+    var isSpeaking: Bool { bubble != nil }
+
     /// Pausa (in secondi) tra una frase spontanea e la successiva.
     var interval: ClosedRange<TimeInterval> = 40...110
 
