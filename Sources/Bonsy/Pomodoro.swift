@@ -20,8 +20,6 @@ final class Pomodoro {
     private static let hoverLinger: TimeInterval = 1
     private static let curtainDuration: TimeInterval = 0.35
 
-    private static let chatterWhileFocusing: ClosedRange<TimeInterval> = 240...480
-    private static let chatterNormally: ClosedRange<TimeInterval> = 40...110
 
     private let petWindow: PetWindow
     private let speaker: Speaker
@@ -79,7 +77,7 @@ final class Pomodoro {
         curtainTimer?.invalidate()
         curtainTimer = nil
         phase = nil
-        speaker.interval = Self.chatterNormally
+        refreshChatter()
         updateStage()   // senza timer il personaggio sta allo stadio finale
 
         if let window {
@@ -91,13 +89,18 @@ final class Pomodoro {
         restorePetHeight()
     }
 
+    /// Allinea la frequenza delle frasi alla scelta dell'utente e alla fase (durante un focus parla meno).
+    func refreshChatter() {
+        speaker.interval = Chattiness.current.interval(whileFocusing: phase == .focus)
+    }
+
     // MARK: - Andamento
 
     private func begin(_ phase: Phase, minutes: Int) {
         self.phase = phase
         phaseStart = Date()
         endDate = phaseStart.addingTimeInterval(Double(minutes) * Self.secondsPerMinute)
-        speaker.interval = phase == .focus ? Self.chatterWhileFocusing : Self.chatterNormally
+        refreshChatter()
 
         if window == nil { window = TimerWindow() }
         window?.timerView.label = phase.label
@@ -145,7 +148,7 @@ final class Pomodoro {
 
     // MARK: - Crescita
 
-    /// Per i personaggi che crescono (Bonsy): durante il focus lo stadio avanza con il tempo,
+    /// Per i personaggi che crescono: durante il focus lo stadio avanza con il tempo,
     /// in tutti gli altri momenti sta allo stadio finale.
     private func updateStage() {
         let pet = petWindow.pet

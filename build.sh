@@ -7,7 +7,13 @@ APP="build/Bonsy.app"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 
-swiftc -O -o "$APP/Contents/MacOS/Bonsy" Sources/Bonsy/*.swift
+# Una versione per ogni tipo di Mac, poi unite in un solo eseguibile (così l'app gira anche su Mac Intel).
+mkdir -p build/tmp
+for arch in arm64 x86_64; do
+    swiftc -O -target "$arch-apple-macos13.0" -o "build/tmp/Bonsy-$arch" Sources/Bonsy/*.swift
+done
+lipo -create build/tmp/Bonsy-arm64 build/tmp/Bonsy-x86_64 -output "$APP/Contents/MacOS/Bonsy"
+rm -rf build/tmp
 cp assets/spidy.png assets/bubble.png assets/frasi.txt assets/frasi_bonsy.txt assets/frasi_porcellino.txt assets/AppIcon.icns "$APP/Contents/Resources/"
 for i in 1 2 3; do cp "assets/simulazione/frame$i.png" "$APP/Contents/Resources/simulazione_frame$i.png"; done
 for f in assets/porcellino/frame*.png; do cp "$f" "$APP/Contents/Resources/porcellino_$(basename "$f")"; done

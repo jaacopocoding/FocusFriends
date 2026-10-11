@@ -19,6 +19,8 @@ struct Pet: Equatable {
     let groundFraction: CGFloat
     /// Porzione dell'ultima immagine da usare come icona nella barra dei menu (coordinate 0...1, origine in basso).
     let iconCrop: NSRect?
+    /// Dove sta il "volto" nell'immagine usata per l'avatar del menu, come frazione della larghezza.
+    var iconFocus: CGFloat = 0.5
     /// Se cammina per lo schermo. In quel caso le immagini non sono stadi di crescita ma pose:
     /// 0 = fermo, 1 e 2 = i due passi.
     var walks: Bool = false
@@ -110,7 +112,7 @@ struct Pet: Equatable {
         walks: true
     )
 
-    /// Un porcellino d'India: cammina per lo schermo e le incoraggia.
+    /// Un porcellino d'India: cammina per lo schermo, mangia, dorme, saltella e incoraggia.
     static let porcellino = Pet(
         id: "porcellino",
         name: "Porcellino",
@@ -118,11 +120,12 @@ struct Pet: Equatable {
         size: NSSize(width: 118, height: 121),
         quotesResource: "frasi_porcellino",
         quotesUserFile: "frasi_porcellino.txt",
-        fallbackQuote: "Ce la fai: un passo alla volta.",
+        fallbackQuote: "Un passo alla volta: io arrivo ovunque trotterellando.",
         greeting: "Ciao! Sono il porcellino. Facciamo due passi?",
         shadowWidthFraction: 0.7,
         groundFraction: 0.129,
-        iconCrop: NSRect(x: 0.487, y: 0.355, width: 0.381, height: 0.288),   // la testa
+        iconCrop: NSRect(x: 0.38, y: 0.28, width: 0.52, height: 0.42),   // la testa (con le orecchie)
+        iconFocus: 0.60,
         walks: true,
         walkFrames: [1, 2, 3, 2],   // passo, passaggio, passo, passaggio
         talkFrame: 4,               // orecchie che saltellano

@@ -21,7 +21,8 @@ con le stesse frasi), il **Porcellino** (cammina per lo schermo, con frasi sue),
 |---|---|
 | Nascondi / Mostra | Lo toglie dallo schermo o lo rimette |
 | Fai parlare | Mostra subito una frase |
-| Pomofocus ▸ | Timer: *Focus 30/50 min*, *Pausa 5/10 min*, *Ferma timer* |
+| Pomofocus ▸ | Timer: *Focus 30/50 min*, *Pausa 5/10 min*, *Personalizza…*, *Ferma timer* |
+| Frequenza delle frasi ▸ | *Spesso* / *Ogni tanto* / *Raramente* / *Mai* |
 | Personaggio ▸ | Sceglie il personaggio (la scelta resta alla riapertura) |
 | Movimento ▸ | *In movimento* / *Fermo*: per i personaggi che camminano |
 | Avvia al login | Si avvia da solo all'accensione del Mac |
@@ -37,6 +38,11 @@ visibile quando mancano 5 minuti o meno. Alla fine del focus suona un avviso e p
 (5 minuti, oppure l'ultima durata scelta tra *Pausa 5 min* e *Pausa 10 min*, segnata con la spunta).
 Alla fine della pausa l'orologio sparisce. Durante il focus il personaggio parla più di rado, per non
 distrarti.
+
+**Timer personalizzati**: *Pomofocus ▸ Personalizza…* apre una finestra per aggiungere un focus (1–180 min) o
+una pausa (1–60 min). I timer aggiunti (al massimo 6 per tipo, senza doppioni) compaiono nel menu in ordine di
+durata insieme a quelli di serie, si ricordano alla riapertura (`CustomTimers.swift`) e si tolgono da *Rimuovi
+un timer personalizzato*. Valgono per tutti i personaggi.
 
 ## La crescita di Bonsy e Pianty
 
@@ -72,7 +78,7 @@ viene sollevato da due mani, spaventato (con un leggero tremolio); lasciandolo, 
 Serve macOS 13 o successivo e gli strumenti da riga di comando di Xcode (`xcode-select --install`).
 
 ```bash
-./build.sh                         # crea build/Bonsy.app
+./build.sh                         # crea build/Bonsy.app (universale: Apple Silicon e Intel)
 cp -R build/Bonsy.app /Applications/
 open /Applications/Bonsy.app
 ```
@@ -82,11 +88,24 @@ l'approvazione in Impostazioni di Sistema → Generali → Elementi login.
 
 ## Frasi
 
-Le frasi di partenza sono in `assets/frasi_bonsy.txt` (Bonsy e Pianty, condivise) e `assets/frasi.txt` (Spidy), una per riga
+Le frasi di partenza sono in `assets/frasi_bonsy.txt` (Bonsy e Pianty, condivise), `assets/frasi_porcellino.txt`
+(Porcellino) e `assets/frasi.txt` (Spidy e Simulazione), una per riga
 (le righe che iniziano con `#` sono ignorate). Per usare le tue senza ricompilare, scegli *Modifica le
 frasi…* dal menu: crea e apre `~/Library/Application Support/Bonsy/frasi_bonsy.txt` (o `frasi.txt` per
 Spidy), che ha la precedenza sul file incluso nell'app. Le modifiche valgono dalla frase successiva.
 Se esiste ancora la vecchia cartella `Application Support/Spidy`, viene letta come seconda scelta.
+
+Le frasi escono **a mazzo** (`PhraseDeck.swift`): tutte, in ordine casuale, prima che una si ripeta; la prima
+del giro successivo non è mai uguale all'ultima uscita. La **frequenza** si sceglie dal menu (*Frequenza delle
+frasi*, `Chattiness.swift`): "Ogni tanto" è il valore di partenza (40–110 secondi, durante un focus 4–8
+minuti); "Mai" tace subito, anche il fumetto che c'è. Restano sempre i messaggi del timer e *Fai parlare*.
+
+## Il menu
+
+In cima c'è una scheda color carta (`MenuHeader.swift`) con la testa del personaggio in un avatar circolare, il
+suo nome nel carattere del fumetto e cosa sta facendo ("Qui con te", "Focus · 24:10", "Pausa · 03:12",
+"Nascosto"). Le voci hanno un'icona di sistema (SF Symbols) e mostrano lo stato accanto al titolo
+("Frequenza delle frasi · Ogni tanto", "Pomofocus · 24:10", "Personaggio · Porcellino").
 
 ## Struttura
 

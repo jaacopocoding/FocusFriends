@@ -6,21 +6,38 @@ final class Speaker {
     private var bubble: BubbleWindow?
     private var nextTimer: Timer?
     private var hideTimer: Timer?
-    private var lastQuote: String?
+    /// Le frasi escono a mazzo: tutte, in ordine casuale, prima che una si ripeta.
+    private var deck = PhraseDeck()
 
     /// C'è un fumetto sullo schermo in questo momento.
     var isSpeaking: Bool { bubble != nil }
 
-    /// Pausa (in secondi) tra una frase spontanea e la successiva.
-    var interval: ClosedRange<TimeInterval> = 40...110
+    /// Pausa (in secondi) tra una frase spontanea e la successiva; nil = non parla di sua iniziativa.
+    var interval: ClosedRange<TimeInterval>? = Chattiness.current.interval(whileFocusing: false)
 
     init(petWindow: PetWindow) {
         self.petWindow = petWindow
     }
 
-    /// Prima frase dopo qualche secondo, poi a intervalli casuali.
+    /// Prima frase dopo qualche secondo, poi a intervalli casuali (salvo "Mai").
     func start() {
-        scheduleNext(after: 5)
+        if interval != nil { scheduleNext(after: 5) }
+    }
+
+    /// Dopo un cambio di frequenza: riparte il conto con il nuovo intervallo, oppure tace.
+    /// Se c'è un fumetto sullo schermo ci pensa lui a riprogrammare quando sparisce.
+    func reschedule() {
+        nextTimer?.invalidate()
+        nextTimer = nil
+        guard let range = interval, bubble == nil else { return }
+        scheduleNext(after: .random(in: range))
+    }
+
+    /// Toglie subito il fumetto (per "Mai": il silenzio parte subito).
+    func dismissNow() {
+        hideTimer?.invalidate()
+        hideTimer = nil
+        dismissBubble(animated: true)
     }
 
     func stop() {
@@ -29,16 +46,14 @@ final class Speaker {
         dismissBubble(animated: false)
     }
 
-    /// Pesca una frase a caso, diversa dall'ultima.
+    /// Dice la prossima frase del mazzo.
     func sayRandom() {
         // Rilegge il file a ogni frase: le modifiche si vedono subito, senza riavviare.
         let quotes = Quotes.load(for: petWindow.pet)
-        let choices = quotes.count > 1 ? quotes.filter { $0 != lastQuote } : quotes
-        say(choices.randomElement() ?? petWindow.pet.fallbackQuote)
+        say(deck.draw(from: quotes) ?? petWindow.pet.fallbackQuote)
     }
 
     func say(_ text: String) {
-        lastQuote = text
         nextTimer?.invalidate()
         hideTimer?.invalidate()
         dismissBubble(animated: false)
@@ -70,7 +85,7 @@ final class Speaker {
         let visibleFor = max(4.5, 2.5 + Double(text.count) * 0.06)
         hideTimer = Timer.scheduledTimer(withTimeInterval: visibleFor, repeats: false) { [weak self] _ in
             self?.dismissBubble(animated: true)
-            if let self { self.scheduleNext(after: .random(in: self.interval)) }
+            if let self, let range = self.interval { self.scheduleNext(after: .random(in: range)) }
         }
     }
 

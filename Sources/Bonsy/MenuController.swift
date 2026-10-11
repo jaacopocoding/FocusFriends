@@ -13,8 +13,14 @@ final class MenuController: NSObject, NSMenuDelegate {
     private let loginItem = NSMenuItem()
     private var petItems: [NSMenuItem] = []
     private var movementItems: [NSMenuItem] = []
+    private var chattinessItems: [NSMenuItem] = []
     private let stopTimerItem = NSMenuItem()
     private var breakItems: [NSMenuItem] = []
+    private let headerView = MenuHeaderView()
+    private let pomofocusItem = NSMenuItem()
+    private let chattinessParent = NSMenuItem()
+    private let movementParent = NSMenuItem()
+    private var petParent: NSMenuItem?
 
     init(window: PetWindow, speaker: Speaker, pomodoro: Pomodoro) {
         self.window = window
@@ -22,35 +28,71 @@ final class MenuController: NSObject, NSMenuDelegate {
         self.pomodoro = pomodoro
         super.init()
 
-        toggleItem.title = "Nascondi Bonsy"
+        // In cima: la scheda con il personaggio e cosa sta facendo (si aggiorna quando cambia personaggio).
+        headerView.title = window.pet.name
+        headerView.icon = Self.menuIcon(for: window.pet, height: 80)
+        let header = NSMenuItem()
+        header.view = headerView
+        menu.addItem(header)
+        menu.addItem(.separator())
+
+        // Azioni
+        toggleItem.title = "Nascondi \(window.pet.name)"
         toggleItem.action = #selector(toggleVisibility)
         toggleItem.target = self
+        toggleItem.image = Self.symbol("eye.slash")
         menu.addItem(toggleItem)
 
-        speakItem.title = "Fai parlare Bonsy"
+        speakItem.title = "Fai parlare \(window.pet.name)"
         speakItem.action = #selector(makeSpeak)
         speakItem.target = self
+        speakItem.image = Self.symbol("bubble.left")
         menu.addItem(speakItem)
-
-        menu.addItem(makePomofocusItem())
-        menu.addItem(makePetItem())
-        menu.addItem(makeMovementItem())
 
         menu.addItem(.separator())
 
+        // Timer e impostazioni di comportamento
+        let pomofocusMenu = NSMenu(title: "Pomofocus")
+        pomofocusMenu.autoenablesItems = false
+        pomofocusItem.submenu = pomofocusMenu
+        populatePomofocusMenu()
+        pomofocusItem.title = "Pomofocus"
+        pomofocusItem.image = Self.symbol("timer")
+        menu.addItem(pomofocusItem)
+
+        let chat = makeChattinessItem()
+        chattinessParent.submenu = chat.submenu
+        chattinessParent.title = "Frequenza delle frasi"
+        chattinessParent.image = Self.symbol("text.bubble")
+        menu.addItem(chattinessParent)
+
+        menu.addItem(makePetItem())
+
+        let move = makeMovementItem()
+        movementParent.submenu = move.submenu
+        movementParent.title = "Movimento"
+        movementParent.image = Self.symbol("figure.walk")
+        menu.addItem(movementParent)
+
+        menu.addItem(.separator())
+
+        // L'app
         loginItem.title = "Avvia al login"
         loginItem.action = #selector(toggleLaunchAtLogin)
         loginItem.target = self
+        loginItem.image = Self.symbol("power")
         menu.addItem(loginItem)
 
         let quotes = NSMenuItem(title: "Modifica le frasi…", action: #selector(openQuotesFile), keyEquivalent: "")
         quotes.target = self
+        quotes.image = Self.symbol("pencil")
         menu.addItem(quotes)
 
         menu.addItem(.separator())
 
         let quit = NSMenuItem(title: "Esci da Bonsy", action: #selector(quit), keyEquivalent: "q")
         quit.target = self
+        quit.image = Self.symbol("xmark.circle")
         menu.addItem(quit)
 
         // Stato delle voci gestito a mano (es. "Ferma timer" attiva solo se il timer gira).
@@ -66,6 +108,8 @@ final class MenuController: NSObject, NSMenuDelegate {
 
     private func makePetItem() -> NSMenuItem {
         let parent = NSMenuItem(title: "Personaggio", action: nil, keyEquivalent: "")
+        parent.image = Self.symbol("pawprint")
+        petParent = parent
         let sub = NSMenu(title: "Personaggio")
         sub.autoenablesItems = false
         for pet in Pet.all {
@@ -79,6 +123,22 @@ final class MenuController: NSObject, NSMenuDelegate {
         return parent
     }
 
+    private func makeChattinessItem() -> NSMenuItem {
+        let parent = NSMenuItem(title: "Frequenza delle frasi", action: nil, keyEquivalent: "")
+        let sub = NSMenu(title: "Frequenza delle frasi")
+        sub.autoenablesItems = false
+        for level in Chattiness.allCases {
+            let item = NSMenuItem(title: level.title, action: #selector(setChattiness(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = level.rawValue
+            item.image = Self.symbol(level.symbolName)
+            sub.addItem(item)
+            chattinessItems.append(item)
+        }
+        parent.submenu = sub
+        return parent
+    }
+
     private func makeMovementItem() -> NSMenuItem {
         let parent = NSMenuItem(title: "Movimento", action: nil, keyEquivalent: "")
         let sub = NSMenu(title: "Movimento")
@@ -87,6 +147,7 @@ final class MenuController: NSObject, NSMenuDelegate {
             let item = NSMenuItem(title: title, action: #selector(setMovement(_:)), keyEquivalent: "")
             item.target = self
             item.tag = moving ? 1 : 0
+            item.image = Self.symbol(moving ? "figure.walk" : "pause.circle")
             sub.addItem(item)
             movementItems.append(item)
         }
@@ -94,36 +155,65 @@ final class MenuController: NSObject, NSMenuDelegate {
         return parent
     }
 
-    private func makePomofocusItem() -> NSMenuItem {
-        let parent = NSMenuItem(title: "Pomofocus", action: nil, keyEquivalent: "")
-        let sub = NSMenu(title: "Pomofocus")
-        sub.autoenablesItems = false
+    private let customTimers = CustomTimers()
 
-        for minutes in [30, 50] {
+    /// (Ri)costruisce il sottomenu Pomofocus: i timer di serie e quelli personalizzati, in ordine di durata.
+    private func populatePomofocusMenu() {
+        guard let sub = pomofocusItem.submenu else { return }
+        sub.removeAllItems()
+        breakItems = []
+
+        for minutes in customTimers.all(.focus) {
             let item = NSMenuItem(title: "Focus \(minutes) min", action: #selector(startFocus(_:)), keyEquivalent: "")
             item.target = self
             item.tag = minutes
+            item.image = Self.symbol("hourglass")
             sub.addItem(item)
         }
         sub.addItem(.separator())
 
         // La durata scelta vale anche per la pausa che parte da sola dopo il focus (spunta).
-        for minutes in [5, 10] {
+        for minutes in customTimers.all(.rest) {
             let item = NSMenuItem(title: "Pausa \(minutes) min", action: #selector(startBreak(_:)), keyEquivalent: "")
             item.target = self
             item.tag = minutes
+            item.image = Self.symbol("cup.and.saucer")
             sub.addItem(item)
             breakItems.append(item)
+        }
+        sub.addItem(.separator())
+
+        // Personalizza: aggiunge un focus o una pausa; "Rimuovi" compare solo se ce ne sono.
+        let add = NSMenuItem(title: "Personalizza…", action: #selector(addCustomTimer), keyEquivalent: "")
+        add.target = self
+        add.image = Self.symbol("slider.horizontal.3")
+        sub.addItem(add)
+
+        let custom: [(CustomTimers.Kind, Int)] = [.focus, .rest].flatMap { kind in
+            customTimers.custom(kind).map { (kind, $0) }
+        }
+        if !custom.isEmpty {
+            let remove = NSMenuItem(title: "Rimuovi un timer personalizzato", action: nil, keyEquivalent: "")
+            remove.image = Self.symbol("minus.circle")
+            let removeMenu = NSMenu(title: "Rimuovi")
+            removeMenu.autoenablesItems = false
+            for (kind, minutes) in custom {
+                let item = NSMenuItem(title: "\(kind.title) \(minutes) min", action: #selector(removeCustomTimer(_:)), keyEquivalent: "")
+                item.target = self
+                item.tag = minutes
+                item.representedObject = kind.rawValue
+                removeMenu.addItem(item)
+            }
+            remove.submenu = removeMenu
+            sub.addItem(remove)
         }
         sub.addItem(.separator())
 
         stopTimerItem.title = "Ferma timer"
         stopTimerItem.action = #selector(stopTimer)
         stopTimerItem.target = self
+        stopTimerItem.image = Self.symbol("stop.circle")
         sub.addItem(stopTimerItem)
-
-        parent.submenu = sub
-        return parent
     }
 
     // MARK: - Aggiornamento voci
@@ -131,7 +221,29 @@ final class MenuController: NSObject, NSMenuDelegate {
     func menuNeedsUpdate(_ menu: NSMenu) {
         let name = window.pet.name
         toggleItem.title = window.isVisible ? "Nascondi \(name)" : "Mostra \(name)"
+        toggleItem.image = Self.symbol(window.isVisible ? "eye.slash" : "eye")
         speakItem.title = "Fai parlare \(name)"
+        // La scheda in cima segue il personaggio scelto.
+        headerView.title = name
+        headerView.icon = Self.menuIcon(for: window.pet, height: 80)
+        headerView.iconFocus = window.pet.iconFocus
+
+        // Lo stato attuale si legge senza aprire i sottomenu, e la scheda dice cosa sta facendo.
+        switch pomodoro.phase {
+        case .focus?: headerView.status = "Focus · \(pomodoro.remainingText)"
+        case .rest?: headerView.status = "Pausa · \(pomodoro.remainingText)"
+        case nil: headerView.status = window.isVisible ? "Qui con te" : "Nascosto"
+        }
+        petParent?.title = "Personaggio · \(name)"
+        pomofocusItem.title = pomodoro.isRunning ? "Pomofocus · \(pomodoro.remainingText)" : "Pomofocus"
+        chattinessParent.title = "Frequenza delle frasi · \(Chattiness.current.title)"
+        movementParent.title = window.pet.walks
+            ? "Movimento · \(Walker.isMovementEnabled ? "In movimento" : "Fermo")"
+            : "Movimento"
+        for item in chattinessItems {
+            item.state = (item.representedObject as? String) == Chattiness.current.rawValue ? .on : .off
+        }
+
         // Il movimento ha senso solo per i personaggi che camminano.
         for item in movementItems {
             item.isEnabled = window.pet.walks
@@ -171,6 +283,57 @@ final class MenuController: NSObject, NSMenuDelegate {
         pomodoro.startBreak(minutes: sender.tag)
     }
 
+    /// Finestra per aggiungere un timer: tipo (focus o pausa) e minuti.
+    @objc private func addCustomTimer() {
+        NSApp.activate(ignoringOtherApps: true)
+        let alert = NSAlert()
+        alert.messageText = "Nuovo timer personalizzato"
+        alert.informativeText = "Scegli se è un focus o una pausa e per quanti minuti."
+        alert.addButton(withTitle: "Aggiungi")
+        alert.addButton(withTitle: "Annulla")
+
+        let kind = NSPopUpButton(frame: NSRect(x: 0, y: 30, width: 120, height: 26), pullsDown: false)
+        kind.addItems(withTitles: [CustomTimers.Kind.focus.title, CustomTimers.Kind.rest.title])
+        let minutes = NSTextField(frame: NSRect(x: 130, y: 31, width: 60, height: 24))
+        minutes.placeholderString = "25"
+        let unit = NSTextField(labelWithString: "minuti")
+        unit.frame = NSRect(x: 198, y: 33, width: 60, height: 20)
+        let hint = NSTextField(labelWithString: "Focus da 1 a 180 minuti, pausa da 1 a 60.")
+        hint.font = .systemFont(ofSize: 11)
+        hint.textColor = .secondaryLabelColor
+        hint.frame = NSRect(x: 0, y: 3, width: 290, height: 16)
+        let accessory = NSView(frame: NSRect(x: 0, y: 0, width: 290, height: 62))
+        [kind, minutes, unit, hint].forEach(accessory.addSubview)
+        alert.accessoryView = accessory
+        alert.window.initialFirstResponder = minutes
+
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+
+        let chosen: CustomTimers.Kind = kind.indexOfSelectedItem == 0 ? .focus : .rest
+        let range = CustomTimers.allowed[chosen]!
+        let text = minutes.stringValue.trimmingCharacters(in: .whitespaces)
+        guard let value = Int(text) else {
+            showAlert("Numero non valido", "Scrivi un numero intero di minuti, da \(range.lowerBound) a \(range.upperBound).")
+            return
+        }
+        switch customTimers.add(value, kind: chosen) {
+        case .added:
+            populatePomofocusMenu()
+        case .outOfRange(let r):
+            showAlert("Durata non valida", "Per \(chosen == .focus ? "un focus" : "una pausa") servono da \(r.lowerBound) a \(r.upperBound) minuti.")
+        case .alreadyExists:
+            showAlert("C'è già", "\(chosen.title) \(value) min c'è già nel menu.")
+        case .tooMany(let max):
+            showAlert("Troppi timer", "Puoi aggiungere al massimo \(max) timer personalizzati per tipo. Rimuovine uno e riprova.")
+        }
+    }
+
+    @objc private func removeCustomTimer(_ sender: NSMenuItem) {
+        guard let raw = sender.representedObject as? String, let kind = CustomTimers.Kind(rawValue: raw) else { return }
+        customTimers.remove(sender.tag, kind: kind)
+        populatePomofocusMenu()
+    }
+
     @objc private func stopTimer() {
         pomodoro.stop()
     }
@@ -180,6 +343,14 @@ final class MenuController: NSObject, NSMenuDelegate {
             window.orderFrontRegardless()
             speaker.start()
         }
+    }
+
+    @objc private func setChattiness(_ sender: NSMenuItem) {
+        guard let raw = sender.representedObject as? String, let level = Chattiness(rawValue: raw) else { return }
+        Chattiness.current = level
+        pomodoro.refreshChatter()
+        speaker.reschedule()
+        if level == .never { speaker.dismissNow() }   // "adesso silenzio": anche il fumetto che c'è sparisce
     }
 
     @objc private func setMovement(_ sender: NSMenuItem) {
@@ -251,10 +422,17 @@ final class MenuController: NSObject, NSMenuDelegate {
         alert.runModal()
     }
 
-    // MARK: - Icona
+    // MARK: - Icone
+
+    /// Un'icona di sistema (SF Symbols) per le voci del menu; se non esiste su questo Mac, nessuna icona.
+    private static func symbol(_ name: String) -> NSImage? {
+        let image = NSImage(systemSymbolName: name, accessibilityDescription: nil)
+        image?.isTemplate = true
+        return image
+    }
 
     private func updateStatusIcon() {
-        if let icon = Self.menuBarIcon(for: window.pet) {
+        if let icon = Self.menuIcon(for: window.pet, height: 22) {
             statusItem.button?.title = ""
             statusItem.button?.image = icon
         } else {
@@ -263,8 +441,8 @@ final class MenuController: NSObject, NSMenuDelegate {
         }
     }
 
-    /// Il personaggio (o solo la sua testa) ritagliato dall'immagine, alto quanto la barra dei menu.
-    private static func menuBarIcon(for pet: Pet) -> NSImage? {
+    /// Il personaggio (o solo la sua testa) ritagliato dall'immagine, alto quanto richiesto.
+    static func menuIcon(for pet: Pet, height: CGFloat) -> NSImage? {
         guard let url = Bundle.main.url(forResource: pet.iconResource, withExtension: "png"),
               let source = NSImage(contentsOf: url) else { return nil }
 
@@ -273,7 +451,6 @@ final class MenuController: NSObject, NSMenuDelegate {
             x: crop.minX * source.size.width, y: crop.minY * source.size.height,
             width: crop.width * source.size.width, height: crop.height * source.size.height
         )
-        let height: CGFloat = 22
         let size = NSSize(width: ceil(height * from.width / from.height), height: height)
         return NSImage(size: size, flipped: false) { rect in
             source.draw(in: rect, from: from, operation: .sourceOver, fraction: 1)
