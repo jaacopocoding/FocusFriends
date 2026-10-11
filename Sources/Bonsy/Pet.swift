@@ -107,6 +107,7 @@ struct Pet: Equatable {
         iconCrop: nil,
         walks: true,
         walkFrames: [1, 2, 3, 4],   // passo, passaggio, passo, passaggio
+        facesRight: true,           // i passi sono disegnati verso destra: a sinistra si specchia
         framesPerStage: 5
     )
 
