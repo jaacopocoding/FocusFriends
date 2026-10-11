@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Ritaglia il disegno del porcellino sollevato: assets/porcellino/picked_original.png -> assets/porcellino/picked.png
+"""Ritaglia il disegno di un personaggio sollevato dalle mani.
+
+    python3 tools/cutout_picked.py [originale.png [ritaglio.png]]
+
+Senza argomenti: assets/porcellino/picked_original.png -> assets/porcellino/picked.png
+(per Pianty: assets/pianty/picked_original.png assets/pianty/picked.png).
 
 Sfondo = bianco raggiungibile dal bordo. Le macchioline staccate più piccole di MIN_PART pixel
 (puntini di polvere) vengono tolte; gocce di sudore e lineette di tremore restano.
@@ -8,7 +13,10 @@ from collections import deque
 import numpy as np
 from PIL import Image
 
-SRC = "assets/porcellino/picked_original.png"
+import sys
+
+SRC = sys.argv[1] if len(sys.argv) > 1 else "assets/porcellino/picked_original.png"
+DST = sys.argv[2] if len(sys.argv) > 2 else "assets/porcellino/picked.png"
 BG_MIN = 246
 MIN_PART = 14
 PAD = 4
@@ -76,5 +84,5 @@ ys, xs = np.where(fg)
 box = (max(xs.min() - PAD, 0), max(ys.min() - PAD, 0), min(xs.max() + PAD + 1, w), min(ys.max() + PAD + 1, h))
 rgba = np.dstack([color, alpha * 255]).astype(np.uint8)
 out = Image.fromarray(rgba, "RGBA").crop(box)
-out.save("assets/porcellino/picked.png")
-print("Scritto assets/porcellino/picked.png", out.size, " (bbox nel foglio:", box, ")")
+out.save(DST)
+print("Scritto", DST, out.size, " (bbox nel foglio:", box, ")")

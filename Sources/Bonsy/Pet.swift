@@ -112,6 +112,9 @@ struct Pet: Equatable {
         walkFrames: [1, 2, 3, 4, 5, 6],
         stepInterval: 1.0 / 15,     // 6 fotogrammi in 0,4 s: il piede appoggiato non scivola a 42 pt/s
         facesRight: true,           // i passi sono disegnati verso destra: a sinistra si specchia
+        pickedResource: "pianty_picked",   // le mani che lo sollevano dal vaso, spaventato
+        pickedSize: NSSize(width: 132, height: 150),
+        pickedGrab: CGPoint(x: 0.32, y: 0.46),   // il cursore sta sulla mano sinistra
         framesPerStage: 7
     )
 

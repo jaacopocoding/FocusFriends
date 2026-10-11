@@ -75,7 +75,8 @@ schermo, si ferma a fare una di queste cose (dopo ogni pausa tra due camminate s
 | Ripartire a camminare | il resto | 3–8 secondi |
 
 Dopo una sosta riparte sempre a camminare. Non dipendono dal Pomofocus. Quando lo trascini col mouse compare un disegno in cui
-viene sollevato da due mani, spaventato (con un leggero tremolio); lasciandolo, torna in piedi dove si trova. Simulazione usa le frasi di Spidy.
+viene sollevato da due mani, spaventato (con un leggero tremolio); lasciandolo, torna in piedi dove si trova. Vale per il
+Porcellino e per Pianty (che lo mostra allo stadio finale, con la pianta adulta). Simulazione usa le frasi di Spidy.
 
 ## Installazione
 
@@ -132,6 +133,7 @@ assets/
   pianty/original.png   immagine di partenza di Pianty senza piedini (5 stadi, non più usata dal ritaglio)
   pianty/sheets/stage1..5.png   le tavole di Pianty con i piedini (un foglio per stadio; si usa il primo fotogramma)
   pianty/stage{1..5}_{1..7}.png   i 35 fotogrammi (_1 fermo, _2.._7 passo), generati da tools/cutout_pianty.py
+  pianty/picked_original.png, picked.png   Pianty sollevata dalle mani (tools/cutout_picked.py)
   original.png, spidy.png   immagine di Spidy e ritaglio (tools/cutout.py)
   bubble_original.png, bubble.png   fumetto e ritaglio (tools/cutout_bubble.py)
   frasi_bonsy.txt, frasi.txt, frasi_porcellino.txt   frasi incluse nell'app
