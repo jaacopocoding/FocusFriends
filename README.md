@@ -4,8 +4,7 @@ Un bonsai che se ne sta sul desktop del Mac, ti accompagna nel Pomofocus e ogni 
 frase gentile. Cresce mentre lavori: parte da un seme e, man mano che il tempo del focus passa,
 diventa un albero. Non fa altro: è solo una cosa carina sullo schermo.
 
-Dal menu si possono scegliere altri personaggi: **Pianty** (una succulenta che cresce allo stesso modo,
-con le stesse frasi), il **Porcellino** (cammina per lo schermo, con frasi sue),
+Dal menu si possono scegliere altri personaggi: **Pianty** (una succulenta con due piedini: cresce come Bonsy, con le stesse frasi, e cammina per lo schermo), il **Porcellino** (cammina per lo schermo, con frasi sue),
 **Spidy** (un mini Spider-Man, fisso) e **Simulazione** (una prova: Spidy che cammina per lo schermo).
 
 ## Cosa fa
@@ -52,12 +51,16 @@ pausa e quando non c'è nessun timer resta allo stadio finale.
 
 ## Personaggi che camminano
 
-Il Porcellino e Simulazione camminano per lo schermo: fanno qualche passo in una direzione
+Pianty, il Porcellino e Simulazione camminano per lo schermo: fanno qualche passo in una direzione
 (3–8 secondi, 42 punti al secondo), si fermano 4–10 secondi, poi ripartono, rimbalzando ai bordi.
 Stanno fermi mentre parlano o mentre li trascini col mouse. Camminano solo in orizzontale, all'altezza
 a cui si trovano. Dal menu *Movimento ▸ Fermo* smettono di camminare e restano dove sono; *In movimento*
 li rimette in cammino. Se le immagini guardano a destra (come il porcellino), vengono specchiate quando
 vanno a sinistra.
+
+Pianty cammina *e* cresce: per ognuno dei 5 stadi ci sono 5 fotogrammi (fermo, passo, passaggio, passo,
+passaggio), quindi mentre il focus avanza lo stadio cambia con una dissolvenza e il passo continua senza
+interruzioni. Non mangia e non dorme.
 
 Il Porcellino ha un ciclo di passi a 4 fotogrammi, una posa con le orecchie che saltellano mentre
 parla, e le sue frasi in `assets/frasi_porcellino.txt`. Ogni tanto, in momenti casuali mentre gira per lo
@@ -125,8 +128,9 @@ Sources/Bonsy/
 assets/
   bonsy/original.png    immagine di partenza di Bonsy (5 stadi)
   bonsy/stage1..5.png   stadi ritagliati (generati da tools/cutout_bonsy.py)
-  pianty/original.png   immagine di partenza di Pianty (5 stadi)
-  pianty/stage1..5.png  stadi ritagliati (generati da tools/cutout_pianty.py)
+  pianty/original.png   immagine di partenza di Pianty senza piedini (5 stadi, non più usata dal ritaglio)
+  pianty/sheets/stage1..5.png   le tavole di Pianty che cammina: un foglio per stadio, 5 fotogrammi in fila
+  pianty/stage{1..5}_{1..5}.png   i 25 fotogrammi ritagliati e allineati sui piedi (tools/cutout_pianty.py)
   original.png, spidy.png   immagine di Spidy e ritaglio (tools/cutout.py)
   bubble_original.png, bubble.png   fumetto e ritaglio (tools/cutout_bubble.py)
   frasi_bonsy.txt, frasi.txt, frasi_porcellino.txt   frasi incluse nell'app
@@ -145,5 +149,5 @@ build.sh                compila e crea build/Bonsy.app
 Un personaggio è una riga in `Pet.swift` (con `pickedResource` può avere un disegno diverso mentre lo si trascina): immagini (una per stadio, tutte sullo stesso formato e
 allineate sulla linea di terra), file delle frasi, dimensione della finestra. Un solo stadio = personaggio
 fisso, più stadi = cresce con il timer; con `walks: true` le immagini sono pose e il personaggio
-cammina. Per ritagliare un'immagine su sfondo bianco si può partire da
+cammina; con `framesPerStage` ogni stadio ha il suo gruppo di pose (cresce e cammina, come Pianty). Per ritagliare un'immagine su sfondo bianco si può partire da
 `tools/cutout.py`.

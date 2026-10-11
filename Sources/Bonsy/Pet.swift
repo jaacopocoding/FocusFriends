@@ -45,13 +45,23 @@ struct Pet: Equatable {
     /// Dove tiene il cursore sul disegno sollevato (frazioni di larghezza e altezza, origine in basso a sinistra).
     var pickedGrab: CGPoint = CGPoint(x: 0.5, y: 0.5)
 
-    var stageCount: Int { imageResources.count }
+    /// Per chi cammina e cresce insieme (Pianty): quanti fotogrammi ha ogni stadio di crescita.
+    /// Le immagini sono in ordine: tutti i fotogrammi del primo stadio, poi quelli del secondo, e così via;
+    /// dentro lo stadio vale `walkFrames` (0 = fermo).
+    var framesPerStage: Int? = nil
+
+    var stageCount: Int { framesPerStage.map { imageResources.count / $0 } ?? (walks ? 1 : imageResources.count) }
     var finalStage: Int { stageCount - 1 }
     /// Lo stadio con cui sta fermo: l'ultimo per chi cresce, la posa "fermo" per chi cammina.
     var restStage: Int { walks ? 0 : finalStage }
-    var growsWithTimer: Bool { stageCount > 1 && !walks }
+    /// L'immagine con cui sta fermo, contando anche chi cresce e cammina (ultimo stadio, fotogramma fermo).
+    var restImageIndex: Int { framesPerStage.map { finalStage * $0 } ?? restStage }
+    var growsWithTimer: Bool { stageCount > 1 }
     /// L'immagine da cui si ricava l'icona nella barra dei menu.
-    var iconResource: String { walks ? imageResources[0] : imageResources[finalStage] }
+    var iconResource: String {
+        if framesPerStage != nil { return imageResources[restImageIndex] }
+        return walks ? imageResources[0] : imageResources[finalStage]
+    }
 
     static let spidy = Pet(
         id: "spidy",
@@ -81,19 +91,23 @@ struct Pet: Equatable {
         iconCrop: nil
     )
 
-    /// Una succulenta che cresce come Bonsy e ne condivide le frasi.
+    /// Una succulenta che cresce come Bonsy e ne condivide le frasi, ma ha due piedini e cammina:
+    /// per ognuno dei 5 stadi ci sono 5 fotogrammi (fermo, passo, passaggio, passo, passaggio).
     static let pianty = Pet(
         id: "pianty",
         name: "Pianty",
-        imageResources: (1...5).map { "pianty_stage\($0)" },
-        size: NSSize(width: 73, height: 127),
+        imageResources: (1...5).flatMap { stage in (1...5).map { "pianty_stage\(stage)_\($0)" } },
+        size: NSSize(width: 80, height: 140),
         quotesResource: "frasi_bonsy",
         quotesUserFile: "frasi_bonsy.txt",
         fallbackQuote: "Un passo alla volta: anch'io sono partito da un seme.",
         greeting: "Ciao! Sono Pianty. Cresciamo insieme, con calma.",
-        shadowWidthFraction: 0.72,
-        groundFraction: 0.069,
-        iconCrop: nil
+        shadowWidthFraction: 0.6,
+        groundFraction: 0.0146,
+        iconCrop: nil,
+        walks: true,
+        walkFrames: [1, 2, 3, 4],   // passo, passaggio, passo, passaggio
+        framesPerStage: 5
     )
 
     /// Prova: stesse cose di Spidy (stesse frasi), ma cammina per lo schermo.

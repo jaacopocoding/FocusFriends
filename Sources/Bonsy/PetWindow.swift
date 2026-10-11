@@ -32,7 +32,7 @@ final class PetWindow: NSWindow {
         collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
         contentView = view
         view.configure(for: pet)
-        view.setStage(pet.restStage, animated: false)
+        view.setStage(pet.restImageIndex, animated: false)
     }
 
     override var canBecomeKey: Bool { false }
@@ -62,7 +62,7 @@ final class PetWindow: NSWindow {
         let anchor = NSPoint(x: frame.midX, y: frame.minY)
         pet = newPet
         petView.configure(for: newPet)
-        petView.setStage(newPet.restStage, animated: false)
+        petView.setStage(newPet.restImageIndex, animated: false)
         setFrameKeepingChildren(
             NSRect(x: anchor.x - newPet.size.width / 2, y: anchor.y, width: newPet.size.width, height: newPet.size.height)
         )
@@ -70,7 +70,7 @@ final class PetWindow: NSWindow {
 
     /// Mostra lo stadio di crescita (con una dissolvenza). Per i personaggi fissi non fa nulla.
     func setStage(_ stage: Int) {
-        petView.setStage(stage, animated: true)
+        petView.setGrowth(stage, animated: true)
     }
 
     // MARK: - Sollevamento col mouse
@@ -134,7 +134,7 @@ final class PetWindow: NSWindow {
 
     /// Cambia posa all'istante (per chi cammina: fermo, passo sinistro, passo destro).
     func setPose(_ pose: Int) {
-        petView.setStage(pose, animated: false)
+        petView.setPose(pose)
     }
 
     /// La parte della finestra in cui c'è davvero il disegno (dai piedi alla cima), in coordinate schermo.
@@ -194,7 +194,11 @@ final class PetView: NSView {
         didSet { if mirrored != oldValue { needsDisplay = true } }
     }
 
+    /// Indice dell'immagine mostrata. Per chi cresce e cammina è `crescita * framesPerStage + posa`.
     private var stage = 0
+    /// Più di 1: ogni stadio di crescita ha più fotogrammi (Pianty che cammina).
+    private var framesPerStage = 1
+    private var pose = 0
     private var fadingFrom: Int?
     private var fadeStart = Date()
     private var fadeTimer: Timer?
@@ -264,6 +268,8 @@ final class PetView: NSView {
             Bundle.main.url(forResource: name, withExtension: "png").flatMap { NSImage(contentsOf: $0) }
         }
         pickedGrab = pet.pickedGrab
+        framesPerStage = pet.framesPerStage ?? 1
+        pose = 0
         setPicked(false)
         shadowFraction = pet.shadowWidthFraction
         groundFraction = pet.groundFraction
@@ -296,6 +302,25 @@ final class PetView: NSView {
             fadingFrom = nil
         }
         stage = target
+        pose = framesPerStage > 1 ? target % framesPerStage : 0
+        needsDisplay = true
+    }
+
+    /// Cambia lo stadio di crescita (con dissolvenza) tenendo il fotogramma del passo.
+    func setGrowth(_ growth: Int, animated: Bool) {
+        guard framesPerStage > 1 else { setStage(growth, animated: animated); return }
+        let clamped = min(max(growth, 0), max(images.count / framesPerStage - 1, 0))
+        setStage(clamped * framesPerStage + pose, animated: animated)
+    }
+
+    /// Cambia fotogramma (passo) dentro lo stadio attuale, senza interrompere una dissolvenza in corso.
+    func setPose(_ new: Int) {
+        guard framesPerStage > 1 else { setStage(new, animated: false); return }
+        let clamped = min(max(new, 0), framesPerStage - 1)
+        guard clamped != pose else { return }
+        pose = clamped
+        stage = (stage / framesPerStage) * framesPerStage + clamped
+        if let from = fadingFrom { fadingFrom = (from / framesPerStage) * framesPerStage + clamped }
         needsDisplay = true
     }
 
