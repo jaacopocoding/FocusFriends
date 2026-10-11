@@ -8,10 +8,9 @@ enum Quotes {
 
     /// Dove l'utente tiene le sue frasi.
     static var userDirectory: URL { support.appendingPathComponent("FocusFriends") }
-    /// Cartelle usate quando l'app si chiamava Bonsy e, prima ancora, Spidy: ancora lette (in questo ordine),
-    /// così le frasi già scritte non si perdono.
+    /// Cartella usata quando l'app si chiamava Bonsy: ancora letta, così le frasi già scritte non si perdono.
     static var legacyDirectories: [URL] {
-        ["Bonsy", "Spidy"].map { support.appendingPathComponent($0) }
+        ["Bonsy"].map { support.appendingPathComponent($0) }
     }
 
     static func userFile(for pet: Pet) -> URL {

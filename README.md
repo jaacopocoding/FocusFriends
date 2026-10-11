@@ -98,14 +98,14 @@ l'approvazione in Impostazioni di Sistema → Generali → Elementi login.
 
 ## Frasi
 
-Le frasi di partenza sono in `assets/frasi_bonsy.txt` (Pianty), `assets/frasi_porcellino.txt`
+Le frasi di partenza sono in `assets/frasi_pianty.txt` (Pianty), `assets/frasi_porcellino.txt`
 (Porcellino) e `assets/frasi_ciccio.txt` (Ciccio), una per riga
 (le righe che iniziano con `#` sono ignorate). Per usare le tue senza ricompilare, scegli *Modifica le
-frasi…* dal menu: crea e apre `~/Library/Application Support/FocusFriends/frasi_bonsy.txt` (o quello del porcellino
+frasi…* dal menu: crea e apre `~/Library/Application Support/FocusFriends/frasi_pianty.txt` (o quello del porcellino
 o di Ciccio), che ha la precedenza sul file incluso nell'app. Le modifiche valgono dalla frase successiva.
-Se esistono ancora le vecchie cartelle `Application Support/Bonsy` e `Application Support/Spidy` (dai tempi in cui l'app
-si chiamava così), vengono lette come seconda e terza scelta. Anche le preferenze (personaggio, frequenza, timer
-personalizzati) vengono copiate dalla vecchia app al primo avvio (`Migration.swift`).
+Se esiste ancora la vecchia cartella `Application Support/Bonsy` (dai tempi in cui l'app si chiamava così), viene
+letta come seconda scelta. Anche le preferenze (personaggio, frequenza, timer personalizzati) vengono copiate
+dalla vecchia app al primo avvio (`Migration.swift`).
 
 Le frasi escono **a mazzo** (`PhraseDeck.swift`): tutte, in ordine casuale, prima che una si ripeta; la prima
 del giro successivo non è mai uguale all'ultima uscita. La **frequenza** si sceglie dal menu (*Frequenza delle
@@ -134,17 +134,11 @@ Sources/FocusFriends/
   Pomodoro.swift        logica del timer focus/pausa e crescita
   TimerBubble.swift     orologio digitale sotto il personaggio
   MenuController.swift  icona nella barra, menu, avvio al login
-assets/                 (i file di Bonsy bonsai, Spidy e Simulazione sono conservati ma non fanno più parte dell'app)
-  bonsy/original.png    immagine di partenza di Bonsy (5 stadi)
-  bonsy/stage1..5.png   stadi ritagliati (tools/cutout_bonsy.py)
+assets/
   pianty/original.png   immagine di partenza di Pianty senza piedini (5 stadi, non più usata dal ritaglio)
   pianty/sheets/stage1..5.png   le tavole di Pianty con i piedini (un foglio per stadio; si usa il primo fotogramma)
   pianty/stage{1..5}_{1..7}.png   i 35 fotogrammi (_1 fermo, _2.._7 passo), generati da tools/cutout_pianty.py
   pianty/picked_original.png, picked.png   Pianty sollevata dalle mani (tools/cutout_picked.py)
-  original.png, spidy.png   immagine di Spidy e ritaglio (tools/cutout.py)
-  bubble_original.png, bubble.png   fumetto e ritaglio (tools/cutout_bubble.py)
-  frasi_bonsy.txt, frasi_porcellino.txt, frasi_ciccio.txt   frasi incluse nell'app (frasi.txt: quelle di Spidy, non più incluse)
-  simulazione/frame1..3.png   le tre pose di Simulazione (generate da tools/make_simulazione.sh)
   porcellino/original.png     immagine di partenza del porcellino (5 fotogrammi)
   porcellino/eat_original.png, sleep_original.png, jump_original.png   i fogli della carota, del sonno e del popcorning
   porcellino/frame*.png       fotogrammi ritagliati e allineati (1-5 cammino, 6-10 mangia, 11-14 dorme, 15-19 popcorning), da tools/cutout_porcellino.py
@@ -152,8 +146,10 @@ assets/                 (i file di Bonsy bonsai, Spidy e Simulazione sono conser
   ciccio/walk_original.png, flap_original.png   le tavole della cocorita (camminata e ali, 6 fotogrammi ciascuna)
   ciccio/picked_original.png, picked.png   Ciccio sollevato dalle mani (tools/cutout_picked.py ... 252: maniche quasi bianche)
   ciccio/frame1..13.png   fermo (ali chiuse, zampe a terra), 6 di camminata, 6 di ali (tools/cutout_ciccio.py)
-  AppIcon.icns          icona dell'app (generata da tools/make_icon.py con Pianty, Ciccio e il Porcellino davanti a un anello che si riempie)
-tools/                  script per ritagli e icona (Python con Pillow e numpy; make_simulazione.sh usa Swift)
+  bubble_original.png, bubble.png   fumetto e ritaglio (tools/cutout_bubble.py)
+  frasi_pianty.txt, frasi_porcellino.txt, frasi_ciccio.txt   frasi incluse nell'app
+  AppIcon.icns          icona dell'app (generata da tools/make_icon.py con i tre personaggi davanti a un anello che si riempie)
+tools/                  script per ritagli e icona (Python con Pillow e numpy)
 build.sh                compila e crea build/FocusFriends.app
 ```
 
@@ -163,4 +159,4 @@ Un personaggio è una riga in `Pet.swift` (con `pickedResource` può avere un di
 allineate sulla linea di terra), file delle frasi, dimensione della finestra. Un solo stadio = personaggio
 fisso, più stadi = cresce con il timer; con `walks: true` le immagini sono pose e il personaggio
 cammina; con `framesPerStage` ogni stadio ha il suo gruppo di pose (cresce e cammina, come Pianty); `stepInterval` regola la velocità del passo. Per ritagliare un'immagine su sfondo bianco si può partire da
-`tools/cutout.py`.
+`tools/cutout_picked.py` (un solo disegno) o `tools/cutout_ciccio.py` (tavole con più fotogrammi).
