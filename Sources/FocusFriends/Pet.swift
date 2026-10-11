@@ -9,7 +9,7 @@ struct Pet: Equatable {
     /// Dimensione della finestra, in punti.
     let size: NSSize
     let quotesResource: String
-    /// Nome del file con cui l'utente può sostituire le frasi (in Application Support/Bonsy).
+    /// Nome del file con cui l'utente può sostituire le frasi (in Application Support/FocusFriends).
     let quotesUserFile: String
     let fallbackQuote: String
     let greeting: String

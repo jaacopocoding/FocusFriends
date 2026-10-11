@@ -1,4 +1,4 @@
-# Bonsy
+# FocusFriends
 
 Un piccolo personaggio che se ne sta sul desktop del Mac, ti accompagna nel Pomofocus e ogni tanto dice una
 frase gentile. Si sceglie dal menu:
@@ -27,7 +27,7 @@ frase gentile. Si sceglie dal menu:
 | Movimento ▸ | *In movimento* / *Fermo*: per i personaggi che camminano |
 | Avvia al login | Si avvia da solo all'accensione del Mac |
 | Modifica le frasi… | Apre il file delle frasi del personaggio attivo |
-| Esci da Bonsy | Chiude l'app |
+| Esci da FocusFriends | Chiude l'app |
 
 ## Pomofocus
 
@@ -88,9 +88,9 @@ Porcellino, per Pianty (che lo mostra allo stadio finale, con la pianta adulta) 
 Serve macOS 13 o successivo e gli strumenti da riga di comando di Xcode (`xcode-select --install`).
 
 ```bash
-./build.sh                         # crea build/Bonsy.app (universale: Apple Silicon e Intel)
-cp -R build/Bonsy.app /Applications/
-open /Applications/Bonsy.app
+./build.sh                         # crea build/FocusFriends.app (universale: Apple Silicon e Intel)
+cp -R build/FocusFriends.app /Applications/
+open /Applications/FocusFriends.app
 ```
 
 Per l'avvio al login è meglio che l'app stia in **Applicazioni**. macOS potrebbe chiedere
@@ -101,9 +101,11 @@ l'approvazione in Impostazioni di Sistema → Generali → Elementi login.
 Le frasi di partenza sono in `assets/frasi_bonsy.txt` (Pianty), `assets/frasi_porcellino.txt`
 (Porcellino) e `assets/frasi_ciccio.txt` (Ciccio), una per riga
 (le righe che iniziano con `#` sono ignorate). Per usare le tue senza ricompilare, scegli *Modifica le
-frasi…* dal menu: crea e apre `~/Library/Application Support/Bonsy/frasi_bonsy.txt` (o quello del porcellino
+frasi…* dal menu: crea e apre `~/Library/Application Support/FocusFriends/frasi_bonsy.txt` (o quello del porcellino
 o di Ciccio), che ha la precedenza sul file incluso nell'app. Le modifiche valgono dalla frase successiva.
-Se esiste ancora la vecchia cartella `Application Support/Spidy`, viene letta come seconda scelta.
+Se esistono ancora le vecchie cartelle `Application Support/Bonsy` e `Application Support/Spidy` (dai tempi in cui l'app
+si chiamava così), vengono lette come seconda e terza scelta. Anche le preferenze (personaggio, frequenza, timer
+personalizzati) vengono copiate dalla vecchia app al primo avvio (`Migration.swift`).
 
 Le frasi escono **a mazzo** (`PhraseDeck.swift`): tutte, in ordine casuale, prima che una si ripeta; la prima
 del giro successivo non è mai uguale all'ultima uscita. La **frequenza** si sceglie dal menu (*Frequenza delle
@@ -120,7 +122,7 @@ suo nome nel carattere del fumetto e cosa sta facendo ("Qui con te", "Focus · 2
 ## Struttura
 
 ```
-Sources/Bonsy/
+Sources/FocusFriends/
   main.swift            avvio dell'app
   AppDelegate.swift     crea finestra, fumetti, timer e menu
   Pet.swift             i personaggi: immagini, frasi, misure, come camminano
@@ -134,7 +136,7 @@ Sources/Bonsy/
   MenuController.swift  icona nella barra, menu, avvio al login
 assets/                 (i file di Bonsy bonsai, Spidy e Simulazione sono conservati ma non fanno più parte dell'app)
   bonsy/original.png    immagine di partenza di Bonsy (5 stadi)
-  bonsy/stage1..5.png   stadi ritagliati (tools/cutout_bonsy.py); stage5 serve ancora per l'icona dell'app (tools/make_icon.py)
+  bonsy/stage1..5.png   stadi ritagliati (tools/cutout_bonsy.py)
   pianty/original.png   immagine di partenza di Pianty senza piedini (5 stadi, non più usata dal ritaglio)
   pianty/sheets/stage1..5.png   le tavole di Pianty con i piedini (un foglio per stadio; si usa il primo fotogramma)
   pianty/stage{1..5}_{1..7}.png   i 35 fotogrammi (_1 fermo, _2.._7 passo), generati da tools/cutout_pianty.py
@@ -150,9 +152,9 @@ assets/                 (i file di Bonsy bonsai, Spidy e Simulazione sono conser
   ciccio/walk_original.png, flap_original.png   le tavole della cocorita (camminata e ali, 6 fotogrammi ciascuna)
   ciccio/picked_original.png, picked.png   Ciccio sollevato dalle mani (tools/cutout_picked.py ... 252: maniche quasi bianche)
   ciccio/frame1..13.png   fermo (ali chiuse, zampe a terra), 6 di camminata, 6 di ali (tools/cutout_ciccio.py)
-  AppIcon.icns          icona dell'app (generata da tools/make_icon.py)
+  AppIcon.icns          icona dell'app (generata da tools/make_icon.py con Pianty, Ciccio e il Porcellino davanti a un anello che si riempie)
 tools/                  script per ritagli e icona (Python con Pillow e numpy; make_simulazione.sh usa Swift)
-build.sh                compila e crea build/Bonsy.app
+build.sh                compila e crea build/FocusFriends.app
 ```
 
 ## Aggiungere o cambiare un personaggio

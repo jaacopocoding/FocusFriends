@@ -1,18 +1,18 @@
 #!/bin/bash
-# Compila Bonsy e crea build/Bonsy.app
+# Compila FocusFriends e crea build/FocusFriends.app
 set -euo pipefail
 cd "$(dirname "$0")"
 
-APP="build/Bonsy.app"
+APP="build/FocusFriends.app"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 
 # Una versione per ogni tipo di Mac, poi unite in un solo eseguibile (così l'app gira anche su Mac Intel).
 mkdir -p build/tmp
 for arch in arm64 x86_64; do
-    swiftc -O -target "$arch-apple-macos13.0" -o "build/tmp/Bonsy-$arch" Sources/Bonsy/*.swift
+    swiftc -O -target "$arch-apple-macos13.0" -o "build/tmp/FocusFriends-$arch" Sources/FocusFriends/*.swift
 done
-lipo -create build/tmp/Bonsy-arm64 build/tmp/Bonsy-x86_64 -output "$APP/Contents/MacOS/Bonsy"
+lipo -create build/tmp/FocusFriends-arm64 build/tmp/FocusFriends-x86_64 -output "$APP/Contents/MacOS/FocusFriends"
 rm -rf build/tmp
 cp assets/bubble.png assets/frasi_bonsy.txt assets/frasi_porcellino.txt assets/frasi_ciccio.txt assets/AppIcon.icns "$APP/Contents/Resources/"
 for f in assets/porcellino/frame*.png; do cp "$f" "$APP/Contents/Resources/porcellino_$(basename "$f")"; done
@@ -31,10 +31,10 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <key>CFBundleName</key><string>Bonsy</string>
-    <key>CFBundleDisplayName</key><string>Bonsy</string>
-    <key>CFBundleIdentifier</key><string>com.jacopo.bonsy</string>
-    <key>CFBundleExecutable</key><string>Bonsy</string>
+    <key>CFBundleName</key><string>FocusFriends</string>
+    <key>CFBundleDisplayName</key><string>FocusFriends</string>
+    <key>CFBundleIdentifier</key><string>com.jacopo.focusfriends</string>
+    <key>CFBundleExecutable</key><string>FocusFriends</string>
     <key>CFBundleIconFile</key><string>AppIcon</string>
     <key>CFBundlePackageType</key><string>APPL</string>
     <key>CFBundleShortVersionString</key><string>0.1</string>

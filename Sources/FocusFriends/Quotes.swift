@@ -7,21 +7,24 @@ enum Quotes {
     }
 
     /// Dove l'utente tiene le sue frasi.
-    static var userDirectory: URL { support.appendingPathComponent("Bonsy") }
-    /// Cartella usata quando l'app si chiamava Spidy: ancora letta, così le frasi già scritte non si perdono.
-    static var legacyDirectory: URL { support.appendingPathComponent("Spidy") }
+    static var userDirectory: URL { support.appendingPathComponent("FocusFriends") }
+    /// Cartelle usate quando l'app si chiamava Bonsy e, prima ancora, Spidy: ancora lette (in questo ordine),
+    /// così le frasi già scritte non si perdono.
+    static var legacyDirectories: [URL] {
+        ["Bonsy", "Spidy"].map { support.appendingPathComponent($0) }
+    }
 
     static func userFile(for pet: Pet) -> URL {
         userDirectory.appendingPathComponent(pet.quotesUserFile)
     }
 
     static func load(for pet: Pet) -> [String] {
-        let candidates: [URL?] = [
-            userFile(for: pet),
-            legacyDirectory.appendingPathComponent(pet.quotesUserFile),
-            Bundle.main.url(forResource: pet.quotesResource, withExtension: "txt"),
-        ]
-        for url in candidates.compactMap({ $0 }) {
+        var candidates: [URL] = [userFile(for: pet)]
+        candidates += legacyDirectories.map { $0.appendingPathComponent(pet.quotesUserFile) }
+        if let bundled = Bundle.main.url(forResource: pet.quotesResource, withExtension: "txt") {
+            candidates.append(bundled)
+        }
+        for url in candidates {
             guard let text = try? String(contentsOf: url, encoding: .utf8) else { continue }
             let lines = text
                 .split(whereSeparator: \.isNewline)

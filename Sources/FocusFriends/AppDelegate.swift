@@ -8,6 +8,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var menu: MenuController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        Migration.run()
+
         // Nessuna icona nel Dock, nessuna finestra "normale".
         NSApp.setActivationPolicy(.accessory)
 

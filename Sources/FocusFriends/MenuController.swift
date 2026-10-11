@@ -90,7 +90,7 @@ final class MenuController: NSObject, NSMenuDelegate {
 
         menu.addItem(.separator())
 
-        let quit = NSMenuItem(title: "Esci da Bonsy", action: #selector(quit), keyEquivalent: "q")
+        let quit = NSMenuItem(title: "Esci da FocusFriends", action: #selector(quit), keyEquivalent: "q")
         quit.target = self
         quit.image = Self.symbol("xmark.circle")
         menu.addItem(quit)
@@ -100,7 +100,7 @@ final class MenuController: NSObject, NSMenuDelegate {
         menu.delegate = self
         statusItem.menu = menu
         updateStatusIcon()
-        statusItem.button?.toolTip = "Bonsy"
+        statusItem.button?.toolTip = "FocusFriends"
 
         // Tasto destro sul personaggio: stesso menu.
         window.contentView?.menu = menu
@@ -387,7 +387,7 @@ final class MenuController: NSObject, NSMenuDelegate {
         if service.status == .requiresApproval {
             showAlert(
                 "Serve la tua approvazione",
-                "Apri Impostazioni di Sistema → Generali → Elementi login e consenti a Bonsy di avviarsi."
+                "Apri Impostazioni di Sistema → Generali → Elementi login e consenti a FocusFriends di avviarsi."
             )
         }
     }
@@ -398,10 +398,12 @@ final class MenuController: NSObject, NSMenuDelegate {
         let file = Quotes.userFile(for: pet)
         if !fm.fileExists(atPath: file.path) {
             try? fm.createDirectory(at: Quotes.userDirectory, withIntermediateDirectories: true)
-            // Parto dal file della vecchia cartella (se l'utente l'aveva già modificato), altrimenti da quello dell'app.
-            let legacy = Quotes.legacyDirectory.appendingPathComponent(pet.quotesUserFile)
+            // Parto dal file di una vecchia cartella (se l'utente l'aveva già modificato), altrimenti da quello dell'app.
+            let legacy = Quotes.legacyDirectories
+                .map { $0.appendingPathComponent(pet.quotesUserFile) }
+                .first { fm.fileExists(atPath: $0.path) }
             let bundled = Bundle.main.url(forResource: pet.quotesResource, withExtension: "txt")
-            if fm.fileExists(atPath: legacy.path) {
+            if let legacy {
                 try? fm.copyItem(at: legacy, to: file)
             } else if let bundled {
                 try? fm.copyItem(at: bundled, to: file)
