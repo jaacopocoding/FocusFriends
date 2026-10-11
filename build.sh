@@ -14,7 +14,7 @@ for arch in arm64 x86_64; do
 done
 lipo -create build/tmp/Bonsy-arm64 build/tmp/Bonsy-x86_64 -output "$APP/Contents/MacOS/Bonsy"
 rm -rf build/tmp
-cp assets/spidy.png assets/bubble.png assets/frasi.txt assets/frasi_bonsy.txt assets/frasi_porcellino.txt assets/AppIcon.icns "$APP/Contents/Resources/"
+cp assets/spidy.png assets/bubble.png assets/frasi.txt assets/frasi_bonsy.txt assets/frasi_porcellino.txt assets/frasi_ciccio.txt assets/AppIcon.icns "$APP/Contents/Resources/"
 for i in 1 2 3; do cp "assets/simulazione/frame$i.png" "$APP/Contents/Resources/simulazione_frame$i.png"; done
 for f in assets/porcellino/frame*.png; do cp "$f" "$APP/Contents/Resources/porcellino_$(basename "$f")"; done
 cp assets/porcellino/picked.png "$APP/Contents/Resources/porcellino_picked.png"

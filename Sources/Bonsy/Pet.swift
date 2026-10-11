@@ -126,8 +126,8 @@ struct Pet: Equatable {
         name: "Ciccio",
         imageResources: (1...13).map { "ciccio_frame\($0)" },   // 1 fermo (ali chiuse, le due zampe a terra), 2-7 cammino, 8-13 ali
         size: NSSize(width: 112, height: 118),
-        quotesResource: "frasi_bonsy",
-        quotesUserFile: "frasi_bonsy.txt",
+        quotesResource: "frasi_ciccio",
+        quotesUserFile: "frasi_ciccio.txt",
         fallbackQuote: "Un passo alla volta, e ogni tanto una svolazzata.",
         greeting: "Ciao! Sono Ciccio. Facciamo due passi?",
         shadowWidthFraction: 0.45,

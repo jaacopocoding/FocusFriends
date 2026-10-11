@@ -4,7 +4,7 @@ Un bonsai che se ne sta sul desktop del Mac, ti accompagna nel Pomofocus e ogni 
 frase gentile. Cresce mentre lavori: parte da un seme e, man mano che il tempo del focus passa,
 diventa un albero. Non fa altro: è solo una cosa carina sullo schermo.
 
-Dal menu si possono scegliere altri personaggi: **Pianty** (una succulenta con due piedini: cresce come Bonsy, con le stesse frasi, e cammina per lo schermo), il **Porcellino** (cammina per lo schermo, con frasi sue), **Ciccio** (una cocorita che cammina e ogni tanto sbatte le ali),
+Dal menu si possono scegliere altri personaggi: **Pianty** (una succulenta con due piedini: cresce come Bonsy, con le stesse frasi, e cammina per lo schermo), il **Porcellino** (cammina per lo schermo, con frasi sue), **Ciccio** (una cocorita che cammina e ogni tanto sbatte le ali, con frasi sue),
 **Spidy** (un mini Spider-Man, fisso) e **Simulazione** (una prova: Spidy che cammina per lo schermo).
 
 ## Cosa fa
@@ -60,7 +60,7 @@ vanno a sinistra.
 
 Ciccio, la cocorita, ha 6 fotogrammi di camminata e 6 di battito d'ali. Le ali le sbatte sul posto, ogni tanto e in momenti
 casuali, nello stesso modo in cui il porcellino fa il popcorning (stessa probabilità e durata); non mangia e non dorme. Usa le
-frasi di Bonsy.
+frasi sue (`assets/frasi_ciccio.txt`).
 
 Pianty cammina *e* cresce: per ognuno dei 5 stadi ci sono 7 immagini (fermo + 6 fotogrammi del passo, a 15
 al secondo), quindi mentre il focus avanza lo stadio cambia con una dissolvenza e il passo continua senza
@@ -98,7 +98,7 @@ l'approvazione in Impostazioni di Sistema → Generali → Elementi login.
 ## Frasi
 
 Le frasi di partenza sono in `assets/frasi_bonsy.txt` (Bonsy e Pianty, condivise), `assets/frasi_porcellino.txt`
-(Porcellino) e `assets/frasi.txt` (Spidy e Simulazione), una per riga
+(Porcellino), `assets/frasi_ciccio.txt` (Ciccio) e `assets/frasi.txt` (Spidy e Simulazione), una per riga
 (le righe che iniziano con `#` sono ignorate). Per usare le tue senza ricompilare, scegli *Modifica le
 frasi…* dal menu: crea e apre `~/Library/Application Support/Bonsy/frasi_bonsy.txt` (o `frasi.txt` per
 Spidy), che ha la precedenza sul file incluso nell'app. Le modifiche valgono dalla frase successiva.
@@ -140,7 +140,7 @@ assets/
   pianty/picked_original.png, picked.png   Pianty sollevata dalle mani (tools/cutout_picked.py)
   original.png, spidy.png   immagine di Spidy e ritaglio (tools/cutout.py)
   bubble_original.png, bubble.png   fumetto e ritaglio (tools/cutout_bubble.py)
-  frasi_bonsy.txt, frasi.txt, frasi_porcellino.txt   frasi incluse nell'app
+  frasi_bonsy.txt, frasi.txt, frasi_porcellino.txt, frasi_ciccio.txt   frasi incluse nell'app
   simulazione/frame1..3.png   le tre pose di Simulazione (generate da tools/make_simulazione.sh)
   porcellino/original.png     immagine di partenza del porcellino (5 fotogrammi)
   porcellino/eat_original.png, sleep_original.png, jump_original.png   i fogli della carota, del sonno e del popcorning
