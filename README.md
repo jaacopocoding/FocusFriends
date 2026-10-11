@@ -23,6 +23,7 @@ frase gentile. Si sceglie dal menu:
 | Fai parlare | Mostra subito una frase |
 | Pomofocus ▸ | Timer: *Focus 30/50 min*, *Pausa 5/10 min*, *Personalizza…*, *Ferma timer* |
 | Statistiche e riepilogo… | La finestra con il riepilogo di oggi e le statistiche della settimana e del mese |
+| Il mio giardino… | Una piantina per ogni focus finito, per settimana e per mese |
 | Frequenza delle frasi ▸ | *Spesso* / *Ogni tanto* / *Raramente* / *Mai* |
 | Personaggio ▸ | Sceglie il personaggio (la scelta resta alla riapertura) |
 | Movimento ▸ | *In movimento* / *Fermo*: per i personaggi che camminano |
@@ -72,6 +73,29 @@ nessun invio da nessuna parte.
 
 Le regole di calcolo hanno le loro prove: `./tests/run.sh` (compila `SessionLog.swift` da solo e controlla
 periodi, totali, giorni di fila, recupero, file rovinato…).
+
+## Il giardino
+
+*Il mio giardino…* (`GardenWindow.swift`) trasforma il registro in qualcosa da guardare: **ogni focus finito
+è una piantina**, e cresce con i minuti studiati (`GardenRules`, in `SessionLog.swift`):
+
+| Minuti di focus | Stadio |
+|---|---|
+| meno di 10 | 1 (seme) |
+| 10–19 | 2 |
+| 20–29 | 3 |
+| 30–44 | 4 |
+| 45 o più | 5 (adulta) |
+
+Un focus interrotto non sparisce: è una piantina più piccola (se è durato almeno un minuto), segnata con il
+bordo arancione. La scheda *Settimana* ha un'aiuola per giorno (fino a sei piantine, poi "+N"; le più
+piccole stanno davanti); *Mese* è un calendario con le piantine di ogni giorno. Il pallino sotto il vaso è la
+materia, e passando il mouse su una piantina compaiono data, materia e minuti. Si ricava tutto dal registro:
+compare subito anche per i focus già fatti. A fine focus il personaggio dice che è nata una piantina nuova.
+
+Ogni sessione ricorda **con quale personaggio** è stata fatta (`pet`). Per ora le piantine sono sempre quelle
+di Pianty; un personaggio può avere la sua collezione mettendo cinque immagini `garden_<personaggio>_<1..5>.png`
+in `assets/garden/` (stessa tela di Pianty, 208×341, piedi sulla stessa riga): chi non le ha usa Pianty.
 
 ## La crescita di Pianty
 
@@ -166,6 +190,7 @@ Sources/FocusFriends/
   SessionLog.swift      registro delle sessioni di studio e statistiche (solo Foundation, con prove)
   SubjectPrompt.swift   la scheda "Cosa studi adesso?"
   DashboardWindow.swift la finestra delle statistiche (Oggi / Settimana / Mese)
+  GardenWindow.swift    il giardino: una piantina per ogni focus, per settimana e per mese
   PaperUI.swift         elementi grafici in comune delle schede (carta, pulsanti, colori delle materie)
 assets/
   pianty/original.png   immagine di partenza di Pianty senza piedini (5 stadi, non più usata dal ritaglio)

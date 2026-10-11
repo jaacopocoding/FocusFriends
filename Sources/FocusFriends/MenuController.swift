@@ -24,6 +24,8 @@ final class MenuController: NSObject, NSMenuDelegate {
     private let statsItem = NSMenuItem()
     private let subjectPrompt = SubjectPrompt()
     private let dashboard = DashboardController()
+    private let garden = GardenController()
+    private let gardenItem = NSMenuItem()
 
     init(window: PetWindow, speaker: Speaker, pomodoro: Pomodoro) {
         self.window = window
@@ -68,6 +70,12 @@ final class MenuController: NSObject, NSMenuDelegate {
         statsItem.target = self
         statsItem.image = Self.symbol("chart.bar.xaxis")
         menu.addItem(statsItem)
+
+        gardenItem.title = "Il mio giardino…"
+        gardenItem.action = #selector(showGarden)
+        gardenItem.target = self
+        gardenItem.image = Self.symbol("leaf")
+        menu.addItem(gardenItem)
 
         let chat = makeChattinessItem()
         chattinessParent.submenu = chat.submenu
@@ -304,6 +312,10 @@ final class MenuController: NSObject, NSMenuDelegate {
 
     @objc private func showStats() {
         dashboard.show(kind: .day)
+    }
+
+    @objc private func showGarden() {
+        garden.show()
     }
 
     @objc private func startBreak(_ sender: NSMenuItem) {

@@ -59,7 +59,7 @@ final class DashboardView: NSView {
         exportButton.frame = NSRect(x: Self.size.width - Self.margin - 120, y: 18, width: 120, height: 26)
         addSubview(exportButton)
 
-        log.onChange = { [weak self] in self?.reload() }
+        log.addObserver { [weak self] in self?.reload() }
         reload()
     }
 
@@ -377,11 +377,11 @@ final class DashboardView: NSView {
     static func csv(for sessions: [StudySession]) -> String {
         func quoted(_ s: String) -> String { "\"" + s.replacingOccurrences(of: "\"", with: "\"\"") + "\"" }
         let iso = ISO8601DateFormatter()
-        var lines = ["inizio,minuti,minuti_previsti,completa,materia"]
+        var lines = ["inizio,minuti,minuti_previsti,completa,materia,personaggio"]
         for s in sessions {
             lines.append([
                 iso.string(from: s.start), "\((s.seconds + 30) / 60)", "\(s.plannedMinutes)",
-                s.completed ? "si" : "no", quoted(s.subject ?? ""),
+                s.completed ? "si" : "no", quoted(s.subject ?? ""), s.pet ?? "",
             ].joined(separator: ","))
         }
         return lines.joined(separator: "\n") + "\n"

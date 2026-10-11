@@ -20,6 +20,10 @@ cp assets/porcellino/picked.png "$APP/Contents/Resources/porcellino_picked.png"
 for f in assets/ciccio/frame*.png; do cp "$f" "$APP/Contents/Resources/ciccio_$(basename "$f")"; done
 cp assets/ciccio/picked.png "$APP/Contents/Resources/ciccio_picked.png"
 cp assets/pianty/picked.png "$APP/Contents/Resources/pianty_picked.png"
+# Le collezioni del giardino per personaggio (opzionali: chi non ce l'ha usa le piantine di Pianty).
+for f in assets/garden/garden_*.png; do
+    [ -f "$f" ] && cp "$f" "$APP/Contents/Resources/$(basename "$f")"
+done
 for i in 1 2 3 4 5; do
     for f in 1 2 3 4 5 6 7; do
         cp "assets/pianty/stage${i}_$f.png" "$APP/Contents/Resources/pianty_stage${i}_$f.png"

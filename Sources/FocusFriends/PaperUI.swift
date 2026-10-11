@@ -20,7 +20,7 @@ enum Paper {
         NSColor(calibratedRed: 0.62, green: 0.38, blue: 0.55, alpha: 1),   // prugna
         NSColor(calibratedRed: 0.80, green: 0.45, blue: 0.50, alpha: 1),   // rosa antico
         NSColor(calibratedRed: 0.36, green: 0.47, blue: 0.70, alpha: 1),   // azzurro polvere
-        NSColor(calibratedRed: 0.55, green: 0.45, blue: 0.33, alpha: 1),   // nocciola
+        NSColor(calibratedRed: 0.55, green: 0.50, blue: 0.78, alpha: 1),   // lavanda
     ]
 
     static func color(forSubject subject: String) -> NSColor {

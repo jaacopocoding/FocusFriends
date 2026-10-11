@@ -165,5 +165,41 @@ check(StudyStats.dayLine(empty, isToday: false, dayName: "Lunedì") == "Lunedì 
 check(StudyStats.dayLine(summaryFor(.day, date(2026, 10, 13)), isToday: false, dayName: "Martedì") == "Martedì hai fatto 1 focus: 10 min di studio.", "singolare")
 check(!StudyStats.encouragement(totalSeconds: 0).isEmpty && !StudyStats.encouragement(totalSeconds: 20_000).isEmpty, "incoraggiamenti")
 
+// ---------------------------------------------------------------- giardino e personaggio
+section("Giardino e personaggio")
+check(GardenRules.stage(seconds: 60) == 1, "1 minuto = seme")
+check(GardenRules.stage(seconds: 9 * 60) == 1, "9 minuti = stadio 1")
+check(GardenRules.stage(seconds: 10 * 60) == 2, "10 minuti = stadio 2")
+check(GardenRules.stage(seconds: 19 * 60) == 2, "19 minuti = stadio 2")
+check(GardenRules.stage(seconds: 20 * 60) == 3, "20 minuti = stadio 3")
+check(GardenRules.stage(seconds: 30 * 60) == 4, "30 minuti = stadio 4")
+check(GardenRules.stage(seconds: 44 * 60) == 4, "44 minuti = stadio 4")
+check(GardenRules.stage(seconds: 45 * 60) == 5, "45 minuti = adulta")
+check(GardenRules.stage(seconds: 50 * 60) == 5, "50 minuti = adulta")
+check(GardenRules.stage(seconds: 180 * 60) == GardenRules.stageCount, "mai oltre lo stadio finale")
+
+let petDir = tempDirectory()
+let petLog = SessionLog(directory: petDir)
+let withPet = petLog.add(start: date(2026, 10, 14, 9), seconds: 1800, plannedMinutes: 30, completed: true, subject: "Anatomia", pet: "ciccio")
+check(withPet?.pet == "ciccio", "il personaggio si salva")
+check(SessionLog(directory: petDir).sessions.first?.pet == "ciccio", "e si rilegge")
+
+// un file scritto prima che esistesse il campo si legge ancora
+let oldDir = tempDirectory()
+let oldJSON = """
+[{"completed": true, "id": "9F6C1A2B-0000-4000-8000-000000000001", "plannedMinutes": 25,
+  "seconds": 1500, "start": "2026-10-12T08:00:00Z", "subject": "Anatomia"}]
+"""
+try? oldJSON.write(to: oldDir.appendingPathComponent("sessioni.json"), atomically: true, encoding: .utf8)
+let oldLog = SessionLog(directory: oldDir)
+check(oldLog.sessions.count == 1 && oldLog.sessions[0].pet == nil, "file vecchio: letto, senza personaggio")
+check(oldLog.sessions.first?.subject == "Anatomia", "e con la sua materia")
+
+// il personaggio sopravvive al recupero dopo una chiusura improvvisa
+let petProg = tempDirectory()
+let pp = SessionLog(directory: petProg)
+pp.beginInProgress(start: Date().addingTimeInterval(-300), plannedMinutes: 25, subject: nil, pet: "porcellino")
+check(SessionLog(directory: petProg).recoverInterrupted()?.pet == "porcellino", "recupero con il personaggio")
+
 print("\n\(checks) controlli, \(failures) falliti")
 exit(failures == 0 ? 0 : 1)

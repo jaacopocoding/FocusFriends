@@ -12,14 +12,34 @@ struct StudySession: Codable, Equatable {
     var plannedMinutes: Int
     var completed: Bool
     var subject: String?
+    /// Con quale personaggio è stato fatto ("pianty", "porcellino", "ciccio"). Vuoto per le sessioni
+    /// registrate prima che esistesse questo campo.
+    var pet: String?
 
-    init(id: UUID = UUID(), start: Date, seconds: Int, plannedMinutes: Int, completed: Bool, subject: String?) {
+    init(id: UUID = UUID(), start: Date, seconds: Int, plannedMinutes: Int, completed: Bool, subject: String?, pet: String? = nil) {
         self.id = id
         self.start = start
         self.seconds = seconds
         self.plannedMinutes = plannedMinutes
         self.completed = completed
         self.subject = subject
+        self.pet = pet
+    }
+}
+
+/// Le regole del giardino: ogni focus è una piantina, e cresce con i minuti studiati.
+enum GardenRules {
+    static let stageCount = 5
+
+    /// Lo stadio (1...5) della piantina per un focus durato tanti secondi.
+    static func stage(seconds: Int) -> Int {
+        switch (seconds + 30) / 60 {
+        case 45...: return 5
+        case 30..<45: return 4
+        case 20..<30: return 3
+        case 10..<20: return 2
+        default: return 1
+        }
     }
 }
 
@@ -53,8 +73,12 @@ final class SessionLog {
     private let file: URL
     private let progressFile: URL
     private var lastHeartbeat = Date.distantPast
-    /// Chiamata a ogni modifica (per aggiornare la finestra delle statistiche).
-    var onChange: (() -> Void)?
+    /// Chi vuole sapere quando il registro cambia (le finestre delle statistiche e del giardino).
+    private var observers: [() -> Void] = []
+
+    func addObserver(_ observer: @escaping () -> Void) {
+        observers.append(observer)
+    }
 
     init(directory: URL) {
         file = directory.appendingPathComponent("sessioni.json")
@@ -95,18 +119,18 @@ final class SessionLog {
         if let data = try? Self.encoder().encode(sessions) {
             try? data.write(to: file, options: .atomic)
         }
-        onChange?()
+        observers.forEach { $0() }
     }
 
     // MARK: - Modifiche
 
     /// Aggiunge una sessione (se dura almeno un minuto) e ritorna quella salvata.
     @discardableResult
-    func add(start: Date, seconds: Int, plannedMinutes: Int, completed: Bool, subject: String?) -> StudySession? {
+    func add(start: Date, seconds: Int, plannedMinutes: Int, completed: Bool, subject: String?, pet: String? = nil) -> StudySession? {
         guard seconds >= Self.minimumSeconds else { return nil }
         let session = StudySession(
             start: start, seconds: seconds, plannedMinutes: plannedMinutes,
-            completed: completed, subject: Subject.clean(subject)
+            completed: completed, subject: Subject.clean(subject), pet: pet
         )
         sessions.append(session)
         sessions.sort { $0.start < $1.start }
@@ -144,11 +168,12 @@ final class SessionLog {
         var start: Date
         var plannedMinutes: Int
         var subject: String?
+        var pet: String?
         var lastSeen: Date
     }
 
-    func beginInProgress(start: Date, plannedMinutes: Int, subject: String?) {
-        writeProgress(InProgress(start: start, plannedMinutes: plannedMinutes, subject: subject, lastSeen: Date()))
+    func beginInProgress(start: Date, plannedMinutes: Int, subject: String?, pet: String? = nil) {
+        writeProgress(InProgress(start: start, plannedMinutes: plannedMinutes, subject: subject, pet: pet, lastSeen: Date()))
     }
 
     /// Segna che l'app è ancora viva (al massimo una volta ogni 30 secondi).
@@ -172,7 +197,7 @@ final class SessionLog {
         let seconds = Int(progress.lastSeen.timeIntervalSince(progress.start))
         let capped = min(seconds, progress.plannedMinutes * 60)
         return add(start: progress.start, seconds: capped, plannedMinutes: progress.plannedMinutes,
-                   completed: false, subject: progress.subject)
+                   completed: false, subject: progress.subject, pet: progress.pet)
     }
 
     private func readProgress() -> InProgress? {

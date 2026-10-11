@@ -38,6 +38,8 @@ final class Pomodoro {
     /// La materia del focus in corso (nil = nessuna, o non è un focus).
     private(set) var subject: String?
     private var plannedFocusMinutes = 0
+    /// Il personaggio con cui è stato avviato il focus in corso.
+    private var focusPet: String?
     private let log: SessionLog
 
     init(petWindow: PetWindow, speaker: Speaker, log: SessionLog = .shared) {
@@ -68,8 +70,9 @@ final class Pomodoro {
         recordFocus(completed: false)     // se ce n'era uno in corso, finisce qui
         self.subject = Subject.clean(subject)
         plannedFocusMinutes = minutes
+        focusPet = petWindow.pet.id
         begin(.focus, minutes: minutes)
-        log.beginInProgress(start: phaseStart, plannedMinutes: minutes, subject: self.subject)
+        log.beginInProgress(start: phaseStart, plannedMinutes: minutes, subject: self.subject, pet: focusPet)
         if let subject = self.subject {
             speaker.say("Focus di \(minutes) minuti su \(subject): si parte!")
         } else {
@@ -95,7 +98,8 @@ final class Pomodoro {
         let elapsed = completed
             ? Int(endDate.timeIntervalSince(phaseStart))
             : min(Int(Date().timeIntervalSince(phaseStart)), planned * Int(Self.secondsPerMinute))
-        let session = log.add(start: phaseStart, seconds: elapsed, plannedMinutes: planned, completed: completed, subject: subject)
+        let session = log.add(start: phaseStart, seconds: elapsed, plannedMinutes: planned,
+                              completed: completed, subject: subject, pet: focusPet)
         log.finishInProgress()
         return session
     }
@@ -190,12 +194,12 @@ final class Pomodoro {
     /// "Hai studiato Anatomia per 50 minuti. Che bel lavoro!", con qualche variante.
     static func focusFinishedMessage(subject: String?, studiedMinutes: Int, breakMinutes: Int) -> String {
         guard let subject else {
-            return "Focus finito! Ti sei meritato \(breakMinutes) minuti di pausa."
+            return "Focus finito! Una nuova piantina nel giardino. Ti sei meritato \(breakMinutes) minuti di pausa."
         }
         let variants = [
-            "Hai studiato \(subject) per \(studiedMinutes) minuti. Che bel lavoro! Ora \(breakMinutes) minuti di pausa.",
-            "\(subject): \(studiedMinutes) minuti di concentrazione. Ottimo lavoro, ti sei meritato \(breakMinutes) minuti di pausa.",
-            "Ben fatto! \(studiedMinutes) minuti su \(subject). Respira: \(breakMinutes) minuti di pausa.",
+            "Hai studiato \(subject) per \(studiedMinutes) minuti. Che bel lavoro! Una nuova piantina nel giardino. Ora \(breakMinutes) minuti di pausa.",
+            "\(subject): \(studiedMinutes) minuti di concentrazione. Ottimo lavoro, nel giardino è nata una piantina. Ora \(breakMinutes) minuti di pausa.",
+            "Ben fatto! \(studiedMinutes) minuti su \(subject): una piantina in più nel giardino. Respira: \(breakMinutes) minuti di pausa.",
         ]
         return variants.randomElement() ?? variants[0]
     }
