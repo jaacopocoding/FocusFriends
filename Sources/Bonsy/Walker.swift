@@ -14,7 +14,9 @@ final class Walker {
 
     // Camminata
     private static let speed: CGFloat = 42                       // punti al secondo
-    private static let stepInterval: TimeInterval = 0.2          // cambio fotogramma del passo
+    /// Tolleranza (in secondi) sul cambio di fotogramma: con un passo di esattamente due tick del timer
+    /// (1/30 s ciascuno) il cambio cadrebbe sul bordo e a volte durerebbe uno o tre tick invece di due.
+    private static let stepSlack: TimeInterval = 0.005
     private static let edgeMargin: CGFloat = 6
     private static let walkDuration: ClosedRange<TimeInterval> = 3...8
     private static let restDuration: ClosedRange<TimeInterval> = 4...10
@@ -234,7 +236,7 @@ final class Walker {
         // Passi: i fotogrammi del cammino si ripetono in ciclo.
         stepClock += dt
         let frames = pet.walkFrames
-        petWindow.setPose(frames[Int(stepClock / Self.stepInterval) % frames.count])
+        petWindow.setPose(frames[Int((stepClock + Self.stepSlack) / pet.stepInterval) % frames.count])
 
         if now >= until {
             state = .resting(until: now.addingTimeInterval(.random(in: Self.restDuration)))

@@ -20,7 +20,7 @@ for f in assets/porcellino/frame*.png; do cp "$f" "$APP/Contents/Resources/porce
 cp assets/porcellino/picked.png "$APP/Contents/Resources/porcellino_picked.png"
 for i in 1 2 3 4 5; do
     cp "assets/bonsy/stage$i.png" "$APP/Contents/Resources/bonsy_stage$i.png"
-    for f in 1 2 3 4 5; do
+    for f in 1 2 3 4 5 6 7; do
         cp "assets/pianty/stage${i}_$f.png" "$APP/Contents/Resources/pianty_stage${i}_$f.png"
     done
 done

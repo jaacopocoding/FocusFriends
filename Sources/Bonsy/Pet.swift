@@ -26,6 +26,8 @@ struct Pet: Equatable {
     var walks: Bool = false
     /// Per chi cammina: la sequenza di immagini (indici) da ripetere mentre cammina.
     var walkFrames: [Int] = [1, 2]
+    /// Per chi cammina: secondi tra un fotogramma del passo e il successivo.
+    var stepInterval: TimeInterval = 0.2
     /// Per chi cammina: la posa mentre parla (nil = resta ferma nella posa a riposo).
     var talkFrame: Int? = nil
     /// Le immagini guardano a destra: quando va a sinistra vengono specchiate.
@@ -91,24 +93,26 @@ struct Pet: Equatable {
         iconCrop: nil
     )
 
-    /// Una succulenta che cresce come Bonsy e ne condivide le frasi, ma ha due piedini e cammina:
-    /// per ognuno dei 5 stadi ci sono 5 fotogrammi (fermo, passo, passaggio, passo, passaggio).
+    /// Una succulenta che cresce come Bonsy e ne condivide le frasi, ma ha due piedini e cammina.
+    /// Per ognuno dei 5 stadi ci sono 7 immagini: la prima è "fermo", le altre 6 sono il ciclo dei passi
+    /// (generato da tools/cutout_pianty.py muovendo solo le gambe, così la pianta resta identica).
     static let pianty = Pet(
         id: "pianty",
         name: "Pianty",
-        imageResources: (1...5).flatMap { stage in (1...5).map { "pianty_stage\(stage)_\($0)" } },
-        size: NSSize(width: 80, height: 140),
+        imageResources: (1...5).flatMap { stage in (1...7).map { "pianty_stage\(stage)_\($0)" } },
+        size: NSSize(width: 84, height: 141),
         quotesResource: "frasi_bonsy",
         quotesUserFile: "frasi_bonsy.txt",
         fallbackQuote: "Un passo alla volta: anch'io sono partito da un seme.",
         greeting: "Ciao! Sono Pianty. Cresciamo insieme, con calma.",
         shadowWidthFraction: 0.6,
-        groundFraction: 0.0146,
+        groundFraction: 0.0176,
         iconCrop: nil,
         walks: true,
-        walkFrames: [1, 2, 3, 4],   // passo, passaggio, passo, passaggio
+        walkFrames: [1, 2, 3, 4, 5, 6],
+        stepInterval: 1.0 / 15,     // 6 fotogrammi in 0,4 s: il piede appoggiato non scivola a 42 pt/s
         facesRight: true,           // i passi sono disegnati verso destra: a sinistra si specchia
-        framesPerStage: 5
+        framesPerStage: 7
     )
 
     /// Prova: stesse cose di Spidy (stesse frasi), ma cammina per lo schermo.
