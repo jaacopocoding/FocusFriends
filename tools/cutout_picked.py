@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Ritaglia il disegno di un personaggio sollevato dalle mani.
 
-    python3 tools/cutout_picked.py [originale.png [ritaglio.png]]
+    python3 tools/cutout_picked.py [originale.png [ritaglio.png [soglia_sfondo]]]
 
 Senza argomenti: assets/porcellino/picked_original.png -> assets/porcellino/picked.png
 (per Pianty: assets/pianty/picked_original.png assets/pianty/picked.png).
@@ -17,7 +17,9 @@ import sys
 
 SRC = sys.argv[1] if len(sys.argv) > 1 else "assets/porcellino/picked_original.png"
 DST = sys.argv[2] if len(sys.argv) > 2 else "assets/porcellino/picked.png"
-BG_MIN = 246
+# Sopra questa soglia (canale minimo) un pixel è sfondo bianco. Se le maniche sono quasi bianche (Ciccio),
+# serve alzarla (es. 252) o si "mangiano" le maniche.
+BG_MIN = float(sys.argv[3]) if len(sys.argv) > 3 else 246
 MIN_PART = 14
 PAD = 4
 

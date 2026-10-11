@@ -80,7 +80,7 @@ schermo, si ferma a fare una di queste cose (dopo ogni pausa tra due camminate s
 
 Dopo una sosta riparte sempre a camminare. Non dipendono dal Pomofocus. Quando lo trascini col mouse compare un disegno in cui
 viene sollevato da due mani, spaventato (con un leggero tremolio); lasciandolo, torna in piedi dove si trova. Vale per il
-Porcellino e per Pianty (che lo mostra allo stadio finale, con la pianta adulta). Simulazione usa le frasi di Spidy.
+Porcellino, per Pianty (che lo mostra allo stadio finale, con la pianta adulta) e per Ciccio. Simulazione usa le frasi di Spidy.
 
 ## Installazione
 
@@ -147,6 +147,7 @@ assets/
   porcellino/frame*.png       fotogrammi ritagliati e allineati (1-5 cammino, 6-10 mangia, 11-14 dorme, 15-19 popcorning), da tools/cutout_porcellino.py
   porcellino/picked_original.png, picked.png   il porcellino sollevato (tools/cutout_picked.py)
   ciccio/walk_original.png, flap_original.png   le tavole della cocorita (camminata e ali, 6 fotogrammi ciascuna)
+  ciccio/picked_original.png, picked.png   Ciccio sollevato dalle mani (tools/cutout_picked.py ... 252: maniche quasi bianche)
   ciccio/frame1..13.png   fermo (ali chiuse, zampe a terra), 6 di camminata, 6 di ali (tools/cutout_ciccio.py)
   AppIcon.icns          icona dell'app (generata da tools/make_icon.py)
 tools/                  script per ritagli, icona e pose di Simulazione (Python con Pillow e numpy; make_simulazione.sh usa Swift)

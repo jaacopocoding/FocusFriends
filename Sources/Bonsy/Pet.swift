@@ -139,7 +139,10 @@ struct Pet: Equatable {
         stepInterval: 0.1,
         facesRight: true,
         popcornFrames: [7, 8, 9, 10, 11, 12],  // un battito d'ali sul posto
-        popcornInterval: 1.0 / 15   // due tick del timer: il battito è regolare
+        popcornInterval: 1.0 / 15,  // due tick del timer: il battito è regolare
+        pickedResource: "ciccio_picked",   // le mani che lo sollevano, sorpreso
+        pickedSize: NSSize(width: 196, height: 144),
+        pickedGrab: CGPoint(x: 0.34, y: 0.55)   // il cursore sta sulla mano sinistra
     )
 
     /// Prova: stesse cose di Spidy (stesse frasi), ma cammina per lo schermo.
