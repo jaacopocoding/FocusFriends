@@ -26,6 +26,13 @@ final class TimerView: NSView {
         "5": "acdfg", "6": "acdefg", "7": "abc", "8": "abcdefg", "9": "abcdfg",
     ]
 
+    /// Quanto è "aperta" la tendina: 0 = chiusa, 1 = tutto l'orologio. Si apre dall'alto verso il basso.
+    /// La finestra resta sempre a grandezza piena e attaccata al personaggio: animare la posizione o la
+    /// dimensione della finestra lasciava l'orologio indietro se il personaggio si muoveva nel frattempo.
+    var reveal: CGFloat = 1 {
+        didSet { if reveal != oldValue { needsDisplay = true } }
+    }
+
     var label = "FOCUS" { didSet { needsDisplay = true } }
     var time = "00:00" { didSet { if time != oldValue { needsDisplay = true } } }
 
@@ -33,10 +40,12 @@ final class TimerView: NSView {
     private var full: NSRect { NSRect(origin: .zero, size: TimerWindow.size) }
 
     override func draw(_ dirtyRect: NSRect) {
-        // Ancoro il disegno in alto: quando la finestra è più bassa se ne vede solo la parte alta,
-        // e crescendo si "srotola" verso il basso come una tendina.
+        // La tendina: si vede solo la parte alta, che cresce verso il basso come una tendina che si srotola.
         NSGraphicsContext.saveGraphicsState()
         defer { NSGraphicsContext.restoreGraphicsState() }
+        let shown = full.height * min(max(reveal, 0), 1)
+        guard shown > 0.5 else { return }
+        NSBezierPath(rect: NSRect(x: 0, y: bounds.height - shown, width: bounds.width, height: shown)).addClip()
         let anchor = NSAffineTransform()
         anchor.translateX(by: 0, yBy: bounds.height - full.height)
         anchor.concat()

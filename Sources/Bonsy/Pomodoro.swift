@@ -27,6 +27,7 @@ final class Pomodoro {
     private let speaker: Speaker
     private var window: TimerWindow?
     private var ticker: Timer?
+    private var curtainTimer: Timer?
     private var phaseStart = Date()
     private var endDate = Date()
     private var isShown = false
@@ -40,6 +41,14 @@ final class Pomodoro {
     init(petWindow: PetWindow, speaker: Speaker) {
         self.petWindow = petWindow
         self.speaker = speaker
+        // Quando il personaggio viene sollevato o rimesso giù, l'orologio si risistema sotto di lui.
+        petWindow.onPickStateChanged = { [weak self] in self?.snapClockToPet() }
+    }
+
+    /// Rimette l'orologio (se è visibile) nella posizione piena, sotto il personaggio, senza animazioni.
+    private func snapClockToPet() {
+        guard let window, isShown else { return }
+        window.setFrame(fullFrame(), display: true)
     }
 
     var isRunning: Bool { phase != nil }
@@ -67,6 +76,8 @@ final class Pomodoro {
     func stop() {
         ticker?.invalidate()
         ticker = nil
+        curtainTimer?.invalidate()
+        curtainTimer = nil
         phase = nil
         speaker.interval = Self.chatterNormally
         updateStage()   // senza timer il personaggio sta allo stadio finale
@@ -182,49 +193,55 @@ final class Pomodoro {
         return NSRect(x: x, y: petWindow.feetY - size.height + 4, width: size.width, height: size.height)
     }
 
-    /// Stessa finestra ma alta una riga, attaccata in alto: la tendina chiusa.
-    private func collapsed(_ frame: NSRect) -> NSRect {
-        NSRect(x: frame.minX, y: frame.maxY - 1, width: frame.width, height: 1)
-    }
-
     private func reveal() {
         guard let window, !isShown, petWindow.isVisible else { return }
         ensureRoomBelowPet()
-        let target = fullFrame()
         isShown = true
 
-        window.setFrame(collapsed(target), display: false)
-        // Figlio del personaggio: se lo trascini, l'orologio lo segue.
+        // La finestra va subito al suo posto, a grandezza piena, ed è figlia del personaggio: così lo
+        // segue sempre. A "srotolarsi" è solo il disegno (vedi TimerView.reveal).
+        window.setFrame(fullFrame(), display: false)
+        if window.timerView.reveal >= 1 { window.timerView.reveal = 0 }   // non è già aperta
         petWindow.addChildWindow(window, ordered: .above)
         window.orderFront(nil)
-
-        NSAnimationContext.runAnimationGroup { ctx in
-            ctx.duration = Self.curtainDuration
-            ctx.timingFunction = CAMediaTimingFunction(name: .easeOut)
-            window.animator().setFrame(target, display: true)
-        }
+        animateCurtain(to: 1, easing: { 1 - pow(1 - $0, 3) }, completion: nil)   // si apre decelerando
     }
 
     private func conceal() {
         guard let window, isShown else { return }
         isShown = false
-
-        NSAnimationContext.runAnimationGroup({ ctx in
-            ctx.duration = Self.curtainDuration
-            ctx.timingFunction = CAMediaTimingFunction(name: .easeIn)
-            window.animator().setFrame(collapsed(window.frame), display: true)
-        }, completionHandler: { [weak self] in
+        animateCurtain(to: 0, easing: { pow($0, 3) }) { [weak self] in
             // Se nel frattempo è stato richiesto di nuovo, non toglierlo.
             guard let self, !self.isShown else { return }
             self.petWindow.removeChildWindow(window)
             window.orderOut(nil)
-        })
+        }
+    }
+
+    /// Porta la tendina a `target` (0 chiusa, 1 aperta) in `curtainDuration` secondi, a partire da dove si trova.
+    private func animateCurtain(to target: CGFloat, easing: @escaping (CGFloat) -> CGFloat, completion: (() -> Void)?) {
+        curtainTimer?.invalidate()
+        guard let view = window?.timerView else { completion?(); return }
+        let from = view.reveal
+        let started = Date()
+        let timer = Timer(timeInterval: 1.0 / 60, repeats: true) { [weak self] t in
+            let p = CGFloat(min(Date().timeIntervalSince(started) / Self.curtainDuration, 1))
+            view.reveal = from + (target - from) * easing(p)
+            if p >= 1 {
+                t.invalidate()
+                self?.curtainTimer = nil
+                completion?()
+            }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        curtainTimer = timer
     }
 
     // MARK: - Spazio sotto il personaggio
 
     /// Se sotto il personaggio non c'è posto (sta sul fondo, sopra il Dock) lo alzo, e lo riabbasso a fine sessione.
     private func ensureRoomBelowPet() {
+        guard !petWindow.isPicked else { return }   // mentre lo trascini la posizione la decide il mouse
         let screen = (petWindow.screen ?? NSScreen.main)?.visibleFrame ?? .zero
         let needed = TimerWindow.size.height - 4
         let room = petWindow.feetY - screen.minY

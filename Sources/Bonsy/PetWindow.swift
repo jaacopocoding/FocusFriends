@@ -46,8 +46,13 @@ final class PetWindow: NSWindow {
         setFrameOrigin(NSPoint(x: ground.maxX - pet.size.width - Self.margin, y: ground.minY - petView.feetHeight))
     }
 
-    /// Altezza dei piedi del personaggio, in coordinate schermo.
-    var feetY: CGFloat { frame.minY + petView.feetHeight }
+    /// Altezza dei piedi del personaggio, in coordinate schermo. Mentre è sollevato (disegno con le mani)
+    /// è il bordo basso della finestra: i piedi penzolano e non c'è una "terra".
+    var feetY: CGFloat { isPicked ? frame.minY : frame.minY + petView.feetHeight }
+
+    /// Chiamata quando comincia o finisce il sollevamento: chi tiene un oggetto "sotto i piedi"
+    /// (l'orologio del timer) lo rimette al posto giusto.
+    var onPickStateChanged: (() -> Void)?
 
     /// Cambia personaggio: la finestra si ridimensiona tenendo fermi i piedi (centro del lato basso).
     func apply(_ newPet: Pet) {
@@ -58,9 +63,8 @@ final class PetWindow: NSWindow {
         pet = newPet
         petView.configure(for: newPet)
         petView.setStage(newPet.restStage, animated: false)
-        setFrame(
-            NSRect(x: anchor.x - newPet.size.width / 2, y: anchor.y, width: newPet.size.width, height: newPet.size.height),
-            display: true
+        setFrameKeepingChildren(
+            NSRect(x: anchor.x - newPet.size.width / 2, y: anchor.y, width: newPet.size.width, height: newPet.size.height)
         )
     }
 
@@ -78,6 +82,7 @@ final class PetWindow: NSWindow {
         restSize = frame.size
         petView.setPicked(true)
         movePicked()
+        onPickStateChanged?()
     }
 
     /// Tiene il cursore sul punto di presa del disegno.
@@ -86,7 +91,7 @@ final class PetWindow: NSWindow {
         let mouse = NSEvent.mouseLocation
         let size = pet.pickedSize
         let origin = NSPoint(x: mouse.x - pet.pickedGrab.x * size.width, y: mouse.y - pet.pickedGrab.y * size.height)
-        setFrame(NSRect(origin: origin, size: size), display: true)
+        setFrameKeepingChildren(NSRect(origin: origin, size: size))
     }
 
     /// Lo rimette giù: dimensione normale, con i piedi (centro del lato basso) dove si trova.
@@ -95,10 +100,26 @@ final class PetWindow: NSWindow {
         isPicked = false
         petView.setPicked(false)
         let anchor = NSPoint(x: frame.midX, y: frame.minY)
-        setFrame(
-            NSRect(x: anchor.x - restSize.width / 2, y: anchor.y, width: restSize.width, height: restSize.height),
-            display: true
+        setFrameKeepingChildren(
+            NSRect(x: anchor.x - restSize.width / 2, y: anchor.y, width: restSize.width, height: restSize.height)
         )
+        onPickStateChanged?()
+    }
+
+    /// Cambia la posizione e la dimensione tenendo ferme, rispetto all'angolo in basso a sinistra, le
+    /// finestre figlie (il fumetto e l'orologio del timer).
+    /// Quando una finestra madre cambia dimensione, AppKit sposta le figlie di una quantità che dipende dal
+    /// punto di ancoraggio: a ogni sollevamento e rilascio l'orologio finiva un po' più lontano, e gli
+    /// spostamenti si sommavano. Qui le rimettiamo noi esattamente al loro posto.
+    private func setFrameKeepingChildren(_ newFrame: NSRect) {
+        let origin = frame.origin
+        let offsets = (childWindows ?? []).map { child in
+            (child, NSPoint(x: child.frame.origin.x - origin.x, y: child.frame.origin.y - origin.y))
+        }
+        setFrame(newFrame, display: true)
+        for (child, offset) in offsets {
+            child.setFrameOrigin(NSPoint(x: newFrame.origin.x + offset.x, y: newFrame.origin.y + offset.y))
+        }
     }
 
     /// Mostra gli "Zzz" sopra la testa (quando dorme).
