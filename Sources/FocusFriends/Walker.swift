@@ -82,6 +82,12 @@ final class Walker {
             petWindow.setSleepMarks(false)
             return
         }
+        // Durante un focus il personaggio "cresce" sul posto (Ciccio nel suo nido): niente passi.
+        if petWindow.isShowingFocusGrowth {
+            petWindow.setSleepMarks(false)
+            delayState(by: dt)
+            return
+        }
 
         let beingDragged = petWindow.isPicked
             || (NSEvent.pressedMouseButtons & 1 != 0 && petWindow.frame.contains(NSEvent.mouseLocation))

@@ -210,6 +210,17 @@ final class Pomodoro {
     /// in tutti gli altri momenti sta allo stadio finale.
     private func updateStage() {
         let pet = petWindow.pet
+        // Chi ha le immagini di crescita del focus (Ciccio): durante il focus prendono il suo posto.
+        if !pet.focusGrowthResources.isEmpty {
+            if phase == .focus {
+                let total = endDate.timeIntervalSince(phaseStart)
+                let progress = total > 0 ? Date().timeIntervalSince(phaseStart) / total : 1
+                petWindow.showFocusGrowth(stage: pet.focusGrowthStage(forProgress: progress))
+            } else {
+                petWindow.endFocusGrowth()
+            }
+            return
+        }
         guard pet.growsWithTimer else { return }
         guard phase == .focus else {
             petWindow.setStage(pet.finalStage)

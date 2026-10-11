@@ -118,6 +118,12 @@ Ciccio, la cocorita, ha 6 fotogrammi di camminata e 6 di battito d'ali. Le ali l
 casuali, nello stesso modo in cui il porcellino fa il popcorning (stessa probabilità e durata); non mangia e non dorme. Usa le
 frasi sue (`assets/frasi_ciccio.txt`).
 
+**Ciccio durante un focus** sta fermo e prende il posto del suo nido (`focusGrowthResources` in `Pet.swift`,
+le stesse immagini della sua collezione del giardino): parte dall'uovo e, con il tempo, passa al guscio
+incrinato, al pulcino, al piccolo con le piume e infine alla cocorita adulta sul nido; ogni stadio dura un
+quinto del focus, come per Pianty. Il fumetto e l'orologio restano nello stesso posto. A fine focus (o se lo
+fermi) torna a camminare. Mentre lo sollevi col mouse compare il solito disegno con le mani.
+
 Pianty cammina *e* cresce: per ognuno dei 5 stadi ci sono 7 immagini (fermo + 6 fotogrammi del passo, a 15
 al secondo), quindi mentre il focus avanza lo stadio cambia con una dissolvenza e il passo continua senza
 interruzioni. I passi non sono disegnati uno per uno: `tools/cutout_pianty.py` parte dal disegno fermo di ogni

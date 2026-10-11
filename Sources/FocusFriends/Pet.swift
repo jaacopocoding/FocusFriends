@@ -42,6 +42,11 @@ struct Pet: Equatable {
     /// Secondi tra un fotogramma del "popcorning" e il successivo.
     var popcornInterval: TimeInterval = 0.16
 
+    /// Per chi non cresce da sé (Ciccio): le immagini che prendono il suo posto durante un focus, dal primo
+    /// all'ultimo stadio. Il personaggio sta fermo e "cresce" con il tempo (l'uovo nel nido, poi il pulcino...);
+    /// a fine focus torna a camminare. Sono sulla tela delle piantine del giardino (208x341).
+    var focusGrowthResources: [String] = []
+
     /// Disegno mostrato mentre l'utente lo solleva col mouse (nil = si trascina in modo normale).
     var pickedResource: String? = nil
     /// Dimensione della finestra mentre è sollevato, in punti.
@@ -61,6 +66,12 @@ struct Pet: Equatable {
     /// L'immagine con cui sta fermo, contando anche chi cresce e cammina (ultimo stadio, fotogramma fermo).
     var restImageIndex: Int { framesPerStage.map { finalStage * $0 } ?? restStage }
     var growsWithTimer: Bool { stageCount > 1 }
+    /// Lo stadio (0...n-1) delle immagini di crescita, dato quanta parte del focus è passata (0...1).
+    func focusGrowthStage(forProgress progress: Double) -> Int {
+        let n = focusGrowthResources.count
+        guard n > 0 else { return 0 }
+        return min(Int(min(max(progress, 0), 0.999_999) * Double(n)), n - 1)
+    }
     /// L'immagine da cui si ricava l'icona nella barra dei menu.
     var iconResource: String {
         if framesPerStage != nil { return imageResources[restImageIndex] }
@@ -112,6 +123,7 @@ struct Pet: Equatable {
         facesRight: true,
         popcornFrames: [7, 8, 9, 10, 11, 12],  // un battito d'ali sul posto
         popcornInterval: 1.0 / 15,  // due tick del timer: il battito è regolare
+        focusGrowthResources: (1...5).map { "garden_ciccio_\($0)" },   // durante il focus: dall'uovo alla cocorita
         pickedResource: "ciccio_picked",   // le mani che lo sollevano, sorpreso
         pickedSize: NSSize(width: 196, height: 144),
         pickedGrab: CGPoint(x: 0.34, y: 0.55)   // il cursore sta sulla mano sinistra

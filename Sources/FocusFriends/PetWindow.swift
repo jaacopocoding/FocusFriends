@@ -61,6 +61,7 @@ final class PetWindow: NSWindow {
         isMovableByWindowBackground = newPet.pickedResource == nil
         let anchor = NSPoint(x: frame.midX, y: frame.minY)
         pet = newPet
+        isShowingFocusGrowth = false
         petView.configure(for: newPet)
         petView.setStage(newPet.restImageIndex, animated: false)
         setFrameKeepingChildren(
@@ -71,6 +72,22 @@ final class PetWindow: NSWindow {
     /// Mostra lo stadio di crescita (con una dissolvenza). Per i personaggi fissi non fa nulla.
     func setStage(_ stage: Int) {
         petView.setGrowth(stage, animated: true)
+    }
+
+    /// Durante un focus (per chi ha le immagini di crescita): sta fermo e mostra lo stadio dato (0...n-1).
+    private(set) var isShowingFocusGrowth = false
+
+    func showFocusGrowth(stage: Int) {
+        guard petView.hasFocusGrowthImages else { return }
+        isShowingFocusGrowth = true
+        petView.showFocusGrowth(stage: stage)
+    }
+
+    /// Finito (o interrotto) il focus: torna il personaggio di sempre.
+    func endFocusGrowth() {
+        guard isShowingFocusGrowth else { return }
+        isShowingFocusGrowth = false
+        petView.setStage(pet.restImageIndex, animated: true)
     }
 
     // MARK: - Sollevamento col mouse
@@ -168,6 +185,29 @@ private extension NSImage {
 final class PetView: NSView {
     private var images: [NSImage] = []
     private var topFractions: [CGFloat] = []
+    /// Dove cominciano, in `images`, le immagini di crescita del focus (e quante sono).
+    private var growthBase = 0
+    private var growthCount = 0
+
+    var hasFocusGrowthImages: Bool { growthCount > 0 }
+
+    func showFocusGrowth(stage growthStage: Int) {
+        let index = growthBase + min(max(growthStage, 0), growthCount - 1)
+        setStage(index, animated: true)
+    }
+
+    /// Il rettangolo in cui si disegna l'immagine `index`. Le immagini di crescita hanno un'altra tela (più
+    /// stretta e alta): le disegno alla stessa scala del personaggio e con i piedi sulla stessa linea di terra.
+    private func drawRect(forImageAt index: Int) -> NSRect {
+        let main = imageRect
+        guard growthCount > 0, index >= growthBase, index < images.count, let reference = images.first else { return main }
+        let image = images[index]
+        let scale = main.width / reference.size.width
+        let size = NSSize(width: image.size.width * scale, height: image.size.height * scale)
+        let groundY = main.minY + groundFraction * main.height
+        let feetFraction: CGFloat = 0.0176          // dove stanno i piedi nella tela delle piantine
+        return NSRect(x: bounds.midX - size.width / 2, y: groundY - feetFraction * size.height, width: size.width, height: size.height)
+    }
     private var shadowFraction: CGFloat = 0.65
     private var groundFraction: CGFloat = 0
 
@@ -262,6 +302,16 @@ final class PetView: NSView {
         images = pet.imageResources.compactMap { name in
             Bundle.main.url(forResource: name, withExtension: "png").flatMap { NSImage(contentsOf: $0) }
         }
+        // Le immagini di crescita del focus stanno in coda: se ne manca una, niente crescita (mai indici sfasati).
+        growthBase = images.count
+        growthCount = 0
+        let growth = pet.focusGrowthResources.compactMap { name in
+            Bundle.main.url(forResource: name, withExtension: "png").flatMap { NSImage(contentsOf: $0) }
+        }
+        if !growth.isEmpty, growth.count == pet.focusGrowthResources.count {
+            images += growth
+            growthCount = growth.count
+        }
         topFractions = images.map { $0.opaqueTopFraction }
         mirrored = false
         pickedImage = pet.pickedResource.flatMap { name in
@@ -333,7 +383,7 @@ final class PetView: NSView {
     /// Altezza (in coordinate vista, dal basso) a cui arriva il disegno dello stadio attuale.
     var artTop: CGFloat {
         if isPickedUp { return bounds.height }
-        let rect = imageRect
+        let rect = drawRect(forImageAt: stage)
         guard stage < topFractions.count else { return bounds.height }
         return rect.maxY - topFractions[stage] * rect.height
     }
@@ -418,10 +468,10 @@ final class PetView: NSView {
 
         if let from = fadingFrom, from < images.count {
             let t = min(1, Date().timeIntervalSince(fadeStart) / Self.fadeDuration)
-            images[from].draw(in: target, from: .zero, operation: .sourceOver, fraction: 1)
-            images[stage].draw(in: target, from: .zero, operation: .sourceOver, fraction: CGFloat(t))
+            images[from].draw(in: drawRect(forImageAt: from), from: .zero, operation: .sourceOver, fraction: 1)
+            images[stage].draw(in: drawRect(forImageAt: stage), from: .zero, operation: .sourceOver, fraction: CGFloat(t))
         } else {
-            images[stage].draw(in: target, from: .zero, operation: .sourceOver, fraction: 1)
+            images[stage].draw(in: drawRect(forImageAt: stage), from: .zero, operation: .sourceOver, fraction: 1)
         }
     }
 }
