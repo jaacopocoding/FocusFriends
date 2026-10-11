@@ -124,7 +124,7 @@ struct Pet: Equatable {
     static let ciccio = Pet(
         id: "ciccio",
         name: "Ciccio",
-        imageResources: (1...13).map { "ciccio_frame\($0)" },   // 1 fermo, 2-7 cammino, 8-13 ali
+        imageResources: (1...13).map { "ciccio_frame\($0)" },   // 1 fermo (ali chiuse, le due zampe a terra), 2-7 cammino, 8-13 ali
         size: NSSize(width: 112, height: 118),
         quotesResource: "frasi_bonsy",
         quotesUserFile: "frasi_bonsy.txt",
@@ -132,8 +132,8 @@ struct Pet: Equatable {
         greeting: "Ciao! Sono Ciccio. Facciamo due passi?",
         shadowWidthFraction: 0.45,
         groundFraction: 0.1009,
-        iconCrop: NSRect(x: 0.436, y: 0.436, width: 0.53, height: 0.38),   // la testa
-        iconFocus: 0.70,
+        iconCrop: NSRect(x: 0.452, y: 0.430, width: 0.508, height: 0.344),   // la testa
+        iconFocus: 0.72,
         walks: true,
         walkFrames: [1, 2, 3, 4, 5, 6],        // il ciclo dei passi
         stepInterval: 0.1,

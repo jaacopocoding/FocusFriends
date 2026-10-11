@@ -6,7 +6,8 @@ Due tavole, ognuna con 6 fotogrammi (2 righe da 3):
   flap_original.png   lo sbattere le ali sul posto
 
 Escono 13 immagini, tutte sulla stessa tela, appoggiate sui piedi e allineate sul becco:
-  frame1       fermo (il passaggio della camminata, con le zampe vicine)
+  frame1       fermo: il primo fotogramma delle ali (ali chiuse, le due zampe a terra allo stesso livello);
+               è anche dove parte e dove torna il battito d'ali
   frame2..7    i 6 fotogrammi della camminata
   frame8..13   i 6 fotogrammi delle ali
 
@@ -20,7 +21,6 @@ from PIL import Image
 WALK = "assets/ciccio/walk_original.png"
 FLAP = "assets/ciccio/flap_original.png"
 OUT = "assets/ciccio/frame{}.png"
-REST_FROM_WALK = 2          # il passaggio con le zampe vicine (1..6)
 BG_MIN = 246
 HALO_MIN = 228              # le penne chiare delle ali: più alto che per le piante
 MIN_POCKET = 40
@@ -156,7 +156,7 @@ def main():
     print(f"scala delle ali rispetto alla camminata: {flap_scale:.3f}")
 
     # Tutte le immagini nell'ordine finale, ognuna con la sua scala.
-    sources = [(walk[REST_FROM_WALK - 1], 1.0)] + [(f, 1.0) for f in walk] + [(f, flap_scale) for f in flap]
+    sources = [(flap[0], flap_scale)] + [(f, 1.0) for f in walk] + [(f, flap_scale) for f in flap]
     items = []
     for f, k in sources:
         img = Image.fromarray(f["rgba"], "RGBA")

@@ -147,7 +147,7 @@ assets/
   porcellino/frame*.png       fotogrammi ritagliati e allineati (1-5 cammino, 6-10 mangia, 11-14 dorme, 15-19 popcorning), da tools/cutout_porcellino.py
   porcellino/picked_original.png, picked.png   il porcellino sollevato (tools/cutout_picked.py)
   ciccio/walk_original.png, flap_original.png   le tavole della cocorita (camminata e ali, 6 fotogrammi ciascuna)
-  ciccio/frame1..13.png   fermo, 6 di camminata, 6 di ali (tools/cutout_ciccio.py)
+  ciccio/frame1..13.png   fermo (ali chiuse, zampe a terra), 6 di camminata, 6 di ali (tools/cutout_ciccio.py)
   AppIcon.icns          icona dell'app (generata da tools/make_icon.py)
 tools/                  script per ritagli, icona e pose di Simulazione (Python con Pillow e numpy; make_simulazione.sh usa Swift)
 build.sh                compila e crea build/Bonsy.app
