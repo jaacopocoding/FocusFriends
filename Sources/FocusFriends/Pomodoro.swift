@@ -41,6 +41,8 @@ final class Pomodoro {
     /// Il personaggio con cui è stato avviato il focus in corso.
     private var focusPet: String?
     private let log: SessionLog
+    /// Chiamata quando un focus finisce davvero (non se lo fermi): il porcellino mangia la carota.
+    var onFocusCompleted: (() -> Void)?
 
     init(petWindow: PetWindow, speaker: Speaker, log: SessionLog = .shared) {
         self.petWindow = petWindow
@@ -185,6 +187,7 @@ final class Pomodoro {
             subject = nil
             begin(.rest, minutes: breakLength)
             speaker.say(Self.focusFinishedMessage(subject: finishedSubject, studiedMinutes: studied, breakMinutes: breakLength))
+            onFocusCompleted?()
         case .rest:
             stop()
             speaker.say("Pausa finita! Pronto per un altro giro?")

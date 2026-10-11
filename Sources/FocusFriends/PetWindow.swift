@@ -77,8 +77,12 @@ final class PetWindow: NSWindow {
     /// Durante un focus (per chi ha le immagini di crescita): sta fermo e mostra lo stadio dato (0...n-1).
     private(set) var isShowingFocusGrowth = false
 
+    /// Ha le immagini di crescita durante il focus (per il porcellino: la carota)?
+    var hasFocusGrowthArt: Bool { petView.hasFocusGrowthImages }
+
     func showFocusGrowth(stage: Int) {
         guard petView.hasFocusGrowthImages else { return }
+        if !isShowingFocusGrowth { widenForFocusGrowth() }
         isShowingFocusGrowth = true
         petView.showFocusGrowth(stage: stage)
     }
@@ -88,6 +92,26 @@ final class PetWindow: NSWindow {
         guard isShowingFocusGrowth else { return }
         isShowingFocusGrowth = false
         petView.setStage(pet.restImageIndex, animated: true)
+        restoreSizeAfterFocusGrowth()
+    }
+
+    /// Le immagini di crescita possono essere più larghe del personaggio (il porcellino con la carota accanto):
+    /// la finestra si allarga attorno ai suoi piedi (e resta dentro lo schermo), poi torna com'era.
+    private func widenForFocusGrowth() {
+        let needed = ceil(petView.focusGrowthWidth) + 8
+        guard needed > frame.width + 1, !isPicked else { return }
+        var new = NSRect(x: frame.midX - needed / 2, y: frame.minY, width: needed, height: frame.height)
+        if let visible = (screen ?? NSScreen.main)?.visibleFrame {
+            new.origin.x = min(max(new.origin.x, visible.minX + 2), visible.maxX - new.width - 2)
+        }
+        setFrameKeepingChildren(new)
+    }
+
+    private func restoreSizeAfterFocusGrowth() {
+        guard !isPicked, abs(frame.width - pet.size.width) > 1 else { return }
+        setFrameKeepingChildren(
+            NSRect(x: frame.midX - pet.size.width / 2, y: frame.minY, width: pet.size.width, height: frame.height)
+        )
     }
 
     // MARK: - Sollevamento col mouse
@@ -190,6 +214,14 @@ final class PetView: NSView {
     private var growthCount = 0
 
     var hasFocusGrowthImages: Bool { growthCount > 0 }
+    private var growthFeetFraction: CGFloat = 0.0176
+
+    /// La larghezza (in punti) della più larga delle immagini di crescita, alla scala del personaggio.
+    var focusGrowthWidth: CGFloat {
+        guard growthCount > 0, let reference = images.first else { return 0 }
+        let scale = imageRect.width / reference.size.width
+        return images[growthBase..<(growthBase + growthCount)].map { $0.size.width * scale }.max() ?? 0
+    }
 
     func showFocusGrowth(stage growthStage: Int) {
         let index = growthBase + min(max(growthStage, 0), growthCount - 1)
@@ -205,8 +237,7 @@ final class PetView: NSView {
         let scale = main.width / reference.size.width
         let size = NSSize(width: image.size.width * scale, height: image.size.height * scale)
         let groundY = main.minY + groundFraction * main.height
-        let feetFraction: CGFloat = 0.0176          // dove stanno i piedi nella tela delle piantine
-        return NSRect(x: bounds.midX - size.width / 2, y: groundY - feetFraction * size.height, width: size.width, height: size.height)
+        return NSRect(x: bounds.midX - size.width / 2, y: groundY - growthFeetFraction * size.height, width: size.width, height: size.height)
     }
     private var shadowFraction: CGFloat = 0.65
     private var groundFraction: CGFloat = 0
@@ -305,6 +336,7 @@ final class PetView: NSView {
         // Le immagini di crescita del focus stanno in coda: se ne manca una, niente crescita (mai indici sfasati).
         growthBase = images.count
         growthCount = 0
+        growthFeetFraction = pet.focusGrowthFeetFraction
         let growth = pet.focusGrowthResources.compactMap { name in
             Bundle.main.url(forResource: name, withExtension: "png").flatMap { NSImage(contentsOf: $0) }
         }

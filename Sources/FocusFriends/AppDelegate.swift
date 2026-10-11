@@ -31,6 +31,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let pomodoro = Pomodoro(petWindow: window, speaker: speaker)
         self.pomodoro = pomodoro
+        pomodoro.onFocusCompleted = { [weak walker] in walker?.eatNow() }
         menu = MenuController(window: window, speaker: speaker, pomodoro: pomodoro)
     }
 

@@ -46,6 +46,11 @@ struct Pet: Equatable {
     /// all'ultimo stadio. Il personaggio sta fermo e "cresce" con il tempo (l'uovo nel nido, poi il pulcino...);
     /// a fine focus torna a camminare. Sono sulla tela delle piantine del giardino (208x341).
     var focusGrowthResources: [String] = []
+    /// Dove stanno i piedi nelle immagini di crescita, dal fondo, in frazione dell'altezza (le piantine del
+    /// giardino: 1,76%; le immagini del porcellino con la carota: la sua linea di terra).
+    var focusGrowthFeetFraction: CGFloat = 0.0176
+    /// A fine focus (completato) mangia: per il porcellino, la carota cresciuta.
+    var eatsWhenFocusCompletes: Bool = false
 
     /// Disegno mostrato mentre l'utente lo solleva col mouse (nil = si trascina in modo normale).
     var pickedResource: String? = nil
@@ -151,6 +156,9 @@ struct Pet: Equatable {
         sleepIntroFrame: 10,                    // assopito
         sleepFrames: [11, 12, 11, 12, 11, 12, 13, 12],   // respiro lento, ogni tanto l'orecchio si muove
         popcornFrames: [14, 15, 16, 17, 18],     // pronto, slancio, in aria, atterraggio, pronto
+        focusGrowthResources: (1...5).map { "growth_porcellino_\($0)" },   // lui fermo e la carota che cresce
+        focusGrowthFeetFraction: 0.129,
+        eatsWhenFocusCompletes: true,
         pickedResource: "porcellino_picked",   // le mani che lo sollevano, spaventato
         pickedSize: NSSize(width: 130, height: 120),
         pickedGrab: CGPoint(x: 0.30, y: 0.60)   // il cursore sta sulle mani

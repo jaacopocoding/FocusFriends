@@ -70,6 +70,15 @@ final class Walker {
         timer = nil
     }
 
+    /// A fine focus: se il personaggio mangia (il porcellino), mangia subito la carota cresciuta.
+    func eatNow() {
+        let pet = petWindow.pet
+        guard pet.eatsWhenFocusCompletes, !pet.eatFrames.isEmpty, petWindow.hasFocusGrowthArt,
+              petWindow.isVisible, !petWindow.isPicked else { return }
+        stepClock = 0
+        state = .eating(until: Date().addingTimeInterval(.random(in: 7...10)))
+    }
+
     // MARK: - Un passo del ciclo
 
     private func tick() {

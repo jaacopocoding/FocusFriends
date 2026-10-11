@@ -97,9 +97,10 @@ compare subito anche per i focus già fatti. A fine focus il personaggio dice ch
 
 Ogni sessione ricorda **con quale personaggio** è stata fatta (`pet`), e un personaggio può avere la sua
 collezione: cinque immagini `garden_<personaggio>_<1..5>.png` in `assets/garden/` (stessa tela di Pianty,
-208×341, piedi sulla stessa riga). Chi non le ha usa le piantine di Pianty. Per ora c'è quella di **Ciccio**: un
-nido che va dall'uovo alla cocorita adulta (`tools/cutout_garden.py` ritaglia il foglio
-`assets/garden/ciccio_nido_original.png`).
+208×341, piedi sulla stessa riga). Chi non le ha usa le piantine di Pianty. Ci sono quella di **Ciccio** (un nido che
+va dall'uovo alla cocorita adulta) e quella del **Porcellino** (una carota che cresce dalla terra);
+`tools/cutout_garden.py` ritaglia il foglio (`assets/garden/ciccio_nido_original.png`,
+`assets/garden/porcellino_carota_original.png`).
 
 ## La crescita di Pianty
 
@@ -125,6 +126,13 @@ le stesse immagini della sua collezione del giardino): parte dall'uovo e, con il
 incrinato, al pulcino, al piccolo con le piume e infine alla cocorita adulta sul nido; ogni stadio dura un
 quinto del focus, come per Pianty. Il fumetto e l'orologio restano nello stesso posto. A fine focus (o se lo
 fermi) torna a camminare. Mentre lo sollevi col mouse compare il solito disegno con le mani.
+
+**Il porcellino durante un focus** sta fermo e guarda crescere una carota al suo fianco (`growth_porcellino_1..5.png`,
+composte da `tools/compose_porcellino_growth.py` con il suo fotogramma a riposo e le carote della sua collezione
+del giardino). La finestra si allarga attorno ai suoi piedi per fare spazio alla carota (e resta nello schermo),
+poi torna com'era. Ogni stadio dura un quinto del focus; **a fine focus, se lo hai completato, mangia la
+carota** con la sua animazione, poi riprende a camminare. Se fermi il focus a metà torna a camminare senza
+mangiare.
 
 Pianty cammina *e* cresce: per ognuno dei 5 stadi ci sono 7 immagini (fermo + 6 fotogrammi del passo, a 15
 al secondo), quindi mentre il focus avanza lo stadio cambia con una dissolvenza e il passo continua senza
