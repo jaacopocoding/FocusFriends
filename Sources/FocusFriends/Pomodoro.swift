@@ -35,10 +35,15 @@ final class Pomodoro {
 
     private(set) var phase: Phase?
     private(set) var breakMinutes = 5
+    /// La materia del focus in corso (nil = nessuna, o non è un focus).
+    private(set) var subject: String?
+    private var plannedFocusMinutes = 0
+    private let log: SessionLog
 
-    init(petWindow: PetWindow, speaker: Speaker) {
+    init(petWindow: PetWindow, speaker: Speaker, log: SessionLog = .shared) {
         self.petWindow = petWindow
         self.speaker = speaker
+        self.log = log
         // Quando il personaggio viene sollevato o rimesso giù, l'orologio si risistema sotto di lui.
         petWindow.onPickStateChanged = { [weak self] in self?.snapClockToPet() }
     }
@@ -59,19 +64,50 @@ final class Pomodoro {
 
     // MARK: - Comandi
 
-    func startFocus(minutes: Int) {
+    func startFocus(minutes: Int, subject: String? = nil) {
+        recordFocus(completed: false)     // se ce n'era uno in corso, finisce qui
+        self.subject = Subject.clean(subject)
+        plannedFocusMinutes = minutes
         begin(.focus, minutes: minutes)
-        speaker.say("Focus di \(minutes) minuti: si parte!")
+        log.beginInProgress(start: phaseStart, plannedMinutes: minutes, subject: self.subject)
+        if let subject = self.subject {
+            speaker.say("Focus di \(minutes) minuti su \(subject): si parte!")
+        } else {
+            speaker.say("Focus di \(minutes) minuti: si parte!")
+        }
     }
 
     /// Avvia subito una pausa e ricorda la durata per quelle automatiche dopo il focus.
     func startBreak(minutes: Int) {
+        recordFocus(completed: false)
+        subject = nil
         breakMinutes = minutes
         begin(.rest, minutes: minutes)
         speaker.say("Pausa di \(minutes) minuti: stacca un attimo.")
     }
 
+    /// Se un focus è in corso lo mette nel registro (completo o interrotto) e toglie il segno "in corso".
+    /// Ritorna la sessione salvata, se era lunga abbastanza da contare.
+    @discardableResult
+    private func recordFocus(completed: Bool) -> StudySession? {
+        guard phase == .focus else { return nil }
+        let planned = plannedFocusMinutes
+        let elapsed = completed
+            ? Int(endDate.timeIntervalSince(phaseStart))
+            : min(Int(Date().timeIntervalSince(phaseStart)), planned * Int(Self.secondsPerMinute))
+        let session = log.add(start: phaseStart, seconds: elapsed, plannedMinutes: planned, completed: completed, subject: subject)
+        log.finishInProgress()
+        return session
+    }
+
+    /// Per la chiusura dell'app: un focus ancora in corso viene salvato come interrotto.
+    func recordInterruptedFocusOnQuit() {
+        recordFocus(completed: false)
+    }
+
     func stop() {
+        recordFocus(completed: false)
+        subject = nil
         ticker?.invalidate()
         ticker = nil
         curtainTimer?.invalidate()
@@ -125,6 +161,7 @@ final class Pomodoro {
             finish()
             return
         }
+        if phase == .focus { log.heartbeat() }
         window?.timerView.time = remainingText
         updateStage()
         evaluateVisibility()
@@ -137,13 +174,30 @@ final class Pomodoro {
 
         switch finished {
         case .focus:
-            let minutes = breakMinutes
-            begin(.rest, minutes: minutes)
-            speaker.say("Focus finito! Ti sei meritato \(minutes) minuti di pausa.")
+            let breakLength = breakMinutes
+            let studied = plannedFocusMinutes
+            let finishedSubject = subject
+            recordFocus(completed: true)
+            subject = nil
+            begin(.rest, minutes: breakLength)
+            speaker.say(Self.focusFinishedMessage(subject: finishedSubject, studiedMinutes: studied, breakMinutes: breakLength))
         case .rest:
             stop()
             speaker.say("Pausa finita! Pronto per un altro giro?")
         }
+    }
+
+    /// "Hai studiato Anatomia per 50 minuti. Che bel lavoro!", con qualche variante.
+    static func focusFinishedMessage(subject: String?, studiedMinutes: Int, breakMinutes: Int) -> String {
+        guard let subject else {
+            return "Focus finito! Ti sei meritato \(breakMinutes) minuti di pausa."
+        }
+        let variants = [
+            "Hai studiato \(subject) per \(studiedMinutes) minuti. Che bel lavoro! Ora \(breakMinutes) minuti di pausa.",
+            "\(subject): \(studiedMinutes) minuti di concentrazione. Ottimo lavoro, ti sei meritato \(breakMinutes) minuti di pausa.",
+            "Ben fatto! \(studiedMinutes) minuti su \(subject). Respira: \(breakMinutes) minuti di pausa.",
+        ]
+        return variants.randomElement() ?? variants[0]
     }
 
     // MARK: - Crescita

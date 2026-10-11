@@ -26,8 +26,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         walker.start()
         self.walker = walker
 
+        // Se l'app si era chiusa di colpo durante un focus, lo salvo come interrotto.
+        SessionLog.shared.recoverInterrupted()
+
         let pomodoro = Pomodoro(petWindow: window, speaker: speaker)
         self.pomodoro = pomodoro
         menu = MenuController(window: window, speaker: speaker, pomodoro: pomodoro)
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        // Un focus ancora in corso non va perso.
+        pomodoro?.recordInterruptedFocusOnQuit()
     }
 }

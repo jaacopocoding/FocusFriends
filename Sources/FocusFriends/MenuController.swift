@@ -21,6 +21,9 @@ final class MenuController: NSObject, NSMenuDelegate {
     private let chattinessParent = NSMenuItem()
     private let movementParent = NSMenuItem()
     private var petParent: NSMenuItem?
+    private let statsItem = NSMenuItem()
+    private let subjectPrompt = SubjectPrompt()
+    private let dashboard = DashboardController()
 
     init(window: PetWindow, speaker: Speaker, pomodoro: Pomodoro) {
         self.window = window
@@ -59,6 +62,12 @@ final class MenuController: NSObject, NSMenuDelegate {
         pomofocusItem.title = "Pomofocus"
         pomofocusItem.image = Self.symbol("timer")
         menu.addItem(pomofocusItem)
+
+        statsItem.title = "Statistiche e riepilogo…"
+        statsItem.action = #selector(showStats)
+        statsItem.target = self
+        statsItem.image = Self.symbol("chart.bar.xaxis")
+        menu.addItem(statsItem)
 
         let chat = makeChattinessItem()
         chattinessParent.submenu = chat.submenu
@@ -230,7 +239,12 @@ final class MenuController: NSObject, NSMenuDelegate {
 
         // Lo stato attuale si legge senza aprire i sottomenu, e la scheda dice cosa sta facendo.
         switch pomodoro.phase {
-        case .focus?: headerView.status = "Focus · \(pomodoro.remainingText)"
+        case .focus?:
+            if let subject = pomodoro.subject {
+                headerView.status = "Focus · \(subject) · \(pomodoro.remainingText)"
+            } else {
+                headerView.status = "Focus · \(pomodoro.remainingText)"
+            }
         case .rest?: headerView.status = "Pausa · \(pomodoro.remainingText)"
         case nil: headerView.status = window.isVisible ? "Qui con te" : "Nascosto"
         }
@@ -273,9 +287,23 @@ final class MenuController: NSObject, NSMenuDelegate {
         }
     }
 
+    /// Prima chiede la materia ("Cosa studi adesso?"), poi parte il focus.
     @objc private func startFocus(_ sender: NSMenuItem) {
-        showPetIfHidden()
-        pomodoro.startFocus(minutes: sender.tag)
+        let minutes = sender.tag
+        subjectPrompt.ask(minutes: minutes, recent: SessionLog.shared.recentSubjects(), near: window) { [weak self] choice in
+            guard let self else { return }
+            switch choice {
+            case .cancel:
+                break
+            case .start(let subject):
+                self.showPetIfHidden()
+                self.pomodoro.startFocus(minutes: minutes, subject: subject)
+            }
+        }
+    }
+
+    @objc private func showStats() {
+        dashboard.show(kind: .day)
     }
 
     @objc private func startBreak(_ sender: NSMenuItem) {

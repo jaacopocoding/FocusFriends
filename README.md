@@ -22,6 +22,7 @@ frase gentile. Si sceglie dal menu:
 | Nascondi / Mostra | Lo toglie dallo schermo o lo rimette |
 | Fai parlare | Mostra subito una frase |
 | Pomofocus ▸ | Timer: *Focus 30/50 min*, *Pausa 5/10 min*, *Personalizza…*, *Ferma timer* |
+| Statistiche e riepilogo… | La finestra con il riepilogo di oggi e le statistiche della settimana e del mese |
 | Frequenza delle frasi ▸ | *Spesso* / *Ogni tanto* / *Raramente* / *Mai* |
 | Personaggio ▸ | Sceglie il personaggio (la scelta resta alla riapertura) |
 | Movimento ▸ | *In movimento* / *Fermo*: per i personaggi che camminano |
@@ -43,6 +44,34 @@ distrarti.
 una pausa (1–60 min). I timer aggiunti (al massimo 6 per tipo, senza doppioni) compaiono nel menu in ordine di
 durata insieme a quelli di serie, si ricordano alla riapertura (`CustomTimers.swift`) e si tolgono da *Rimuovi
 un timer personalizzato*. Valgono per tutti i personaggi.
+
+## Materia e statistiche
+
+Quando si avvia un focus compare la scheda **"Cosa studi adesso?"** (`SubjectPrompt.swift`): si scrive la
+materia, oppure si tocca una di quelle usate di recente per partire subito, oppure si sceglie *Senza materia*
+(Esc annulla e il focus non parte). Durante il focus la materia compare nell'intestazione del menu
+("Focus · Anatomia · 24:10"), e a fine focus il personaggio dice qualcosa come *"Hai studiato Anatomia per
+50 minuti. Che bel lavoro!"*.
+
+Ogni focus finisce in un registro (`SessionLog.swift`), un file leggibile in
+`~/Library/Application Support/FocusFriends/sessioni.json`: inizio, minuti fatti davvero, minuti previsti,
+completo o interrotto, materia. Le regole:
+
+- le pause non contano; un focus **interrotto** conta per i minuti che ha fatto davvero, se sono almeno uno;
+- una sessione che passa la mezzanotte va al giorno in cui è iniziata;
+- se l'app si chiude di colpo durante un focus, la sessione si recupera al prossimo avvio come interrotta
+  (un piccolo file `in-corso.json` si aggiorna ogni 30 secondi);
+- se `sessioni.json` risulta illeggibile viene messo da parte (`sessioni.corrotto-….json`) e si riparte da vuoto.
+
+*Statistiche e riepilogo…* apre una finestra (`DashboardWindow.swift`) con tre schede: **Oggi** (il
+riepilogo della giornata), **Settimana** (da lunedì) e **Mese**. Con le frecce si va ai periodi precedenti.
+Ognuna mostra il totale di studio, il numero di focus (completi e interrotti), i giorni di fila, un grafico
+(minuti per ora, o per giorno), le materie e le ultime sessioni. Toccando una sessione si cambia la materia
+o la si elimina; *Esporta CSV…* salva tutte le sessioni per un foglio di calcolo. I dati restano sul Mac:
+nessun invio da nessuna parte.
+
+Le regole di calcolo hanno le loro prove: `./tests/run.sh` (compila `SessionLog.swift` da solo e controlla
+periodi, totali, giorni di fila, recupero, file rovinato…).
 
 ## La crescita di Pianty
 
@@ -134,6 +163,10 @@ Sources/FocusFriends/
   Pomodoro.swift        logica del timer focus/pausa e crescita
   TimerBubble.swift     orologio digitale sotto il personaggio
   MenuController.swift  icona nella barra, menu, avvio al login
+  SessionLog.swift      registro delle sessioni di studio e statistiche (solo Foundation, con prove)
+  SubjectPrompt.swift   la scheda "Cosa studi adesso?"
+  DashboardWindow.swift la finestra delle statistiche (Oggi / Settimana / Mese)
+  PaperUI.swift         elementi grafici in comune delle schede (carta, pulsanti, colori delle materie)
 assets/
   pianty/original.png   immagine di partenza di Pianty senza piedini (5 stadi, non più usata dal ritaglio)
   pianty/sheets/stage1..5.png   le tavole di Pianty con i piedini (un foglio per stadio; si usa il primo fotogramma)
@@ -151,6 +184,7 @@ assets/
   AppIcon.icns          icona dell'app (generata da tools/make_icon.py con i tre personaggi davanti a un anello che si riempie)
 tools/                  script per ritagli e icona (Python con Pillow e numpy)
 build.sh                compila e crea build/FocusFriends.app
+tests/                  prove del registro e delle statistiche (./tests/run.sh)
 ```
 
 ## Aggiungere o cambiare un personaggio
