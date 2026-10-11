@@ -4,7 +4,7 @@ Un bonsai che se ne sta sul desktop del Mac, ti accompagna nel Pomofocus e ogni 
 frase gentile. Cresce mentre lavori: parte da un seme e, man mano che il tempo del focus passa,
 diventa un albero. Non fa altro: è solo una cosa carina sullo schermo.
 
-Dal menu si possono scegliere altri personaggi: **Pianty** (una succulenta con due piedini: cresce come Bonsy, con le stesse frasi, e cammina per lo schermo), il **Porcellino** (cammina per lo schermo, con frasi sue),
+Dal menu si possono scegliere altri personaggi: **Pianty** (una succulenta con due piedini: cresce come Bonsy, con le stesse frasi, e cammina per lo schermo), il **Porcellino** (cammina per lo schermo, con frasi sue), **Ciccio** (una cocorita che cammina e ogni tanto sbatte le ali),
 **Spidy** (un mini Spider-Man, fisso) e **Simulazione** (una prova: Spidy che cammina per lo schermo).
 
 ## Cosa fa
@@ -51,12 +51,16 @@ pausa e quando non c'è nessun timer resta allo stadio finale.
 
 ## Personaggi che camminano
 
-Pianty, il Porcellino e Simulazione camminano per lo schermo: fanno qualche passo in una direzione
+Pianty, il Porcellino, Ciccio e Simulazione camminano per lo schermo: fanno qualche passo in una direzione
 (3–8 secondi, 42 punti al secondo), si fermano 4–10 secondi, poi ripartono, rimbalzando ai bordi.
 Stanno fermi mentre parlano o mentre li trascini col mouse. Camminano solo in orizzontale, all'altezza
 a cui si trovano. Dal menu *Movimento ▸ Fermo* smettono di camminare e restano dove sono; *In movimento*
 li rimette in cammino. Se le immagini guardano a destra (come il porcellino), vengono specchiate quando
 vanno a sinistra.
+
+Ciccio, la cocorita, ha 6 fotogrammi di camminata e 6 di battito d'ali. Le ali le sbatte sul posto, ogni tanto e in momenti
+casuali, nello stesso modo in cui il porcellino fa il popcorning (stessa probabilità e durata); non mangia e non dorme. Usa le
+frasi di Bonsy.
 
 Pianty cammina *e* cresce: per ognuno dei 5 stadi ci sono 7 immagini (fermo + 6 fotogrammi del passo, a 15
 al secondo), quindi mentre il focus avanza lo stadio cambia con una dissolvenza e il passo continua senza
@@ -142,6 +146,8 @@ assets/
   porcellino/eat_original.png, sleep_original.png, jump_original.png   i fogli della carota, del sonno e del popcorning
   porcellino/frame*.png       fotogrammi ritagliati e allineati (1-5 cammino, 6-10 mangia, 11-14 dorme, 15-19 popcorning), da tools/cutout_porcellino.py
   porcellino/picked_original.png, picked.png   il porcellino sollevato (tools/cutout_picked.py)
+  ciccio/walk_original.png, flap_original.png   le tavole della cocorita (camminata e ali, 6 fotogrammi ciascuna)
+  ciccio/frame1..13.png   fermo, 6 di camminata, 6 di ali (tools/cutout_ciccio.py)
   AppIcon.icns          icona dell'app (generata da tools/make_icon.py)
 tools/                  script per ritagli, icona e pose di Simulazione (Python con Pillow e numpy; make_simulazione.sh usa Swift)
 build.sh                compila e crea build/Bonsy.app

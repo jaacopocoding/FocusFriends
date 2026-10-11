@@ -26,7 +26,6 @@ final class Walker {
     private static let sleepChance = 0.15
     private static let popcornChance = 0.12
     private static let popcornDuration: ClosedRange<TimeInterval> = 3...6
-    private static let popcornInterval: TimeInterval = 0.16
     private static let eatDuration: ClosedRange<TimeInterval> = 6...12
     private static let sleepDuration: ClosedRange<TimeInterval> = 12...30
     private static let chewInterval: TimeInterval = 0.28
@@ -130,7 +129,7 @@ final class Walker {
             // Saltelli di gioia: resta dov'è e ripete il salto (pronto, slancio, in aria, atterraggio).
             stepClock += dt
             let frames = pet.popcornFrames
-            petWindow.setPose(frames[Int(stepClock / Self.popcornInterval) % frames.count])
+            petWindow.setPose(frames[Int((stepClock + Self.stepSlack) / pet.popcornInterval) % frames.count])
             if now >= until { finishActivity(now: now, pet: pet) }
 
         case .sleeping(let start, let until):

@@ -39,6 +39,8 @@ struct Pet: Equatable {
     var sleepFrames: [Int] = []
     /// Ogni tanto, in momenti casuali, fa il "popcorning": saltelli di gioia, uno dopo l'altro.
     var popcornFrames: [Int] = []
+    /// Secondi tra un fotogramma del "popcorning" e il successivo.
+    var popcornInterval: TimeInterval = 0.16
 
     /// Disegno mostrato mentre l'utente lo solleva col mouse (nil = si trascina in modo normale).
     var pickedResource: String? = nil
@@ -118,6 +120,28 @@ struct Pet: Equatable {
         framesPerStage: 7
     )
 
+    /// Una cocorita: cammina con le zampette e ogni tanto, in momenti casuali, si ferma a sbattere le ali.
+    static let ciccio = Pet(
+        id: "ciccio",
+        name: "Ciccio",
+        imageResources: (1...13).map { "ciccio_frame\($0)" },   // 1 fermo, 2-7 cammino, 8-13 ali
+        size: NSSize(width: 112, height: 118),
+        quotesResource: "frasi_bonsy",
+        quotesUserFile: "frasi_bonsy.txt",
+        fallbackQuote: "Un passo alla volta, e ogni tanto una svolazzata.",
+        greeting: "Ciao! Sono Ciccio. Facciamo due passi?",
+        shadowWidthFraction: 0.45,
+        groundFraction: 0.1009,
+        iconCrop: NSRect(x: 0.436, y: 0.436, width: 0.53, height: 0.38),   // la testa
+        iconFocus: 0.70,
+        walks: true,
+        walkFrames: [1, 2, 3, 4, 5, 6],        // il ciclo dei passi
+        stepInterval: 0.1,
+        facesRight: true,
+        popcornFrames: [7, 8, 9, 10, 11, 12],  // un battito d'ali sul posto
+        popcornInterval: 1.0 / 15   // due tick del timer: il battito è regolare
+    )
+
     /// Prova: stesse cose di Spidy (stesse frasi), ma cammina per lo schermo.
     static let simulazione = Pet(
         id: "simulazione",
@@ -162,7 +186,7 @@ struct Pet: Equatable {
     )
 
     /// Bonsy è il personaggio principale: viene per primo ed è quello di partenza.
-    static let all = [bonsy, pianty, porcellino, spidy, simulazione]
+    static let all = [bonsy, pianty, porcellino, ciccio, spidy, simulazione]
 
     // MARK: - Scelta ricordata
 
