@@ -1,11 +1,12 @@
 # Bonsy
 
-Un bonsai che se ne sta sul desktop del Mac, ti accompagna nel Pomofocus e ogni tanto dice una
-frase gentile. Cresce mentre lavori: parte da un seme e, man mano che il tempo del focus passa,
-diventa un albero. Non fa altro: è solo una cosa carina sullo schermo.
+Un piccolo personaggio che se ne sta sul desktop del Mac, ti accompagna nel Pomofocus e ogni tanto dice una
+frase gentile. Si sceglie dal menu:
 
-Dal menu si possono scegliere altri personaggi: **Pianty** (una succulenta con due piedini: cresce come Bonsy, con le stesse frasi, e cammina per lo schermo), il **Porcellino** (cammina per lo schermo, con frasi sue), **Ciccio** (una cocorita che cammina e ogni tanto sbatte le ali, con frasi sue),
-**Spidy** (un mini Spider-Man, fisso) e **Simulazione** (una prova: Spidy che cammina per lo schermo).
+- **Pianty**, una succulenta con due piedini: cresce mentre lavori (parte da un seme e, man mano che il tempo
+  del focus passa, diventa una pianta adulta) e cammina per lo schermo. È il personaggio di partenza.
+- **Porcellino**, una cavia che cammina per lo schermo, mangia la carota, fa i pisolini e saltella, con frasi sue.
+- **Ciccio**, una cocorita che cammina e ogni tanto sbatte le ali, con frasi sue.
 
 ## Cosa fa
 
@@ -43,15 +44,15 @@ una pausa (1–60 min). I timer aggiunti (al massimo 6 per tipo, senza doppioni)
 durata insieme a quelli di serie, si ricordano alla riapertura (`CustomTimers.swift`) e si tolgono da *Rimuovi
 un timer personalizzato*. Valgono per tutti i personaggi.
 
-## La crescita di Bonsy e Pianty
+## La crescita di Pianty
 
-Bonsy e Pianty hanno cinque stadi ciascuno, dal seme alla pianta adulta. Durante un focus parte dal primo stadio e passa al
+Pianty ha cinque stadi, dal seme alla pianta adulta. Durante un focus parte dal primo stadio e passa al
 successivo ogni quinto del tempo (con un focus da 50 minuti: ai minuti 0, 10, 20, 30 e 40). Durante la
 pausa e quando non c'è nessun timer resta allo stadio finale.
 
 ## Personaggi che camminano
 
-Pianty, il Porcellino, Ciccio e Simulazione camminano per lo schermo: fanno qualche passo in una direzione
+Pianty, il Porcellino e Ciccio camminano per lo schermo: fanno qualche passo in una direzione
 (3–8 secondi, 42 punti al secondo), si fermano 4–10 secondi, poi ripartono, rimbalzando ai bordi.
 Stanno fermi mentre parlano o mentre li trascini col mouse. Camminano solo in orizzontale, all'altezza
 a cui si trovano. Dal menu *Movimento ▸ Fermo* smettono di camminare e restano dove sono; *In movimento*
@@ -80,7 +81,7 @@ schermo, si ferma a fare una di queste cose (dopo ogni pausa tra due camminate s
 
 Dopo una sosta riparte sempre a camminare. Non dipendono dal Pomofocus. Quando lo trascini col mouse compare un disegno in cui
 viene sollevato da due mani, spaventato (con un leggero tremolio); lasciandolo, torna in piedi dove si trova. Vale per il
-Porcellino, per Pianty (che lo mostra allo stadio finale, con la pianta adulta) e per Ciccio. Simulazione usa le frasi di Spidy.
+Porcellino, per Pianty (che lo mostra allo stadio finale, con la pianta adulta) e per Ciccio.
 
 ## Installazione
 
@@ -97,11 +98,11 @@ l'approvazione in Impostazioni di Sistema → Generali → Elementi login.
 
 ## Frasi
 
-Le frasi di partenza sono in `assets/frasi_bonsy.txt` (Bonsy e Pianty, condivise), `assets/frasi_porcellino.txt`
-(Porcellino), `assets/frasi_ciccio.txt` (Ciccio) e `assets/frasi.txt` (Spidy e Simulazione), una per riga
+Le frasi di partenza sono in `assets/frasi_bonsy.txt` (Pianty), `assets/frasi_porcellino.txt`
+(Porcellino) e `assets/frasi_ciccio.txt` (Ciccio), una per riga
 (le righe che iniziano con `#` sono ignorate). Per usare le tue senza ricompilare, scegli *Modifica le
-frasi…* dal menu: crea e apre `~/Library/Application Support/Bonsy/frasi_bonsy.txt` (o `frasi.txt` per
-Spidy), che ha la precedenza sul file incluso nell'app. Le modifiche valgono dalla frase successiva.
+frasi…* dal menu: crea e apre `~/Library/Application Support/Bonsy/frasi_bonsy.txt` (o quello del porcellino
+o di Ciccio), che ha la precedenza sul file incluso nell'app. Le modifiche valgono dalla frase successiva.
 Se esiste ancora la vecchia cartella `Application Support/Spidy`, viene letta come seconda scelta.
 
 Le frasi escono **a mazzo** (`PhraseDeck.swift`): tutte, in ordine casuale, prima che una si ripeta; la prima
@@ -131,16 +132,16 @@ Sources/Bonsy/
   Pomodoro.swift        logica del timer focus/pausa e crescita
   TimerBubble.swift     orologio digitale sotto il personaggio
   MenuController.swift  icona nella barra, menu, avvio al login
-assets/
+assets/                 (i file di Bonsy bonsai, Spidy e Simulazione sono conservati ma non fanno più parte dell'app)
   bonsy/original.png    immagine di partenza di Bonsy (5 stadi)
-  bonsy/stage1..5.png   stadi ritagliati (generati da tools/cutout_bonsy.py)
+  bonsy/stage1..5.png   stadi ritagliati (tools/cutout_bonsy.py); stage5 serve ancora per l'icona dell'app (tools/make_icon.py)
   pianty/original.png   immagine di partenza di Pianty senza piedini (5 stadi, non più usata dal ritaglio)
   pianty/sheets/stage1..5.png   le tavole di Pianty con i piedini (un foglio per stadio; si usa il primo fotogramma)
   pianty/stage{1..5}_{1..7}.png   i 35 fotogrammi (_1 fermo, _2.._7 passo), generati da tools/cutout_pianty.py
   pianty/picked_original.png, picked.png   Pianty sollevata dalle mani (tools/cutout_picked.py)
   original.png, spidy.png   immagine di Spidy e ritaglio (tools/cutout.py)
   bubble_original.png, bubble.png   fumetto e ritaglio (tools/cutout_bubble.py)
-  frasi_bonsy.txt, frasi.txt, frasi_porcellino.txt, frasi_ciccio.txt   frasi incluse nell'app
+  frasi_bonsy.txt, frasi_porcellino.txt, frasi_ciccio.txt   frasi incluse nell'app (frasi.txt: quelle di Spidy, non più incluse)
   simulazione/frame1..3.png   le tre pose di Simulazione (generate da tools/make_simulazione.sh)
   porcellino/original.png     immagine di partenza del porcellino (5 fotogrammi)
   porcellino/eat_original.png, sleep_original.png, jump_original.png   i fogli della carota, del sonno e del popcorning
@@ -150,7 +151,7 @@ assets/
   ciccio/picked_original.png, picked.png   Ciccio sollevato dalle mani (tools/cutout_picked.py ... 252: maniche quasi bianche)
   ciccio/frame1..13.png   fermo (ali chiuse, zampe a terra), 6 di camminata, 6 di ali (tools/cutout_ciccio.py)
   AppIcon.icns          icona dell'app (generata da tools/make_icon.py)
-tools/                  script per ritagli, icona e pose di Simulazione (Python con Pillow e numpy; make_simulazione.sh usa Swift)
+tools/                  script per ritagli e icona (Python con Pillow e numpy; make_simulazione.sh usa Swift)
 build.sh                compila e crea build/Bonsy.app
 ```
 

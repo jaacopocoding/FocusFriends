@@ -67,35 +67,7 @@ struct Pet: Equatable {
         return walks ? imageResources[0] : imageResources[finalStage]
     }
 
-    static let spidy = Pet(
-        id: "spidy",
-        name: "Spidy",
-        imageResources: ["spidy"],
-        size: NSSize(width: 80, height: 100),
-        quotesResource: "frasi",
-        quotesUserFile: "frasi.txt",
-        fallbackQuote: "Da grandi poteri derivano grandi responsabilità.",
-        greeting: "Ciao! Il tuo amichevole Spidy di quartiere è qui.",
-        shadowWidthFraction: 0.65,
-        groundFraction: 0.015,
-        iconCrop: NSRect(x: 0.218, y: 0.353, width: 0.67, height: 0.635)   // la testa
-    )
-
-    static let bonsy = Pet(
-        id: "bonsy",
-        name: "Bonsy",
-        imageResources: (1...5).map { "bonsy_stage\($0)" },
-        size: NSSize(width: 92, height: 114),
-        quotesResource: "frasi_bonsy",
-        quotesUserFile: "frasi_bonsy.txt",
-        fallbackQuote: "Un passo alla volta: anch'io sono partito da un seme.",
-        greeting: "Ciao! Sono Bonsy. Cresciamo insieme, con calma.",
-        shadowWidthFraction: 0.72,
-        groundFraction: 0.061,
-        iconCrop: nil
-    )
-
-    /// Una succulenta che cresce come Bonsy e ne condivide le frasi, ma ha due piedini e cammina.
+    /// Una succulenta con due piedini: cresce durante il focus (cinque stadi, dal seme alla pianta adulta) e cammina.
     /// Per ognuno dei 5 stadi ci sono 7 immagini: la prima è "fermo", le altre 6 sono il ciclo dei passi
     /// (generato da tools/cutout_pianty.py muovendo solo le gambe, così la pianta resta identica).
     static let pianty = Pet(
@@ -145,22 +117,6 @@ struct Pet: Equatable {
         pickedGrab: CGPoint(x: 0.34, y: 0.55)   // il cursore sta sulla mano sinistra
     )
 
-    /// Prova: stesse cose di Spidy (stesse frasi), ma cammina per lo schermo.
-    static let simulazione = Pet(
-        id: "simulazione",
-        name: "Simulazione",
-        imageResources: (1...3).map { "simulazione_frame\($0)" },
-        size: NSSize(width: 84, height: 84),
-        quotesResource: "frasi",
-        quotesUserFile: "frasi.txt",
-        fallbackQuote: "Da grandi poteri derivano grandi responsabilità.",
-        greeting: "Ciao! Faccio due passi per lo schermo, ci vediamo in giro.",
-        shadowWidthFraction: 0,           // l'ombra è già nel disegno
-        groundFraction: 0,
-        iconCrop: NSRect(x: 0.2, y: 0.42, width: 0.6, height: 0.56),   // la testa
-        walks: true
-    )
-
     /// Un porcellino d'India: cammina per lo schermo, mangia, dorme, saltella e incoraggia.
     static let porcellino = Pet(
         id: "porcellino",
@@ -188,8 +144,8 @@ struct Pet: Equatable {
         pickedGrab: CGPoint(x: 0.30, y: 0.60)   // il cursore sta sulle mani
     )
 
-    /// Bonsy è il personaggio principale: viene per primo ed è quello di partenza.
-    static let all = [bonsy, pianty, porcellino, ciccio, spidy, simulazione]
+    /// Pianty è il personaggio di partenza.
+    static let all = [pianty, porcellino, ciccio]
 
     // MARK: - Scelta ricordata
 
@@ -197,7 +153,7 @@ struct Pet: Equatable {
 
     static var saved: Pet {
         let id = UserDefaults.standard.string(forKey: defaultsKey)
-        return all.first { $0.id == id } ?? bonsy
+        return all.first { $0.id == id } ?? pianty
     }
 
     func remember() {

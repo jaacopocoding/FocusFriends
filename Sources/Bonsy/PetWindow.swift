@@ -1,7 +1,7 @@
 import AppKit
 
 /// Finestra trasparente, senza bordi, sempre sopra le altre, visibile su tutti gli Spaces.
-/// Mostra il personaggio scelto (Spidy, Bonsy...) e, se ha più stadi, quello attuale.
+/// Mostra il personaggio scelto (Pianty, Ciccio...) e, se ha più stadi, quello attuale.
 final class PetWindow: NSWindow {
     private static let margin: CGFloat = 24
 
