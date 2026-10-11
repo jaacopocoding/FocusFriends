@@ -167,16 +167,29 @@ check(!StudyStats.encouragement(totalSeconds: 0).isEmpty && !StudyStats.encourag
 
 // ---------------------------------------------------------------- giardino e personaggio
 section("Giardino e personaggio")
-check(GardenRules.stage(seconds: 60) == 1, "1 minuto = seme")
-check(GardenRules.stage(seconds: 9 * 60) == 1, "9 minuti = stadio 1")
-check(GardenRules.stage(seconds: 10 * 60) == 2, "10 minuti = stadio 2")
-check(GardenRules.stage(seconds: 19 * 60) == 2, "19 minuti = stadio 2")
-check(GardenRules.stage(seconds: 20 * 60) == 3, "20 minuti = stadio 3")
-check(GardenRules.stage(seconds: 30 * 60) == 4, "30 minuti = stadio 4")
-check(GardenRules.stage(seconds: 44 * 60) == 4, "44 minuti = stadio 4")
-check(GardenRules.stage(seconds: 45 * 60) == 5, "45 minuti = adulta")
-check(GardenRules.stage(seconds: 50 * 60) == 5, "50 minuti = adulta")
-check(GardenRules.stage(seconds: 180 * 60) == GardenRules.stageCount, "mai oltre lo stadio finale")
+func session(_ planned: Int, _ minutes: Int, completed: Bool) -> StudySession {
+    StudySession(start: date(2026, 10, 14, 9), seconds: minutes * 60, plannedMinutes: planned, completed: completed, subject: nil)
+}
+check(GardenRules.stage(for: session(25, 25, completed: true)) == 5, "un focus finito è sempre adulto, anche da 25 minuti")
+check(GardenRules.stage(for: session(10, 10, completed: true)) == 5, "anche da 10 minuti")
+check(GardenRules.stage(for: session(50, 50, completed: true)) == 5, "da 50 minuti")
+check(GardenRules.stage(for: session(50, 5, completed: false)) == 1, "interrotto al 10% = seme")
+check(GardenRules.stage(for: session(50, 10, completed: false)) == 2, "interrotto al 20% = stadio 2")
+check(GardenRules.stage(for: session(50, 19, completed: false)) == 2, "interrotto al 38% = stadio 2")
+check(GardenRules.stage(for: session(50, 20, completed: false)) == 3, "interrotto al 40% = stadio 3")
+check(GardenRules.stage(for: session(50, 30, completed: false)) == 4, "interrotto al 60% = stadio 4")
+check(GardenRules.stage(for: session(50, 40, completed: false)) == 5, "interrotto all'80% = stadio 5")
+check(GardenRules.stage(for: session(25, 24, completed: false)) == 5, "interrotto al 96% = stadio 5")
+check(GardenRules.stage(for: session(0, 3, completed: false)) <= GardenRules.stageCount, "durata prevista zero: non esce dai limiti")
+check(GardenRules.progress(of: session(25, 30, completed: false)) == 1, "il progresso non supera 1")
+// Gli stadi coincidono con quelli della crescita dal vivo (Pet.focusGrowthStage / Pet.stage).
+for tenth in 0...10 {
+    let p = Double(tenth) / 10
+    let live = min(Int(min(max(p, 0), 0.999_999) * 5), 4) + 1
+    let minutes = Int((p * 50).rounded())
+    let s = session(50, minutes, completed: p >= 1)
+    check(GardenRules.stage(for: s) == live || p == 1, "giardino = dal vivo al \(Int(p * 100))% (\(GardenRules.stage(for: s)) / \(live))")
+}
 
 let petDir = tempDirectory()
 let petLog = SessionLog(directory: petDir)

@@ -77,18 +77,20 @@ periodi, totali, giorni di fila, recupero, file rovinato…).
 ## Il giardino
 
 *Il mio giardino…* (`GardenWindow.swift`) trasforma il registro in qualcosa da guardare: **ogni focus finito
-è una piantina**, e cresce con i minuti studiati (`GardenRules`, in `SessionLog.swift`):
+è una piantina**, e cresce con la parte di focus che hai fatto: la stessa regola della crescita dal vivo
+durante il timer (un quinto del focus per stadio, `GardenRules` in `SessionLog.swift`). Quello che vedi
+crescere mentre studi è esattamente quello che trovi nel giardino:
 
-| Minuti di focus | Stadio |
+| Parte del focus fatta | Stadio |
 |---|---|
-| meno di 10 | 1 (seme) |
-| 10–19 | 2 |
-| 20–29 | 3 |
-| 30–44 | 4 |
-| 45 o più | 5 (adulta) |
+| meno del 20% | 1 (seme) |
+| 20–39% | 2 |
+| 40–59% | 3 |
+| 60–79% | 4 |
+| 80% o più (e tutti i focus finiti) | 5 (adulta) |
 
-Un focus interrotto non sparisce: è una piantina più piccola (se è durato almeno un minuto), segnata con il
-bordo arancione. La scheda *Settimana* ha un'aiuola per giorno (fino a sei piantine, poi "+N"; le più
+Un focus interrotto non sparisce: è una piantina della taglia raggiunta (se è durato almeno un minuto), segnata
+con il bordo arancione. La scheda *Settimana* ha un'aiuola per giorno (fino a sei piantine, poi "+N"; le più
 piccole stanno davanti); *Mese* è un calendario con le piantine di ogni giorno. Il pallino sotto il vaso è la
 materia, e passando il mouse su una piantina compaiono data, materia e minuti. Si ricava tutto dal registro:
 compare subito anche per i focus già fatti. A fine focus il personaggio dice che è nata una piantina nuova.

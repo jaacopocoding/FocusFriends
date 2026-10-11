@@ -169,7 +169,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
             let seconds = items.reduce(0) { $0 + $1.seconds }
             // Le più piccole davanti e le più alte dietro, così si vedono tutte.
             let shown = items.prefix(6).sorted {
-                let a = GardenRules.stage(seconds: $0.seconds), b = GardenRules.stage(seconds: $1.seconds)
+                let a = GardenRules.stage(for: $0), b = GardenRules.stage(for: $1)
                 return a != b ? a < b : $0.start < $1.start
             }
             let front = Array(shown.prefix(3))
@@ -182,7 +182,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
                     let feetY = baseY + 16 - (row == 1 ? 46 : 0)
                     plants.append(Plant(
                         rect: plantRect(centerX: cx, feetY: feetY, height: plantHeight * (row == 1 ? 0.9 : 1)),
-                        stage: GardenRules.stage(seconds: session.seconds), session: session, showsDot: row == 0
+                        stage: GardenRules.stage(for: session), session: session, showsDot: row == 0
                     ))
                 }
             }
@@ -221,7 +221,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
                 let cx = cell.midX + (CGFloat(k) - CGFloat(shown.count - 1) / 2) * spacing
                 plants.append(Plant(
                     rect: plantRect(centerX: cx, feetY: cell.maxY - 8, height: 54),
-                    stage: GardenRules.stage(seconds: session.seconds), session: session, showsDot: false
+                    stage: GardenRules.stage(for: session), session: session, showsDot: false
                 ))
             }
             beds.append(Bed(
@@ -278,7 +278,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
         let when = kind == .week ? "in questa settimana" : "in questo mese"
         let summary = totalPlants == 0
             ? "Il giardino è ancora vuoto: ogni focus che finisci pianta una piantina."
-            : "\(plantsWord) \(when) · \(StudyStats.duration(seconds: totalSeconds)) di studio. Più hai studiato, più sono cresciute."
+            : "\(plantsWord) \(when) · \(StudyStats.duration(seconds: totalSeconds)) di studio. Un focus finito è una pianta adulta; se lo interrompi resta della taglia raggiunta."
         text(summary, at: NSRect(x: m, y: 100, width: width - 2 * m - 200, height: 20),
              font: NSFont.systemFont(ofSize: 14), color: Paper.inkLight)
         let badge = NSRect(x: width - m - 180, y: 12, width: 180, height: 44)

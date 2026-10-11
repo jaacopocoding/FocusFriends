@@ -27,19 +27,22 @@ struct StudySession: Codable, Equatable {
     }
 }
 
-/// Le regole del giardino: ogni focus è una piantina, e cresce con i minuti studiati.
+/// Le regole del giardino: ogni focus è una piantina, e cresce con la parte di focus che hai fatto.
+/// Sono le stesse regole della crescita dal vivo durante il timer (un quinto del focus per stadio):
+/// quello che vedi crescere è esattamente quello che trovi nel giardino.
 enum GardenRules {
     static let stageCount = 5
 
-    /// Lo stadio (1...5) della piantina per un focus durato tanti secondi.
-    static func stage(seconds: Int) -> Int {
-        switch (seconds + 30) / 60 {
-        case 45...: return 5
-        case 30..<45: return 4
-        case 20..<30: return 3
-        case 10..<20: return 2
-        default: return 1
-        }
+    /// Quanta parte del focus previsto è stata fatta (0...1). Un focus finito vale sempre 1.
+    static func progress(of session: StudySession) -> Double {
+        if session.completed { return 1 }
+        let planned = Double(max(session.plannedMinutes, 1) * 60)
+        return min(max(Double(session.seconds) / planned, 0), 1)
+    }
+
+    /// Lo stadio (1...5) della piantina: da 0 a 20% è il seme, da 80% in su la pianta adulta.
+    static func stage(for session: StudySession) -> Int {
+        min(Int(progress(of: session) * Double(stageCount)) + 1, stageCount)
     }
 }
 
