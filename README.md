@@ -93,9 +93,11 @@ piccole stanno davanti); *Mese* è un calendario con le piantine di ogni giorno.
 materia, e passando il mouse su una piantina compaiono data, materia e minuti. Si ricava tutto dal registro:
 compare subito anche per i focus già fatti. A fine focus il personaggio dice che è nata una piantina nuova.
 
-Ogni sessione ricorda **con quale personaggio** è stata fatta (`pet`). Per ora le piantine sono sempre quelle
-di Pianty; un personaggio può avere la sua collezione mettendo cinque immagini `garden_<personaggio>_<1..5>.png`
-in `assets/garden/` (stessa tela di Pianty, 208×341, piedi sulla stessa riga): chi non le ha usa Pianty.
+Ogni sessione ricorda **con quale personaggio** è stata fatta (`pet`), e un personaggio può avere la sua
+collezione: cinque immagini `garden_<personaggio>_<1..5>.png` in `assets/garden/` (stessa tela di Pianty,
+208×341, piedi sulla stessa riga). Chi non le ha usa le piantine di Pianty. Per ora c'è quella di **Ciccio**: un
+nido che va dall'uovo alla cocorita adulta (`tools/cutout_garden.py` ritaglia il foglio
+`assets/garden/ciccio_nido_original.png`).
 
 ## La crescita di Pianty
 
