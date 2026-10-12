@@ -127,9 +127,10 @@ incrinato, al pulcino, al piccolo con le piume e infine alla cocorita adulta sul
 quinto del focus, come per Pianty. Il fumetto e l'orologio restano nello stesso posto. A fine focus (o se lo
 fermi) torna a camminare. Mentre lo sollevi col mouse compare il solito disegno con le mani.
 
-**Il porcellino durante un focus** sta fermo e guarda crescere una carota al suo fianco (`growth_porcellino_1..5.png`,
-composte da `tools/compose_porcellino_growth.py` con il suo fotogramma a riposo e le carote della sua collezione
-del giardino). La finestra si allarga attorno ai suoi piedi per fare spazio alla carota (e resta nello schermo),
+**Il porcellino durante un focus** sta fermo e guarda crescere una carota al suo fianco. La protagonista è la
+carota (la matura occupa quasi tutta l'altezza), lui è più piccolo e sta a guardarla
+(`growth_porcellino_1..5.png`, composte da `tools/compose_porcellino_growth.py` con il suo fotogramma a riposo
+rimpicciolito e le carote della sua collezione del giardino). La finestra si allarga attorno ai suoi piedi per fare spazio alla carota (e resta nello schermo),
 poi torna com'era. Ogni stadio dura un quinto del focus; **a fine focus, se lo hai completato, mangia la
 carota** con la sua animazione, poi riprende a camminare. Se fermi il focus a metà torna a camminare senza
 mangiare.
