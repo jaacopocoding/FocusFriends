@@ -335,6 +335,16 @@ open /Applications/FocusFriends.app
 Per l'avvio al login è meglio che l'app stia in **Applicazioni**. macOS potrebbe chiedere
 l'approvazione in Impostazioni di Sistema → Generali → Elementi login.
 
+## Suono ambiente
+
+Un suono di sottofondo, facoltativo, che accompagna il focus: **pioggia**, **rumore marrone** (basso e avvolgente) o
+**vento**. Sono **generati dall'app** in tempo reale da rumore filtrato (`AmbientPlayer.swift`): niente file, niente
+licenze, niente rete. Si sceglie dalla scheda del menu (*Suono ambiente*, con il cursore del volume sotto) o dal menu
+classico (*Suono ambiente ▸*); cambiando suono o volume se ne sente un'anteprima di qualche secondo. Parte con una
+dissolvenza di 2 secondi quando comincia il focus (e continua durante i secondi del «+5 minuti») e si spegne con la
+stessa dissolvenza quando il focus finisce: in pausa è silenzio. Il volume di partenza è basso (25%). La scelta si
+ricorda alla riapertura, e la scelta del suono e del volume sta in `AmbientSound.swift` (con le prove).
+
 ## Frasi
 
 Le frasi di partenza sono in `assets/frasi_pianty.txt` (Pianty), `assets/frasi_porcellino.txt`
@@ -374,6 +384,8 @@ Sources/FocusFriends/
   TimerBubble.swift     orologio digitale sotto il personaggio
   MenuController.swift  icona nella barra, menu classico, avvio al login
   MenuCard.swift        la scheda del menu (clic sull'icona o tasto destro sul personaggio)
+  AmbientSound.swift    i suoni ambiente e le scelte (solo Foundation, con prove)
+  AmbientPlayer.swift   il motore audio: rumore filtrato in tempo reale
   SessionLog.swift      registro delle sessioni di studio e statistiche (solo Foundation, con prove)
   Profile.swift         il nome (solo Foundation, con prove) e i titoli personalizzati
   IntroCard.swift       la scheda di introduzione: nome e compagno

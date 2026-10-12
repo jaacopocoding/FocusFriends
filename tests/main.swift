@@ -484,5 +484,22 @@ check(Season.of(date(2026, 9, 1), calendar: cal) == .autumn && Season.of(date(20
 check(Season.of(date(2026, 12, 1), calendar: cal) == .winter && Season.of(date(2027, 2, 28), calendar: cal) == .winter, "dicembre-febbraio: inverno")
 check(Season.allCases.count == 4 && Season.winter.title == "Inverno", "quattro stagioni, con il nome")
 
+// ---------------------------------------------------------------- suoni ambiente
+section("Suoni ambiente")
+check(AmbientSound.none.next == .rain && AmbientSound.rain.next == .brown && AmbientSound.brown.next == .wind && AmbientSound.wind.next == .none,
+      "il ciclo dei suoni torna a Nessuno")
+check(AmbientSound.allCases.allSatisfy { !$0.title.isEmpty && !$0.symbolName.isEmpty }, "ogni suono ha nome e icona")
+check(AmbientSettings.clamp(-1) == 0 && AmbientSettings.clamp(2) == 1 && AmbientSettings.clamp(0.4) == 0.4, "il volume resta tra 0 e 1")
+check(AmbientSettings.clamp(.nan) == AmbientSettings.defaultVolume, "volume non valido: torna al valore di partenza")
+check(AmbientSettings.defaultVolume <= 0.3, "parte a volume basso")
+let ambientDefaults = UserDefaults(suiteName: "ff-ambient-test-\(UUID().uuidString)")!
+check(AmbientSettings.load(ambientDefaults).sound == .none && AmbientSettings.load(ambientDefaults).volume == AmbientSettings.defaultVolume,
+      "di partenza: nessun suono, volume basso")
+AmbientSettings.save(sound: .rain, volume: 0.4, ambientDefaults)
+check(AmbientSettings.load(ambientDefaults).sound == .rain && AmbientSettings.load(ambientDefaults).volume == 0.4, "si ricorda")
+AmbientSettings.save(sound: .wind, volume: 9, ambientDefaults)
+check(AmbientSettings.load(ambientDefaults).volume == 1, "un volume troppo alto viene riportato a 1")
+check(AmbientSettings.nearestStep(to: 0.27) == 0.25 && AmbientSettings.nearestStep(to: 0.55) == 0.60, "il livello più vicino per la spunta")
+
 print("\n\(checks) controlli, \(failures) falliti")
 exit(failures == 0 ? 0 : 1)

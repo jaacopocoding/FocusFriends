@@ -42,6 +42,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
         pomodoro.onTimerReset = { [weak self] in self?.reflectionCard.dismiss() }
+        // Il suono ambiente (se acceso) accompagna il focus.
+        pomodoro.onFocusActiveChanged = { active in AmbientPlayer.shared.setFocusActive(active) }
         let menu = MenuController(window: window, speaker: speaker, pomodoro: pomodoro)
         self.menu = menu
 

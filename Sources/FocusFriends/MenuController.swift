@@ -80,6 +80,9 @@ final class MenuController: NSObject, NSMenuDelegate {
         gardenItem.image = Self.symbol("leaf")
         menu.addItem(gardenItem)
 
+        let ambientItem = makeAmbientItem()
+        menu.addItem(ambientItem)
+
         let chat = makeChattinessItem()
         chattinessParent.submenu = chat.submenu
         chattinessParent.title = "Frequenza delle frasi"
@@ -158,6 +161,45 @@ final class MenuController: NSObject, NSMenuDelegate {
         }
         parent.submenu = sub
         return parent
+    }
+
+    private var ambientItems: [NSMenuItem] = []
+    private var ambientVolumeItems: [NSMenuItem] = []
+
+    /// «Suono ambiente ▸»: i suoni e il volume (i livelli sono pochi, per non fare una lista infinita).
+    private func makeAmbientItem() -> NSMenuItem {
+        let parent = NSMenuItem(title: "Suono ambiente", action: nil, keyEquivalent: "")
+        parent.image = Self.symbol("waveform")
+        let sub = NSMenu(title: "Suono ambiente")
+        sub.autoenablesItems = false
+        for sound in AmbientSound.allCases {
+            let item = NSMenuItem(title: sound.title, action: #selector(setAmbientSound(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = sound.rawValue
+            item.image = Self.symbol(sound.symbolName)
+            sub.addItem(item)
+            ambientItems.append(item)
+        }
+        sub.addItem(.separator())
+        for step in AmbientSettings.volumeSteps {
+            let item = NSMenuItem(title: "Volume \(Int((step * 100).rounded()))%", action: #selector(setAmbientVolumeStep(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = step
+            sub.addItem(item)
+            ambientVolumeItems.append(item)
+        }
+        parent.submenu = sub
+        return parent
+    }
+
+    @objc private func setAmbientSound(_ sender: NSMenuItem) {
+        guard let raw = sender.representedObject as? String, let sound = AmbientSound(rawValue: raw) else { return }
+        AmbientPlayer.shared.setSound(sound)
+    }
+
+    @objc private func setAmbientVolumeStep(_ sender: NSMenuItem) {
+        guard let step = sender.representedObject as? Double else { return }
+        AmbientPlayer.shared.setVolume(step, preview: true)
     }
 
     private func makeChattinessItem() -> NSMenuItem {
@@ -284,6 +326,13 @@ final class MenuController: NSObject, NSMenuDelegate {
         movementParent.title = window.pet.walks
             ? "Movimento · \(Walker.isMovementEnabled ? "In movimento" : "Fermo")"
             : "Movimento"
+        for item in ambientItems {
+            item.state = (item.representedObject as? String) == AmbientPlayer.shared.sound.rawValue ? .on : .off
+        }
+        let nearest = AmbientSettings.nearestStep(to: AmbientPlayer.shared.volume)
+        for item in ambientVolumeItems {
+            item.state = (item.representedObject as? Double) == nearest ? .on : .off
+        }
         for item in chattinessItems {
             item.state = (item.representedObject as? String) == Chattiness.current.rawValue ? .on : .off
         }
@@ -377,7 +426,8 @@ final class MenuController: NSObject, NSMenuDelegate {
             focusTimers: customTimers.all(.focus), restTimers: customTimers.all(.rest),
             customFocus: customTimers.custom(.focus), customRest: customTimers.custom(.rest),
             chattiness: Chattiness.current, petWalks: window.pet.walks, movementOn: Walker.isMovementEnabled,
-            askOn: ReflectionCard.isEnabled
+            askOn: ReflectionCard.isEnabled,
+            ambient: AmbientPlayer.shared.sound, ambientVolume: AmbientPlayer.shared.volume
         )
     }
 
@@ -392,6 +442,8 @@ final class MenuController: NSObject, NSMenuDelegate {
             cycleChattiness: { [weak self] in self?.cycleChattiness() },
             toggleMovement: { Walker.isMovementEnabled.toggle() },
             toggleAsk: { ReflectionCard.isEnabled.toggle() },
+            cycleAmbient: { AmbientPlayer.shared.setSound(AmbientPlayer.shared.sound.next) },
+            setAmbientVolume: { AmbientPlayer.shared.setVolume($0, preview: true) },
             toggleVisibility: { [weak self] in self?.toggleVisibility() },
             speak: { [weak self] in self?.makeSpeak() },
             addTimer: { [weak self] kind, minutes in

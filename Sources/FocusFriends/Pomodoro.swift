@@ -37,7 +37,14 @@ final class Pomodoro {
     /// Quanto ho dovuto alzare il personaggio per fare spazio al timer sotto di lui.
     private var shiftedUp: CGFloat = 0
 
-    private(set) var phase: Phase?
+    private(set) var phase: Phase? {
+        didSet {
+            let was = oldValue == .focus, now = phase == .focus
+            if was != now { onFocusActiveChanged?(now) }
+        }
+    }
+    /// Chiamata quando comincia o finisce un focus (compresi i secondi del «+5 minuti»): per il suono ambiente.
+    var onFocusActiveChanged: ((Bool) -> Void)?
     private(set) var breakMinutes = 5
     /// La materia del focus in corso (nil = nessuna, o non è un focus).
     private(set) var subject: String?

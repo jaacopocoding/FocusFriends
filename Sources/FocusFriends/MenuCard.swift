@@ -22,6 +22,8 @@ struct MenuCardState {
     var petWalks: Bool
     var movementOn: Bool
     var askOn: Bool
+    var ambient: AmbientSound
+    var ambientVolume: Double
 }
 
 /// Cosa succede quando si tocca qualcosa. Il MenuController le collega a quello che già fa il menu.
@@ -35,6 +37,8 @@ struct MenuCardActions {
     var cycleChattiness: () -> Void
     var toggleMovement: () -> Void
     var toggleAsk: () -> Void
+    var cycleAmbient: () -> Void
+    var setAmbientVolume: (Double) -> Void
     var toggleVisibility: () -> Void
     var speak: () -> Void
     var addTimer: (CustomTimers.Kind, Int) -> CustomTimers.AddResult
@@ -289,6 +293,12 @@ private final class MenuCardView: NSView {
         y = addOption(symbol: "bubble.left", title: "Frasi", value: s.chattiness.title, toggle: nil, y: y, close: false) {
             self.actions.cycleChattiness()
         }
+        y = addOption(symbol: s.ambient.symbolName, title: "Suono ambiente", value: s.ambient.title, toggle: nil, y: y, close: false) {
+            self.actions.cycleAmbient()
+        }
+        if s.ambient != .none {
+            y = addVolume(value: s.ambientVolume, y: y)
+        }
         if s.petWalks {
             y = addOption(symbol: "figure.walk", title: "Cammina per lo schermo", value: nil, toggle: s.movementOn, y: y, close: false) {
                 self.actions.toggleMovement()
@@ -461,6 +471,18 @@ private final class MenuCardView: NSView {
             }
         }
         return y + 30
+    }
+
+    /// Il cursore del volume: sotto la riga del suono, quando è acceso.
+    private func addVolume(value: Double, y: CGFloat) -> CGFloat {
+        let inner = Self.width - 2 * Self.pad
+        _ = label("Volume", font: NSFont.systemFont(ofSize: 12), color: Paper.inkLight, alignment: .left,
+                  frame: NSRect(x: Self.pad + 26, y: y + 6, width: 60, height: 16))
+        let slider = VolumeSlider(frame: NSRect(x: Self.pad + 88, y: y, width: inner - 88 - 4, height: 28))
+        slider.value = value
+        slider.onChange = { [weak self] new in self?.actions.setAmbientVolume(new) }
+        addSubview(slider)
+        return y + 28
     }
 
     private func addFooter(title: String, x: CGFloat, width: CGFloat, alignment: NSTextAlignment, y: CGFloat, action: @escaping () -> Void) {
@@ -986,4 +1008,44 @@ private final class TimerDial: NSView {
             onChange?(new)
         }
     }
+}
+
+
+/// Un cursore orizzontale (0...1): si trascina, o si tocca nel punto che si vuole. Disegnato a mano, come il resto.
+private final class VolumeSlider: NSView {
+    override var isFlipped: Bool { true }
+    var value: Double = 0.25 { didSet { needsDisplay = true } }
+    var onChange: ((Double) -> Void)?
+
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+    override var acceptsFirstResponder: Bool { false }
+
+    private var track: NSRect { NSRect(x: 8, y: bounds.midY - 2.5, width: bounds.width - 16, height: 5) }
+
+    override func draw(_ dirtyRect: NSRect) {
+        let t = track
+        Paper.track.setFill()
+        NSBezierPath(roundedRect: t, xRadius: 2.5, yRadius: 2.5).fill()
+        let filled = NSRect(x: t.minX, y: t.minY, width: t.width * CGFloat(value), height: t.height)
+        Paper.accent.setFill()
+        NSBezierPath(roundedRect: filled, xRadius: 2.5, yRadius: 2.5).fill()
+        let knob = NSBezierPath(ovalIn: NSRect(x: t.minX + t.width * CGFloat(value) - 8, y: bounds.midY - 8, width: 16, height: 16))
+        NSColor(calibratedRed: 1.0, green: 0.99, blue: 0.94, alpha: 1).setFill()
+        knob.fill()
+        Paper.accent.setStroke()
+        knob.lineWidth = 2
+        knob.stroke()
+    }
+
+    private func update(from event: NSEvent) {
+        let x = convert(event.locationInWindow, from: nil).x
+        let new = AmbientSettings.clamp(Double((x - track.minX) / track.width))
+        if abs(new - value) > 0.005 {
+            value = new
+            onChange?(new)
+        }
+    }
+
+    override func mouseDown(with event: NSEvent) { update(from: event) }
+    override func mouseDragged(with event: NSEvent) { update(from: event) }
 }
