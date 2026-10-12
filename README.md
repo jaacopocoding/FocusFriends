@@ -345,6 +345,21 @@ dissolvenza di 2 secondi quando comincia il focus (e continua durante i secondi 
 stessa dissolvenza quando il focus finisce: in pausa è silenzio. Il volume di partenza è basso (25%). La scelta si
 ricorda alla riapertura, e la scelta del suono e del volume sta in `AmbientSound.swift` (con le prove).
 
+## Musica
+
+La **musica** del focus, facoltativa, funziona come il suono ambiente: parte con il focus (con una dissolvenza di 2
+secondi), si ferma a fine focus e in pausa è silenzio, in ordine casuale e senza ripetere subito lo stesso brano.
+Si sceglie dalla scheda del menu (riga *Musica*, con il suo cursore del volume) o dal menu classico (*Musica ▸*):
+
+- **La mia cartella**: l'app suona i file audio (mp3, m4a, aac, wav, aiff, flac) di una cartella che scegli tu, anche
+  nelle sottocartelle. Non viene copiato né inviato niente: i file restano dove sono. La prima volta chiede la
+  cartella; si cambia da *Musica ▸ Scegli la cartella…*.
+- **Brani inclusi**: quando ci sono, qualche brano con licenza libera (CC0 o CC-BY) è dentro l'app, con autore,
+  fonte e licenza nel file `CREDITS.md`.
+
+Il volume di partenza è basso (30%), e musica e suono ambiente si possono accendere insieme (ognuno con il suo
+volume). Il codice è in `MusicPlayer.swift` (riproduzione) e `MusicLibrary.swift` (quali file e in che ordine, con le prove).
+
 ## Frasi
 
 Le frasi di partenza sono in `assets/frasi_pianty.txt` (Pianty), `assets/frasi_porcellino.txt`
@@ -386,6 +401,8 @@ Sources/FocusFriends/
   MenuCard.swift        la scheda del menu (clic sull'icona o tasto destro sul personaggio)
   AmbientSound.swift    i suoni ambiente e le scelte (solo Foundation, con prove)
   AmbientPlayer.swift   il motore audio: rumore filtrato in tempo reale
+  MusicLibrary.swift    la musica: quali file e in che ordine (solo Foundation, con prove)
+  MusicPlayer.swift     la riproduzione dei brani del focus
   SessionLog.swift      registro delle sessioni di studio e statistiche (solo Foundation, con prove)
   Profile.swift         il nome (solo Foundation, con prove) e i titoli personalizzati
   IntroCard.swift       la scheda di introduzione: nome e compagno

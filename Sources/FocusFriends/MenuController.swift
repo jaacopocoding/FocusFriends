@@ -82,6 +82,7 @@ final class MenuController: NSObject, NSMenuDelegate {
 
         let ambientItem = makeAmbientItem()
         menu.addItem(ambientItem)
+        menu.addItem(makeMusicItem())
 
         let chat = makeChattinessItem()
         chattinessParent.submenu = chat.submenu
@@ -190,6 +191,98 @@ final class MenuController: NSObject, NSMenuDelegate {
         }
         parent.submenu = sub
         return parent
+    }
+
+    // MARK: - Musica
+
+    private var musicItems: [NSMenuItem] = []
+    private var musicVolumeItems: [NSMenuItem] = []
+    private let musicChooseItem = NSMenuItem()
+
+    /// «Musica ▸»: nessuna, i brani inclusi, la mia cartella (con «Scegli la cartella…»), e il volume.
+    private func makeMusicItem() -> NSMenuItem {
+        let parent = NSMenuItem(title: "Musica", action: nil, keyEquivalent: "")
+        parent.image = Self.symbol("music.note")
+        let sub = NSMenu(title: "Musica")
+        sub.autoenablesItems = false
+        for source in MusicSource.allCases {
+            let item = NSMenuItem(title: "", action: #selector(setMusicSource(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = source.rawValue
+            sub.addItem(item)
+            musicItems.append(item)
+        }
+        musicChooseItem.title = "Scegli la cartella…"
+        musicChooseItem.action = #selector(chooseMusicFolder)
+        musicChooseItem.target = self
+        sub.addItem(musicChooseItem)
+        sub.addItem(.separator())
+        for step in AmbientSettings.volumeSteps {
+            let item = NSMenuItem(title: "Volume \(Int((step * 100).rounded()))%", action: #selector(setMusicVolumeStep(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = step
+            sub.addItem(item)
+            musicVolumeItems.append(item)
+        }
+        parent.submenu = sub
+        return parent
+    }
+
+    @objc private func setMusicSource(_ sender: NSMenuItem) {
+        guard let raw = sender.representedObject as? String, let source = MusicSource(rawValue: raw) else { return }
+        select(source: source)
+    }
+
+    @objc private func setMusicVolumeStep(_ sender: NSMenuItem) {
+        guard let step = sender.representedObject as? Double else { return }
+        MusicPlayer.shared.setVolume(step, preview: true)
+    }
+
+    @objc private func chooseMusicFolder() {
+        chooseFolder { MusicPlayer.shared.setSource(.folder, folder: $0) }
+    }
+
+    /// Spenta → brani inclusi (se ce ne sono) → la mia cartella (la prima volta la chiede) → spenta.
+    private func cycleMusic() {
+        let player = MusicPlayer.shared
+        let hasBundled = !player.bundledTracks.isEmpty
+        switch player.source {
+        case .off: select(source: hasBundled ? .bundled : .folder)
+        case .bundled: select(source: .folder)
+        case .folder: select(source: .off)
+        }
+    }
+
+    private func select(source: MusicSource) {
+        let player = MusicPlayer.shared
+        if source == .folder, player.folder == nil || player.folderTracks.isEmpty {
+            // Serve una cartella (la prima volta, o se quella di prima non c'è più): la finestra di scelta.
+            card.close()
+            DispatchQueue.main.async { [weak self] in
+                self?.chooseFolder { MusicPlayer.shared.setSource(.folder, folder: $0) }
+                self?.returnToMenu()
+            }
+            return
+        }
+        player.setSource(source)
+    }
+
+    /// La finestra di sistema per scegliere una cartella con la musica.
+    private func chooseFolder(_ completion: (URL) -> Void) {
+        NSApp.activate(ignoringOtherApps: true)
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = false
+        panel.prompt = "Scegli"
+        panel.message = "Scegli la cartella con la musica da ascoltare mentre studi (mp3, m4a, wav, aiff, flac)."
+        if let current = MusicPlayer.shared.folder { panel.directoryURL = current }
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        guard !MusicLibrary.tracks(in: url).isEmpty else {
+            showAlert("Nessun brano in questa cartella", "Non ho trovato file audio (mp3, m4a, wav, aiff, flac). Scegli un'altra cartella.")
+            return
+        }
+        completion(url)
     }
 
     @objc private func setAmbientSound(_ sender: NSMenuItem) {
@@ -326,6 +419,22 @@ final class MenuController: NSObject, NSMenuDelegate {
         movementParent.title = window.pet.walks
             ? "Movimento · \(Walker.isMovementEnabled ? "In movimento" : "Fermo")"
             : "Movimento"
+        for item in musicItems {
+            guard let raw = item.representedObject as? String, let source = MusicSource(rawValue: raw) else { continue }
+            let player = MusicPlayer.shared
+            switch source {
+            case .off: item.title = "Nessuna"
+            case .bundled:
+                item.title = "Brani inclusi"
+                item.isHidden = player.bundledTracks.isEmpty
+            case .folder: item.title = player.folder.map { "La mia cartella: \($0.lastPathComponent)" } ?? "La mia cartella"
+            }
+            item.state = player.source == source ? .on : .off
+        }
+        let musicNearest = AmbientSettings.nearestStep(to: MusicPlayer.shared.volume)
+        for item in musicVolumeItems {
+            item.state = (item.representedObject as? Double) == musicNearest ? .on : .off
+        }
         for item in ambientItems {
             item.state = (item.representedObject as? String) == AmbientPlayer.shared.sound.rawValue ? .on : .off
         }
@@ -427,7 +536,8 @@ final class MenuController: NSObject, NSMenuDelegate {
             customFocus: customTimers.custom(.focus), customRest: customTimers.custom(.rest),
             chattiness: Chattiness.current, petWalks: window.pet.walks, movementOn: Walker.isMovementEnabled,
             askOn: ReflectionCard.isEnabled,
-            ambient: AmbientPlayer.shared.sound, ambientVolume: AmbientPlayer.shared.volume
+            ambient: AmbientPlayer.shared.sound, ambientVolume: AmbientPlayer.shared.volume,
+            music: MusicPlayer.shared.source, musicLabel: MusicPlayer.shared.label, musicVolume: MusicPlayer.shared.volume
         )
     }
 
@@ -443,6 +553,8 @@ final class MenuController: NSObject, NSMenuDelegate {
             toggleMovement: { Walker.isMovementEnabled.toggle() },
             toggleAsk: { ReflectionCard.isEnabled.toggle() },
             cycleAmbient: { AmbientPlayer.shared.setSound(AmbientPlayer.shared.sound.next) },
+            cycleMusic: { [weak self] in self?.cycleMusic() },
+            setMusicVolume: { MusicPlayer.shared.setVolume($0, preview: true) },
             setAmbientVolume: { AmbientPlayer.shared.setVolume($0, preview: true) },
             toggleVisibility: { [weak self] in self?.toggleVisibility() },
             speak: { [weak self] in self?.makeSpeak() },

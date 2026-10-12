@@ -20,6 +20,10 @@ cp assets/porcellino/picked.png "$APP/Contents/Resources/porcellino_picked.png"
 for f in assets/ciccio/frame*.png; do cp "$f" "$APP/Contents/Resources/ciccio_$(basename "$f")"; done
 cp assets/ciccio/picked.png "$APP/Contents/Resources/ciccio_picked.png"
 cp assets/pianty/picked.png "$APP/Contents/Resources/pianty_picked.png"
+# I brani inclusi (assets/music, con le licenze in CREDITS.md): nelle risorse con il prefisso music_.
+for f in assets/music/*.m4a assets/music/*.mp3; do
+    [ -f "$f" ] && cp "$f" "$APP/Contents/Resources/music_$(basename "$f")"
+done
 # Le collezioni del giardino per personaggio (opzionali: chi non ce l'ha usa le piantine di Pianty).
 for f in assets/garden/garden_*.png assets/garden/growth_*.png; do
     [ -f "$f" ] && cp "$f" "$APP/Contents/Resources/$(basename "$f")"

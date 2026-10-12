@@ -24,6 +24,9 @@ struct MenuCardState {
     var askOn: Bool
     var ambient: AmbientSound
     var ambientVolume: Double
+    var music: MusicSource
+    var musicLabel: String
+    var musicVolume: Double
 }
 
 /// Cosa succede quando si tocca qualcosa. Il MenuController le collega a quello che già fa il menu.
@@ -38,6 +41,8 @@ struct MenuCardActions {
     var toggleMovement: () -> Void
     var toggleAsk: () -> Void
     var cycleAmbient: () -> Void
+    var cycleMusic: () -> Void
+    var setMusicVolume: (Double) -> Void
     var setAmbientVolume: (Double) -> Void
     var toggleVisibility: () -> Void
     var speak: () -> Void
@@ -297,7 +302,13 @@ private final class MenuCardView: NSView {
             self.actions.cycleAmbient()
         }
         if s.ambient != .none {
-            y = addVolume(value: s.ambientVolume, y: y)
+            y = addVolume(value: s.ambientVolume, y: y) { self.actions.setAmbientVolume($0) }
+        }
+        y = addOption(symbol: "music.note", title: "Musica", value: s.musicLabel, toggle: nil, y: y, close: false) {
+            self.actions.cycleMusic()
+        }
+        if s.music != .off {
+            y = addVolume(value: s.musicVolume, y: y) { self.actions.setMusicVolume($0) }
         }
         if s.petWalks {
             y = addOption(symbol: "figure.walk", title: "Cammina per lo schermo", value: nil, toggle: s.movementOn, y: y, close: false) {
@@ -474,13 +485,13 @@ private final class MenuCardView: NSView {
     }
 
     /// Il cursore del volume: sotto la riga del suono, quando è acceso.
-    private func addVolume(value: Double, y: CGFloat) -> CGFloat {
+    private func addVolume(value: Double, y: CGFloat, onChange: @escaping (Double) -> Void) -> CGFloat {
         let inner = Self.width - 2 * Self.pad
         _ = label("Volume", font: NSFont.systemFont(ofSize: 12), color: Paper.inkLight, alignment: .left,
                   frame: NSRect(x: Self.pad + 26, y: y + 6, width: 60, height: 16))
         let slider = VolumeSlider(frame: NSRect(x: Self.pad + 88, y: y, width: inner - 88 - 4, height: 28))
         slider.value = value
-        slider.onChange = { [weak self] new in self?.actions.setAmbientVolume(new) }
+        slider.onChange = { new in onChange(new) }
         addSubview(slider)
         return y + 28
     }
