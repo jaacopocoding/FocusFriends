@@ -42,7 +42,7 @@ inganna: così a fine settimana vedi anche *quando* rendi meglio.
 </p>
 
 **Statistiche**: un riepilogo calmo (il totale in grande, le materie in una barra, i giorni di fila e «Com'è andata»)
-e, da «Mostra le sessioni», il diario con la nota e la faccia di ogni focus.
+e, da «Mostra le sessioni», una tendina sotto il riepilogo con la nota e la faccia di ogni focus.
 
 <p align="center">
   <img src="docs/images/statistiche-settimana.png" width="360" alt="Statistiche della settimana">
@@ -211,9 +211,10 @@ tenendo intatta la copia del vecchio in `backup/sessioni-formato1.json`.
 (da lunedì) e **Mese**. Con le frecce si va ai periodi precedenti. Il **riepilogo** è fatto per essere calmo:
 il totale di studio in grande, quanti focus (completi e interrotti), le barre sottili dei giorni (settimana e mese),
 una sola barra a segmenti con le materie e la sua legenda, i giorni di fila e come è andata (con le frasi su
-quando rendi meglio, se ci sono dati sufficienti). Sotto, **Mostra le sessioni** apre il diario: per un giorno,
-una striscia con un blocco colorato per ogni focus sulle ore e l'elenco con ora, materia, nota, faccia e durata;
-per una settimana o un mese, le sessioni sotto il loro giorno (con il totale del giorno). Toccando una sessione si
+quando rendi meglio, se ci sono dati sufficienti). Sotto, **Mostra le sessioni** apre una **tendina nella stessa
+pagina** (il riepilogo resta sopra): per un giorno, una striscia con un blocco colorato per ogni focus sulle ore e
+l'elenco con ora, materia, nota, faccia e durata; per una settimana o un mese, le sessioni sotto il loro giorno (con il
+totale del giorno). La finestra resta della stessa altezza: la pagina scorre con la rotella. Toccando una sessione si
 cambia la materia, la nota e il voto, o la si elimina; *Esporta CSV…* salva tutte le sessioni per un foglio di
 calcolo. I dati restano sul Mac: nessun invio da nessuna parte.
 

@@ -15,6 +15,18 @@ private struct SummaryLayout {
     var streakY: CGFloat?
     var reflectY: CGFloat?
     var insightsY: CGFloat?
+    /// Dove finisce il riepilogo (in coordinate della pagina): sotto c'è il pulsante della tendina.
+    var contentEnd: CGFloat = 130
+}
+
+/// La pagina che scorre: il riepilogo, il pulsante della tendina e, aperte, le sessioni.
+private final class PageView: NSView {
+    override var isFlipped: Bool { true }
+    weak var owner: DashboardView?
+
+    override func draw(_ dirtyRect: NSRect) {
+        owner?.drawSummary()
+    }
 }
 
 /// La finestra delle statistiche. Il riepilogo è calmo: un grande numero, una barra con le materie, i giorni di
@@ -37,9 +49,14 @@ final class DashboardView: NSView {
     private var insights: [String] = []
     private var totalRated = 0
     private var layout = SummaryLayout()
-    /// Sta mostrando il diario delle sessioni invece del riepilogo.
+    /// La tendina delle sessioni è aperta (sotto il riepilogo, nella stessa pagina).
     private var showsDiary = false
-    private var diaryScroll: NSScrollView?
+    private let scroll = NSScrollView()
+    private let page = PageView()
+    private var diary: DiaryView?
+    /// Dove comincia la pagina che scorre, nella finestra (sotto l'intestazione).
+    private static let pageTop: CGFloat = 96
+    private static let footerHeight: CGFloat = 56
 
     private let segmented = NSSegmentedControl(labels: ["Oggi", "Settimana", "Mese"], trackingMode: .selectOne, target: nil, action: nil)
     private let previousButton = NSButton()
@@ -87,13 +104,27 @@ final class DashboardView: NSView {
             button.frame = frame
             addSubview(button)
         }
+        // La pagina che scorre (con la rotella) tra l'intestazione e i pulsanti in fondo.
+        let visibleHeight = Self.size.height - Self.pageTop - Self.footerHeight
+        scroll.frame = NSRect(x: 0, y: Self.pageTop, width: width, height: visibleHeight)
+        scroll.hasVerticalScroller = true
+        scroll.autohidesScrollers = true
+        scroll.drawsBackground = false
+        scroll.borderType = .noBorder
+        page.frame = NSRect(x: 0, y: 0, width: width, height: visibleHeight)
+        page.owner = self
+        scroll.documentView = page
+        addSubview(scroll)
+
         let bottom = Self.size.height - 40
         style(deleteButton, "Cancella tutto…", color: Paper.inkLight, action: #selector(deleteEverything),
               frame: NSRect(x: Self.margin - 6, y: bottom, width: 120, height: 24))
         style(exportButton, "Esporta CSV…", color: Paper.inkLight, action: #selector(exportCSV),
               frame: NSRect(x: width - Self.margin - 110, y: bottom, width: 116, height: 24))
-        style(sessionsButton, "Mostra le sessioni", color: Paper.ink, action: #selector(toggleDiary),
-              frame: NSRect(x: (width - 220) / 2, y: Self.size.height - 92, width: 220, height: 28))
+        sessionsButton.isBordered = false
+        sessionsButton.target = self
+        sessionsButton.action = #selector(toggleDiary)
+        page.addSubview(sessionsButton)
 
         log.addObserver { [weak self] in self?.reload() }
         reload()
@@ -114,9 +145,11 @@ final class DashboardView: NSView {
         nextButton.alphaValue = period.contains(today) ? 0.25 : 1
         layout = buildLayout()
         if summary.sessions.isEmpty { showsDiary = false }
-        updateSessionsButton()
-        rebuildDiary()
+        relayoutPage()
+        scroll.contentView.scroll(to: .zero)
+        scroll.reflectScrolledClipView(scroll.contentView)
         needsDisplay = true
+        page.needsDisplay = true
     }
 
     func select(_ newKind: PeriodKind) {
@@ -143,13 +176,46 @@ final class DashboardView: NSView {
 
     @objc private func toggleDiary() {
         showsDiary.toggle()
+        relayoutPage()
+        page.needsDisplay = true
+        // Aperta: lascio un po' di riepilogo in alto e porto le sessioni in vista. Chiusa: resto dentro la pagina.
+        let maxOffset = max(page.frame.height - scroll.contentView.bounds.height, 0)
+        var offset = scroll.contentView.bounds.origin.y
+        if showsDiary { offset = sessionsButton.frame.minY - 96 }
+        scroll.contentView.scroll(to: NSPoint(x: 0, y: min(max(offset, 0), maxOffset)))
+        scroll.reflectScrolledClipView(scroll.contentView)
+    }
+
+    /// Sistema la pagina: il pulsante sotto il riepilogo, la tendina sotto il pulsante, e l'altezza che scorre.
+    private func relayoutPage() {
         updateSessionsButton()
-        rebuildDiary()
-        needsDisplay = true
+        diary?.removeFromSuperview()
+        diary = nil
+        let width = Self.size.width
+        let visibleHeight = Self.size.height - Self.pageTop - Self.footerHeight
+        var end = layout.contentEnd
+        if !summary.sessions.isEmpty {
+            let buttonY = layout.contentEnd + 22
+            sessionsButton.frame.origin = NSPoint(x: (width - sessionsButton.frame.width) / 2, y: buttonY)
+            end = buttonY + 28
+            if showsDiary {
+                let view = DiaryView(sessions: summary.sessions.sorted { $0.startTime(in: calendar) < $1.startTime(in: calendar) },
+                                     kind: kind, calendar: calendar, width: contentWidth + 24)
+                view.onSelect = { [weak self] id in
+                    guard let self, let session = self.log.sessions.first(where: { $0.id == id }) else { return }
+                    self.edit(session)
+                }
+                view.frame.origin = NSPoint(x: Self.margin - 12, y: end + 10)
+                page.addSubview(view)
+                diary = view
+                end = view.frame.maxY
+            }
+        }
+        page.frame = NSRect(x: 0, y: 0, width: width, height: max(visibleHeight, end + 24))
     }
 
     private func updateSessionsButton() {
-        let title = showsDiary ? "Torna al riepilogo" : "Mostra le sessioni"
+        let title = showsDiary ? "Nascondi le sessioni" : "Mostra le sessioni"
         let symbol = showsDiary ? "chevron.up" : "chevron.down"
         sessionsButton.attributedTitle = NSAttributedString(string: title + " ", attributes: [
             .font: NSFont.systemFont(ofSize: 13, weight: .medium), .foregroundColor: Paper.ink,
@@ -160,8 +226,7 @@ final class DashboardView: NSView {
         sessionsButton.isHidden = summary.sessions.isEmpty
         // Largo quanto serve, così la freccia sta vicino alla scritta.
         sessionsButton.sizeToFit()
-        let width = sessionsButton.frame.width + 12
-        sessionsButton.frame = NSRect(x: (Self.size.width - width) / 2, y: Self.size.height - 92, width: width, height: 28)
+        sessionsButton.frame.size = NSSize(width: sessionsButton.frame.width + 12, height: 28)
     }
 
     // MARK: - Testi
@@ -234,7 +299,7 @@ final class DashboardView: NSView {
     private func buildLayout() -> SummaryLayout {
         var l = SummaryLayout()
         guard summary.totalSeconds > 0 else { return l }
-        var y: CGFloat = 226
+        var y: CGFloat = 130
         if kind != .day {
             l.chartTop = y
             y += 56 + 20 + 22
@@ -279,7 +344,9 @@ final class DashboardView: NSView {
         if !insights.isEmpty {
             y += 8
             l.insightsY = y
+            y += CGFloat(insights.count) * 18
         }
+        l.contentEnd = y
         return l
     }
 
@@ -301,25 +368,22 @@ final class DashboardView: NSView {
         text(periodTitle, at: NSRect(x: Self.margin + 30, y: 60, width: width - 2 * Self.margin - 60, height: 26),
              font: Paper.markerFont(20), alignment: .center)
 
-        if showsDiary {
-            text("\(StudyStats.duration(seconds: summary.totalSeconds)) · \(subtitle.replacingOccurrences(of: "di studio · ", with: ""))",
-                 at: NSRect(x: Self.margin, y: 92, width: contentWidth, height: 18),
-                 font: NSFont.systemFont(ofSize: 12.5), color: Paper.inkLight, alignment: .center)
-            return
-        }
+    }
 
+    /// Il riepilogo, disegnato nella pagina che scorre (le coordinate partono dal suo bordo alto).
+    fileprivate func drawSummary() {
         // Il grande numero
         let empty = summary.totalSeconds == 0
         text(empty ? "0 min" : StudyStats.duration(seconds: summary.totalSeconds),
-             at: NSRect(x: Self.margin, y: 104, width: contentWidth, height: 72),
+             at: NSRect(x: Self.margin, y: 8, width: contentWidth, height: 72),
              font: Paper.markerFont(58), color: empty ? Paper.inkLight.withAlphaComponent(0.6) : Paper.ink, alignment: .center)
         if !subtitle.isEmpty {
-            text(subtitle, at: NSRect(x: Self.margin, y: 182, width: contentWidth, height: 20),
+            text(subtitle, at: NSRect(x: Self.margin, y: 86, width: contentWidth, height: 20),
                  font: NSFont.systemFont(ofSize: 14), color: Paper.inkLight, alignment: .center)
         }
         let more = secondary
         if !more.isEmpty {
-            text(more, at: NSRect(x: Self.margin, y: empty ? 182 : 202, width: contentWidth, height: 18),
+            text(more, at: NSRect(x: Self.margin, y: empty ? 86 : 106, width: contentWidth, height: 18),
                  font: NSFont.systemFont(ofSize: 12.5), color: Paper.inkLight.withAlphaComponent(0.85), alignment: .center)
         }
         guard !empty else { return }
@@ -432,28 +496,7 @@ final class DashboardView: NSView {
         }
     }
 
-    // MARK: - Il diario delle sessioni
-
-    private func rebuildDiary() {
-        diaryScroll?.removeFromSuperview()
-        diaryScroll = nil
-        guard showsDiary, !summary.sessions.isEmpty else { return }
-        let diary = DiaryView(sessions: summary.sessions.sorted { $0.startTime(in: calendar) < $1.startTime(in: calendar) },
-                              kind: kind, calendar: calendar, width: contentWidth + 24)
-        diary.onSelect = { [weak self] id in
-            guard let self, let session = self.log.sessions.first(where: { $0.id == id }) else { return }
-            self.edit(session)
-        }
-        let scroll = NSScrollView(frame: NSRect(x: Self.margin - 12, y: 118, width: contentWidth + 24,
-                                                height: Self.size.height - 118 - 100))
-        scroll.hasVerticalScroller = true
-        scroll.autohidesScrollers = true
-        scroll.drawsBackground = false
-        scroll.borderType = .noBorder
-        scroll.documentView = diary
-        addSubview(scroll)
-        diaryScroll = scroll
-    }
+    // MARK: - Modifica di una sessione
 
     private func edit(_ session: StudySession) {
         let alert = NSAlert()
