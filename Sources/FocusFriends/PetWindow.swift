@@ -53,6 +53,11 @@ final class PetWindow: NSWindow {
     /// Chiamata quando comincia o finisce il sollevamento: chi tiene un oggetto "sotto i piedi"
     /// (l'orologio del timer) lo rimette al posto giusto.
     var onPickStateChanged: (() -> Void)?
+    /// Tasto destro (o ctrl+clic) sul personaggio: chi lo imposta mostra la scheda del menu.
+    var onContextClick: (() -> Void)? {
+        get { petView.onContextClick }
+        set { petView.onContextClick = newValue }
+    }
 
     /// Cambia personaggio: la finestra si ridimensiona tenendo fermi i piedi (centro del lato basso).
     func apply(_ newPet: Pet) {
@@ -284,6 +289,16 @@ final class PetView: NSView {
     private var wobbleStart = Date()
 
     private var hasPickedPose: Bool { pickedImage != nil }
+
+    var onContextClick: (() -> Void)?
+
+    override func menu(for event: NSEvent) -> NSMenu? {
+        if let handler = onContextClick {
+            handler()
+            return nil
+        }
+        return super.menu(for: event)
+    }
 
     /// Chi ha il disegno "sollevato" gestisce il trascinamento da sé (vedi mouseDragged).
     override var mouseDownCanMoveWindow: Bool { !hasPickedPose }

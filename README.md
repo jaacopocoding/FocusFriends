@@ -79,7 +79,20 @@ nome) restano sul tuo Mac, in `~/Library/Application Support/FocusFriends/`: nes
 - Si può trascinare dove si vuole; fumetto e orologio lo seguono.
 - Non ha icona nel Dock: si controlla dalla barra dei menu o con il tasto destro sul personaggio.
 
-## Menu
+## Il menu
+
+Un clic sull'icona nella barra dei menu (o il tasto destro sul personaggio) apre la **scheda del menu**
+(`MenuCard.swift`): il compagno sbuca dal bordo, e sotto ci sono i compagni (tocca un nome per cambiarlo), i
+focus da 30 e 50 minuti e la pausa, il riepilogo di oggi, *Giardino* e *Statistiche* e le impostazioni più usate.
+Toccando il compagno parla; mentre il timer va, al posto dei tre pulsanti c'è il tempo che manca e *Ferma*.
+Si chiude con un clic fuori o con Esc. *Altri timer…* e *Altre impostazioni…* aprono il menu classico, che si
+apre anche con il tasto destro (o ⌥-clic) sull'icona nella barra dei menu:
+
+<p align="center">
+  <img src="docs/images/menu.png" width="640" alt="La scheda del menu, a riposo e durante un focus">
+</p>
+
+### Il menu classico
 
 | Voce | Cosa fa |
 |---|---|
@@ -302,7 +315,7 @@ del giro successivo non è mai uguale all'ultima uscita. La **frequenza** si sce
 frasi*, `Chattiness.swift`): "Ogni tanto" è il valore di partenza (40–110 secondi, durante un focus 4–8
 minuti); "Mai" tace subito, anche il fumetto che c'è. Restano sempre i messaggi del timer e *Fai parlare*.
 
-## Il menu
+## L'intestazione del menu classico
 
 In cima c'è una scheda color carta (`MenuHeader.swift`) con la testa del personaggio in un avatar circolare, il
 suo nome nel carattere del fumetto e cosa sta facendo ("Qui con te", "Focus · 24:10", "Pausa · 03:12",
@@ -323,7 +336,8 @@ Sources/FocusFriends/
   Quotes.swift          caricamento delle frasi
   Pomodoro.swift        logica del timer focus/pausa e crescita
   TimerBubble.swift     orologio digitale sotto il personaggio
-  MenuController.swift  icona nella barra, menu, avvio al login
+  MenuController.swift  icona nella barra, menu classico, avvio al login
+  MenuCard.swift        la scheda del menu (clic sull'icona o tasto destro sul personaggio)
   SessionLog.swift      registro delle sessioni di studio e statistiche (solo Foundation, con prove)
   Profile.swift         il nome (solo Foundation, con prove) e i titoli personalizzati
   IntroCard.swift       la scheda di introduzione: nome e compagno

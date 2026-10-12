@@ -28,6 +28,7 @@ final class MenuController: NSObject, NSMenuDelegate {
     private let garden = GardenController()
     private let gardenItem = NSMenuItem()
     private let nameItem = NSMenuItem()
+    private var card: MenuCard!
 
     init(window: PetWindow, speaker: Speaker, pomodoro: Pomodoro) {
         self.window = window
@@ -129,12 +130,15 @@ final class MenuController: NSObject, NSMenuDelegate {
         // Stato delle voci gestito a mano (es. "Ferma timer" attiva solo se il timer gira).
         menu.autoenablesItems = false
         menu.delegate = self
-        statusItem.menu = menu
         updateStatusIcon()
         statusItem.button?.toolTip = "FocusFriends"
 
-        // Tasto destro sul personaggio: stesso menu.
-        window.contentView?.menu = menu
+        // Clic sull'icona o tasto destro sul personaggio: la scheda. Tasto destro o ⌥-clic sull'icona: il menu di prima.
+        card = MenuCard(state: { [unowned self] in self.cardState() }, actions: cardActions())
+        statusItem.button?.target = self
+        statusItem.button?.action = #selector(statusItemClicked(_:))
+        statusItem.button?.sendAction(on: [.leftMouseUp, .rightMouseUp])
+        window.onContextClick = { [weak self] in self?.showCardNearPet() }
     }
 
     private func makePetItem() -> NSMenuItem {
@@ -314,7 +318,10 @@ final class MenuController: NSObject, NSMenuDelegate {
 
     /// Prima chiede la materia ("Cosa studi adesso?"), poi parte il focus.
     @objc private func startFocus(_ sender: NSMenuItem) {
-        let minutes = sender.tag
+        beginFocus(minutes: sender.tag)
+    }
+
+    private func beginFocus(minutes: Int) {
         subjectPrompt.ask(minutes: minutes, recent: SessionLog.shared.recentSubjects(),
                           lastNote: SessionLog.shared.lastNote(), near: window) { [weak self] choice in
             guard let self else { return }
@@ -326,6 +333,78 @@ final class MenuController: NSObject, NSMenuDelegate {
                 self.pomodoro.startFocus(minutes: minutes, subject: subject)
             }
         }
+    }
+
+    // MARK: - La scheda
+
+    @objc private func statusItemClicked(_ sender: NSStatusBarButton) {
+        let event = NSApp.currentEvent
+        let classic = event?.type == .rightMouseUp || event?.modifierFlags.contains(.option) == true
+        if classic {
+            card.close()
+            statusItem.menu = menu
+            statusItem.button?.performClick(nil)
+            statusItem.menu = nil
+        } else if let frame = sender.window?.frame {
+            card.toggle(anchor: .below(frame))
+        }
+    }
+
+    private func showCardNearPet() {
+        card.toggle(anchor: .beside(window.frame))
+    }
+
+    /// Fotografia del momento per la scheda.
+    private func cardState() -> MenuCardState {
+        let now = Date()
+        let calendar = StudyPeriod.calendar()
+        let today = StudyStats.summary(sessions: SessionLog.shared.sessions,
+                                       period: StudyPeriod.containing(now, kind: .day, calendar: calendar), calendar: calendar)
+        return MenuCardState(
+            pet: window.pet, allPets: Pet.all, userName: Profile.shared.name, isPetVisible: window.isVisible,
+            phase: pomodoro.phase, subject: pomodoro.subject, remaining: pomodoro.remainingText,
+            breakMinutes: pomodoro.breakMinutes, todaySeconds: today.totalSeconds, todayFocusCount: today.focusCount,
+            streak: StudyStats.streak(sessions: SessionLog.shared.sessions, now: now, calendar: calendar),
+            chattiness: Chattiness.current, petWalks: window.pet.walks, movementOn: Walker.isMovementEnabled,
+            askOn: ReflectionCard.isEnabled
+        )
+    }
+
+    private func cardActions() -> MenuCardActions {
+        MenuCardActions(
+            startFocus: { [weak self] in self?.beginFocus(minutes: $0) },
+            startBreak: { [weak self] in self?.showPetIfHidden(); self?.pomodoro.startBreak(minutes: $0) },
+            stopTimer: { [weak self] in self?.pomodoro.stop() },
+            selectPet: { [weak self] in self?.selectPet($0) },
+            showStats: { [weak self] in self?.showStats() },
+            showGarden: { [weak self] in self?.showGarden() },
+            cycleChattiness: { [weak self] in self?.cycleChattiness() },
+            toggleMovement: { Walker.isMovementEnabled.toggle() },
+            toggleAsk: { ReflectionCard.isEnabled.toggle() },
+            toggleVisibility: { [weak self] in self?.toggleVisibility() },
+            speak: { [weak self] in self?.makeSpeak() },
+            otherTimers: { [weak self] in
+                guard let self, let submenu = self.pomofocusItem.submenu else { return }
+                self.menuNeedsUpdate(self.menu)
+                submenu.popUp(positioning: nil, at: NSEvent.mouseLocation, in: nil)
+            },
+            moreSettings: { [weak self] in
+                guard let self else { return }
+                self.menuNeedsUpdate(self.menu)
+                self.menu.popUp(positioning: nil, at: NSEvent.mouseLocation, in: nil)
+            },
+            quit: { NSApp.terminate(nil) }
+        )
+    }
+
+    private func cycleChattiness() {
+        let all = Chattiness.allCases
+        let index = all.firstIndex(of: Chattiness.current) ?? 0
+        let level = all[(index + 1) % all.count]
+        Chattiness.current = level
+        pomodoro.refreshChatter()
+        speaker.reschedule()
+        if level == .never { speaker.dismissNow() }
     }
 
     @objc private func showStats() {
