@@ -364,7 +364,8 @@ assets/
   ciccio/frame1..13.png   fermo (ali chiuse, zampe a terra), 6 di camminata, 6 di ali (tools/cutout_ciccio.py)
   bubble_original.png, bubble.png   fumetto e ritaglio (tools/cutout_bubble.py)
   frasi_pianty.txt, frasi_porcellino.txt, frasi_ciccio.txt   frasi incluse nell'app
-  AppIcon.icns          icona dell'app (generata da tools/make_icon.py con i tre personaggi davanti a un anello che si riempie)
+  logo_original.png     il logo: un pomodoro-timer con l'anello che mostra il tempo
+  AppIcon.png, AppIcon.icns   icona dell'app, generata da tools/make_icon.py (il logo nella forma delle icone di macOS)
 tools/                  script per ritagli e icona (Python con Pillow e numpy)
 build.sh                compila e crea build/FocusFriends.app
 tests/                  prove del registro e delle statistiche (./tests/run.sh)
