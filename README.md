@@ -23,7 +23,8 @@ frase gentile. Si sceglie dal menu:
 | Fai parlare | Mostra subito una frase |
 | Pomofocus ▸ | Timer: *Focus 30/50 min*, *Pausa 5/10 min*, *Personalizza…*, *Ferma timer* |
 | Statistiche e riepilogo… | La finestra con il riepilogo di oggi e le statistiche della settimana e del mese |
-| Il mio giardino… | Una piantina per ogni focus finito, per settimana e per mese |
+| Il mio giardino… | Una piantina per ogni focus finito, per settimana e per mese (con il tuo nome: «Il giardino di …») |
+| Il tuo nome… | Cambia il nome che compare nei titoli |
 | Frequenza delle frasi ▸ | *Spesso* / *Ogni tanto* / *Raramente* / *Mai* |
 | Personaggio ▸ | Sceglie il personaggio (la scelta resta alla riapertura) |
 | Movimento ▸ | *In movimento* / *Fermo*: per i personaggi che camminano |
@@ -45,6 +46,21 @@ distrarti.
 una pausa (1–60 min). I timer aggiunti (al massimo 6 per tipo, senza doppioni) compaiono nel menu in ordine di
 durata insieme a quelli di serie, si ricordano alla riapertura (`CustomTimers.swift`) e si tolgono da *Rimuovi
 un timer personalizzato*. Valgono per tutti i personaggi.
+
+## Il tuo nome e il compagno
+
+La prima volta che si apre l'app (anche per chi la usava già) compare la scheda di introduzione
+(`IntroCard.swift`): **come ti chiami** e **chi ti fa compagnia** (Pianty, Porcellino o Ciccio). Entrambi sono
+facoltativi: *Salta* o Esc lasciano tutto com'è. Il nome personalizza i **titoli**: il giardino diventa
+«Il giardino di Marco» e le statistiche «Le statistiche di Marco» (nelle voci di menu e nei titoli delle finestre).
+Senza nome restano «Il mio giardino» e «Statistiche e riepilogo». Si cambia in ogni momento da *Il tuo nome…* nel
+menu; il compagno da *Personaggio*.
+
+Il nome sta in `profilo.json` (`{"version": 1, "name": …, "introSeen": …}`), accanto a `sessioni.json`, ed
+è gestito da `Profile.swift`. **Non è scritto nelle sessioni**: i titoli si compongono al momento, quindi
+cambiando il nome cambia ovunque. Viene pulito (spazi in eccesso, al massimo 24 caratteri, maiuscole come
+scritte), non esce dall'app (non c'è nell'esportazione CSV) e *Cancella tutto…* lo toglie insieme ai dati
+(alla riapertura ricompare la scheda di introduzione).
 
 ## Materia e statistiche
 
@@ -220,6 +236,8 @@ Sources/FocusFriends/
   TimerBubble.swift     orologio digitale sotto il personaggio
   MenuController.swift  icona nella barra, menu, avvio al login
   SessionLog.swift      registro delle sessioni di studio e statistiche (solo Foundation, con prove)
+  Profile.swift         il nome (solo Foundation, con prove) e i titoli personalizzati
+  IntroCard.swift       la scheda di introduzione: nome e compagno
   SubjectPrompt.swift   la scheda "Cosa studi adesso?"
   DashboardWindow.swift la finestra delle statistiche (Oggi / Settimana / Mese)
   GardenWindow.swift    il giardino: una piantina per ogni focus, per settimana e per mese

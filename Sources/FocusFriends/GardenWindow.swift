@@ -371,7 +371,7 @@ final class GardenController {
                 backing: .buffered,
                 defer: false
             )
-            window.title = "Il mio giardino · FocusFriends"
+            window.title = Profile.shared.gardenTitle
             window.contentView = view
             window.isReleasedWhenClosed = false
             window.backgroundColor = Paper.paper
@@ -380,6 +380,7 @@ final class GardenController {
             self.window = window
             self.view = view
         }
+        window?.title = Profile.shared.gardenTitle      // se nel frattempo è cambiato il nome
         view?.select(.week)
         NSApp.activate(ignoringOtherApps: true)
         window?.makeKeyAndOrderFront(nil)

@@ -333,5 +333,44 @@ let badLocal = StudySession(start: date(2026, 10, 14, 9), localStart: "boh", sec
 check(badLocal.startTime(in: cal) == date(2026, 10, 14, 9), "ora locale illeggibile: si ricade sull'istante")
 check(StudyStats.streak(sessions: [lateRome], now: date(2026, 10, 15, 8), calendar: tokyo) == 1, "i giorni di fila usano l'ora locale")
 
+// ---------------------------------------------------------------- profilo
+section("Profilo e titoli")
+check(Profile.clean("  Marco  ") == "Marco", "il nome: spazi ai bordi tolti")
+check(Profile.clean("Anna   Maria") == "Anna Maria", "spazi interni ridotti")
+check(Profile.clean("marco") == "marco", "le maiuscole restano come scritte")
+check(Profile.clean("   ") == nil && Profile.clean(nil) == nil && Profile.clean("") == nil, "vuoto = nessun nome")
+check(Profile.clean("Ma\u{0}rco\u{7}") == "Marco", "caratteri di controllo tolti")
+check(Profile.clean(String(repeating: "x", count: 60))?.count == Profile.maxNameLength, "al massimo \(Profile.maxNameLength) caratteri")
+check(Profile.clean("Zoë 🌱") == "Zoë 🌱", "accenti ed emoji restano")
+
+let profDir = tempDirectory()
+let prof = Profile(directory: profDir)
+check(prof.name == nil && !prof.introSeen, "profilo nuovo: senza nome e senza introduzione")
+check(prof.gardenTitle == "Il mio giardino" && prof.statsTitle == "Statistiche e riepilogo", "senza nome: titoli di sempre")
+var profChanges = 0
+prof.addObserver { profChanges += 1 }
+prof.setName(" Marco ")
+check(prof.gardenTitle == "Il giardino di Marco" && prof.statsTitle == "Le statistiche di Marco", "con il nome: titoli personali (\(prof.gardenTitle))")
+prof.markIntroSeen()
+check(profChanges == 2, "gli osservatori vengono avvisati")
+let profAgain = Profile(directory: profDir)
+check(profAgain.name == "Marco" && profAgain.introSeen, "si salva e si rilegge")
+let profObj = (try? JSONSerialization.jsonObject(with: Data(contentsOf: profDir.appendingPathComponent("profilo.json")))) as? [String: Any]
+check(profObj?["version"] as? Int == Profile.formatVersion, "il file ha la versione")
+profAgain.setName("")
+check(profAgain.name == nil && profAgain.gardenTitle == "Il mio giardino", "nome svuotato: si torna ai titoli di sempre")
+profAgain.reset()
+check(!FileManager.default.fileExists(atPath: profDir.appendingPathComponent("profilo.json").path), "reset: il file sparisce")
+check(!Profile(directory: profDir).introSeen, "reset: alla riapertura si ricomincia")
+let badProfDir = tempDirectory()
+try? "non e' json".write(to: badProfDir.appendingPathComponent("profilo.json"), atomically: true, encoding: .utf8)
+let badProf = Profile(directory: badProfDir)
+check(badProf.name == nil && !badProf.introSeen, "file rovinato: si riparte senza errori")
+// il nome non finisce nelle sessioni
+let nameLog = SessionLog(directory: profDir, timeZone: rome)
+let namedSession = nameLog.add(start: date(2026, 10, 14, 9), seconds: 600, plannedMinutes: 10, completed: true, subject: "X")
+let sessionsText = (try? String(contentsOf: profDir.appendingPathComponent("sessioni.json"))) ?? ""
+check(namedSession != nil && !sessionsText.contains("Marco"), "il nome non è scritto nelle sessioni")
+
 print("\n\(checks) controlli, \(failures) falliti")
 exit(failures == 0 ? 0 : 1)

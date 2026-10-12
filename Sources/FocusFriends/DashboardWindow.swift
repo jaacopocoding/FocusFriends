@@ -397,13 +397,14 @@ final class DashboardView: NSView {
         alert.alertStyle = .critical
         alert.messageText = "Cancellare tutti i dati?"
         let count = log.sessions.count
-        alert.informativeText = "Verranno cancellate tutte le sessioni di studio (\(count)), il giardino e le copie di sicurezza. "
+        alert.informativeText = "Verranno cancellate tutte le sessioni di studio (\(count)), il giardino, le copie di sicurezza e il tuo nome. "
             + "Non si può annullare. Se vuoi tenerle, esportale prima con «Esporta CSV…»."
         let confirm = alert.addButton(withTitle: "Cancella tutto")
         confirm.hasDestructiveAction = true
         alert.addButton(withTitle: "Annulla")
         guard alert.runModal() == .alertFirstButtonReturn else { return }
         log.deleteAll()
+        Profile.shared.reset()
     }
 
     // MARK: - Esportazione
@@ -444,7 +445,7 @@ final class DashboardController {
                 backing: .buffered,
                 defer: false
             )
-            window.title = "Statistiche · FocusFriends"
+            window.title = Profile.shared.statsTitle
             window.contentView = view
             window.isReleasedWhenClosed = false
             window.backgroundColor = Paper.paper
@@ -453,6 +454,7 @@ final class DashboardController {
             self.window = window
             self.view = view
         }
+        window?.title = Profile.shared.statsTitle
         view?.select(kind)
         NSApp.activate(ignoringOtherApps: true)
         window?.makeKeyAndOrderFront(nil)

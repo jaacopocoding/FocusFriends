@@ -6,6 +6,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var pomodoro: Pomodoro?
     private var walker: Walker?
     private var menu: MenuController?
+    private let introCard = IntroCard()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         Migration.run()
@@ -32,7 +33,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let pomodoro = Pomodoro(petWindow: window, speaker: speaker)
         self.pomodoro = pomodoro
         pomodoro.onFocusCompleted = { [weak walker] in walker?.eatNow() }
-        menu = MenuController(window: window, speaker: speaker, pomodoro: pomodoro)
+        let menu = MenuController(window: window, speaker: speaker, pomodoro: pomodoro)
+        self.menu = menu
+
+        // La prima volta (anche per chi la usava già): come ti chiami e chi ti fa compagnia.
+        if !Profile.shared.introSeen {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { [weak self, weak window, weak speaker, weak menu] in
+                guard let self, let window, let speaker, let menu else { return }
+                speaker.stop()      // mentre c'è la scheda, niente frase a sorpresa
+                self.introCard.ask(currentPet: window.pet, near: window) { name, pet in
+                    Profile.shared.setName(name)
+                    Profile.shared.markIntroSeen()
+                    if pet != window.pet {
+                        menu.selectPet(pet)
+                    } else {
+                        speaker.say(pet.greeting)
+                    }
+                    speaker.reschedule()
+                }
+            }
+        }
     }
 
     func applicationWillTerminate(_ notification: Notification) {

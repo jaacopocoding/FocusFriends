@@ -26,6 +26,7 @@ final class MenuController: NSObject, NSMenuDelegate {
     private let dashboard = DashboardController()
     private let garden = GardenController()
     private let gardenItem = NSMenuItem()
+    private let nameItem = NSMenuItem()
 
     init(window: PetWindow, speaker: Speaker, pomodoro: Pomodoro) {
         self.window = window
@@ -94,6 +95,12 @@ final class MenuController: NSObject, NSMenuDelegate {
         menu.addItem(.separator())
 
         // L'app
+        nameItem.title = "Il tuo nome…"
+        nameItem.action = #selector(editName)
+        nameItem.target = self
+        nameItem.image = Self.symbol("person.crop.circle")
+        menu.addItem(nameItem)
+
         loginItem.title = "Avvia al login"
         loginItem.action = #selector(toggleLaunchAtLogin)
         loginItem.target = self
@@ -256,6 +263,8 @@ final class MenuController: NSObject, NSMenuDelegate {
         case .rest?: headerView.status = "Pausa · \(pomodoro.remainingText)"
         case nil: headerView.status = window.isVisible ? "Qui con te" : "Nascosto"
         }
+        statsItem.title = Profile.shared.statsTitle + "…"
+        gardenItem.title = Profile.shared.gardenTitle + "…"
         petParent?.title = "Personaggio · \(name)"
         pomofocusItem.title = pomodoro.isRunning ? "Pomofocus · \(pomodoro.remainingText)" : "Pomofocus"
         chattinessParent.title = "Frequenza delle frasi · \(Chattiness.current.title)"
@@ -399,12 +408,36 @@ final class MenuController: NSObject, NSMenuDelegate {
 
     @objc private func choosePet(_ sender: NSMenuItem) {
         guard let id = sender.representedObject as? String,
-              let pet = Pet.all.first(where: { $0.id == id }), pet != window.pet else { return }
+              let pet = Pet.all.first(where: { $0.id == id }) else { return }
+        selectPet(pet)
+    }
+
+    /// Cambia personaggio (dal menu, o dalla scheda di introduzione).
+    func selectPet(_ pet: Pet) {
+        guard pet != window.pet else { return }
         pet.remember()
         window.apply(pet)
         updateStatusIcon()
         showPetIfHidden()
         speaker.say(pet.greeting)
+    }
+
+    /// "Il tuo nome…": cambia il nome con cui si personalizzano i titoli.
+    @objc private func editName() {
+        NSApp.activate(ignoringOtherApps: true)
+        let alert = NSAlert()
+        alert.messageText = "Il tuo nome"
+        alert.informativeText = "Compare nei titoli, per esempio «Il giardino di …». Lascia vuoto per toglierlo."
+        let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 260, height: 24))
+        field.stringValue = Profile.shared.name ?? ""
+        field.placeholderString = "Il tuo nome"
+        alert.accessoryView = field
+        alert.addButton(withTitle: "Salva")
+        alert.addButton(withTitle: "Annulla")
+        alert.window.initialFirstResponder = field
+        if alert.runModal() == .alertFirstButtonReturn {
+            Profile.shared.setName(field.stringValue)
+        }
     }
 
     @objc private func makeSpeak() {
