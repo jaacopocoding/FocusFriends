@@ -41,11 +41,13 @@ inganna: così a fine settimana vedi anche *quando* rendi meglio.
   <img src="docs/images/com-e-andata.png" width="420" alt="Com'è andata?">
 </p>
 
-**Statistiche**: il riepilogo di oggi, della settimana e del mese, con i giorni di fila, i minuti per materia,
-le ultime sessioni (con nota e voto) e «Com'è andata».
+**Statistiche**: un riepilogo calmo (il totale in grande, le materie in una barra, i giorni di fila e «Com'è andata»)
+e, da «Mostra le sessioni», il diario con la nota e la faccia di ogni focus.
 
 <p align="center">
-  <img src="docs/images/statistiche-settimana.png" width="560" alt="Statistiche della settimana">
+  <img src="docs/images/statistiche-settimana.png" width="360" alt="Statistiche della settimana">
+  &nbsp;&nbsp;
+  <img src="docs/images/statistiche-sessioni.png" width="360" alt="Le sessioni di un giorno">
 </p>
 
 **Il giardino**: una piantina per ogni focus finito, per settimana e per mese. Un focus interrotto resta della taglia
@@ -196,12 +198,15 @@ apice davanti, così un foglio di calcolo non li prende per formule.
 Il formato del file passa alla **versione 2**: un file della versione 1 si legge e si riscrive nel nuovo,
 tenendo intatta la copia del vecchio in `backup/sessioni-formato1.json`.
 
-*Statistiche e riepilogo…* apre una finestra (`DashboardWindow.swift`) con tre schede: **Oggi** (il
-riepilogo della giornata), **Settimana** (da lunedì) e **Mese**. Con le frecce si va ai periodi precedenti.
-Ognuna mostra il totale di studio, il numero di focus (completi e interrotti), i giorni di fila, un grafico
-(minuti per ora, o per giorno), le materie e le ultime sessioni. Toccando una sessione si cambia la materia
-o la si elimina; *Esporta CSV…* salva tutte le sessioni per un foglio di calcolo. I dati restano sul Mac:
-nessun invio da nessuna parte.
+*Statistiche e riepilogo…* apre una finestra (`DashboardWindow.swift`) con tre schede: **Oggi**, **Settimana**
+(da lunedì) e **Mese**. Con le frecce si va ai periodi precedenti. Il **riepilogo** è fatto per essere calmo:
+il totale di studio in grande, quanti focus (completi e interrotti), le barre sottili dei giorni (settimana e mese),
+una sola barra a segmenti con le materie e la sua legenda, i giorni di fila e come è andata (con le frasi su
+quando rendi meglio, se ci sono dati sufficienti). Sotto, **Mostra le sessioni** apre il diario: per un giorno,
+una striscia con un blocco colorato per ogni focus sulle ore e l'elenco con ora, materia, nota, faccia e durata;
+per una settimana o un mese, le sessioni sotto il loro giorno (con il totale del giorno). Toccando una sessione si
+cambia la materia, la nota e il voto, o la si elimina; *Esporta CSV…* salva tutte le sessioni per un foglio di
+calcolo. I dati restano sul Mac: nessun invio da nessuna parte.
 
 Le regole di calcolo hanno le loro prove: `./tests/run.sh` (compila `SessionLog.swift` da solo e controlla
 periodi, totali, giorni di fila, recupero, file rovinato, migrazione, materie unite, copie di sicurezza,

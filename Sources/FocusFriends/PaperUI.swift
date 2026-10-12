@@ -29,6 +29,13 @@ enum Paper {
         return subjectColors[abs(sum) % subjectColors.count]
     }
 
+    /// Un'icona di sistema (SF Symbols) con il colore dato, per i disegni a mano.
+    static func symbolImage(_ name: String, size: CGFloat, color: NSColor) -> NSImage? {
+        let config = NSImage.SymbolConfiguration(pointSize: size, weight: .regular)
+            .applying(NSImage.SymbolConfiguration(paletteColors: [color]))
+        return NSImage(systemSymbolName: name, accessibilityDescription: nil)?.withSymbolConfiguration(config)
+    }
+
     static func markerFont(_ size: CGFloat) -> NSFont {
         NSFont(name: "MarkerFelt-Wide", size: size) ?? NSFont.systemFont(ofSize: size - 2, weight: .bold)
     }

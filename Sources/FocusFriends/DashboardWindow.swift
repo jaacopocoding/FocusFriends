@@ -1,10 +1,27 @@
 import AppKit
 
-/// La finestra delle statistiche: tre schede (Oggi, Settimana, Mese) con i totali, un grafico per giorno
-/// (o per ora), le materie e l'elenco delle sessioni. "Oggi" è anche il riepilogo della giornata.
+/// Un'etichetta della legenda delle materie.
+private struct LegendItem {
+    var text: String
+    var color: NSColor
+    var width: CGFloat
+}
+
+/// Le posizioni verticali delle parti del riepilogo, calcolate dai dati (vedi DashboardView.buildLayout).
+private struct SummaryLayout {
+    var chartTop: CGFloat?
+    var barY: CGFloat?
+    var legend: [(items: [LegendItem], y: CGFloat)] = []
+    var streakY: CGFloat?
+    var reflectY: CGFloat?
+    var insightsY: CGFloat?
+}
+
+/// La finestra delle statistiche. Il riepilogo è calmo: un grande numero, una barra con le materie, i giorni di
+/// fila e come è andata. «Mostra le sessioni» apre il diario: le sessioni una per una, con la nota e la faccia.
 final class DashboardView: NSView {
-    static let size = NSSize(width: 680, height: 770)
-    private static let margin: CGFloat = 28
+    static let size = NSSize(width: 560, height: 660)
+    private static let margin: CGFloat = 40
 
     override var isFlipped: Bool { true }
 
@@ -19,14 +36,17 @@ final class DashboardView: NSView {
     /// Le frasi su "quando rendi meglio" (da tutte le sessioni con un voto) e quante sessioni hanno un voto.
     private var insights: [String] = []
     private var totalRated = 0
-    /// I rettangoli delle righe dell'elenco, per cliccarle (modifica o elimina).
-    private var rowHits: [(rect: NSRect, id: UUID)] = []
+    private var layout = SummaryLayout()
+    /// Sta mostrando il diario delle sessioni invece del riepilogo.
+    private var showsDiary = false
+    private var diaryScroll: NSScrollView?
 
     private let segmented = NSSegmentedControl(labels: ["Oggi", "Settimana", "Mese"], trackingMode: .selectOne, target: nil, action: nil)
     private let previousButton = NSButton()
     private let nextButton = NSButton()
     private let exportButton = NSButton()
     private let deleteButton = NSButton()
+    private let sessionsButton = NSButton()
 
     init(log: SessionLog, now: @escaping () -> Date = Date.init) {
         self.log = log
@@ -35,12 +55,13 @@ final class DashboardView: NSView {
         super.init(frame: NSRect(origin: .zero, size: Self.size))
         // La carta è sempre chiara: i controlli devono avere l'aspetto chiaro anche con il Mac in modalità scura.
         appearance = NSAppearance(named: .aqua)
+        let width = Self.size.width
 
         segmented.selectedSegment = 0
         segmented.segmentStyle = .rounded
         segmented.target = self
         segmented.action = #selector(kindChanged)
-        segmented.frame = NSRect(x: Self.margin, y: 18, width: 250, height: 26)
+        segmented.frame = NSRect(x: (width - 260) / 2, y: 18, width: 260, height: 26)
         addSubview(segmented)
 
         for (button, symbol, action) in [(previousButton, "chevron.left", #selector(goPrevious)), (nextButton, "chevron.right", #selector(goNext))] {
@@ -51,26 +72,28 @@ final class DashboardView: NSView {
             button.action = action
             addSubview(button)
         }
-        previousButton.frame = NSRect(x: Self.margin, y: 56, width: 32, height: 28)
-        nextButton.frame = NSRect(x: Self.size.width - Self.margin - 32, y: 56, width: 32, height: 28)
+        previousButton.frame = NSRect(x: Self.margin - 6, y: 58, width: 32, height: 28)
+        nextButton.frame = NSRect(x: width - Self.margin - 26, y: 58, width: 32, height: 28)
+        previousButton.setAccessibilityLabel("Periodo precedente")
+        nextButton.setAccessibilityLabel("Periodo successivo")
 
-        exportButton.attributedTitle = NSAttributedString(string: "Esporta CSV…", attributes: [
-            .font: NSFont.systemFont(ofSize: 13, weight: .medium), .foregroundColor: Paper.inkLight,
-        ])
-        exportButton.isBordered = false
-        exportButton.target = self
-        exportButton.action = #selector(exportCSV)
-        exportButton.frame = NSRect(x: Self.size.width - Self.margin - 120, y: 18, width: 120, height: 26)
-        addSubview(exportButton)
-
-        deleteButton.attributedTitle = NSAttributedString(string: "Cancella tutto…", attributes: [
-            .font: NSFont.systemFont(ofSize: 13, weight: .medium), .foregroundColor: Paper.accent,
-        ])
-        deleteButton.isBordered = false
-        deleteButton.target = self
-        deleteButton.action = #selector(deleteEverything)
-        deleteButton.frame = NSRect(x: Self.size.width - Self.margin - 120 - 124, y: 18, width: 124, height: 26)
-        addSubview(deleteButton)
+        func style(_ button: NSButton, _ title: String, color: NSColor, action: Selector, frame: NSRect) {
+            button.attributedTitle = NSAttributedString(string: title, attributes: [
+                .font: NSFont.systemFont(ofSize: 12.5, weight: .medium), .foregroundColor: color,
+            ])
+            button.isBordered = false
+            button.target = self
+            button.action = action
+            button.frame = frame
+            addSubview(button)
+        }
+        let bottom = Self.size.height - 40
+        style(deleteButton, "Cancella tutto…", color: Paper.inkLight, action: #selector(deleteEverything),
+              frame: NSRect(x: Self.margin - 6, y: bottom, width: 120, height: 24))
+        style(exportButton, "Esporta CSV…", color: Paper.inkLight, action: #selector(exportCSV),
+              frame: NSRect(x: width - Self.margin - 110, y: bottom, width: 116, height: 24))
+        style(sessionsButton, "Mostra le sessioni", color: Paper.ink, action: #selector(toggleDiary),
+              frame: NSRect(x: (width - 220) / 2, y: Self.size.height - 92, width: 220, height: 28))
 
         log.addObserver { [weak self] in self?.reload() }
         reload()
@@ -89,8 +112,11 @@ final class DashboardView: NSView {
         totalRated = log.sessions.filter { $0.rating != nil }.count
         nextButton.isEnabled = !period.contains(today) && period.end <= today.addingTimeInterval(86_400 * 366)
         nextButton.alphaValue = period.contains(today) ? 0.25 : 1
+        layout = buildLayout()
+        if summary.sessions.isEmpty { showsDiary = false }
+        updateSessionsButton()
+        rebuildDiary()
         needsDisplay = true
-        window?.invalidateCursorRects(for: self)
     }
 
     func select(_ newKind: PeriodKind) {
@@ -113,6 +139,29 @@ final class DashboardView: NSView {
         guard !period.contains(now()) else { return }
         period = period.shifted(by: 1, calendar: calendar)
         reload()
+    }
+
+    @objc private func toggleDiary() {
+        showsDiary.toggle()
+        updateSessionsButton()
+        rebuildDiary()
+        needsDisplay = true
+    }
+
+    private func updateSessionsButton() {
+        let title = showsDiary ? "Torna al riepilogo" : "Mostra le sessioni"
+        let symbol = showsDiary ? "chevron.up" : "chevron.down"
+        sessionsButton.attributedTitle = NSAttributedString(string: title + " ", attributes: [
+            .font: NSFont.systemFont(ofSize: 13, weight: .medium), .foregroundColor: Paper.ink,
+        ])
+        sessionsButton.image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)
+        sessionsButton.imagePosition = .imageTrailing
+        sessionsButton.contentTintColor = Paper.ink
+        sessionsButton.isHidden = summary.sessions.isEmpty
+        // Largo quanto serve, così la freccia sta vicino alla scritta.
+        sessionsButton.sizeToFit()
+        let width = sessionsButton.frame.width + 12
+        sessionsButton.frame = NSRect(x: (Self.size.width - width) / 2, y: Self.size.height - 92, width: width, height: 28)
     }
 
     // MARK: - Testi
@@ -139,22 +188,99 @@ final class DashboardView: NSView {
         }
     }
 
-    private var bannerLines: (String, String) {
+    /// Sotto al numero: "di studio · 4 focus · 1 interrotto".
+    private var subtitle: String {
+        guard summary.focusCount > 0 else { return "" }
+        var parts = ["di studio", summary.focusCount == 1 ? "1 focus" : "\(summary.focusCount) focus"]
+        if summary.interruptedCount == 1 { parts.append("1 interrotto") }
+        if summary.interruptedCount > 1 { parts.append("\(summary.interruptedCount) interrotti") }
+        return parts.joined(separator: " · ")
+    }
+
+    /// Una riga in più, più piccola: una parola gentile oggi, la media negli altri periodi.
+    private var secondary: String {
         let isCurrent = period.contains(now())
+        guard summary.focusCount > 0 else {
+            return isCurrent ? "Quando vuoi, io sono qui." : "Nessun focus in questo periodo."
+        }
         switch kind {
         case .day:
-            let dayName = formatted(period.start, "EEEE")
-            let line = StudyStats.dayLine(summary, isToday: isCurrent, dayName: dayName.prefix(1).uppercased() + dayName.dropFirst())
-            return (line, isCurrent ? StudyStats.encouragement(totalSeconds: summary.totalSeconds) : "")
+            return isCurrent ? StudyStats.encouragement(totalSeconds: summary.totalSeconds) : ""
         case .week, .month:
-            let name = kind == .week ? (isCurrent ? "Questa settimana" : "In questa settimana") : (isCurrent ? "Questo mese" : "In questo mese")
-            guard summary.focusCount > 0 else { return ("\(name) non hai ancora fatto nessun focus.", "") }
             let days = summary.buckets.filter { $0.seconds > 0 }.count
-            let average = summary.totalSeconds / max(days, 1)
-            let focus = summary.focusCount == 1 ? "1 focus" : "\(summary.focusCount) focus"
-            return ("\(name) hai fatto \(focus): \(StudyStats.duration(seconds: summary.totalSeconds)) di studio.",
-                    "In media \(StudyStats.duration(seconds: average)) nei \(days) giorni in cui hai studiato.")
+            return "In media \(StudyStats.duration(seconds: summary.totalSeconds / max(days, 1))) nei \(days) giorni in cui hai studiato."
         }
+    }
+
+    // MARK: - Posizioni
+
+    private var contentWidth: CGFloat { Self.size.width - 2 * Self.margin }
+
+    private func color(for subject: String) -> NSColor {
+        if subject == Subject.none || subject.hasPrefix("Altre (") { return Paper.inkLight.withAlphaComponent(0.5) }
+        return Paper.color(forSubject: subject)
+    }
+
+    /// Le materie del periodo: fino a sei, il resto in "Altre (n)".
+    private var subjectRows: [(subject: String, seconds: Int)] {
+        var rows = Array(summary.bySubject.prefix(6))
+        if summary.bySubject.count > 6 {
+            let rest = summary.bySubject.dropFirst(6)
+            rows.append((subject: "Altre (\(rest.count))", seconds: rest.reduce(0) { $0 + $1.seconds }))
+        }
+        return rows
+    }
+
+    private func buildLayout() -> SummaryLayout {
+        var l = SummaryLayout()
+        guard summary.totalSeconds > 0 else { return l }
+        var y: CGFloat = 226
+        if kind != .day {
+            l.chartTop = y
+            y += 56 + 20 + 22
+        }
+        l.barY = y
+        y += 18 + 16
+
+        // La legenda: i nomi a capo quando non c'è più posto, ogni riga centrata.
+        let font = NSFont.systemFont(ofSize: 12)
+        let items = subjectRows.map { row -> LegendItem in
+            let text = "\(row.subject) \(StudyStats.duration(seconds: row.seconds))"
+            let width = ceil((text as NSString).size(withAttributes: [.font: font]).width) + 14
+            return LegendItem(text: text, color: color(for: row.subject), width: width)
+        }
+        var line: [LegendItem] = []
+        var lineWidth: CGFloat = 0
+        for item in items {
+            if lineWidth + item.width > contentWidth, !line.isEmpty {
+                l.legend.append((items: line, y: y))
+                y += 20
+                line = []
+                lineWidth = 0
+            }
+            line.append(item)
+            lineWidth += item.width + 12
+        }
+        if !line.isEmpty {
+            l.legend.append((items: line, y: y))
+            y += 20
+        }
+
+        if streak > 0 {
+            y += 18
+            l.streakY = y
+            y += 24
+        }
+        if summary.ratedCount > 0 {
+            y += 16
+            l.reflectY = y
+            y += 26
+        }
+        if !insights.isEmpty {
+            y += 8
+            l.insightsY = y
+        }
+        return l
     }
 
     // MARK: - Disegno
@@ -170,234 +296,163 @@ final class DashboardView: NSView {
         Paper.paper.setFill()
         bounds.fill()
         let width = Self.size.width
-        let m = Self.margin
-        rowHits = []
 
         // Periodo, al centro tra le frecce
-        text(periodTitle, at: NSRect(x: m + 40, y: 58, width: width - 2 * m - 80, height: 26),
+        text(periodTitle, at: NSRect(x: Self.margin + 30, y: 60, width: width - 2 * Self.margin - 60, height: 26),
              font: Paper.markerFont(20), alignment: .center)
 
-        // Riga di riepilogo
-        let banner = bannerLines
-        let bannerRect = NSRect(x: m, y: 96, width: width - 2 * m, height: 50)
-        let bannerShape = NSBezierPath(roundedRect: bannerRect, xRadius: 12, yRadius: 12)
-        Paper.accent.withAlphaComponent(0.12).setFill()
-        bannerShape.fill()
-        text(banner.0, at: NSRect(x: bannerRect.minX + 14, y: bannerRect.minY + 8, width: bannerRect.width - 28, height: 22),
-             font: Paper.markerFont(17))
-        if !banner.1.isEmpty {
-            text(banner.1, at: NSRect(x: bannerRect.minX + 14, y: bannerRect.minY + 29, width: bannerRect.width - 28, height: 16),
-                 font: NSFont.systemFont(ofSize: 12), color: Paper.inkLight)
-        }
-
-        // Tre tessere
-        let tileWidth = (width - 2 * m - 24) / 3
-        let tiles: [(String, String)] = [
-            (StudyStats.duration(seconds: summary.totalSeconds), "di studio"),
-            ("\(summary.focusCount)", (summary.focusCount == 1 ? "focus" : "focus")
-                + (summary.interruptedCount == 1 ? " · 1 interrotto" : summary.interruptedCount > 1 ? " · \(summary.interruptedCount) interrotti" : "")),
-            ("\(streak)", streak == 1 ? "giorno di fila" : "giorni di fila"),
-        ]
-        for (i, tile) in tiles.enumerated() {
-            let rect = NSRect(x: m + CGFloat(i) * (tileWidth + 12), y: 158, width: tileWidth, height: 70)
-            let shape = NSBezierPath(roundedRect: rect, xRadius: 12, yRadius: 12)
-            NSColor.white.withAlphaComponent(0.55).setFill()
-            shape.fill()
-            Paper.paperEdge.setStroke()
-            shape.lineWidth = 1
-            shape.stroke()
-            text(tile.0, at: NSRect(x: rect.minX + 12, y: rect.minY + 8, width: rect.width - 24, height: 32), font: Paper.markerFont(26))
-            text(tile.1, at: NSRect(x: rect.minX + 12, y: rect.minY + 44, width: rect.width - 24, height: 16),
-                 font: NSFont.systemFont(ofSize: 11.5), color: Paper.inkLight)
-        }
-
-        drawChart(top: 240)
-        drawSubjects(top: 392)
-        drawSessions(top: 524)
-        drawReflections(top: 668)
-    }
-
-    private func sectionTitle(_ title: String, y: CGFloat) {
-        text(title, at: NSRect(x: Self.margin, y: y, width: 300, height: 18),
-             font: NSFont.systemFont(ofSize: 12, weight: .semibold), color: Paper.inkLight)
-    }
-
-    /// Le barre: minuti per ora (giorno) o per giorno (settimana, mese).
-    private func drawChart(top: CGFloat) {
-        let width = Self.size.width
-        let m = Self.margin
-        sectionTitle(kind == .day ? "MINUTI PER ORA" : "MINUTI PER GIORNO", y: top)
-        let area = NSRect(x: m, y: top + 24, width: width - 2 * m, height: 90)
-        let buckets = summary.buckets
-        let maxSeconds = max(buckets.map { $0.seconds }.max() ?? 0, 1)
-
-        guard summary.totalSeconds > 0 else {
-            text("Nessun focus in questo periodo. Avvia un Pomofocus e comparirà qui!",
-                 at: NSRect(x: area.minX, y: area.minY + 34, width: area.width, height: 20),
-                 font: NSFont.systemFont(ofSize: 13), color: Paper.inkLight, alignment: .center)
+        if showsDiary {
+            text("\(StudyStats.duration(seconds: summary.totalSeconds)) · \(subtitle.replacingOccurrences(of: "di studio · ", with: ""))",
+                 at: NSRect(x: Self.margin, y: 92, width: contentWidth, height: 18),
+                 font: NSFont.systemFont(ofSize: 12.5), color: Paper.inkLight, alignment: .center)
             return
         }
 
-        let slot = area.width / CGFloat(buckets.count)
-        let barWidth = max(min(slot * 0.68, 26), 3)
+        // Il grande numero
+        let empty = summary.totalSeconds == 0
+        text(empty ? "0 min" : StudyStats.duration(seconds: summary.totalSeconds),
+             at: NSRect(x: Self.margin, y: 104, width: contentWidth, height: 72),
+             font: Paper.markerFont(58), color: empty ? Paper.inkLight.withAlphaComponent(0.6) : Paper.ink, alignment: .center)
+        if !subtitle.isEmpty {
+            text(subtitle, at: NSRect(x: Self.margin, y: 182, width: contentWidth, height: 20),
+                 font: NSFont.systemFont(ofSize: 14), color: Paper.inkLight, alignment: .center)
+        }
+        let more = secondary
+        if !more.isEmpty {
+            text(more, at: NSRect(x: Self.margin, y: empty ? 182 : 202, width: contentWidth, height: 18),
+                 font: NSFont.systemFont(ofSize: 12.5), color: Paper.inkLight.withAlphaComponent(0.85), alignment: .center)
+        }
+        guard !empty else { return }
+
+        if let top = layout.chartTop { drawMiniChart(top: top) }
+        if let y = layout.barY { drawSubjectBar(y: y) }
+        for line in layout.legend { drawLegendLine(line.items, y: line.y) }
+        if let y = layout.streakY { drawStreak(y: y) }
+        if let y = layout.reflectY { drawRatings(y: y) }
+        if let y = layout.insightsY {
+            for (i, line) in insights.enumerated() {
+                text(line, at: NSRect(x: Self.margin, y: y + CGFloat(i) * 18, width: contentWidth, height: 16),
+                     font: NSFont.systemFont(ofSize: 12.5), color: Paper.ink, alignment: .center)
+            }
+        }
+    }
+
+    /// Le barre sottili, una per giorno: niente numeri, solo la forma della settimana o del mese.
+    private func drawMiniChart(top: CGFloat) {
+        let buckets = summary.buckets
+        let maxSeconds = max(buckets.map { $0.seconds }.max() ?? 0, 1)
+        let area = NSRect(x: Self.margin, y: top, width: contentWidth, height: 56)
+        let slot = area.width / CGFloat(max(buckets.count, 1))
+        let barWidth = max(min(slot * 0.55, 22), 3)
         let today = calendar.startOfDay(for: now())
         for (i, bucket) in buckets.enumerated() {
             let x = area.minX + slot * CGFloat(i) + (slot - barWidth) / 2
-            let height = bucket.seconds == 0 ? 0 : max(CGFloat(bucket.seconds) / CGFloat(maxSeconds) * area.height, 3)
-            let bar = NSRect(x: x, y: area.maxY - height, width: barWidth, height: height)
-            let isNow = kind == .day
-                ? calendar.component(.hour, from: bucket.start) == calendar.component(.hour, from: now()) && period.contains(now())
-                : calendar.startOfDay(for: bucket.start) == today
-            (isNow ? Paper.accent : Paper.accent.withAlphaComponent(0.6)).setFill()
-            NSBezierPath(roundedRect: bar, xRadius: min(3, barWidth / 2), yRadius: min(3, barWidth / 2)).fill()
-            if kind == .week, bucket.seconds > 0 {
-                text("\((bucket.seconds + 30) / 60)", at: NSRect(x: x - 8, y: bar.minY - 15, width: barWidth + 16, height: 14),
-                     font: NSFont.systemFont(ofSize: 10.5), color: Paper.inkLight, alignment: .center)
-            }
-        }
-        // Linea di base e nomi
-        Paper.paperEdge.setStroke()
-        let base = NSBezierPath()
-        base.move(to: NSPoint(x: area.minX, y: area.maxY + 0.5))
-        base.line(to: NSPoint(x: area.maxX, y: area.maxY + 0.5))
-        base.lineWidth = 1
-        base.stroke()
-        for (i, bucket) in buckets.enumerated() {
+            let height = bucket.seconds == 0 ? 3 : max(CGFloat(bucket.seconds) / CGFloat(maxSeconds) * area.height, 5)
+            let isToday = calendar.startOfDay(for: bucket.start) == today
+            (bucket.seconds == 0 ? Paper.paperEdge.withAlphaComponent(0.35)
+                : isToday ? Paper.accent : Paper.accent.withAlphaComponent(0.55)).setFill()
+            NSBezierPath(roundedRect: NSRect(x: x, y: area.maxY - height, width: barWidth, height: height),
+                         xRadius: min(barWidth / 2, 4), yRadius: min(barWidth / 2, 4)).fill()
+
             let label: String?
             switch kind {
-            case .day:
-                let hour = calendar.component(.hour, from: bucket.start)
-                label = hour % 6 == 0 ? "\(hour)" : nil
-            case .week:
-                label = formatted(bucket.start, "EEE")
+            case .week: label = formatted(bucket.start, "EEE")
             case .month:
                 let day = calendar.component(.day, from: bucket.start)
                 label = (day == 1 || day % 5 == 0) ? "\(day)" : nil
+            case .day: label = nil
             }
-            guard let label else { continue }
-            let x = area.minX + slot * CGFloat(i)
-            text(label, at: NSRect(x: x - 6, y: area.maxY + 4, width: slot + 12, height: 14),
-                 font: NSFont.systemFont(ofSize: 10.5), color: Paper.inkLight, alignment: .center)
-        }
-    }
-
-    /// Una barra per materia, con il tempo e la percentuale.
-    private func drawSubjects(top: CGFloat) {
-        let width = Self.size.width
-        let m = Self.margin
-        sectionTitle("PER MATERIA", y: top)
-        guard !summary.bySubject.isEmpty else { return }
-
-        var rows = Array(summary.bySubject.prefix(4))
-        if summary.bySubject.count > 4 {
-            let rest = summary.bySubject.dropFirst(4)
-            rows.append((subject: "Altre (\(rest.count))", seconds: rest.reduce(0) { $0 + $1.seconds }))
-        }
-        let total = max(summary.totalSeconds, 1)
-        let maxSeconds = max(rows.map { $0.seconds }.max() ?? 1, 1)
-        let barLeft = m + 150
-        let barRight = width - m - 120
-        for (i, row) in rows.enumerated() {
-            let y = top + 24 + CGFloat(i) * 25
-            text(row.subject, at: NSRect(x: m, y: y, width: 140, height: 18), font: NSFont.systemFont(ofSize: 13))
-            let track = NSRect(x: barLeft, y: y + 3, width: barRight - barLeft, height: 12)
-            Paper.track.setFill()
-            NSBezierPath(roundedRect: track, xRadius: 6, yRadius: 6).fill()
-            let fillWidth = max(track.width * CGFloat(row.seconds) / CGFloat(maxSeconds), 6)
-            let color = row.subject == Subject.none || row.subject.hasPrefix("Altre (") ? Paper.inkLight.withAlphaComponent(0.55) : Paper.color(forSubject: row.subject)
-            color.setFill()
-            NSBezierPath(roundedRect: NSRect(x: track.minX, y: track.minY, width: fillWidth, height: track.height), xRadius: 6, yRadius: 6).fill()
-            let percent = Int((Double(row.seconds) * 100 / Double(total)).rounded())
-            text("\(StudyStats.duration(seconds: row.seconds)) · \(percent)%",
-                 at: NSRect(x: barRight + 10, y: y, width: 110, height: 18),
-                 font: NSFont.systemFont(ofSize: 12), color: Paper.inkLight)
-        }
-    }
-
-    /// Le ultime sessioni: toccandone una si cambia la materia o la si toglie.
-    private func drawSessions(top: CGFloat) {
-        let width = Self.size.width
-        let m = Self.margin
-        sectionTitle("SESSIONI", y: top)
-        guard !summary.sessions.isEmpty else { return }
-        let shown = summary.sessions.prefix(4)
-        for (i, session) in shown.enumerated() {
-            let y = top + 24 + CGFloat(i) * 23
-            let rect = NSRect(x: m - 6, y: y - 2, width: width - 2 * m + 12, height: 22)
-            rowHits.append((rect: rect, id: session.id))
-            let when = kind == .day ? formatted(session.startTime(in: calendar), "HH:mm") : formatted(session.startTime(in: calendar), "EEE d MMM, HH:mm")
-            let subject = session.subject ?? Subject.none
-            let dot = NSBezierPath(ovalIn: NSRect(x: m, y: y + 5, width: 9, height: 9))
-            (session.subject == nil ? Paper.inkLight.withAlphaComponent(0.5) : Paper.color(forSubject: subject)).setFill()
-            dot.fill()
-            text(when, at: NSRect(x: m + 18, y: y, width: 118, height: 18), font: NSFont.systemFont(ofSize: 13), color: Paper.inkLight)
-            text(subject, at: NSRect(x: m + 142, y: y, width: 118, height: 18), font: NSFont.systemFont(ofSize: 13))
-            let faceX = width - m - 150 - 24
-            if let note = session.note {
-                let noteX = m + 266
-                text(note, at: NSRect(x: noteX, y: y, width: faceX - 8 - noteX, height: 18),
-                     font: NSFont.systemFont(ofSize: 12), color: Paper.inkLight)
-            }
-            if let rating = session.rating {
-                FaceIcon.draw(rating, in: NSRect(x: faceX, y: y + 1, width: 17, height: 17), flipped: true)
-            }
-            let minutes = (session.seconds + 30) / 60
-            let status = session.completed ? "\(minutes) min" : "\(minutes) min · interrotto"
-            text(status, at: NSRect(x: width - m - 150, y: y, width: 150, height: 18),
-                 font: NSFont.systemFont(ofSize: 12), color: session.completed ? Paper.inkLight : Paper.accent, alignment: .right)
-        }
-        if summary.sessions.count > shown.count {
-            let extra = summary.sessions.count - shown.count
-            text(extra == 1 ? "… e un'altra sessione" : "… e altre \(extra) sessioni", at: NSRect(x: m, y: top + 24 + CGFloat(shown.count) * 23, width: 300, height: 16),
-                 font: NSFont.systemFont(ofSize: 12), color: Paper.inkLight)
-        }
-    }
-
-    /// "Com'è andata": quante volte bene, così così, poca testa nel periodo, e quando rendi meglio.
-    private func drawReflections(top: CGFloat) {
-        let width = Self.size.width
-        let m = Self.margin
-        sectionTitle("COM'È ANDATA", y: top)
-        if summary.ratedCount == 0 {
-            let hint = totalRated == 0
-                ? "A fine focus puoi dire com'è andata e cosa hai fatto: qui vedrai quando rendi meglio."
-                : "Nessun focus valutato in questo periodo."
-            text(hint, at: NSRect(x: m, y: top + 26, width: width - 2 * m, height: 18),
-                 font: NSFont.systemFont(ofSize: 13), color: Paper.inkLight)
-        } else {
-            for (i, rating) in FocusRating.allCases.enumerated() {
-                let x = m + CGFloat(i) * 170
-                FaceIcon.draw(rating, in: NSRect(x: x, y: top + 22, width: 24, height: 24), flipped: true)
-                let count = summary.ratingCounts[rating] ?? 0
-                text("\(rating.title) · \(count)", at: NSRect(x: x + 32, y: top + 25, width: 130, height: 18),
-                     font: NSFont.systemFont(ofSize: 13), color: count > 0 ? Paper.ink : Paper.inkLight)
-            }
-        }
-        if insights.isEmpty {
-            if totalRated > 0 && totalRated < StudyStats.minimumRatedForInsights {
-                text("Con qualche focus valutato in più (\(totalRated) su \(StudyStats.minimumRatedForInsights)) vedrai quando rendi meglio.",
-                     at: NSRect(x: m, y: top + 58, width: width - 2 * m, height: 16),
-                     font: NSFont.systemFont(ofSize: 12), color: Paper.inkLight)
-            }
-        } else {
-            for (i, line) in insights.enumerated() {
-                text(line, at: NSRect(x: m, y: top + 56 + CGFloat(i) * 18, width: width - 2 * m, height: 16),
-                     font: NSFont.systemFont(ofSize: 12.5), color: Paper.ink)
+            if let label {
+                text(label, at: NSRect(x: x - 10, y: area.maxY + 5, width: barWidth + 20, height: 14),
+                     font: NSFont.systemFont(ofSize: 10.5), color: Paper.inkLight, alignment: .center)
             }
         }
     }
 
-    // MARK: - Mouse
-
-    override func resetCursorRects() {
-        for hit in rowHits { addCursorRect(hit.rect, cursor: .pointingHand) }
+    /// Una sola barra, a segmenti, con le materie del periodo.
+    private func drawSubjectBar(y: CGFloat) {
+        let rect = NSRect(x: Self.margin + 20, y: y, width: contentWidth - 40, height: 18)
+        let rows = subjectRows
+        let total = max(rows.reduce(0) { $0 + $1.seconds }, 1)
+        NSGraphicsContext.saveGraphicsState()
+        NSBezierPath(roundedRect: rect, xRadius: 9, yRadius: 9).addClip()
+        Paper.track.setFill()
+        rect.fill()
+        let gap: CGFloat = 2
+        let usable = rect.width - gap * CGFloat(max(rows.count - 1, 0))
+        var x = rect.minX
+        for row in rows {
+            let w = max(usable * CGFloat(row.seconds) / CGFloat(total), 5)
+            color(for: row.subject).setFill()
+            NSRect(x: x, y: rect.minY, width: w, height: rect.height).fill()
+            x += w + gap
+        }
+        NSGraphicsContext.restoreGraphicsState()
     }
 
-    override func mouseDown(with event: NSEvent) {
-        let point = convert(event.locationInWindow, from: nil)
-        guard let hit = rowHits.first(where: { $0.rect.contains(point) }),
-              let session = log.sessions.first(where: { $0.id == hit.id }) else { return }
-        edit(session)
+    private func drawLegendLine(_ items: [LegendItem], y: CGFloat) {
+        let total = items.reduce(0) { $0 + $1.width } + 12 * CGFloat(max(items.count - 1, 0))
+        var x = (Self.size.width - total) / 2
+        for item in items {
+            item.color.setFill()
+            NSBezierPath(ovalIn: NSRect(x: x, y: y + 4, width: 9, height: 9)).fill()
+            text(item.text, at: NSRect(x: x + 14, y: y, width: item.width, height: 17),
+                 font: NSFont.systemFont(ofSize: 12), color: Paper.ink)
+            x += item.width + 12
+        }
+    }
+
+    private func drawStreak(y: CGFloat) {
+        let label = streak == 1 ? "1 giorno di fila" : "\(streak) giorni di fila"
+        let font = NSFont.systemFont(ofSize: 13, weight: .medium)
+        let textWidth = ceil((label as NSString).size(withAttributes: [.font: font]).width)
+        let x = (Self.size.width - (22 + textWidth)) / 2
+        if let flame = Paper.symbolImage("flame", size: 15, color: Paper.accent) {
+            let s = flame.size
+            flame.draw(in: NSRect(x: x, y: y + 12 - s.height / 2, width: s.width, height: s.height), from: .zero,
+                       operation: .sourceOver, fraction: 1, respectFlipped: true, hints: nil)
+        }
+        text(label, at: NSRect(x: x + 22, y: y + 3, width: textWidth + 4, height: 18), font: font, color: Paper.ink)
+    }
+
+    /// Quante volte bene, così così, poca testa nel periodo.
+    private func drawRatings(y: CGFloat) {
+        let font = NSFont.systemFont(ofSize: 13)
+        let parts = FocusRating.allCases.map { rating -> (FocusRating, String) in
+            (rating, "\(rating.title) \(summary.ratingCounts[rating] ?? 0)")
+        }
+        let widths = parts.map { ceil(($0.1 as NSString).size(withAttributes: [.font: font]).width) + 28 }
+        let total = widths.reduce(0, +) + 16 * CGFloat(parts.count - 1)
+        var x = (Self.size.width - total) / 2
+        for (i, part) in parts.enumerated() {
+            FaceIcon.draw(part.0, in: NSRect(x: x, y: y, width: 20, height: 20), flipped: true)
+            text(part.1, at: NSRect(x: x + 26, y: y + 1, width: widths[i], height: 18), font: font,
+                 color: (summary.ratingCounts[part.0] ?? 0) > 0 ? Paper.ink : Paper.inkLight)
+            x += widths[i] + 16
+        }
+    }
+
+    // MARK: - Il diario delle sessioni
+
+    private func rebuildDiary() {
+        diaryScroll?.removeFromSuperview()
+        diaryScroll = nil
+        guard showsDiary, !summary.sessions.isEmpty else { return }
+        let diary = DiaryView(sessions: summary.sessions.sorted { $0.startTime(in: calendar) < $1.startTime(in: calendar) },
+                              kind: kind, calendar: calendar, width: contentWidth + 24)
+        diary.onSelect = { [weak self] id in
+            guard let self, let session = self.log.sessions.first(where: { $0.id == id }) else { return }
+            self.edit(session)
+        }
+        let scroll = NSScrollView(frame: NSRect(x: Self.margin - 12, y: 118, width: contentWidth + 24,
+                                                height: Self.size.height - 118 - 100))
+        scroll.hasVerticalScroller = true
+        scroll.autohidesScrollers = true
+        scroll.drawsBackground = false
+        scroll.borderType = .noBorder
+        scroll.documentView = diary
+        addSubview(scroll)
+        diaryScroll = scroll
     }
 
     private func edit(_ session: StudySession) {
@@ -481,6 +536,198 @@ final class DashboardView: NSView {
 
     static func csv(for sessions: [StudySession]) -> String {
         SessionCSV.csv(for: sessions)
+    }
+}
+
+/// Il diario: le sessioni una per una, con la nota e la faccia. Per un giorno solo, in cima c'è la striscia delle
+/// ore con un blocco colorato per ogni focus; per una settimana o un mese le sessioni stanno sotto il loro giorno.
+private final class DiaryView: NSView {
+    override var isFlipped: Bool { true }
+    var onSelect: ((UUID) -> Void)?
+
+    private enum Entry {
+        case strip
+        case header(day: Date, seconds: Int)
+        case session(StudySession)
+    }
+
+    private var entries: [(entry: Entry, rect: NSRect)] = []
+    private let sessions: [StudySession]
+    private let kind: PeriodKind
+    private let calendar: Calendar
+    private let dayFormatter = DateFormatter()
+    private let timeFormatter = DateFormatter()
+
+    init(sessions: [StudySession], kind: PeriodKind, calendar: Calendar, width: CGFloat) {
+        self.sessions = sessions
+        self.kind = kind
+        self.calendar = calendar
+        super.init(frame: NSRect(x: 0, y: 0, width: width, height: 100))
+        for f in [dayFormatter, timeFormatter] {
+            f.locale = Locale(identifier: "it_IT")
+            f.timeZone = calendar.timeZone
+        }
+        dayFormatter.dateFormat = "EEEE d MMMM"
+        timeFormatter.dateFormat = "HH:mm"
+        appearance = NSAppearance(named: .aqua)
+        layoutEntries(width: width)
+    }
+
+    required init?(coder: NSCoder) { nil }
+
+    private func layoutEntries(width: CGFloat) {
+        var y: CGFloat = 4
+        entries = []
+        if kind == .day {
+            entries.append((.strip, NSRect(x: 0, y: y, width: width, height: 58)))
+            y += 70
+        }
+        var currentDay: Date?
+        for (i, session) in sessions.enumerated() {
+            if kind != .day {
+                let day = calendar.startOfDay(for: session.startTime(in: calendar))
+                if currentDay != day {
+                    currentDay = day
+                    let seconds = sessions.filter { calendar.startOfDay(for: $0.startTime(in: calendar)) == day }
+                        .reduce(0) { $0 + $1.seconds }
+                    y += i == 0 ? 0 : 10
+                    entries.append((.header(day: day, seconds: seconds), NSRect(x: 0, y: y, width: width, height: 34)))
+                    y += 36
+                }
+            }
+            let height: CGFloat = session.note == nil ? 34 : 50
+            entries.append((.session(session), NSRect(x: 0, y: y, width: width, height: height)))
+            y += height
+        }
+        setFrameSize(NSSize(width: width, height: y + 12))
+    }
+
+    private func color(for session: StudySession) -> NSColor {
+        session.subject.map { Paper.color(forSubject: $0) } ?? Paper.inkLight.withAlphaComponent(0.5)
+    }
+
+    private func text(_ string: String, in rect: NSRect, font: NSFont, color: NSColor, alignment: NSTextAlignment = .left) {
+        let para = NSMutableParagraphStyle()
+        para.alignment = alignment
+        para.lineBreakMode = .byTruncatingTail
+        (string as NSString).draw(in: rect, withAttributes: [.font: font, .foregroundColor: color, .paragraphStyle: para])
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        for item in entries where item.rect.intersects(dirtyRect) {
+            switch item.entry {
+            case .strip: drawStrip(in: item.rect)
+            case .header(let day, let seconds): drawHeader(day: day, seconds: seconds, in: item.rect)
+            case .session(let session): drawSession(session, in: item.rect)
+            }
+        }
+    }
+
+    /// Le ore del giorno in orizzontale, con un blocco per ogni focus (colore della materia).
+    private func drawStrip(in rect: NSRect) {
+        guard !sessions.isEmpty else { return }
+        func hours(_ s: StudySession) -> (start: Double, end: Double) {
+            let t = s.startTime(in: calendar)
+            let c = calendar.dateComponents([.hour, .minute], from: t)
+            let start = Double(c.hour ?? 0) + Double(c.minute ?? 0) / 60
+            return (start, start + Double(s.seconds) / 3600)
+        }
+        let spans = sessions.map(hours)
+        let lo = max(min(8, Int(spans.map { $0.start }.min() ?? 8)), 0)
+        let hi = min(max(18, Int(ceil(spans.map { $0.end }.max() ?? 18))), 24)
+        let inner = NSRect(x: rect.minX + 12, y: rect.minY, width: rect.width - 24, height: rect.height)
+        let span = Double(max(hi - lo, 1))
+        let baseline = inner.minY + 36
+
+        for (i, session) in sessions.enumerated() {
+            let x = inner.minX + CGFloat((spans[i].start - Double(lo)) / span) * inner.width
+            let w = max(CGFloat((spans[i].end - spans[i].start) / span) * inner.width, 6)
+            color(for: session).setFill()
+            NSBezierPath(roundedRect: NSRect(x: x, y: baseline - 26, width: w, height: 26), xRadius: 5, yRadius: 5).fill()
+        }
+        Paper.paperEdge.setStroke()
+        let line = NSBezierPath()
+        line.move(to: NSPoint(x: inner.minX, y: baseline + 0.5))
+        line.line(to: NSPoint(x: inner.maxX, y: baseline + 0.5))
+        line.lineWidth = 1
+        line.stroke()
+        let step = (hi - lo) > 12 ? 3 : 2
+        var h = lo
+        while h <= hi {
+            let x = inner.minX + CGFloat(Double(h - lo) / span) * inner.width
+            text("\(h)", in: NSRect(x: x - 14, y: baseline + 6, width: 28, height: 14),
+                 font: NSFont.systemFont(ofSize: 10.5), color: Paper.inkLight, alignment: .center)
+            h += step
+        }
+    }
+
+    private func drawHeader(day: Date, seconds: Int, in rect: NSRect) {
+        let title = dayFormatter.string(from: day)
+        text(title.prefix(1).uppercased() + title.dropFirst(), in: NSRect(x: rect.minX + 12, y: rect.minY + 6, width: rect.width - 130, height: 24),
+             font: Paper.markerFont(16), color: Paper.ink)
+        text(StudyStats.duration(seconds: seconds), in: NSRect(x: rect.maxX - 112, y: rect.minY + 9, width: 100, height: 18),
+             font: NSFont.systemFont(ofSize: 12.5), color: Paper.inkLight, alignment: .right)
+        Paper.paperEdge.setStroke()
+        let line = NSBezierPath()
+        line.move(to: NSPoint(x: rect.minX + 12, y: rect.maxY - 0.5))
+        line.line(to: NSPoint(x: rect.maxX - 12, y: rect.maxY - 0.5))
+        line.lineWidth = 1
+        line.stroke()
+    }
+
+    private func drawSession(_ session: StudySession, in rect: NSRect) {
+        let dotY = rect.minY + 12
+        color(for: session).setFill()
+        NSBezierPath(ovalIn: NSRect(x: rect.minX + 12, y: dotY, width: 9, height: 9)).fill()
+        text(timeFormatter.string(from: session.startTime(in: calendar)),
+             in: NSRect(x: rect.minX + 30, y: rect.minY + 8, width: 48, height: 18),
+             font: NSFont.systemFont(ofSize: 13), color: Paper.inkLight)
+
+        let right = rect.maxX - 12
+        let durationWidth: CGFloat = 112
+        let minutes = (session.seconds + 30) / 60
+        let status = session.completed ? "\(minutes) min" : "\(minutes) min · interrotto"
+        text(status, in: NSRect(x: right - durationWidth, y: rect.minY + 8, width: durationWidth, height: 18),
+             font: NSFont.systemFont(ofSize: 12), color: session.completed ? Paper.inkLight : Paper.accent, alignment: .right)
+        var textRight = right - durationWidth - 6
+        if let rating = session.rating {
+            FaceIcon.draw(rating, in: NSRect(x: right - durationWidth - 28, y: rect.minY + 8, width: 18, height: 18), flipped: true)
+            textRight -= 26
+        }
+        let textX = rect.minX + 84
+        text(session.subject ?? Subject.none, in: NSRect(x: textX, y: rect.minY + 8, width: max(textRight - textX, 40), height: 18),
+             font: NSFont.systemFont(ofSize: 13.5, weight: .medium), color: Paper.ink)
+        if let note = session.note {
+            text(note, in: NSRect(x: textX, y: rect.minY + 27, width: max(textRight - textX, 40), height: 16),
+                 font: NSFont.systemFont(ofSize: 12), color: Paper.inkLight)
+        }
+        // Linea tratteggiata sotto, come le righe di un quaderno.
+        Paper.paperEdge.withAlphaComponent(0.5).setStroke()
+        let dash = NSBezierPath()
+        dash.move(to: NSPoint(x: rect.minX + 12, y: rect.maxY - 0.5))
+        dash.line(to: NSPoint(x: rect.maxX - 12, y: rect.maxY - 0.5))
+        dash.setLineDash([3, 3], count: 2, phase: 0)
+        dash.lineWidth = 1
+        dash.stroke()
+    }
+
+    // MARK: - Mouse
+
+    private func sessionID(at point: NSPoint) -> UUID? {
+        for item in entries {
+            if case .session(let s) = item.entry, item.rect.contains(point) { return s.id }
+        }
+        return nil
+    }
+
+    override func resetCursorRects() {
+        for item in entries {
+            if case .session = item.entry { addCursorRect(item.rect, cursor: .pointingHand) }
+        }
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        if let id = sessionID(at: convert(event.locationInWindow, from: nil)) { onSelect?(id) }
     }
 }
 
