@@ -17,7 +17,8 @@ final class SubjectPrompt: NSObject {
 
     var isShowing: Bool { panel != nil }
 
-    func ask(minutes: Int, recent: [String], near petWindow: NSWindow?, completion: @escaping (Choice) -> Void) {
+    func ask(minutes: Int, recent: [String], lastNote: (subject: String?, note: String)? = nil, near petWindow: NSWindow?,
+             completion: @escaping (Choice) -> Void) {
         // Se è già aperta: la porto davanti e basta.
         if let panel {
             NSApp.activate(ignoringOtherApps: true)
@@ -69,6 +70,17 @@ final class SubjectPrompt: NSObject {
                 row.spacing = 8
                 views.append(row)
             }
+        }
+
+        if let lastNote {
+            // "L'ultima volta su Anatomia: nervi cranici": il filo con la volta prima.
+            let text = (lastNote.subject.map { "L'ultima volta su \($0): " } ?? "L'ultima volta: ") + lastNote.note
+            let label = NSTextField(labelWithString: text)
+            label.font = NSFont.systemFont(ofSize: 12)
+            label.textColor = Paper.inkLight
+            label.lineBreakMode = .byTruncatingTail
+            label.widthAnchor.constraint(lessThanOrEqualToConstant: Self.width - 56).isActive = true
+            views.append(label)
         }
 
         let skip = TextButton(title: "Senza materia")

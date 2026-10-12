@@ -3,7 +3,7 @@ import AppKit
 /// La finestra delle statistiche: tre schede (Oggi, Settimana, Mese) con i totali, un grafico per giorno
 /// (o per ora), le materie e l'elenco delle sessioni. "Oggi" è anche il riepilogo della giornata.
 final class DashboardView: NSView {
-    static let size = NSSize(width: 620, height: 660)
+    static let size = NSSize(width: 680, height: 770)
     private static let margin: CGFloat = 28
 
     override var isFlipped: Bool { true }
@@ -16,6 +16,9 @@ final class DashboardView: NSView {
     private var period: StudyPeriod
     private var summary = StudySummary()
     private var streak = 0
+    /// Le frasi su "quando rendi meglio" (da tutte le sessioni con un voto) e quante sessioni hanno un voto.
+    private var insights: [String] = []
+    private var totalRated = 0
     /// I rettangoli delle righe dell'elenco, per cliccarle (modifica o elimina).
     private var rowHits: [(rect: NSRect, id: UUID)] = []
 
@@ -82,6 +85,8 @@ final class DashboardView: NSView {
         let today = now()
         summary = StudyStats.summary(sessions: log.sessions, period: period, calendar: calendar)
         streak = StudyStats.streak(sessions: log.sessions, now: today, calendar: calendar)
+        insights = StudyStats.insights(sessions: log.sessions, calendar: calendar)
+        totalRated = log.sessions.filter { $0.rating != nil }.count
         nextButton.isEnabled = !period.contains(today) && period.end <= today.addingTimeInterval(86_400 * 366)
         nextButton.alphaValue = period.contains(today) ? 0.25 : 1
         needsDisplay = true
@@ -209,6 +214,7 @@ final class DashboardView: NSView {
         drawChart(top: 240)
         drawSubjects(top: 392)
         drawSessions(top: 524)
+        drawReflections(top: 668)
     }
 
     private func sectionTitle(_ title: String, y: CGFloat) {
@@ -324,8 +330,17 @@ final class DashboardView: NSView {
             let dot = NSBezierPath(ovalIn: NSRect(x: m, y: y + 5, width: 9, height: 9))
             (session.subject == nil ? Paper.inkLight.withAlphaComponent(0.5) : Paper.color(forSubject: subject)).setFill()
             dot.fill()
-            text(when, at: NSRect(x: m + 18, y: y, width: 130, height: 18), font: NSFont.systemFont(ofSize: 13), color: Paper.inkLight)
-            text(subject, at: NSRect(x: m + 150, y: y, width: 250, height: 18), font: NSFont.systemFont(ofSize: 13))
+            text(when, at: NSRect(x: m + 18, y: y, width: 118, height: 18), font: NSFont.systemFont(ofSize: 13), color: Paper.inkLight)
+            text(subject, at: NSRect(x: m + 142, y: y, width: 118, height: 18), font: NSFont.systemFont(ofSize: 13))
+            let faceX = width - m - 150 - 24
+            if let note = session.note {
+                let noteX = m + 266
+                text(note, at: NSRect(x: noteX, y: y, width: faceX - 8 - noteX, height: 18),
+                     font: NSFont.systemFont(ofSize: 12), color: Paper.inkLight)
+            }
+            if let rating = session.rating {
+                FaceIcon.draw(rating, in: NSRect(x: faceX, y: y + 1, width: 17, height: 17), flipped: true)
+            }
             let minutes = (session.seconds + 30) / 60
             let status = session.completed ? "\(minutes) min" : "\(minutes) min · interrotto"
             text(status, at: NSRect(x: width - m - 150, y: y, width: 150, height: 18),
@@ -335,6 +350,40 @@ final class DashboardView: NSView {
             let extra = summary.sessions.count - shown.count
             text(extra == 1 ? "… e un'altra sessione" : "… e altre \(extra) sessioni", at: NSRect(x: m, y: top + 24 + CGFloat(shown.count) * 23, width: 300, height: 16),
                  font: NSFont.systemFont(ofSize: 12), color: Paper.inkLight)
+        }
+    }
+
+    /// "Com'è andata": quante volte bene, così così, poca testa nel periodo, e quando rendi meglio.
+    private func drawReflections(top: CGFloat) {
+        let width = Self.size.width
+        let m = Self.margin
+        sectionTitle("COM'È ANDATA", y: top)
+        if summary.ratedCount == 0 {
+            let hint = totalRated == 0
+                ? "A fine focus puoi dire com'è andata e cosa hai fatto: qui vedrai quando rendi meglio."
+                : "Nessun focus valutato in questo periodo."
+            text(hint, at: NSRect(x: m, y: top + 26, width: width - 2 * m, height: 18),
+                 font: NSFont.systemFont(ofSize: 13), color: Paper.inkLight)
+        } else {
+            for (i, rating) in FocusRating.allCases.enumerated() {
+                let x = m + CGFloat(i) * 170
+                FaceIcon.draw(rating, in: NSRect(x: x, y: top + 22, width: 24, height: 24), flipped: true)
+                let count = summary.ratingCounts[rating] ?? 0
+                text("\(rating.title) · \(count)", at: NSRect(x: x + 32, y: top + 25, width: 130, height: 18),
+                     font: NSFont.systemFont(ofSize: 13), color: count > 0 ? Paper.ink : Paper.inkLight)
+            }
+        }
+        if insights.isEmpty {
+            if totalRated > 0 && totalRated < StudyStats.minimumRatedForInsights {
+                text("Con qualche focus valutato in più (\(totalRated) su \(StudyStats.minimumRatedForInsights)) vedrai quando rendi meglio.",
+                     at: NSRect(x: m, y: top + 58, width: width - 2 * m, height: 16),
+                     font: NSFont.systemFont(ofSize: 12), color: Paper.inkLight)
+            }
+        } else {
+            for (i, line) in insights.enumerated() {
+                text(line, at: NSRect(x: m, y: top + 56 + CGFloat(i) * 18, width: width - 2 * m, height: 16),
+                     font: NSFont.systemFont(ofSize: 12.5), color: Paper.ink)
+            }
         }
     }
 
@@ -357,20 +406,30 @@ final class DashboardView: NSView {
         let minutes = (session.seconds + 30) / 60
         alert.informativeText = "\(formatted(session.startTime(in: calendar), "EEEE d MMMM, HH:mm")) · \(minutes) min"
 
-        let field = NSTextField(frame: NSRect(x: 0, y: 30, width: 280, height: 24))
+        let field = NSTextField(frame: NSRect(x: 0, y: 30, width: 300, height: 24))
         field.stringValue = session.subject ?? ""
         field.placeholderString = "Materia"
         // Per correggere una materia scritta male (o unirne due) in tutte le sessioni in un colpo solo.
         let everywhere = NSButton(checkboxWithTitle: "", target: nil, action: nil)
-        everywhere.frame = NSRect(x: 0, y: 0, width: 280, height: 22)
+        everywhere.frame = NSRect(x: 0, y: 0, width: 300, height: 22)
         if let subject = session.subject {
             everywhere.title = "Cambia la materia in tutte le sessioni «\(subject)»"
         } else {
             everywhere.isHidden = true
         }
-        let container = NSView(frame: NSRect(x: 0, y: 0, width: 280, height: 58))
+        let noteField = NSTextField(frame: NSRect(x: 0, y: 62, width: 300, height: 24))
+        noteField.stringValue = session.note ?? ""
+        noteField.placeholderString = "Cosa hai fatto? (facoltativo)"
+        let ratingControl = NSSegmentedControl(labels: ["Nessun voto"] + FocusRating.allCases.map { $0.title },
+                                               trackingMode: .selectOne, target: nil, action: nil)
+        ratingControl.controlSize = .small
+        ratingControl.frame = NSRect(x: 0, y: 94, width: 300, height: 24)
+        ratingControl.selectedSegment = session.rating.flatMap { FocusRating.allCases.firstIndex(of: $0) }.map { $0 + 1 } ?? 0
+        let container = NSView(frame: NSRect(x: 0, y: 0, width: 300, height: 122))
         container.addSubview(field)
         container.addSubview(everywhere)
+        container.addSubview(noteField)
+        container.addSubview(ratingControl)
         alert.accessoryView = container
         alert.addButton(withTitle: "Salva")
         alert.addButton(withTitle: "Elimina")
@@ -383,6 +442,9 @@ final class DashboardView: NSView {
             } else {
                 log.setSubject(id: session.id, subject: field.stringValue)
             }
+            let selected = ratingControl.selectedSegment
+            let rating = selected >= 1 ? FocusRating.allCases[selected - 1] : nil
+            log.setReflection(id: session.id, rating: rating, note: noteField.stringValue)
         case .alertSecondButtonReturn:
             log.remove(id: session.id)
         default:
@@ -418,16 +480,7 @@ final class DashboardView: NSView {
     }
 
     static func csv(for sessions: [StudySession]) -> String {
-        func quoted(_ s: String) -> String { "\"" + s.replacingOccurrences(of: "\"", with: "\"\"") + "\"" }
-        let iso = ISO8601DateFormatter()
-        var lines = ["inizio,inizio_locale,minuti,minuti_previsti,completa,materia,personaggio"]
-        for s in sessions {
-            lines.append([
-                iso.string(from: s.start), s.localStart ?? "", "\((s.seconds + 30) / 60)", "\(s.plannedMinutes)",
-                s.completed ? "si" : "no", quoted(s.subject ?? ""), s.pet ?? "",
-            ].joined(separator: ","))
-        }
-        return lines.joined(separator: "\n") + "\n"
+        SessionCSV.csv(for: sessions)
     }
 }
 

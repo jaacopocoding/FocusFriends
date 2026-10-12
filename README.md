@@ -34,10 +34,18 @@ nel suo nido, il Porcellino guarda crescere una carota e, se finisci il focus, l
 | ![Introduzione](docs/images/introduzione.png) | ![Cosa studi adesso?](docs/images/scheda-materia.png) |
 | Alla prima apertura: come ti chiami e chi ti fa compagnia. | All'avvio di un focus: la materia, oppure una recente. |
 
-**Statistiche**: il riepilogo di oggi, della settimana e del mese, con i giorni di fila, i minuti per materia e le ultime sessioni.
+**Com'è andata?**: a fine focus un tocco su una faccia e, se vuoi, una riga su cosa hai fatto. Il tempo da solo
+inganna: così a fine settimana vedi anche *quando* rendi meglio.
 
 <p align="center">
-  <img src="docs/images/statistiche-settimana.png" width="520" alt="Statistiche della settimana">
+  <img src="docs/images/com-e-andata.png" width="420" alt="Com'è andata?">
+</p>
+
+**Statistiche**: il riepilogo di oggi, della settimana e del mese, con i giorni di fila, i minuti per materia,
+le ultime sessioni (con nota e voto) e «Com'è andata».
+
+<p align="center">
+  <img src="docs/images/statistiche-settimana.png" width="560" alt="Statistiche della settimana">
 </p>
 
 **Il giardino**: una piantina per ogni focus finito, per settimana e per mese. Un focus interrotto resta della taglia
@@ -81,6 +89,7 @@ nome) restano sul tuo Mac, in `~/Library/Application Support/FocusFriends/`: nes
 | Statistiche e riepilogo… | La finestra con il riepilogo di oggi e le statistiche della settimana e del mese |
 | Il mio giardino… | Una piantina per ogni focus finito, per settimana e per mese (con il tuo nome: «Il giardino di …») |
 | Il tuo nome… | Cambia il nome che compare nei titoli |
+| Chiedi com'è andata | Se a fine focus compare «Com'è andata?» (spunta = sì) |
 | Frequenza delle frasi ▸ | *Spesso* / *Ogni tanto* / *Raramente* / *Mai* |
 | Personaggio ▸ | Sceglie il personaggio (la scelta resta alla riapertura) |
 | Movimento ▸ | *In movimento* / *Fermo*: per i personaggi che camminano |
@@ -129,7 +138,7 @@ materia, oppure si tocca una di quelle usate di recente per partire subito, oppu
 Ogni focus finisce in un registro (`SessionLog.swift`), un file leggibile in
 `~/Library/Application Support/FocusFriends/sessioni.json`: inizio, ora "sull'orologio" a cui è iniziato,
 minuti fatti davvero, minuti previsti, completo o interrotto, materia, personaggio. È un JSON con la versione del
-formato (`{"version": 1, "sessions": […]}`). Le regole:
+formato (`{"version": 2, "sessions": […]}`). Le regole:
 
 - le pause non contano; un focus **interrotto** conta per i minuti che ha fatto davvero, se sono almeno uno;
 - una sessione che passa la mezzanotte va al giorno in cui è iniziata, **secondo l'orologio di quando l'hai
@@ -145,6 +154,30 @@ formato (`{"version": 1, "sessions": […]}`). Le regole:
   se è di una versione **più nuova** di quella dell'app viene letto ma non riscritto, per non perdere nulla;
 - **cancellare tutto**: *Cancella tutto…* nella finestra delle statistiche elimina le sessioni, il focus in
   corso e anche le copie di sicurezza (con conferma; prima si può esportare in CSV).
+
+### Com'è andata e cosa hai fatto
+
+A fine focus (se è stato completato) compare **«Com'è andata?»** (`ReflectionCard.swift`): tre facce, *Bene*,
+*Così così*, *Poca testa*, e una riga facoltativa «Cosa hai fatto?» (al massimo 80 caratteri). Un tocco su una
+faccia salva e chiude; scrivere solo la nota e premere Invio (o *Fatto*) salva la nota; *Salta* o Esc chiudono
+senza salvare. La scheda sta accanto al personaggio, **non prende la tastiera** (a fine focus potresti stare
+scrivendo altrove: la prende solo se ci clicchi nel campo) e **non blocca niente**: la pausa parte comunque, e se
+la ignori sparisce da sola quando la pausa finisce o parte un altro focus. Non compare per i focus interrotti.
+Il personaggio risponde al voto (con «Poca testa» dice che capita, non fa i complimenti). Si spegne dal menu con
+*Chiedi com'è andata*.
+
+Voto e nota stanno nella sessione (`rating`: `good`, `soso`, `poor`; `note`) e si cambiano toccando la sessione
+nelle statistiche. All'avvio di un focus la scheda della materia ricorda l'ultima nota («L'ultima volta su
+Anatomia: nervi cranici»). In *Statistiche* c'è la sezione **Com'è andata**: quante volte bene / così così /
+poca testa nel periodo e, quando ci sono almeno 8 focus valutati, fino a due frasi su **quando** (fascia della
+giornata, giorno della settimana) o **con cosa** (materia) i focus vanno meglio o peggio, sempre con i
+conteggi («di mattina: 7 focus su 9 sono andati bene»). Un gruppo deve avere almeno 3 focus e distare almeno 20
+punti percentuali dalla media: altrimenti non dice niente, meglio che dire una cosa a caso (`StudyStats.insights`).
+Il CSV ha due colonne in più (`com_e_andata`, `nota`) e i campi di testo che iniziano con `= + - @` hanno un
+apice davanti, così un foglio di calcolo non li prende per formule.
+
+Il formato del file passa alla **versione 2**: un file della versione 1 si legge e si riscrive nel nuovo,
+tenendo intatta la copia del vecchio in `backup/sessioni-formato1.json`.
 
 *Statistiche e riepilogo…* apre una finestra (`DashboardWindow.swift`) con tre schede: **Oggi** (il
 riepilogo della giornata), **Settimana** (da lunedì) e **Mese**. Con le frecce si va ai periodi precedenti.
@@ -295,6 +328,7 @@ Sources/FocusFriends/
   Profile.swift         il nome (solo Foundation, con prove) e i titoli personalizzati
   IntroCard.swift       la scheda di introduzione: nome e compagno
   SubjectPrompt.swift   la scheda "Cosa studi adesso?"
+  ReflectionCard.swift  la scheda "Com'è andata?" a fine focus
   DashboardWindow.swift la finestra delle statistiche (Oggi / Settimana / Mese)
   GardenWindow.swift    il giardino: una piantina per ogni focus, per settimana e per mese
   PaperUI.swift         elementi grafici in comune delle schede (carta, pulsanti, colori delle materie)

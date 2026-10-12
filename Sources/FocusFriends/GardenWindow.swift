@@ -258,7 +258,10 @@ final class GardenView: NSView, NSViewToolTipOwner {
         let minutes = (s.seconds + 30) / 60
         var parts = [formatted(s.startTime(in: calendar), "EEE d MMM, HH:mm"), s.subject ?? Subject.none, "\(minutes) min"]
         if !s.completed { parts.append("interrotto") }
-        return parts.joined(separator: " · ")
+        if let rating = s.rating { parts.append(rating.title) }
+        var text = parts.joined(separator: " · ")
+        if let note = s.note { text += "\n" + note }
+        return text
     }
 
     // MARK: - Disegno

@@ -7,6 +7,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var walker: Walker?
     private var menu: MenuController?
     private let introCard = IntroCard()
+    private let reflectionCard = ReflectionCard()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         Migration.run()
@@ -33,6 +34,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let pomodoro = Pomodoro(petWindow: window, speaker: speaker)
         self.pomodoro = pomodoro
         pomodoro.onFocusCompleted = { [weak walker] in walker?.eatNow() }
+        // A fine focus: "com'è andata?" (se non l'hai spenta dal menu). Sparisce da sola quando il timer riparte o si ferma.
+        pomodoro.onFocusRecorded = { [weak self, weak window, weak speaker] session in
+            guard ReflectionCard.isEnabled, let self, let window else { return }
+            self.reflectionCard.ask(session: session, near: window) { rating in
+                if let rating { speaker?.say(ReflectionCard.reply(for: rating)) }
+            }
+        }
+        pomodoro.onTimerReset = { [weak self] in self?.reflectionCard.dismiss() }
         let menu = MenuController(window: window, speaker: speaker, pomodoro: pomodoro)
         self.menu = menu
 

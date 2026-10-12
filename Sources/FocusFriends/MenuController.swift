@@ -23,6 +23,7 @@ final class MenuController: NSObject, NSMenuDelegate {
     private var petParent: NSMenuItem?
     private let statsItem = NSMenuItem()
     private let subjectPrompt = SubjectPrompt()
+    private let askItem = NSMenuItem()
     private let dashboard = DashboardController()
     private let garden = GardenController()
     private let gardenItem = NSMenuItem()
@@ -100,6 +101,12 @@ final class MenuController: NSObject, NSMenuDelegate {
         nameItem.target = self
         nameItem.image = Self.symbol("person.crop.circle")
         menu.addItem(nameItem)
+
+        askItem.title = "Chiedi com'è andata"
+        askItem.action = #selector(toggleAskHowItWent)
+        askItem.target = self
+        askItem.image = Self.symbol("face.smiling")
+        menu.addItem(askItem)
 
         loginItem.title = "Avvia al login"
         loginItem.action = #selector(toggleLaunchAtLogin)
@@ -284,6 +291,7 @@ final class MenuController: NSObject, NSMenuDelegate {
             item.state = (item.representedObject as? String) == window.pet.id ? .on : .off
         }
         loginItem.state = SMAppService.mainApp.status == .enabled ? .on : .off
+        askItem.state = ReflectionCard.isEnabled ? .on : .off
 
         for item in breakItems {
             item.state = item.tag == pomodoro.breakMinutes ? .on : .off
@@ -307,7 +315,8 @@ final class MenuController: NSObject, NSMenuDelegate {
     /// Prima chiede la materia ("Cosa studi adesso?"), poi parte il focus.
     @objc private func startFocus(_ sender: NSMenuItem) {
         let minutes = sender.tag
-        subjectPrompt.ask(minutes: minutes, recent: SessionLog.shared.recentSubjects(), near: window) { [weak self] choice in
+        subjectPrompt.ask(minutes: minutes, recent: SessionLog.shared.recentSubjects(),
+                          lastNote: SessionLog.shared.lastNote(), near: window) { [weak self] choice in
             guard let self else { return }
             switch choice {
             case .cancel:
@@ -438,6 +447,10 @@ final class MenuController: NSObject, NSMenuDelegate {
         if alert.runModal() == .alertFirstButtonReturn {
             Profile.shared.setName(field.stringValue)
         }
+    }
+
+    @objc private func toggleAskHowItWent() {
+        ReflectionCard.isEnabled.toggle()
     }
 
     @objc private func makeSpeak() {

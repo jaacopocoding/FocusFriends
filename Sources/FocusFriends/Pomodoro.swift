@@ -43,6 +43,10 @@ final class Pomodoro {
     private let log: SessionLog
     /// Chiamata quando un focus finisce davvero (non se lo fermi): il porcellino mangia la carota.
     var onFocusCompleted: (() -> Void)?
+    /// Chiamata con la sessione appena salvata quando un focus finisce davvero ("com'è andata?").
+    var onFocusRecorded: ((StudySession) -> Void)?
+    /// Chiamata quando il timer si ferma o ne parte uno nuovo: la scheda "com'è andata?" non serve più.
+    var onTimerReset: (() -> Void)?
 
     init(petWindow: PetWindow, speaker: Speaker, log: SessionLog = .shared) {
         self.petWindow = petWindow
@@ -69,6 +73,7 @@ final class Pomodoro {
     // MARK: - Comandi
 
     func startFocus(minutes: Int, subject: String? = nil) {
+        onTimerReset?()
         recordFocus(completed: false)     // se ce n'era uno in corso, finisce qui
         self.subject = Subject.clean(subject)
         plannedFocusMinutes = minutes
@@ -112,6 +117,7 @@ final class Pomodoro {
     }
 
     func stop() {
+        onTimerReset?()
         recordFocus(completed: false)
         subject = nil
         ticker?.invalidate()
@@ -184,11 +190,12 @@ final class Pomodoro {
             let breakLength = breakMinutes
             let studied = plannedFocusMinutes
             let finishedSubject = subject
-            recordFocus(completed: true)
+            let recorded = recordFocus(completed: true)
             subject = nil
             begin(.rest, minutes: breakLength)
             speaker.say(Self.focusFinishedMessage(subject: finishedSubject, studiedMinutes: studied, breakMinutes: breakLength))
             onFocusCompleted?()
+            if let recorded { onFocusRecorded?(recorded) }
         case .rest:
             stop()
             speaker.say("Pausa finita! Pronto per un altro giro?")

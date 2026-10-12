@@ -18,9 +18,13 @@ struct StudySession: Codable, Equatable {
     /// Con quale personaggio è stato fatto ("pianty", "porcellino", "ciccio"). Vuoto per le sessioni
     /// registrate prima che esistesse questo campo.
     var pet: String?
+    /// "Com'è andata?" a fine focus. Facoltativo (formato 2).
+    var rating: FocusRating?
+    /// Cosa hai fatto ("cap. 4, nervi cranici"). Facoltativa (formato 2).
+    var note: String?
 
     init(id: UUID = UUID(), start: Date, localStart: String? = nil, seconds: Int, plannedMinutes: Int,
-         completed: Bool, subject: String?, pet: String? = nil) {
+         completed: Bool, subject: String?, pet: String? = nil, rating: FocusRating? = nil, note: String? = nil) {
         self.id = id
         self.start = start
         self.localStart = localStart
@@ -29,6 +33,27 @@ struct StudySession: Codable, Equatable {
         self.completed = completed
         self.subject = subject
         self.pet = pet
+        self.rating = rating
+        self.note = note
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, start, localStart, seconds, plannedMinutes, completed, subject, pet, rating, note
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id)
+        start = try c.decode(Date.self, forKey: .start)
+        localStart = try c.decodeIfPresent(String.self, forKey: .localStart)
+        seconds = try c.decode(Int.self, forKey: .seconds)
+        plannedMinutes = try c.decode(Int.self, forKey: .plannedMinutes)
+        completed = try c.decode(Bool.self, forKey: .completed)
+        subject = try c.decodeIfPresent(String.self, forKey: .subject)
+        pet = try c.decodeIfPresent(String.self, forKey: .pet)
+        // Un voto che non conosco (scritto da una versione futura) non deve rendere illeggibile il file.
+        rating = try? c.decodeIfPresent(FocusRating.self, forKey: .rating)
+        note = try c.decodeIfPresent(String.self, forKey: .note)
     }
 
     /// L'istante in cui è iniziata, letto "sull'orologio" nel fuso del calendario dato: se la sessione ha
@@ -73,6 +98,35 @@ enum GardenRules {
     }
 }
 
+/// "Com'è andata?": tre livelli, abbastanza per vedere i modelli senza dover pensare.
+enum FocusRating: String, Codable, CaseIterable {
+    case good, soso, poor
+
+    var title: String {
+        switch self {
+        case .good: return "Bene"
+        case .soso: return "Così così"
+        case .poor: return "Poca testa"
+        }
+    }
+}
+
+/// La riga facoltativa "cosa hai fatto" di un focus.
+enum SessionNote {
+    static let maxLength = 80
+
+    /// Spazi in eccesso e caratteri di controllo tolti, al massimo `maxLength` caratteri; vuota = nessuna nota.
+    static func clean(_ text: String?) -> String? {
+        guard let text else { return nil }
+        let words = text.split(whereSeparator: { $0.isWhitespace || $0.isNewline }).map { word in
+            String(String.UnicodeScalarView(word.unicodeScalars.filter { !CharacterSet.controlCharacters.contains($0) }))
+        }
+        let joined = words.filter { !$0.isEmpty }.joined(separator: " ")
+        guard !joined.isEmpty else { return nil }
+        return String(joined.prefix(maxLength))
+    }
+}
+
 enum Subject {
     /// Come si chiama, nelle statistiche, chi non ha scritto la materia.
     static let none = "Senza materia"
@@ -103,12 +157,13 @@ private struct LogFile: Codable {
 /// Il file con tutte le sessioni, più un piccolo file "in corso" per non perdere un focus se l'app si chiude di colpo.
 ///
 /// Cartella dei dati:
-///   sessioni.json        { "version": 1, "sessions": [...] }
+///   sessioni.json        { "version": 2, "sessions": [...] }
 ///   in-corso.json        il focus in corso (sparisce quando finisce)
 ///   backup/              una copia al giorno (le ultime 7), fatta prima della prima modifica della giornata
 final class SessionLog {
     /// La versione del formato di `sessioni.json` che questa app scrive.
-    static let formatVersion = 1
+    /// 2: le sessioni possono avere `rating` e `note`.
+    static let formatVersion = 2
     /// Un focus interrotto sotto il minuto non conta.
     static let minimumSeconds = 60
     /// Quante copie di sicurezza tenere.
@@ -175,7 +230,14 @@ final class SessionLog {
 
         if let wrapped = try? decoder.decode(LogFile.self, from: data) {
             sessions = wrapped.sessions
-            if wrapped.version > Self.formatVersion { isReadOnly = true }
+            if wrapped.version > Self.formatVersion {
+                isReadOnly = true
+            } else if wrapped.version < Self.formatVersion {
+                // Passo a un formato nuovo: tengo intatta la copia di quello vecchio.
+                try? FileManager.default.createDirectory(at: backupDirectory, withIntermediateDirectories: true)
+                try? data.write(to: backupDirectory.appendingPathComponent("sessioni-formato\(wrapped.version).json"), options: .atomic)
+                needsSave = true
+            }
         } else if let legacy = try? decoder.decode([StudySession].self, from: data) {
             // Formato precedente (la sola lista): tengo una copia intatta e passo al nuovo.
             try? FileManager.default.createDirectory(at: backupDirectory, withIntermediateDirectories: true)
@@ -288,6 +350,22 @@ final class SessionLog {
         guard !isReadOnly, let index = sessions.firstIndex(where: { $0.id == id }) else { return }
         sessions[index].subject = canonicalSubject(Subject.clean(subject))
         save()
+    }
+
+    /// "Com'è andata" e "cosa hai fatto" di una sessione (nil = niente).
+    func setReflection(id: UUID, rating: FocusRating?, note: String?) {
+        guard !isReadOnly, let index = sessions.firstIndex(where: { $0.id == id }) else { return }
+        sessions[index].rating = rating
+        sessions[index].note = SessionNote.clean(note)
+        save()
+    }
+
+    /// L'ultima nota scritta, con la sua materia: "L'ultima volta su Anatomia: nervi cranici".
+    func lastNote() -> (subject: String?, note: String)? {
+        for session in sessions.reversed() {
+            if let note = session.note, !note.isEmpty { return (session.subject, note) }
+        }
+        return nil
     }
 
     /// Rinomina una materia in tutte le sessioni (anche quelle scritte con maiuscole diverse). Se esiste già
@@ -446,6 +524,9 @@ struct StudySummary {
     var buckets: [StudyBucket] = []
     /// Le sessioni del periodo, dalla più recente.
     var sessions: [StudySession] = []
+    /// Quante sessioni del periodo hanno ciascun voto.
+    var ratingCounts: [FocusRating: Int] = [:]
+    var ratedCount: Int { ratingCounts.values.reduce(0, +) }
 }
 
 enum StudyStats {
@@ -459,6 +540,9 @@ enum StudyStats {
         summary.completedCount = inPeriod.filter { $0.completed }.count
         summary.interruptedCount = summary.focusCount - summary.completedCount
         summary.totalSeconds = inPeriod.reduce(0) { $0 + $1.seconds }
+        for session in inPeriod {
+            if let rating = session.rating { summary.ratingCounts[rating, default: 0] += 1 }
+        }
 
         // Le materie si raggruppano senza distinguere maiuscole e accenti; si mostra la scrittura più recente.
         var secondsByKey: [String: Int] = [:]
@@ -509,6 +593,92 @@ enum StudyStats {
         return count
     }
 
+    // MARK: - Quando rendi meglio
+
+    /// Quante sessioni con un voto servono prima di tirare delle conclusioni.
+    static let minimumRatedForInsights = 8
+    /// Quante ne servono in un gruppo (una fascia, un giorno, una materia) per confrontarlo con gli altri.
+    static let minimumPerGroup = 3
+    /// Quanto deve distare un gruppo dalla media (in quota di "bene") per essere citato.
+    static let minimumGap = 0.2
+
+    /// Le fasce della giornata, per `hour` (0...23).
+    static func daySlot(hour: Int) -> String {
+        switch hour {
+        case 6..<12: return "di mattina"
+        case 12..<18: return "nel pomeriggio"
+        case 18..<24: return "di sera"
+        default: return "di notte"
+        }
+    }
+
+    /// Fino a due frasi sul perché-quando-con-cosa i focus vanno meglio o peggio, con i conteggi, oppure
+    /// niente se i dati sono pochi (meglio tacere che dire una cosa a caso).
+    static func insights(sessions: [StudySession], calendar: Calendar = StudyPeriod.calendar()) -> [String] {
+        let rated = sessions.filter { $0.rating != nil }
+        guard rated.count >= minimumRatedForInsights else { return [] }
+        let overall = Double(rated.filter { $0.rating == .good }.count) / Double(rated.count)
+
+        struct Candidate { var gap: Double; var text: String; var dimension: Int }
+        var candidates: [Candidate] = []
+
+        func evaluate(dimension: Int, key: (StudySession) -> String?, display: (String) -> String,
+                      best: (String, Int, Int) -> String, worst: (String, Int, Int) -> String) {
+            var groups: [String: (good: Int, total: Int)] = [:]
+            for s in rated {
+                guard let k = key(s) else { continue }
+                var g = groups[k] ?? (0, 0)
+                g.total += 1
+                if s.rating == .good { g.good += 1 }
+                groups[k] = g
+            }
+            let usable = groups.filter { $0.value.total >= minimumPerGroup }
+            // Dal migliore e dal peggiore: ordino anche per nome per avere sempre lo stesso risultato.
+            let scored = usable.map { (key: $0.key, share: Double($0.value.good) / Double($0.value.total), good: $0.value.good, total: $0.value.total) }
+                .sorted { $0.share != $1.share ? $0.share > $1.share : $0.key < $1.key }
+            if let top = scored.first, top.share - overall >= minimumGap, scored.count > 1 {
+                candidates.append(Candidate(gap: top.share - overall, text: best(display(top.key), top.good, top.total), dimension: dimension))
+            }
+            if let low = scored.last, overall - low.share >= minimumGap, scored.count > 1 {
+                candidates.append(Candidate(gap: overall - low.share, text: worst(display(low.key), low.good, low.total), dimension: dimension))
+            }
+        }
+
+        // Fascia della giornata
+        evaluate(dimension: 0,
+                 key: { daySlot(hour: calendar.component(.hour, from: $0.startTime(in: calendar))) },
+                 display: { $0 },
+                 best: { "Rendi meglio \($0): \($1) focus su \($2) sono andati bene." },
+                 worst: { "Rendi meno \($0): \($1) focus su \($2) sono andati bene." })
+        // Giorno della settimana
+        evaluate(dimension: 1,
+                 key: { "\(calendar.component(.weekday, from: $0.startTime(in: calendar)))" },
+                 display: { weekdayName(Int($0) ?? 1) },
+                 best: { "Il \($0) rendi meglio: \($1) focus su \($2) sono andati bene." },
+                 worst: { "Il \($0) fai più fatica: \($1) focus su \($2) sono andati bene." })
+        // Materia
+        evaluate(dimension: 2,
+                 key: { $0.subject.map { Subject.key($0) } },
+                 display: { key in rated.first(where: { $0.subject.map { Subject.key($0) } == key })?.subject ?? key },
+                 best: { "Con \($0) vai bene: \($1) focus su \($2) sono andati bene." },
+                 worst: { "Con \($0) fai più fatica: \($1) focus su \($2) sono andati bene." })
+
+        var result: [String] = []
+        var usedDimensions = Set<Int>()
+        for c in candidates.sorted(by: { $0.gap != $1.gap ? $0.gap > $1.gap : $0.text < $1.text }) {
+            guard !usedDimensions.contains(c.dimension) else { continue }
+            usedDimensions.insert(c.dimension)
+            result.append(c.text)
+            if result.count == 2 { break }
+        }
+        return result
+    }
+
+    /// Il giorno della settimana (1 = domenica, come in Calendar) in italiano.
+    static func weekdayName(_ weekday: Int) -> String {
+        ["domenica", "lunedì", "martedì", "mercoledì", "giovedì", "venerdì", "sabato"][max(0, min(6, weekday - 1))]
+    }
+
     // MARK: - Testi
 
     /// "3 h 20", "45 min", "2 h", "0 min".
@@ -538,5 +708,32 @@ enum StudyStats {
         case 120..<240: return "Una giornata di studio bella piena. Complimenti!"
         default: return "Una giornata di studio davvero lunga: ricordati di riposare."
         }
+    }
+}
+
+// MARK: - Esportazione
+
+enum SessionCSV {
+    static let header = "inizio,inizio_locale,minuti,minuti_previsti,completa,materia,personaggio,com_e_andata,nota"
+
+    /// Un campo di testo tra virgolette. Se comincia con un carattere che un foglio di calcolo prende per una
+    /// formula (= + - @) gli metto davanti un apice, così non viene eseguito.
+    static func quoted(_ text: String) -> String {
+        var value = text
+        if let first = value.unicodeScalars.first, "=+-@\t\r".unicodeScalars.contains(first) { value = "'" + value }
+        return "\"" + value.replacingOccurrences(of: "\"", with: "\"\"") + "\""
+    }
+
+    static func csv(for sessions: [StudySession]) -> String {
+        let iso = ISO8601DateFormatter()
+        var lines = [header]
+        for s in sessions {
+            lines.append([
+                iso.string(from: s.start), s.localStart ?? "", "\((s.seconds + 30) / 60)", "\(s.plannedMinutes)",
+                s.completed ? "si" : "no", quoted(s.subject ?? ""), s.pet ?? "",
+                s.rating?.rawValue ?? "", quoted(s.note ?? ""),
+            ].joined(separator: ","))
+        }
+        return lines.joined(separator: "\n") + "\n"
     }
 }
