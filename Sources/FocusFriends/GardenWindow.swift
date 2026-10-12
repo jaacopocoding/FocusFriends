@@ -3,7 +3,7 @@ import AppKit
 /// Il giardino: ogni focus finito è una piantina, che cresce con i minuti studiati. Una aiuola per giorno;
 /// la scheda "Settimana" le mostra grandi, "Mese" in un calendario. Si ricava tutto dal registro delle sessioni.
 final class GardenView: NSView, NSViewToolTipOwner {
-    static let size = NSSize(width: 1000, height: 580)
+    static let size = NSSize(width: 1000, height: 540)
     private static let margin: CGFloat = 28
 
     override var isFlipped: Bool { true }
@@ -162,7 +162,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
     private func layoutWeek(today: Date) {
         let m = Self.margin
         let columnWidth = (Self.size.width - 2 * m) / 7
-        let baseY: CGFloat = 392
+        let baseY: CGFloat = 340
         let plantHeight: CGFloat = 112
         for i in 0..<7 {
             guard let dayStart = calendar.date(byAdding: .day, value: i, to: period.start) else { continue }
@@ -206,12 +206,15 @@ final class GardenView: NSView, NSViewToolTipOwner {
     private func layoutMonth(today: Date) {
         let m = Self.margin
         let cellWidth = (Self.size.width - 2 * m) / 7
-        let cellHeight: CGFloat = 78
-        let top: CGFloat = 150
+        let top: CGFloat = 140
         guard let days = calendar.range(of: .day, in: .month, for: period.start) else { return }
         // Colonna del primo giorno (la settimana parte dal lunedì).
         let weekday = calendar.component(.weekday, from: period.start)           // 1 = domenica
         let offset = (weekday + 5) % 7                                           // 0 = lunedì
+        // Cinque o sei righe: le celle si adattano, così il mese sta sempre nella finestra.
+        let rows = (offset + days.count + 6) / 7
+        let cellHeight = min(78, (Self.size.height - top - 58) / CGFloat(rows))     // 58: lo spazio per la legenda in fondo
+        let plantHeight = min(54, cellHeight - 20)
         for (n, day) in days.enumerated() {
             guard let dayStart = calendar.date(byAdding: .day, value: n, to: period.start) else { continue }
             let slot = offset + n
@@ -223,7 +226,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
             for (k, session) in shown.enumerated() {
                 let cx = cell.midX + (CGFloat(k) - CGFloat(shown.count - 1) / 2) * spacing
                 plants.append(Plant(
-                    rect: plantRect(centerX: cx, feetY: cell.maxY - 8, height: 54),
+                    rect: plantRect(centerX: cx, feetY: cell.maxY - 7, height: plantHeight),
                     stage: GardenRules.stage(for: session), session: session, showsDot: false
                 ))
             }
@@ -281,7 +284,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
         let when = kind == .week ? "in questa settimana" : "in questo mese"
         let summary = totalPlants == 0
             ? "Il giardino è ancora vuoto: ogni focus che finisci pianta una piantina."
-            : "\(plantsWord) \(when) · \(StudyStats.duration(seconds: totalSeconds)) di studio. Un focus finito è una pianta adulta; se lo interrompi resta della taglia raggiunta."
+            : "\(plantsWord) \(when) · \(StudyStats.duration(seconds: totalSeconds)) di studio."
         text(summary, at: NSRect(x: m, y: 100, width: width - 2 * m - 200, height: 20),
              font: NSFont.systemFont(ofSize: 14), color: Paper.inkLight)
         let badge = NSRect(x: width - m - 180, y: 12, width: 180, height: 44)
@@ -344,13 +347,18 @@ final class GardenView: NSView, NSViewToolTipOwner {
                      font: NSFont.systemFont(ofSize: 11, weight: .bold), color: Paper.accent, alignment: .right)
             }
         }
-        if kind == .week, totalPlants > 0 {
-            text("Il pallino sotto il vaso è la materia; con il bordo arancione il focus è stato interrotto. Passa il mouse su una piantina per i dettagli.",
-                 at: NSRect(x: m, y: Self.size.height - 40, width: width - 2 * m, height: 18),
+        if totalPlants > 0 {
+            text("Un focus finito è una pianta adulta; se lo interrompi resta della taglia raggiunta (bordo arancione).",
+                 at: NSRect(x: m, y: Self.size.height - 48, width: width - 2 * m, height: 18),
+                 font: NSFont.systemFont(ofSize: 12), color: Paper.inkLight)
+            let hint = kind == .week
+                ? "Il pallino sotto il vaso è la materia. Passa il mouse su una piantina per i dettagli."
+                : "Passa il mouse su una piantina per i dettagli."
+            text(hint, at: NSRect(x: m, y: Self.size.height - 30, width: width - 2 * m, height: 18),
                  font: NSFont.systemFont(ofSize: 12), color: Paper.inkLight)
         }
         if totalPlants == 0 {
-            let y: CGFloat = kind == .week ? 260 : 320
+            let y: CGFloat = kind == .week ? 220 : 300
             text("Ancora nessuna piantina in questo periodo.", at: NSRect(x: m, y: y, width: width - 2 * m, height: 24),
                  font: Paper.markerFont(20), color: Paper.inkLight, alignment: .center)
         }

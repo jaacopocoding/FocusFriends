@@ -1,12 +1,68 @@
-# FocusFriends
+<p align="center">
+  <img src="assets/AppIcon.png" width="120" alt="FocusFriends">
+</p>
 
-Un piccolo personaggio che se ne sta sul desktop del Mac, ti accompagna nel Pomofocus e ogni tanto dice una
-frase gentile. Si sceglie dal menu:
+<h1 align="center">FocusFriends</h1>
+
+<p align="center">
+  Un compagno che vive sul desktop del Mac, ti tiene compagnia mentre studi e cresce con il tuo tempo di focus.<br>
+  Pomodoro, materie, statistiche e un giardino con una piantina per ogni focus finito.
+</p>
+
+<p align="center">
+  <img src="docs/images/compagni.png" width="720" alt="Pianty, Porcellino e Ciccio">
+</p>
+
+## I compagni
 
 - **Pianty**, una succulenta con due piedini: cresce mentre lavori (parte da un seme e, man mano che il tempo
   del focus passa, diventa una pianta adulta) e cammina per lo schermo. È il personaggio di partenza.
 - **Porcellino**, una cavia che cammina per lo schermo, mangia la carota, fa i pisolini e saltella, con frasi sue.
 - **Ciccio**, una cocorita che cammina e ogni tanto sbatte le ali, con frasi sue.
+
+Durante un focus ognuno ha il suo modo di crescere con te: Pianty da seme a pianta, Ciccio da uovo a cocorita
+nel suo nido, il Porcellino guarda crescere una carota e, se finisci il focus, la mangia.
+
+<p align="center">
+  <img src="docs/images/crescita.png" width="720" alt="Gli stadi di crescita durante un focus">
+</p>
+
+## Un'occhiata
+
+| | |
+|---|---|
+| ![Introduzione](docs/images/introduzione.png) | ![Cosa studi adesso?](docs/images/scheda-materia.png) |
+| Alla prima apertura: come ti chiami e chi ti fa compagnia. | All'avvio di un focus: la materia, oppure una recente. |
+
+**Statistiche**: il riepilogo di oggi, della settimana e del mese, con i giorni di fila, i minuti per materia e le ultime sessioni.
+
+<p align="center">
+  <img src="docs/images/statistiche-settimana.png" width="520" alt="Statistiche della settimana">
+</p>
+
+**Il giardino**: una piantina per ogni focus finito, per settimana e per mese. Un focus interrotto resta della taglia
+raggiunta (bordo arancione).
+
+<p align="center">
+  <img src="docs/images/giardino-settimana.png" width="640" alt="Il giardino, settimana">
+  <img src="docs/images/giardino-mese.png" width="640" alt="Il giardino, mese">
+</p>
+
+> Le schermate usano dati di esempio.
+
+## Scaricare e usare
+
+1. Scarica `FocusFriends-0.1.0-macOS.zip` dalla pagina delle [Releases](https://github.com/jaacopocoding/FocusFriends/releases) e decomprimilo.
+2. Trascina **FocusFriends** in *Applicazioni* e aprilo (macOS 13 o successivo, Apple Silicon e Intel).
+3. L'app non è firmata con un account sviluppatore Apple, quindi la prima volta macOS potrebbe rifiutarla.
+   Fai clic destro sull'app → **Apri** → **Apri**, oppure da Terminale:
+
+   ```bash
+   xattr -dr com.apple.quarantine /Applications/FocusFriends.app
+   ```
+
+Non ha icona nel Dock: la trovi nella barra dei menu e con il tasto destro sul personaggio. I dati (sessioni,
+nome) restano sul tuo Mac, in `~/Library/Application Support/FocusFriends/`: nessuna rete, nessun invio.
 
 ## Cosa fa
 
@@ -184,7 +240,7 @@ Dopo una sosta riparte sempre a camminare. Non dipendono dal Pomofocus. Quando l
 viene sollevato da due mani, spaventato (con un leggero tremolio); lasciandolo, torna in piedi dove si trova. Vale per il
 Porcellino, per Pianty (che lo mostra allo stadio finale, con la pianta adulta) e per Ciccio.
 
-## Installazione
+## Compilare dai sorgenti
 
 Serve macOS 13 o successivo e gli strumenti da riga di comando di Xcode (`xcode-select --install`).
 
