@@ -501,8 +501,17 @@ final class MenuCard: NSObject {
         }
     }
 
+    /// Dove si è aperta l'ultima volta: per riaprirla da qui quando si torna indietro da un'altra schermata.
+    private var lastAnchor: Anchor?
+
+    /// Riapre la scheda dov'era (o, se non c'era, di fianco al personaggio dato).
+    func reopen(fallback: Anchor) {
+        show(anchor: lastAnchor ?? fallback)
+    }
+
     func show(anchor: Anchor) {
         guard panel == nil else { return }
+        lastAnchor = anchor
         let view = MenuCardView(
             state: provide, actions: actions,
             perform: { [weak self] close, action in

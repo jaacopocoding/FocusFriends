@@ -245,3 +245,35 @@ final class RatingButton: NSButton {
         )
     }
 }
+
+// MARK: - Torna al menu
+
+/// "‹ Menu" nella barra del titolo di una finestra: chiude la finestra e riapre la scheda del menu.
+final class BackToMenuAccessory: NSTitlebarAccessoryViewController {
+    private let onBack: () -> Void
+
+    init(onBack: @escaping () -> Void) {
+        self.onBack = onBack
+        super.init(nibName: nil, bundle: nil)
+        layoutAttribute = .left
+    }
+
+    required init?(coder: NSCoder) { nil }
+
+    override func loadView() {
+        let button = NSButton(title: " Menu", target: self, action: #selector(pressed))
+        button.image = NSImage(systemSymbolName: "chevron.left", accessibilityDescription: nil)
+        button.imagePosition = .imageLeading
+        button.isBordered = false
+        button.font = NSFont.systemFont(ofSize: 13, weight: .medium)
+        button.contentTintColor = Paper.inkLight
+        button.toolTip = "Torna al menu"
+        button.setAccessibilityLabel("Torna al menu")
+        button.frame = NSRect(x: 6, y: 0, width: 78, height: 26)
+        let box = NSView(frame: NSRect(x: 0, y: 0, width: 90, height: 26))
+        box.addSubview(button)
+        view = box
+    }
+
+    @objc private func pressed() { onBack() }
+}

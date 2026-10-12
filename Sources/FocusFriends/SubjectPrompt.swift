@@ -6,6 +6,8 @@ final class SubjectPrompt: NSObject {
     enum Choice {
         case start(subject: String?)
         case cancel
+        /// La freccia: torna alla scheda del menu.
+        case back
     }
 
     private static let width: CGFloat = 400
@@ -51,7 +53,22 @@ final class SubjectPrompt: NSObject {
         field.widthAnchor.constraint(equalToConstant: Self.width - 56).isActive = true
         self.field = field
 
-        var views: [NSView] = [title, subtitle, field]
+        // La freccia a sinistra del titolo: torna al menu senza chiudere tutto.
+        let back = NSButton(image: NSImage(systemSymbolName: "chevron.left", accessibilityDescription: "Torna al menu") ?? NSImage(),
+                            target: self, action: #selector(backPressed))
+        back.isBordered = false
+        back.imagePosition = .imageOnly
+        back.contentTintColor = Paper.inkLight
+        back.toolTip = "Torna al menu"
+        back.translatesAutoresizingMaskIntoConstraints = false
+        back.widthAnchor.constraint(equalToConstant: 26).isActive = true
+        back.heightAnchor.constraint(equalToConstant: 26).isActive = true
+        let titleRow = NSStackView(views: [back, title])
+        titleRow.orientation = .horizontal
+        titleRow.spacing = 4
+        titleRow.alignment = .centerY
+
+        var views: [NSView] = [titleRow, subtitle, field]
         if !recent.isEmpty {
             let hint = NSTextField(labelWithString: "Tocca una materia recente per iniziare subito")
             hint.font = NSFont.systemFont(ofSize: 12)
@@ -100,7 +117,7 @@ final class SubjectPrompt: NSObject {
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 10
-        stack.setCustomSpacing(2, after: title)
+        stack.setCustomSpacing(2, after: titleRow)
         stack.setCustomSpacing(16, after: subtitle)
         stack.setCustomSpacing(14, after: field)
         stack.setCustomSpacing(18, after: views[views.count - 2])
@@ -150,6 +167,10 @@ final class SubjectPrompt: NSObject {
 
     @objc private func startPressed() {
         finish(.start(subject: Subject.clean(field?.stringValue)))
+    }
+
+    @objc private func backPressed() {
+        finish(.back)
     }
 
     @objc private func skipPressed() {

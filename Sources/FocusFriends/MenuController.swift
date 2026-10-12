@@ -135,6 +135,8 @@ final class MenuController: NSObject, NSMenuDelegate {
 
         // Clic sull'icona o tasto destro sul personaggio: la scheda. Tasto destro o ⌥-clic sull'icona: il menu di prima.
         card = MenuCard(state: { [unowned self] in self.cardState() }, actions: cardActions())
+        dashboard.onBack = { [weak self] in self?.returnToMenu() }
+        garden.onBack = { [weak self] in self?.returnToMenu() }
         statusItem.button?.target = self
         statusItem.button?.action = #selector(statusItemClicked(_:))
         statusItem.button?.sendAction(on: [.leftMouseUp, .rightMouseUp])
@@ -328,6 +330,8 @@ final class MenuController: NSObject, NSMenuDelegate {
             switch choice {
             case .cancel:
                 break
+            case .back:
+                self.returnToMenu()
             case .start(let subject):
                 self.showPetIfHidden()
                 self.pomodoro.startFocus(minutes: minutes, subject: subject)
@@ -348,6 +352,11 @@ final class MenuController: NSObject, NSMenuDelegate {
         } else if let frame = sender.window?.frame {
             card.toggle(anchor: .below(frame))
         }
+    }
+
+    /// La freccia indietro delle altre schermate (materia, statistiche, giardino): si richiude quella e torna la scheda.
+    private func returnToMenu() {
+        card.reopen(fallback: .beside(window))
     }
 
     private func showCardNearPet() {

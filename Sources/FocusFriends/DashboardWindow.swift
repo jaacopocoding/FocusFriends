@@ -488,6 +488,8 @@ final class DashboardView: NSView {
 final class DashboardController {
     private var window: NSWindow?
     private var view: DashboardView?
+    /// Chiamata dalla freccia "‹ Menu" nella barra del titolo: la finestra si chiude e si torna alla scheda del menu.
+    var onBack: (() -> Void)?
 
     func show(kind: PeriodKind = .day) {
         if window == nil {
@@ -503,6 +505,10 @@ final class DashboardController {
             window.isReleasedWhenClosed = false
             window.backgroundColor = Paper.paper
             window.appearance = NSAppearance(named: .aqua)
+            window.addTitlebarAccessoryViewController(BackToMenuAccessory { [weak self, weak window] in
+                window?.orderOut(nil)
+                self?.onBack?()
+            })
             window.center()
             self.window = window
             self.view = view
