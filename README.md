@@ -354,8 +354,9 @@ Si sceglie dalla scheda del menu (riga *Musica*, con il suo cursore del volume) 
 - **La mia cartella**: l'app suona i file audio (mp3, m4a, aac, wav, aiff, flac) di una cartella che scegli tu, anche
   nelle sottocartelle. Non viene copiato né inviato niente: i file restano dove sono. La prima volta chiede la
   cartella; si cambia da *Musica ▸ Scegli la cartella…*.
-- **Brani inclusi**: quando ci sono, qualche brano con licenza libera (CC0 o CC-BY) è dentro l'app, con autore,
-  fonte e licenza nel file `CREDITS.md`.
+- **Brani inclusi**: cinque brani strumentali e calmi (*Boredom*, *Love*, *Night Driving*, *Old Age*, *Opinions*) di
+  **HoliznaCC0**, pubblicati in pubblico dominio con la licenza **CC0**. Autore, fonti e licenza sono nel file
+  [`CREDITS.md`](CREDITS.md). Lo zip dell'app passa da circa 8 a circa 21 MB.
 
 Il volume di partenza è basso (30%), e musica e suono ambiente si possono accendere insieme (ognuno con il suo
 volume). Il codice è in `MusicPlayer.swift` (riproduzione) e `MusicLibrary.swift` (quali file e in che ordine, con le prove).
