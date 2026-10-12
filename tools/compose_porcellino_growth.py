@@ -8,9 +8,9 @@ Legge assets/porcellino/frame1.png (il porcellino a riposo) e le cinque carote d
 <cartella>/growth_porcellino_1..5.png.
 
 Il soggetto è la carota: la matura occupa quasi tutta l'altezza della finestra, mentre il porcellino è più
-piccolo e sta a guardarla. La tela è larga abbastanza per la carota a destra e a sinistra di lui, con il
-porcellino al centro: se la finestra si allarga attorno ai suoi piedi, lui non si sposta; quando guarda a
-sinistra l'immagine viene specchiata e la carota è comunque davanti a lui.
+piccolo e sta a guardarla. Il GRUPPO porcellino + carota sta al centro della tela, e quindi sopra l'orologio
+(che sta centrato sotto la finestra). Quando guarda a sinistra l'immagine viene specchiata e la carota è
+comunque davanti a lui.
 """
 import sys
 from PIL import Image
@@ -35,23 +35,24 @@ scale = RIPE_HEIGHT / (ripe[3] - ripe[1])        # stessa scala per tutti gli st
 scaled = [c.resize((round(c.width * scale), round(c.height * scale)), Image.LANCZOS) for c in carrots]
 carrot_w = max(s.getbbox()[2] - s.getbbox()[0] for s in scaled)
 
-pad = carrot_w + GAP + 6                            # a ogni lato del porcellino, per la carota
-W = W_PIG + 2 * pad
+# Il gruppo porcellino + carota sta al CENTRO della tela: così, sotto il timer, il gruppo è centrato
+# (e la finestra si allarga attorno a quel centro).
+MARGIN = 10
+union_w = (pb[2] - pb[0]) + GAP + carrot_w
+W = union_w + 2 * MARGIN
 feet_y = round(H * (1 - GROUND_FRACTION))
 print(f"porcellino x{PIG_SCALE}, carota matura {RIPE_HEIGHT}px (scala {scale:.2f}), tela {W}x{H}")
 
-pig_x = (W - pig_small.width) // 2
+pig_x = MARGIN - pb[0]                        # il porcellino a sinistra del gruppo
 pig_y = feet_y - round(pig_small.height * (1 - GROUND_FRACTION))
-pig_right = pig_x + pb[2]
+carrot_center = MARGIN + (pb[2] - pb[0]) + GAP + carrot_w / 2.0   # sempre lo stesso: la carota cresce sul posto
 
 for i, s in enumerate(scaled, 1):
     canvas = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     canvas.paste(pig_small, (pig_x, pig_y), pig_small)
     bb = s.getbbox()
     s_feet = round(s.height * (1 - FEET_IN_GARDEN_CANVAS))
-    # il centro della carota a destra del muso, la sua base sulla linea di terra
-    center_src = (bb[0] + bb[2]) / 2.0
-    x = pig_right + GAP + (bb[2] - bb[0]) / 2.0 - center_src
+    x = carrot_center - (bb[0] + bb[2]) / 2.0     # il centro della carota sul suo punto fisso
     y = feet_y - s_feet
     canvas.paste(s, (int(round(x)), int(round(y))), s)
     canvas.save(f"{FOLDER}/growth_porcellino_{i}.png")

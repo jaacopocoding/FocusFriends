@@ -153,6 +153,7 @@ final class Pomodoro {
         // Il personaggio si alza subito (se serve) e resta lì per tutta la sessione: così la posizione
         // non cambia quando l'orologio compare e scompare.
         ensureRoomBelowPet()
+        snapClockToPet()      // l'orologio segue il personaggio (e il suo "piano" quando cambia l'immagine)
         evaluateVisibility()
 
         ticker?.invalidate()
@@ -259,13 +260,17 @@ final class Pomodoro {
     // MARK: - Finestra del timer (tendina)
 
     /// Posizione dell'orologio a grandezza piena: centrato appena sotto i piedi del personaggio.
+    /// Quando il personaggio mostra le immagini di crescita (la carota, il nido) l'orologio sta un po' più in basso,
+    /// così non copre le zampe e le ombre.
+    private var clockDrop: CGFloat { petWindow.isShowingFocusGrowth ? 12 : 0 }
+
     private func fullFrame() -> NSRect {
         let size = TimerWindow.size
         let screen = (petWindow.screen ?? NSScreen.main)?.visibleFrame ?? .zero
         let anchor = petWindow.frame
         var x = anchor.midX - size.width / 2
         x = min(max(x, screen.minX + 4), screen.maxX - size.width - 4)
-        return NSRect(x: x, y: petWindow.feetY - size.height + 4, width: size.width, height: size.height)
+        return NSRect(x: x, y: petWindow.feetY - size.height + 4 - clockDrop, width: size.width, height: size.height)
     }
 
     private func reveal() {
@@ -318,7 +323,7 @@ final class Pomodoro {
     private func ensureRoomBelowPet() {
         guard !petWindow.isPicked else { return }   // mentre lo trascini la posizione la decide il mouse
         let screen = (petWindow.screen ?? NSScreen.main)?.visibleFrame ?? .zero
-        let needed = TimerWindow.size.height - 4
+        let needed = TimerWindow.size.height - 4 + clockDrop
         let room = petWindow.feetY - screen.minY
         guard room < needed else { return }
 
