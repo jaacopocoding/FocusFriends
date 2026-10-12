@@ -85,7 +85,7 @@ Un clic sull'icona nella barra dei menu (o il tasto destro sul personaggio) apre
 (`MenuCard.swift`): il compagno sbuca dal bordo, e sotto ci sono i compagni (tocca un nome per cambiarlo), i
 focus da 30 e 50 minuti e la pausa, il riepilogo di oggi, *Giardino* e *Statistiche* e le impostazioni più usate.
 Toccando il compagno parla; mentre il timer va, al posto dei tre pulsanti c'è il tempo che manca e *Ferma*.
-Si chiude con un clic fuori o con Esc. *Altri timer…* e *Altre impostazioni…* aprono il menu classico, che si
+Se l'hai aperta dal personaggio, **lo segue** quando cammina o lo trascini (passa dall'altro lato se arriva al bordo dello schermo). Si chiude con un clic fuori o con Esc. *Altri timer…* e *Altre impostazioni…* aprono il menu classico, che si
 apre anche con il tasto destro (o ⌥-clic) sull'icona nella barra dei menu:
 
 <p align="center">

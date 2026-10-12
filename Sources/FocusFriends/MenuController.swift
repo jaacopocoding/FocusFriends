@@ -351,7 +351,7 @@ final class MenuController: NSObject, NSMenuDelegate {
     }
 
     private func showCardNearPet() {
-        card.toggle(anchor: .beside(window.frame))
+        card.toggle(anchor: .beside(window))
     }
 
     /// Fotografia del momento per la scheda.

@@ -466,6 +466,10 @@ final class MenuCard: NSObject {
     private var panel: KeyablePanel?
     private var content: MenuCardView?
     private var topLeft = NSPoint.zero
+    /// Se la scheda sta accanto al personaggio, lo segue quando si muove: la finestra seguita e da che lato sta.
+    private var followed: NSWindow?
+    private var onLeft = true
+    private var moveObservers: [NSObjectProtocol] = []
     private var ticker: Timer?
     private var monitors: [Any] = []
     private var resignObserver: NSObjectProtocol?
@@ -481,8 +485,8 @@ final class MenuCard: NSObject {
     enum Anchor {
         /// Sotto a questo rettangolo (l'icona nella barra dei menu), in coordinate dello schermo.
         case below(NSRect)
-        /// Di fianco a questo rettangolo (il personaggio), a sinistra o a destra dove c'è posto.
-        case beside(NSRect)
+        /// Di fianco a questa finestra (il personaggio), a sinistra o a destra dove c'è posto; la segue se si muove.
+        case beside(NSWindow)
     }
 
     /// Quando si è chiusa l'ultima volta: un clic sull'icona mentre è aperta la chiude (dal controllo dei clic
@@ -520,30 +524,36 @@ final class MenuCard: NSObject {
         panel.appearance = NSAppearance(named: .aqua)
         panel.onCancel = { [weak self] in self?.close() }
 
-        let screen = NSScreen.screens.first(where: { screenFrame in
-            switch anchor {
-            case .below(let r), .beside(let r): return screenFrame.frame.intersects(r)
-            }
-        })?.visibleFrame ?? NSScreen.main?.visibleFrame ?? .zero
+        self.panel = panel
+        content = view
 
-        var origin: NSPoint   // angolo in alto a sinistra, in coordinate dello schermo
         switch anchor {
         case .below(let rect):
-            origin = NSPoint(x: rect.midX - size.width / 2, y: rect.minY - 6)
-        case .beside(let rect):
-            var x = rect.minX - size.width - 10
-            if x < screen.minX + 8 { x = rect.maxX + 10 }
-            origin = NSPoint(x: x, y: rect.minY + size.height)
+            followed = nil
+            let screen = Self.visibleFrame(containing: rect)
+            topLeft = Self.clamp(NSPoint(x: rect.midX - size.width / 2, y: rect.minY - 6), size: size, in: screen)
+            panel.setFrameTopLeftPoint(topLeft)
+        case .beside(let window):
+            followed = window
+            onLeft = true
+            reposition()
+            // La scheda sta accanto al personaggio anche quando cammina o lo trascini.
+            let center = NotificationCenter.default
+            for name in [NSWindow.didMoveNotification, NSWindow.didResizeNotification] {
+                moveObservers.append(center.addObserver(forName: name, object: window, queue: .main) { [weak self] _ in
+                    self?.reposition()
+                })
+            }
         }
-        origin.x = min(max(origin.x, screen.minX + 8), screen.maxX - size.width - 8)
-        origin.y = min(max(origin.y, screen.minY + size.height + 8), screen.maxY)
-        topLeft = origin
-        panel.setFrameTopLeftPoint(origin)
 
         view.onResize = { [weak self, weak panel] height in
             guard let self, let panel else { return }
             panel.setContentSize(NSSize(width: MenuCardView.width, height: height))
-            panel.setFrameTopLeftPoint(self.topLeft)
+            if self.followed != nil {
+                self.reposition()
+            } else {
+                panel.setFrameTopLeftPoint(self.topLeft)
+            }
         }
 
         panel.alphaValue = 0
@@ -553,9 +563,6 @@ final class MenuCard: NSObject {
             ctx.duration = 0.12
             panel.animator().alphaValue = 1
         }
-        self.panel = panel
-        content = view
-
         // Si chiude con un clic fuori (anche in altre app) o quando perde la tastiera.
         if let global = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown, .otherMouseDown],
                                                           handler: { [weak self] _ in self?.close() }) {
@@ -576,9 +583,42 @@ final class MenuCard: NSObject {
         ticker = timer
     }
 
+    private static func visibleFrame(containing rect: NSRect) -> NSRect {
+        NSScreen.screens.first(where: { $0.frame.intersects(rect) })?.visibleFrame ?? NSScreen.main?.visibleFrame ?? .zero
+    }
+
+    /// Tiene l'angolo in alto a sinistra dentro lo schermo.
+    private static func clamp(_ point: NSPoint, size: NSSize, in screen: NSRect) -> NSPoint {
+        NSPoint(x: min(max(point.x, screen.minX + 8), screen.maxX - size.width - 8),
+                y: min(max(point.y, screen.minY + size.height + 8), screen.maxY))
+    }
+
+    /// Mette la scheda accanto al personaggio: dal lato in cui già sta, se c'è posto (altrimenti dall'altro),
+    /// con il bordo basso allineato ai suoi piedi.
+    private func reposition() {
+        guard let panel, let pet = followed else { return }
+        let size = panel.frame.size
+        let rect = pet.frame
+        let screen = Self.visibleFrame(containing: rect)
+        let gap: CGFloat = 10
+        var x = onLeft ? rect.minX - size.width - gap : rect.maxX + gap
+        if onLeft, x < screen.minX + 8 {
+            onLeft = false
+            x = rect.maxX + gap
+        } else if !onLeft, x + size.width > screen.maxX - 8 {
+            onLeft = true
+            x = rect.minX - size.width - gap
+        }
+        topLeft = Self.clamp(NSPoint(x: x, y: rect.minY + size.height), size: size, in: screen)
+        panel.setFrameTopLeftPoint(topLeft)
+    }
+
     func close() {
         guard let panel else { return }
         closedAt = Date()
+        moveObservers.forEach { NotificationCenter.default.removeObserver($0) }
+        moveObservers = []
+        followed = nil
         self.panel = nil
         content = nil
         ticker?.invalidate()
