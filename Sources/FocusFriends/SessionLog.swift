@@ -173,6 +173,29 @@ enum GardenRules {
     }
 }
 
+/// La stagione di una data (meteorologica, emisfero nord): cambia l'aspetto del prato del giardino.
+enum Season: String, CaseIterable {
+    case spring, summer, autumn, winter
+
+    static func of(_ date: Date, calendar: Calendar = StudyPeriod.calendar()) -> Season {
+        switch calendar.component(.month, from: date) {
+        case 3...5: return .spring
+        case 6...8: return .summer
+        case 9...11: return .autumn
+        default: return .winter
+        }
+    }
+
+    var title: String {
+        switch self {
+        case .spring: return "Primavera"
+        case .summer: return "Estate"
+        case .autumn: return "Autunno"
+        case .winter: return "Inverno"
+        }
+    }
+}
+
 /// "Com'è andata?": tre livelli, abbastanza per vedere i modelli senza dover pensare.
 enum FocusRating: String, Codable, CaseIterable {
     case good, soso, poor

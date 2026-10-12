@@ -243,7 +243,17 @@ minuti). I minuti riempiono una pianta dopo l'altra nell'ordine in cui li hai st
 pianta (il pallino sotto il vaso) è quella che l'ha fatta crescere di più, e anche il personaggio è quello con cui
 l'hai fatta di più. Il giardino è un prato con il cielo, il sole, le colline e una staccionata: la scheda *Settimana* ha un monticello
 di terra per giorno, con il suo cartello di legno (giorno e ore), fino a sei piantine, poi "+N"; quella che cresce sta
-davanti; *Mese* è lo stesso prato con le caselle del calendario. Passando il mouse su una piantina compaiono il
+davanti; *Mese* è lo stesso prato con le caselle del calendario.
+
+Il prato **cambia con le stagioni**, secondo la data del periodo che guardi (primavera da marzo a maggio, estate da
+giugno ad agosto, autunno da settembre a novembre, inverno da dicembre a febbraio): in primavera è fresco e pieno di
+fiorellini, d'estate più verde, con il cielo azzurro e un sole grande; d'autunno ha le foglie che cadono e i toni
+dorati; d'inverno c'è la neve sul prato e sulla staccionata, e cadono i fiocchi. Tornando indietro con le frecce
+si rivede la stagione di quel periodo.
+
+<p align="center">
+  <img src="docs/images/giardino-stagioni.png" width="720" alt="Il giardino nelle quattro stagioni">
+</p> Passando il mouse su una piantina compaiono il
 giorno, i minuti e le materie. Si ricava tutto dal registro: compare subito anche per i focus già fatti. A fine
 focus il personaggio dice se è nata una pianta adulta o quanti minuti mancano alla prossima.
 

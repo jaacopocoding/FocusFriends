@@ -297,41 +297,85 @@ final class GardenView: NSView, NSViewToolTipOwner {
         mutating func range(_ a: CGFloat, _ b: CGFloat) -> CGFloat { a + (b - a) * next() }
     }
 
-    private static var sceneCache: [PeriodKind: NSImage] = [:]
+    private static var sceneCache: [String: NSImage] = [:]
 
-    /// Il prato: cielo, sole e nuvole, colline, una staccionata e l'erba. Nel mese la scena è più bassa (il resto è
-    /// il calendario sul prato).
-    static func scene(for kind: PeriodKind) -> NSImage {
-        if let cached = sceneCache[kind] { return cached }
+    /// Il prato della stagione: cielo, sole e nuvole, colline, una staccionata e l'erba. Nel mese la scena è più
+    /// bassa (il resto è il calendario sul prato). Si disegna una volta per tipo e stagione.
+    static func scene(for kind: PeriodKind, season: Season) -> NSImage {
+        let key = "\(kind.rawValue)-\(season.rawValue)"
+        if let cached = sceneCache[key] { return cached }
         let image = NSImage(size: size, flipped: true) { rect in
-            drawScene(kind: kind, in: rect)
+            drawScene(kind: kind, season: season, in: rect)
             return true
         }
-        sceneCache[kind] = image
+        sceneCache[key] = image
         return image
     }
+
+    private typealias RGB = (CGFloat, CGFloat, CGFloat)
 
     private static func rgb(_ r: CGFloat, _ g: CGFloat, _ b: CGFloat, _ a: CGFloat = 1) -> NSColor {
         NSColor(calibratedRed: r / 255, green: g / 255, blue: b / 255, alpha: a)
     }
 
-    private static func lerp(_ a: (CGFloat, CGFloat, CGFloat), _ b: (CGFloat, CGFloat, CGFloat), _ t: CGFloat) -> NSColor {
+    private static func lerp(_ a: RGB, _ b: RGB, _ t: CGFloat) -> NSColor {
         rgb(a.0 + (b.0 - a.0) * t, a.1 + (b.1 - a.1) * t, a.2 + (b.2 - a.2) * t)
     }
 
-    private static func drawScene(kind: PeriodKind, in rect: NSRect) {
+    /// I colori e gli elementi di ogni stagione.
+    private struct SeasonStyle {
+        var skyTop: RGB, skyBottom: RGB
+        var sun: RGB, sunRadius: CGFloat, sunGlow: CGFloat
+        var cloud: RGB, cloudCount: Int
+        var farHill: RGB, nearHill: RGB
+        var lawnTop: RGB, lawnBottom: RGB
+        var blade: RGB
+        var flowers: [RGB], flowerCount: Int, flowerRadius: CGFloat
+        var leaves: Int
+        var snow: Bool
+    }
+
+    private static func style(for season: Season) -> SeasonStyle {
+        switch season {
+        case .spring:
+            return SeasonStyle(skyTop: (252, 244, 220), skyBottom: (200, 232, 228), sun: (255, 220, 130), sunRadius: 32, sunGlow: 1,
+                               cloud: (255, 255, 255), cloudCount: 3, farHill: (186, 214, 158), nearHill: (150, 196, 120),
+                               lawnTop: (140, 192, 104), lawnBottom: (104, 162, 82), blade: (90, 142, 68),
+                               flowers: [(255, 255, 255), (250, 190, 205), (255, 224, 130), (206, 190, 240)], flowerCount: 48,
+                               flowerRadius: 3.4, leaves: 0, snow: false)
+        case .summer:
+            return SeasonStyle(skyTop: (255, 238, 196), skyBottom: (170, 214, 240), sun: (255, 206, 90), sunRadius: 36, sunGlow: 1.15,
+                               cloud: (255, 255, 255), cloudCount: 2, farHill: (176, 210, 124), nearHill: (136, 188, 88),
+                               lawnTop: (122, 182, 74), lawnBottom: (90, 150, 58), blade: (68, 128, 50),
+                               flowers: [(255, 214, 80), (255, 168, 70), (240, 110, 100), (255, 255, 255)], flowerCount: 34,
+                               flowerRadius: 4.6, leaves: 0, snow: false)
+        case .autumn:
+            return SeasonStyle(skyTop: (255, 228, 198), skyBottom: (216, 214, 208), sun: (255, 188, 120), sunRadius: 30, sunGlow: 0.8,
+                               cloud: (240, 230, 228), cloudCount: 4, farHill: (218, 198, 132), nearHill: (190, 162, 98),
+                               lawnTop: (178, 170, 92), lawnBottom: (144, 138, 70), blade: (150, 130, 60),
+                               flowers: [(230, 130, 70), (210, 90, 60)], flowerCount: 8, flowerRadius: 3.2, leaves: 90, snow: false)
+        case .winter:
+            return SeasonStyle(skyTop: (238, 240, 246), skyBottom: (206, 220, 232), sun: (255, 255, 255), sunRadius: 26, sunGlow: 0.5,
+                               cloud: (252, 252, 255), cloudCount: 4, farHill: (226, 234, 244), nearHill: (206, 218, 232),
+                               lawnTop: (234, 240, 238), lawnBottom: (204, 218, 214), blade: (150, 176, 168),
+                               flowers: [], flowerCount: 0, flowerRadius: 3, leaves: 0, snow: true)
+        }
+    }
+
+    private static func drawScene(kind: PeriodKind, season: Season, in rect: NSRect) {
         let w = rect.width, h = rect.height
         let isWeek = kind != .month
+        let st = style(for: season)
         // Dove finisce il cielo e comincia il prato.
         let lawnTop: CGFloat = isWeek ? 300 : 140
         let ink = rgb(64, 40, 22)
-        var rng = SeededRandom(state: 20261012)
+        var rng = SeededRandom(state: 20261012 &+ UInt64(season.hashValueStable))
 
-        // Il cielo: crema in alto, azzurro pallido verso l'orizzonte.
+        // Il cielo
         let skyHeight = lawnTop + 20
         var y: CGFloat = 0
         while y < skyHeight {
-            lerp((255, 243, 214), (207, 229, 226), y / skyHeight).setFill()
+            lerp(st.skyTop, st.skyBottom, y / skyHeight).setFill()
             NSRect(x: 0, y: y, width: w, height: 4).fill()
             y += 4
         }
@@ -339,14 +383,17 @@ final class GardenView: NSView, NSViewToolTipOwner {
         // Il sole (con un alone) e le nuvole
         let sun = NSPoint(x: isWeek ? 735 : 690, y: isWeek ? 74 : 40)
         for (r, a) in [(62, 0.10), (50, 0.16), (40, 0.28)] as [(CGFloat, CGFloat)] {
-            rgb(255, 214, 120, a).setFill()
-            NSBezierPath(ovalIn: NSRect(x: sun.x - r, y: sun.y - r, width: 2 * r, height: 2 * r)).fill()
+            let grown = r * st.sunGlow * (st.sunRadius / 32)
+            rgb(st.sun.0, st.sun.1, st.sun.2, a * min(st.sunGlow, 1.4)).setFill()
+            NSBezierPath(ovalIn: NSRect(x: sun.x - grown, y: sun.y - grown, width: 2 * grown, height: 2 * grown)).fill()
         }
-        rgb(255, 214, 120).setFill()
-        NSBezierPath(ovalIn: NSRect(x: sun.x - 32, y: sun.y - 32, width: 64, height: 64)).fill()
-        let clouds: [(CGFloat, CGFloat, CGFloat)] = isWeek ? [(120, 150, 1.0), (520, 168, 0.8), (905, 140, 0.9)] : [(110, 110, 0.7), (560, 118, 0.6)]
-        for (cx, cy, scale) in clouds {
-            rgb(255, 255, 255, 0.85).setFill()
+        rgb(st.sun.0, st.sun.1, st.sun.2, season == .winter ? 0.7 : 1).setFill()
+        NSBezierPath(ovalIn: NSRect(x: sun.x - st.sunRadius, y: sun.y - st.sunRadius, width: 2 * st.sunRadius, height: 2 * st.sunRadius)).fill()
+        let allClouds: [(CGFloat, CGFloat, CGFloat)] = isWeek
+            ? [(120, 150, 1.0), (520, 168, 0.8), (905, 140, 0.9), (330, 110, 0.7)]
+            : [(110, 110, 0.7), (560, 118, 0.6), (340, 92, 0.55), (900, 120, 0.6)]
+        for (cx, cy, scale) in allClouds.prefix(st.cloudCount) {
+            rgb(st.cloud.0, st.cloud.1, st.cloud.2, 0.88).setFill()
             for (dx, dy, r) in [(0, 0, 24), (26, 5, 20), (-26, 5, 18), (48, 11, 14), (-48, 11, 13)] as [(CGFloat, CGFloat, CGFloat)] {
                 NSBezierPath(ovalIn: NSRect(x: cx + dx * scale - r * scale * 1.3, y: cy + dy * scale - r * scale * 0.8,
                                             width: 2.6 * r * scale, height: 1.6 * r * scale)).fill()
@@ -367,8 +414,8 @@ final class GardenView: NSView, NSViewToolTipOwner {
             color.setFill()
             path.fill()
         }
-        hill(base: lawnTop - 130 + (isWeek ? 0 : 60), amp: isWeek ? 22 : 12, phase: 0, color: rgb(185, 212, 156))
-        hill(base: lawnTop - 94 + (isWeek ? 0 : 42), amp: isWeek ? 16 : 9, phase: 1.7, color: rgb(150, 193, 118))
+        hill(base: lawnTop - 130 + (isWeek ? 0 : 60), amp: isWeek ? 22 : 12, phase: 0, color: rgb(st.farHill.0, st.farHill.1, st.farHill.2))
+        hill(base: lawnTop - 94 + (isWeek ? 0 : 42), amp: isWeek ? 16 : 9, phase: 1.7, color: rgb(st.nearHill.0, st.nearHill.1, st.nearHill.2))
 
         // La staccionata (nel mese è bassa: sopra c'è il riepilogo, sotto il calendario)
         let fenceHeight: CGFloat = isWeek ? 64 : 18
@@ -397,18 +444,28 @@ final class GardenView: NSView, NSViewToolTipOwner {
             picket.fill()
             picket.lineWidth = 1
             picket.stroke()
+            if st.snow {
+                // Un cappuccio di neve su ogni paletto
+                let cap = NSBezierPath(roundedRect: NSRect(x: x - 1, y: fenceTop - 3, width: picketWidth + 2, height: isWeek ? 9 : 5),
+                                       xRadius: 3, yRadius: 3)
+                rgb(255, 255, 255).setFill()
+                cap.fill()
+                rgb(150, 170, 190).setStroke()
+                cap.lineWidth = 1
+                cap.stroke()
+            }
             x += picketStep
         }
 
         // Il prato
         var ly = lawnTop
         while ly < h {
-            lerp((138, 188, 102), (104, 160, 80), (ly - lawnTop) / (h - lawnTop)).setFill()
+            lerp(st.lawnTop, st.lawnBottom, (ly - lawnTop) / (h - lawnTop)).setFill()
             NSRect(x: 0, y: ly, width: w, height: 4).fill()
             ly += 4
         }
-        rgb(90, 140, 66).setStroke()
-        for _ in 0..<220 {
+        rgb(st.blade.0, st.blade.1, st.blade.2).setStroke()
+        for _ in 0..<(season == .winter ? 120 : 220) {
             let gx = rng.range(0, w), gy = rng.range(lawnTop + 10, h - 4)
             let blade = NSBezierPath()
             blade.move(to: NSPoint(x: gx, y: gy))
@@ -416,16 +473,70 @@ final class GardenView: NSView, NSViewToolTipOwner {
             blade.lineWidth = 2
             blade.stroke()
         }
-        let flowerColors = [rgb(255, 255, 255), rgb(255, 214, 120), rgb(240, 160, 170)]
-        for i in 0..<(isWeek ? 34 : 18) {
+        if st.snow {
+            // Chiazze di neve sul prato
+            rgb(255, 255, 255, 0.85).setFill()
+            for _ in 0..<26 {
+                let sx = rng.range(0, w), sy = rng.range(lawnTop + 14, h - 10)
+                NSBezierPath(ovalIn: NSRect(x: sx - rng.range(14, 30), y: sy - 4, width: rng.range(28, 60), height: rng.range(8, 14))).fill()
+            }
+        }
+
+        // Fiori
+        let flowerCount = isWeek ? st.flowerCount : st.flowerCount / 2
+        for i in 0..<flowerCount {
             let fx = rng.range(10, w - 10), fy = rng.range(lawnTop + 16, h - 10)
-            let petal = flowerColors[i % flowerColors.count]
-            petal.setFill()
-            let dot = NSBezierPath(ovalIn: NSRect(x: fx - 3, y: fy - 3, width: 6, height: 6))
-            dot.fill()
-            ink.setStroke()
-            dot.lineWidth = 1
-            dot.stroke()
+            let c = st.flowers[i % st.flowers.count]
+            let r = st.flowerRadius
+            if season == .summer {
+                // Girasoli: petali gialli e cuore scuro
+                rgb(c.0, c.1, c.2).setFill()
+                NSBezierPath(ovalIn: NSRect(x: fx - r, y: fy - r, width: 2 * r, height: 2 * r)).fill()
+                rgb(110, 70, 36).setFill()
+                NSBezierPath(ovalIn: NSRect(x: fx - r * 0.45, y: fy - r * 0.45, width: r * 0.9, height: r * 0.9)).fill()
+            } else {
+                rgb(c.0, c.1, c.2).setFill()
+                let dot = NSBezierPath(ovalIn: NSRect(x: fx - r, y: fy - r, width: 2 * r, height: 2 * r))
+                dot.fill()
+                ink.setStroke()
+                dot.lineWidth = 1
+                dot.stroke()
+            }
+        }
+
+        // Foglie d'autunno: sul prato e in aria
+        if st.leaves > 0 {
+            let colors: [RGB] = [(205, 96, 44), (224, 156, 52), (170, 62, 40), (196, 120, 40)]
+            for i in 0..<st.leaves {
+                let inAir = i % 5 == 0
+                let lx = rng.range(8, w - 8)
+                let ly = inAir ? rng.range(60, lawnTop + 10) : rng.range(lawnTop + 14, h - 10)
+                let c = colors[i % colors.count]
+                NSGraphicsContext.saveGraphicsState()
+                let t = NSAffineTransform()
+                t.translateX(by: lx, yBy: ly)
+                t.rotate(byDegrees: rng.range(-60, 60))
+                t.concat()
+                rgb(c.0, c.1, c.2, inAir ? 0.85 : 0.95).setFill()
+                NSBezierPath(ovalIn: NSRect(x: -7, y: -3.5, width: 14, height: 7)).fill()
+                rgb(c.0 * 0.6, c.1 * 0.6, c.2 * 0.6).setStroke()
+                let vein = NSBezierPath()
+                vein.move(to: NSPoint(x: -7, y: 0))
+                vein.line(to: NSPoint(x: 7, y: 0))
+                vein.lineWidth = 0.8
+                vein.stroke()
+                NSGraphicsContext.restoreGraphicsState()
+            }
+        }
+
+        // Fiocchi di neve
+        if st.snow {
+            rgb(255, 255, 255, 0.95).setFill()
+            for _ in 0..<(isWeek ? 90 : 60) {
+                let fx = rng.range(0, w), fy = rng.range(0, h)
+                let r = rng.range(1.4, 3.2)
+                NSBezierPath(ovalIn: NSRect(x: fx - r, y: fy - r, width: 2 * r, height: 2 * r)).fill()
+            }
         }
     }
 
@@ -439,7 +550,8 @@ final class GardenView: NSView, NSViewToolTipOwner {
     }
 
     override func draw(_ dirtyRect: NSRect) {
-        Self.scene(for: kind).draw(in: bounds)
+        let anchorDate = calendar.date(byAdding: .day, value: kind == .week ? 3 : 14, to: period.start) ?? period.start
+        Self.scene(for: kind, season: Season.of(anchorDate, calendar: calendar)).draw(in: bounds)
         let width = Self.size.width
         let m = Self.margin
 
@@ -600,5 +712,17 @@ final class GardenController {
         view?.select(.week)
         NSApp.activate(ignoringOtherApps: true)
         window?.makeKeyAndOrderFront(nil)
+    }
+}
+
+private extension Season {
+    /// Un numero fisso per stagione (hashValue cambia a ogni avvio): serve a variare erba e fiori.
+    var hashValueStable: Int {
+        switch self {
+        case .spring: return 1
+        case .summer: return 2
+        case .autumn: return 3
+        case .winter: return 4
+        }
     }
 }
