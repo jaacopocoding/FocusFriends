@@ -17,6 +17,8 @@ final class Speaker {
 
     init(petWindow: PetWindow) {
         self.petWindow = petWindow
+        // Quando cambia il disegno (cresce, o torna il seme) il fumetto si adegua subito, senza aspettare il prossimo tick.
+        petWindow.onArtChanged = { [weak self] in self?.followNow() }
     }
 
     /// Prima frase dopo qualche secondo, poi a intervalli casuali (salvo "Mai").
@@ -60,17 +62,12 @@ final class Speaker {
 
         let window = BubbleWindow()
         let size = BubbleView.size(for: text)
-        let anchor = petWindow.frame
-        let screen = (petWindow.screen ?? NSScreen.main)?.visibleFrame ?? .zero
-
-        // Fumetto sopra la testa: la punta della codina (fissa nell'immagine) va sopra il personaggio.
-        var x = anchor.midX - size.width * BubbleView.tailTipFraction
-        x = min(max(x, screen.minX + 6), screen.maxX - size.width - 6)
-        var y = petWindow.headTopY - 6
-        y = min(y, screen.maxY - size.height - 4)
+        bubbleSize = size
+        heightAbovePet = nil
+        lastFollow = Date()
 
         window.bubbleView.text = text
-        window.setFrame(NSRect(origin: NSPoint(x: x, y: y), size: size), display: true)
+        window.setFrame(NSRect(origin: bubbleOrigin(dt: nil), size: size), display: true)
         window.alphaValue = 0
 
         // Figlia della finestra del personaggio: se lo trascini, il fumetto lo segue.
@@ -81,6 +78,7 @@ final class Speaker {
             window.animator().alphaValue = 1
         }
         bubble = window
+        startFollowing()
 
         let visibleFor = max(4.5, 2.5 + Double(text.count) * 0.06)
         hideTimer = Timer.scheduledTimer(withTimeInterval: visibleFor, repeats: false) { [weak self] _ in
@@ -96,7 +94,68 @@ final class Speaker {
         }
     }
 
+    // MARK: - Posizione del fumetto
+
+    /// Quanto sale il fumetto al massimo ogni secondo di discesa: sale subito, scende piano (se il personaggio
+    /// si abbassa, o se un salto finisce, il fumetto non rimbalza).
+    private static let descendSpeed: CGFloat = 140
+
+    private var bubbleSize = NSSize.zero
+    /// Quanto sta sopra il bordo basso della finestra del personaggio (smussato): così se si sposta la finestra
+    /// il fumetto la segue senza ritardi, e conta solo il cambio di altezza del disegno.
+    private var heightAbovePet: CGFloat?
+    private var followTimer: Timer?
+    private var lastFollow = Date()
+
+    /// Dove mettere il fumetto: sopra tutto ciò che si vede del personaggio (anche l'immagine che sta svanendo,
+    /// o le ali alzate), con la punta della codina sulla sua testa. Se sopra non c'è posto (il personaggio è
+    /// in alto sullo schermo) sta di fianco, mai sopra il disegno.
+    private func bubbleOrigin(dt: TimeInterval?) -> NSPoint {
+        let anchor = petWindow.frame
+        let screen = (petWindow.screen ?? NSScreen.main)?.visibleFrame ?? .zero
+        let size = bubbleSize
+
+        let wanted = petWindow.visibleTopY - 6 - anchor.minY
+        var height = wanted
+        if let previous = heightAbovePet, let dt, wanted < previous {
+            height = max(wanted, previous - Self.descendSpeed * CGFloat(dt))
+        }
+        heightAbovePet = height
+
+        var x = anchor.midX - size.width * BubbleView.tailTipFraction
+        x = min(max(x, screen.minX + 6), screen.maxX - size.width - 6)
+        let y = anchor.minY + height
+        if y + size.height <= screen.maxY - 4 {
+            return NSPoint(x: x, y: y)
+        }
+        // Di fianco, dal lato con più spazio, all'altezza più alta che lo schermo permette.
+        let onLeft = anchor.midX > screen.midX
+        var sideX = onLeft ? anchor.minX - size.width - 2 : anchor.maxX + 2
+        sideX = min(max(sideX, screen.minX + 6), screen.maxX - size.width - 6)
+        return NSPoint(x: sideX, y: max(screen.maxY - size.height - 4, screen.minY))
+    }
+
+    private func startFollowing() {
+        followTimer?.invalidate()
+        let timer = Timer(timeInterval: 1.0 / 30, repeats: true) { [weak self] _ in self?.followNow() }
+        RunLoop.main.add(timer, forMode: .common)
+        followTimer = timer
+    }
+
+    private func followNow() {
+        guard let window = bubble else { return }
+        let now = Date()
+        let dt = min(now.timeIntervalSince(lastFollow), 0.1)
+        lastFollow = now
+        let origin = bubbleOrigin(dt: dt)
+        if abs(origin.x - window.frame.minX) > 0.25 || abs(origin.y - window.frame.minY) > 0.25 {
+            window.setFrameOrigin(origin)
+        }
+    }
+
     private func dismissBubble(animated: Bool) {
+        followTimer?.invalidate()
+        followTimer = nil
         guard let window = bubble else { return }
         bubble = nil
         let remove = { [petWindow] in

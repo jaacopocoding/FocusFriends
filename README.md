@@ -75,7 +75,9 @@ nome) restano sul tuo Mac, in `~/Library/Application Support/FocusFriends/`: nes
 ## Cosa fa
 
 - Compare nell'angolo in basso a destra, sempre sopra le altre finestre e su tutti gli Spaces.
-- Ogni 40–110 secondi mostra un fumetto con una frase (la prima dopo 5 secondi dall'avvio).
+- Ogni 40–110 secondi mostra un fumetto con una frase (la prima dopo 5 secondi dall'avvio). Il fumetto sta sempre
+  **sopra tutto ciò che si vede** del personaggio: si alza se cresce, se spalanca le ali o salta, e scende piano quando
+  si abbassa; se il personaggio è in alto sullo schermo e sopra non c'è posto, sta di fianco.
 - Si può trascinare dove si vuole; fumetto e orologio lo seguono.
 - Non ha icona nel Dock: si controlla dalla barra dei menu o con il tasto destro sul personaggio.
 

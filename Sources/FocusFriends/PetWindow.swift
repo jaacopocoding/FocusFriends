@@ -53,6 +53,11 @@ final class PetWindow: NSWindow {
     /// Chiamata quando comincia o finisce il sollevamento: chi tiene un oggetto "sotto i piedi"
     /// (l'orologio del timer) lo rimette al posto giusto.
     var onPickStateChanged: (() -> Void)?
+    /// Chiamata quando cambia il disegno mostrato (stadio o posa): il fumetto si risistema subito.
+    var onArtChanged: (() -> Void)? {
+        get { petView.onArtChanged }
+        set { petView.onArtChanged = newValue }
+    }
     /// Tasto destro (o ctrl+clic) sul personaggio: chi lo imposta mostra la scheda del menu.
     var onContextClick: (() -> Void)? {
         get { petView.onContextClick }
@@ -191,6 +196,10 @@ final class PetWindow: NSWindow {
     }
 
     var headTopY: CGFloat { artFrame.maxY }
+
+    /// Altezza dello schermo a cui arriva ciò che si vede ora (anche l'immagine che sta svanendo):
+    /// il fumetto sta sopra questa, così non copre mai il personaggio.
+    var visibleTopY: CGFloat { frame.minY + max(petView.visibleTop, 1) }
 }
 
 private extension NSImage {
@@ -291,6 +300,8 @@ final class PetView: NSView {
     private var hasPickedPose: Bool { pickedImage != nil }
 
     var onContextClick: (() -> Void)?
+    /// Chiamata appena cambia lo stadio o la posa mostrati.
+    var onArtChanged: (() -> Void)?
 
     override func menu(for event: NSEvent) -> NSMenu? {
         if let handler = onContextClick {
@@ -401,6 +412,7 @@ final class PetView: NSView {
         stage = target
         pose = framesPerStage > 1 ? target % framesPerStage : 0
         needsDisplay = true
+        onArtChanged?()
     }
 
     /// Cambia lo stadio di crescita (con dissolvenza) tenendo il fotogramma del passo.
@@ -419,6 +431,7 @@ final class PetView: NSView {
         stage = (stage / framesPerStage) * framesPerStage + clamped
         if let from = fadingFrom { fadingFrom = (from / framesPerStage) * framesPerStage + clamped }
         needsDisplay = true
+        onArtChanged?()
     }
 
     /// Altezza dei piedi (la linea di terra del disegno) dal bordo basso della vista.
@@ -430,9 +443,24 @@ final class PetView: NSView {
     /// Altezza (in coordinate vista, dal basso) a cui arriva il disegno dello stadio attuale.
     var artTop: CGFloat {
         if isPickedUp { return bounds.height }
-        let rect = drawRect(forImageAt: stage)
-        guard stage < topFractions.count else { return bounds.height }
-        return rect.maxY - topFractions[stage] * rect.height
+        return artTop(forImageAt: stage)
+    }
+
+    /// Altezza a cui arriva il disegno di una certa immagine (con la sua tela e la sua scala).
+    private func artTop(forImageAt index: Int) -> CGFloat {
+        guard index >= 0, index < topFractions.count else { return bounds.height }
+        let rect = drawRect(forImageAt: index)
+        return rect.maxY - topFractions[index] * rect.height
+    }
+
+    /// Altezza a cui arriva tutto ciò che si vede in questo momento: l'immagine attuale e, durante la
+    /// dissolvenza tra due stadi, anche quella che sta svanendo (la pianta adulta mentre torna il seme).
+    var visibleTop: CGFloat {
+        if isPickedUp { return bounds.height }
+        var top = artTop(forImageAt: stage)
+        if let from = fadingFrom { top = max(top, artTop(forImageAt: from)) }
+        if showsSleepMarks { top += 32 }       // le "Zzz" salgono sopra la testa
+        return top
     }
 
     /// Il disegno "sollevato", con un leggero tremolio attorno al punto in cui lo tiene il cursore.
