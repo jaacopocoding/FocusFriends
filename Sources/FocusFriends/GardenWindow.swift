@@ -31,6 +31,8 @@ final class GardenView: NSView, NSViewToolTipOwner {
         var extra: Int
         var isToday: Bool
         var anchor: NSPoint
+        /// Il giorno ha almeno una piantina (nel mese: serve un po' di terra sotto).
+        var hasPlants = false
     }
     private var plants: [Plant] = []
     private var beds: [Bed] = []
@@ -180,12 +182,12 @@ final class GardenView: NSView, NSViewToolTipOwner {
     private func layoutWeek(today: Date) {
         let m = Self.margin
         let columnWidth = (Self.size.width - 2 * m) / 7
-        let baseY: CGFloat = 340
-        let plantHeight: CGFloat = 112
+        let baseY: CGFloat = 392
+        let plantHeight: CGFloat = 124
         for i in 0..<7 {
             guard let dayStart = calendar.date(byAdding: .day, value: i, to: period.start) else { continue }
             let x0 = m + CGFloat(i) * columnWidth
-            let bedRect = NSRect(x: x0 + 5, y: baseY - 10, width: columnWidth - 10, height: 58)
+            let bedRect = NSRect(x: x0 + 8, y: baseY - 14, width: columnWidth - 16, height: 38)   // il monticello di terra
             let items = sessions(on: dayStart)
             let seconds = items.reduce(0) { $0 + $1.seconds }
             let all = GardenRules.plants(of: items, calendar: calendar)
@@ -199,7 +201,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
             for (row, group) in [(1, back), (0, front)] {
                 for (k, plant) in group.enumerated() {
                     let cx = x0 + columnWidth / 2 + (CGFloat(k) - CGFloat(group.count - 1) / 2) * spacing
-                    let feetY = baseY + 16 - (row == 1 ? 46 : 0)
+                    let feetY = baseY + 6 - (row == 1 ? 36 : 0)
                     plants.append(Plant(
                         rect: plantRect(centerX: cx, feetY: feetY, height: plantHeight * (row == 1 ? 0.9 : 1)),
                         info: plant, day: dayStart, showsDot: row == 0
@@ -209,11 +211,12 @@ final class GardenView: NSView, NSViewToolTipOwner {
             beds.append(Bed(
                 rect: bedRect,
                 dayLabel: formatted(dayStart, "EEE d").lowercased(),
-                dayLabelPoint: NSPoint(x: x0 + columnWidth / 2, y: baseY + 66),
+                dayLabelPoint: NSPoint(x: x0 + columnWidth / 2, y: baseY + 30),
                 total: items.isEmpty ? nil : StudyStats.duration(seconds: seconds) + (extra > 0 ? " · +\(extra)" : ""),
                 extra: extra,
                 isToday: calendar.isDate(dayStart, inSameDayAs: today),
-                anchor: NSPoint(x: x0 + columnWidth / 2, y: baseY - 60)
+                anchor: NSPoint(x: x0 + columnWidth / 2, y: baseY - 60),
+                hasPlants: !all.isEmpty
             ))
         }
     }
@@ -249,7 +252,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
             beds.append(Bed(
                 rect: cell.insetBy(dx: 3, dy: 3), dayLabel: "\(day)", dayLabelPoint: NSPoint(x: cell.minX + 10, y: cell.minY + 6),
                 total: nil, extra: max(all.count - shown.count, 0), isToday: calendar.isDate(dayStart, inSameDayAs: today),
-                anchor: NSPoint(x: cell.midX, y: cell.midY)
+                anchor: NSPoint(x: cell.midX, y: cell.midY), hasPlants: !all.isEmpty
             ))
         }
     }
@@ -282,6 +285,150 @@ final class GardenView: NSView, NSViewToolTipOwner {
         return head + " · " + state + (subjects.isEmpty ? "" : "\n" + subjects)
     }
 
+    // MARK: - La scena
+
+    /// Un generatore deterministico: l'erba e i fiori sono sempre negli stessi punti.
+    private struct SeededRandom {
+        var state: UInt64
+        mutating func next() -> CGFloat {
+            state = state &* 6364136223846793005 &+ 1442695040888963407
+            return CGFloat((state >> 33) & 0xFFFF) / 65535
+        }
+        mutating func range(_ a: CGFloat, _ b: CGFloat) -> CGFloat { a + (b - a) * next() }
+    }
+
+    private static var sceneCache: [PeriodKind: NSImage] = [:]
+
+    /// Il prato: cielo, sole e nuvole, colline, una staccionata e l'erba. Nel mese la scena è più bassa (il resto è
+    /// il calendario sul prato).
+    static func scene(for kind: PeriodKind) -> NSImage {
+        if let cached = sceneCache[kind] { return cached }
+        let image = NSImage(size: size, flipped: true) { rect in
+            drawScene(kind: kind, in: rect)
+            return true
+        }
+        sceneCache[kind] = image
+        return image
+    }
+
+    private static func rgb(_ r: CGFloat, _ g: CGFloat, _ b: CGFloat, _ a: CGFloat = 1) -> NSColor {
+        NSColor(calibratedRed: r / 255, green: g / 255, blue: b / 255, alpha: a)
+    }
+
+    private static func lerp(_ a: (CGFloat, CGFloat, CGFloat), _ b: (CGFloat, CGFloat, CGFloat), _ t: CGFloat) -> NSColor {
+        rgb(a.0 + (b.0 - a.0) * t, a.1 + (b.1 - a.1) * t, a.2 + (b.2 - a.2) * t)
+    }
+
+    private static func drawScene(kind: PeriodKind, in rect: NSRect) {
+        let w = rect.width, h = rect.height
+        let isWeek = kind != .month
+        // Dove finisce il cielo e comincia il prato.
+        let lawnTop: CGFloat = isWeek ? 300 : 140
+        let ink = rgb(64, 40, 22)
+        var rng = SeededRandom(state: 20261012)
+
+        // Il cielo: crema in alto, azzurro pallido verso l'orizzonte.
+        let skyHeight = lawnTop + 20
+        var y: CGFloat = 0
+        while y < skyHeight {
+            lerp((255, 243, 214), (207, 229, 226), y / skyHeight).setFill()
+            NSRect(x: 0, y: y, width: w, height: 4).fill()
+            y += 4
+        }
+
+        // Il sole (con un alone) e le nuvole
+        let sun = NSPoint(x: isWeek ? 735 : 690, y: isWeek ? 74 : 40)
+        for (r, a) in [(62, 0.10), (50, 0.16), (40, 0.28)] as [(CGFloat, CGFloat)] {
+            rgb(255, 214, 120, a).setFill()
+            NSBezierPath(ovalIn: NSRect(x: sun.x - r, y: sun.y - r, width: 2 * r, height: 2 * r)).fill()
+        }
+        rgb(255, 214, 120).setFill()
+        NSBezierPath(ovalIn: NSRect(x: sun.x - 32, y: sun.y - 32, width: 64, height: 64)).fill()
+        let clouds: [(CGFloat, CGFloat, CGFloat)] = isWeek ? [(120, 150, 1.0), (520, 168, 0.8), (905, 140, 0.9)] : [(110, 110, 0.7), (560, 118, 0.6)]
+        for (cx, cy, scale) in clouds {
+            rgb(255, 255, 255, 0.85).setFill()
+            for (dx, dy, r) in [(0, 0, 24), (26, 5, 20), (-26, 5, 18), (48, 11, 14), (-48, 11, 13)] as [(CGFloat, CGFloat, CGFloat)] {
+                NSBezierPath(ovalIn: NSRect(x: cx + dx * scale - r * scale * 1.3, y: cy + dy * scale - r * scale * 0.8,
+                                            width: 2.6 * r * scale, height: 1.6 * r * scale)).fill()
+            }
+        }
+
+        // Le colline
+        func hill(base: CGFloat, amp: CGFloat, phase: CGFloat, color: NSColor) {
+            let path = NSBezierPath()
+            path.move(to: NSPoint(x: 0, y: h))
+            var x: CGFloat = 0
+            while x <= w + 8 {
+                path.line(to: NSPoint(x: x, y: base + amp * sin(x / 140 + phase)))
+                x += 8
+            }
+            path.line(to: NSPoint(x: w, y: h))
+            path.close()
+            color.setFill()
+            path.fill()
+        }
+        hill(base: lawnTop - 130 + (isWeek ? 0 : 60), amp: isWeek ? 22 : 12, phase: 0, color: rgb(185, 212, 156))
+        hill(base: lawnTop - 94 + (isWeek ? 0 : 42), amp: isWeek ? 16 : 9, phase: 1.7, color: rgb(150, 193, 118))
+
+        // La staccionata (nel mese è bassa: sopra c'è il riepilogo, sotto il calendario)
+        let fenceHeight: CGFloat = isWeek ? 64 : 18
+        let fenceTop = lawnTop - fenceHeight - 2
+        let fenceBottom = lawnTop - 2
+        let railThickness: CGFloat = isWeek ? 8 : 4
+        let picketWidth: CGFloat = isWeek ? 18 : 12
+        let picketStep: CGFloat = isWeek ? 30 : 20
+        rgb(250, 238, 210).setFill()
+        ink.setStroke()
+        for rail in [fenceTop + fenceHeight * 0.34, fenceTop + fenceHeight * 0.70] {
+            let r = NSRect(x: -2, y: rail, width: w + 4, height: railThickness)
+            r.fill()
+            NSBezierPath(rect: r).stroke()
+        }
+        var x: CGFloat = 14
+        while x < w {
+            let picket = NSBezierPath()
+            picket.move(to: NSPoint(x: x, y: fenceTop + fenceHeight * 0.2))
+            picket.line(to: NSPoint(x: x + picketWidth / 2, y: fenceTop))
+            picket.line(to: NSPoint(x: x + picketWidth, y: fenceTop + fenceHeight * 0.2))
+            picket.line(to: NSPoint(x: x + picketWidth, y: fenceBottom))
+            picket.line(to: NSPoint(x: x, y: fenceBottom))
+            picket.close()
+            rgb(252, 243, 220).setFill()
+            picket.fill()
+            picket.lineWidth = 1
+            picket.stroke()
+            x += picketStep
+        }
+
+        // Il prato
+        var ly = lawnTop
+        while ly < h {
+            lerp((138, 188, 102), (104, 160, 80), (ly - lawnTop) / (h - lawnTop)).setFill()
+            NSRect(x: 0, y: ly, width: w, height: 4).fill()
+            ly += 4
+        }
+        rgb(90, 140, 66).setStroke()
+        for _ in 0..<220 {
+            let gx = rng.range(0, w), gy = rng.range(lawnTop + 10, h - 4)
+            let blade = NSBezierPath()
+            blade.move(to: NSPoint(x: gx, y: gy))
+            blade.line(to: NSPoint(x: gx + rng.range(-3, 3), y: gy - rng.range(5, 10)))
+            blade.lineWidth = 2
+            blade.stroke()
+        }
+        let flowerColors = [rgb(255, 255, 255), rgb(255, 214, 120), rgb(240, 160, 170)]
+        for i in 0..<(isWeek ? 34 : 18) {
+            let fx = rng.range(10, w - 10), fy = rng.range(lawnTop + 16, h - 10)
+            let petal = flowerColors[i % flowerColors.count]
+            petal.setFill()
+            let dot = NSBezierPath(ovalIn: NSRect(x: fx - 3, y: fy - 3, width: 6, height: 6))
+            dot.fill()
+            ink.setStroke()
+            dot.lineWidth = 1
+            dot.stroke()
+        }
+    }
+
     // MARK: - Disegno
 
     private func text(_ string: String, at rect: NSRect, font: NSFont, color: NSColor = Paper.ink, alignment: NSTextAlignment = .left) {
@@ -292,8 +439,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
     }
 
     override func draw(_ dirtyRect: NSRect) {
-        Paper.paper.setFill()
-        bounds.fill()
+        Self.scene(for: kind).draw(in: bounds)
         let width = Self.size.width
         let m = Self.margin
 
@@ -318,35 +464,61 @@ final class GardenView: NSView, NSViewToolTipOwner {
         text(streak == 1 ? "giorno di fila" : "giorni di fila", at: NSRect(x: badge.minX + 54, y: badge.minY + 14, width: 120, height: 18),
              font: NSFont.systemFont(ofSize: 14), color: Paper.inkLight)
 
-        // Aiuole
+        // Monticelli di terra (settimana) o caselle del calendario sul prato (mese)
+        let soilFill = NSColor(calibratedRed: 0.61, green: 0.45, blue: 0.31, alpha: 1)
+        let outlineInk = NSColor(calibratedRed: 0.25, green: 0.16, blue: 0.09, alpha: 1)
         for bed in beds {
             if kind == .week {
-                let outline = NSBezierPath(roundedRect: bed.rect, xRadius: 14, yRadius: 14)
-                NSColor(calibratedRed: 0.93, green: 0.84, blue: 0.69, alpha: 1).setFill()
-                outline.fill()
-                (bed.isToday ? Paper.accent : Paper.paperEdge).setStroke()
-                outline.lineWidth = bed.isToday ? 2 : 1
-                outline.stroke()
-                let soil = NSRect(x: bed.rect.minX, y: bed.rect.minY + 26, width: bed.rect.width, height: 32)
-                NSColor(calibratedRed: 0.59, green: 0.44, blue: 0.31, alpha: 1).setFill()
-                NSBezierPath(roundedRect: soil, xRadius: 14, yRadius: 14).fill()
-                text(bed.dayLabel, at: NSRect(x: bed.dayLabelPoint.x - 60, y: bed.dayLabelPoint.y, width: 120, height: 26),
-                     font: Paper.markerFont(20), alignment: .center)
-                if let total = bed.total {
-                    text(total, at: NSRect(x: bed.dayLabelPoint.x - 60, y: bed.dayLabelPoint.y + 28, width: 120, height: 18),
-                         font: NSFont.systemFont(ofSize: 13), color: Paper.inkLight, alignment: .center)
-                }
+                let mound = NSBezierPath(ovalIn: bed.rect)
+                soilFill.setFill()
+                mound.fill()
+                (bed.isToday ? Paper.accent : outlineInk).setStroke()
+                mound.lineWidth = bed.isToday ? 3 : 2
+                mound.stroke()
+                // Il cartello di legno con il giorno e le ore, su un paletto.
+                let cx = bed.dayLabelPoint.x
+                let sign = NSRect(x: cx - 46, y: bed.dayLabelPoint.y, width: 92, height: 44)
+                outlineInk.setStroke()
+                let stake = NSBezierPath()
+                stake.move(to: NSPoint(x: cx, y: bed.rect.maxY - 6))
+                stake.line(to: NSPoint(x: cx, y: sign.minY + 2))
+                stake.lineWidth = 3
+                stake.stroke()
+                let tag = NSBezierPath(roundedRect: sign, xRadius: 8, yRadius: 8)
+                NSColor(calibratedRed: 0.96, green: 0.89, blue: 0.71, alpha: 1).setFill()
+                tag.fill()
+                (bed.isToday ? Paper.accent : outlineInk).setStroke()
+                tag.lineWidth = bed.isToday ? 2.5 : 1.5
+                tag.stroke()
+                text(bed.dayLabel, at: NSRect(x: sign.minX, y: sign.minY + 4, width: sign.width, height: 22),
+                     font: Paper.markerFont(17), alignment: .center)
+                text(bed.total ?? "—", at: NSRect(x: sign.minX, y: sign.minY + 26, width: sign.width, height: 16),
+                     font: NSFont.systemFont(ofSize: 11.5), color: Paper.inkLight, alignment: .center)
             } else {
-                let outline = NSBezierPath(roundedRect: bed.rect, xRadius: 10, yRadius: 10)
-                NSColor(calibratedRed: 0.93, green: 0.84, blue: 0.69, alpha: bed.isToday ? 0.9 : 0.5).setFill()
-                outline.fill()
+                let patch = NSBezierPath(roundedRect: bed.rect, xRadius: 12, yRadius: 12)
+                NSColor.white.withAlphaComponent(bed.isToday ? 0.30 : 0.13).setFill()
+                patch.fill()
                 if bed.isToday {
                     Paper.accent.setStroke()
-                    outline.lineWidth = 2
-                    outline.stroke()
+                    patch.lineWidth = 2.5
+                    patch.stroke()
                 }
-                text(bed.dayLabel, at: NSRect(x: bed.dayLabelPoint.x, y: bed.dayLabelPoint.y, width: 30, height: 14),
-                     font: NSFont.systemFont(ofSize: 11, weight: .semibold), color: Paper.inkLight)
+                let tag = NSRect(x: bed.rect.minX + 6, y: bed.rect.minY + 5, width: bed.dayLabel.count > 1 ? 24 : 20, height: 16)
+                let tagShape = NSBezierPath(roundedRect: tag, xRadius: 5, yRadius: 5)
+                NSColor(calibratedRed: 0.96, green: 0.89, blue: 0.71, alpha: 1).setFill()
+                tagShape.fill()
+                outlineInk.setStroke()
+                tagShape.lineWidth = 1
+                tagShape.stroke()
+                text(bed.dayLabel, at: NSRect(x: tag.minX, y: tag.minY + 1, width: tag.width, height: 14),
+                     font: NSFont.systemFont(ofSize: 10.5, weight: .semibold), color: Paper.ink, alignment: .center)
+                // Un po' di terra sotto le piantine del giorno.
+                if bed.hasPlants {
+                    let soil = NSBezierPath(ovalIn: NSRect(x: bed.rect.midX - bed.rect.width * 0.38, y: bed.rect.maxY - 17,
+                                                           width: bed.rect.width * 0.76, height: 13))
+                    soilFill.setFill()
+                    soil.fill()
+                }
             }
         }
         // Piantine: le dietro prima (sono all'inizio della lista della riga dietro), poi quelle davanti
@@ -371,6 +543,10 @@ final class GardenView: NSView, NSViewToolTipOwner {
             }
         }
         if adultPlants + growingPlants > 0 {
+            let strip = NSRect(x: m - 10, y: Self.size.height - 58, width: width - 2 * m + 20, height: 50)
+            let shape = NSBezierPath(roundedRect: strip, xRadius: 12, yRadius: 12)
+            Paper.paper.withAlphaComponent(0.88).setFill()
+            shape.fill()
             text("Ogni 50 minuti di studio in un giorno è una pianta adulta; il resto cresce in una piantina più piccola.",
                  at: NSRect(x: m, y: Self.size.height - 48, width: width - 2 * m, height: 18),
                  font: NSFont.systemFont(ofSize: 12), color: Paper.inkLight)
@@ -381,9 +557,12 @@ final class GardenView: NSView, NSViewToolTipOwner {
                  font: NSFont.systemFont(ofSize: 12), color: Paper.inkLight)
         }
         if adultPlants + growingPlants == 0 {
-            let y: CGFloat = kind == .week ? 220 : 300
-            text("Ancora nessuna piantina in questo periodo.", at: NSRect(x: m, y: y, width: width - 2 * m, height: 24),
-                 font: Paper.markerFont(20), color: Paper.inkLight, alignment: .center)
+            let y: CGFloat = kind == .week ? 350 : 330
+            let pill = NSRect(x: width / 2 - 240, y: y - 8, width: 480, height: 40)
+            Paper.paper.withAlphaComponent(0.9).setFill()
+            NSBezierPath(roundedRect: pill, xRadius: 14, yRadius: 14).fill()
+            text("Ancora nessuna piantina in questo periodo.", at: NSRect(x: pill.minX, y: y, width: pill.width, height: 24),
+                 font: Paper.markerFont(20), color: Paper.ink, alignment: .center)
         }
     }
 }

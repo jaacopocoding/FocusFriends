@@ -241,8 +241,9 @@ adulta**. Quello che avanza cresce in una piantina allo stadio di mezzo (`Garden
 Per esempio 3 h 06 di studio in un giorno sono 186 minuti: **tre piante adulte** e una piantina allo stadio 4 (36
 minuti). I minuti riempiono una pianta dopo l'altra nell'ordine in cui li hai studiati, quindi la materia di ogni
 pianta (il pallino sotto il vaso) è quella che l'ha fatta crescere di più, e anche il personaggio è quello con cui
-l'hai fatta di più. La scheda *Settimana* ha un'aiuola per giorno (fino a sei piantine, poi "+N"; quella che cresce sta
-davanti); *Mese* è un calendario con le piantine di ogni giorno. Passando il mouse su una piantina compaiono il
+l'hai fatta di più. Il giardino è un prato con il cielo, il sole, le colline e una staccionata: la scheda *Settimana* ha un monticello
+di terra per giorno, con il suo cartello di legno (giorno e ore), fino a sei piantine, poi "+N"; quella che cresce sta
+davanti; *Mese* è lo stesso prato con le caselle del calendario. Passando il mouse su una piantina compaiono il
 giorno, i minuti e le materie. Si ricava tutto dal registro: compare subito anche per i focus già fatti. A fine
 focus il personaggio dice se è nata una pianta adulta o quanti minuti mancano alla prossima.
 
