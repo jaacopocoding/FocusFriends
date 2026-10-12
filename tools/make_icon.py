@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Crea l'icona dell'app FocusFriends: assets/AppIcon.png e assets/AppIcon.icns.
+"""Crea l'icona dell'app FocusFriends: assets/AppIcon.png, assets/AppIcon.icns e docs/images/logo.png.
 
 Parte dal disegno del logo (assets/logo_original.png: un pomodoro-timer con picciolo e foglie, l'anello arancio
 che mostra il tempo e lo spicchio crema che resta), lo mette nella forma delle icone di macOS (quadrato con
@@ -36,6 +36,7 @@ def make():
 
 icon = make()
 icon.save("assets/AppIcon.png")
+icon.save("docs/images/logo.png")      # la copia che mostra il README
 
 # .iconset -> .icns con iconutil
 tmp = tempfile.mkdtemp(suffix=".iconset")

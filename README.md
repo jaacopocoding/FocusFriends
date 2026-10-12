@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/AppIcon.png" width="240" alt="FocusFriends">
+  <img src="docs/images/logo.png" width="240" alt="FocusFriends">
 </p>
 
 <h1 align="center">FocusFriends</h1>
@@ -365,7 +365,8 @@ assets/
   bubble_original.png, bubble.png   fumetto e ritaglio (tools/cutout_bubble.py)
   frasi_pianty.txt, frasi_porcellino.txt, frasi_ciccio.txt   frasi incluse nell'app
   logo_original.png     il logo: un pomodoro-timer con l'anello che mostra il tempo
-  AppIcon.png, AppIcon.icns   icona dell'app, generata da tools/make_icon.py (il logo nella forma delle icone di macOS)
+  AppIcon.png, AppIcon.icns   icona dell'app, generata da tools/make_icon.py (il logo nella forma delle icone di macOS);
+                        la stessa immagine è in docs/images/logo.png, quella che mostra il README
 tools/                  script per ritagli e icona (Python con Pillow e numpy)
 build.sh                compila e crea build/FocusFriends.app
 tests/                  prove del registro e delle statistiche (./tests/run.sh)
