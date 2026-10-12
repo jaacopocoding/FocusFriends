@@ -105,7 +105,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
         nextButton.alphaValue = period.contains(today) ? 0.25 : 1
         streak = StudyStats.streak(sessions: log.sessions, now: today, calendar: calendar)
 
-        let inPeriod = log.sessions.filter { period.contains($0.start) }
+        let inPeriod = log.sessions.filter { period.contains($0.startTime(in: calendar)) }
         totalPlants = inPeriod.count
         totalSeconds = inPeriod.reduce(0) { $0 + $1.seconds }
 
@@ -121,7 +121,10 @@ final class GardenView: NSView, NSViewToolTipOwner {
 
     private func sessions(on dayStart: Date) -> [StudySession] {
         guard let next = calendar.date(byAdding: .day, value: 1, to: dayStart) else { return [] }
-        return log.sessions.filter { $0.start >= dayStart && $0.start < next }
+        return log.sessions.filter {
+            let t = $0.startTime(in: calendar)
+            return t >= dayStart && t < next
+        }
     }
 
     private func formatted(_ date: Date, _ format: String) -> String {
@@ -170,7 +173,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
             // Le più piccole davanti e le più alte dietro, così si vedono tutte.
             let shown = items.prefix(6).sorted {
                 let a = GardenRules.stage(for: $0), b = GardenRules.stage(for: $1)
-                return a != b ? a < b : $0.start < $1.start
+                return a != b ? a < b : $0.startTime(in: calendar) < $1.startTime(in: calendar)
             }
             let front = Array(shown.prefix(3))
             let back = Array(shown.dropFirst(3))
@@ -250,7 +253,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
         guard plants.indices.contains(index) else { return "" }
         let s = plants[index].session
         let minutes = (s.seconds + 30) / 60
-        var parts = [formatted(s.start, "EEE d MMM, HH:mm"), s.subject ?? Subject.none, "\(minutes) min"]
+        var parts = [formatted(s.startTime(in: calendar), "EEE d MMM, HH:mm"), s.subject ?? Subject.none, "\(minutes) min"]
         if !s.completed { parts.append("interrotto") }
         return parts.joined(separator: " · ")
     }

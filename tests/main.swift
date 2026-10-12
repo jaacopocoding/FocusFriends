@@ -36,7 +36,8 @@ check(Subject.clean(String(repeating: "a", count: 80))?.count == Subject.maxLeng
 // ---------------------------------------------------------------- registro
 section("Registro")
 let dir = tempDirectory()
-let log = SessionLog(directory: dir)
+let rome = TimeZone(identifier: "Europe/Rome")!
+let log = SessionLog(directory: dir, timeZone: rome)
 check(log.add(start: date(2026, 10, 12, 9), seconds: 59, plannedMinutes: 30, completed: false, subject: "X") == nil,
       "sotto il minuto non conta")
 check(log.sessions.isEmpty, "niente salvato")
@@ -46,10 +47,10 @@ let c = log.add(start: date(2026, 10, 13, 10), seconds: 600, plannedMinutes: 25,
 let d = log.add(start: date(2026, 10, 14, 10), seconds: 1500, plannedMinutes: 25, completed: true, subject: " anatomia ")
 check(log.sessions.count == 4, "quattro sessioni")
 check(log.sessions.map { $0.start } == log.sessions.map { $0.start }.sorted(), "in ordine di tempo")
-check(log.recentSubjects() == ["anatomia", "Fisiologia"], "recenti: più recente per prima, senza doppioni (\(log.recentSubjects()))")
+check(log.recentSubjects() == ["Anatomia", "Fisiologia"], "recenti: più recente per prima, senza doppioni e con la scrittura già usata (\(log.recentSubjects()))")
 check(log.recentSubjects(limit: 1).count == 1, "il limite vale")
 
-let reopened = SessionLog(directory: dir)
+let reopened = SessionLog(directory: dir, timeZone: rome)
 check(reopened.sessions == log.sessions, "riletto dal file uguale")
 if let a { reopened.setSubject(id: a.id, subject: "  Biochimica ") }
 check(reopened.sessions.first(where: { $0.id == a?.id })?.subject == "Biochimica", "materia cambiata")
@@ -213,6 +214,124 @@ let petProg = tempDirectory()
 let pp = SessionLog(directory: petProg)
 pp.beginInProgress(start: Date().addingTimeInterval(-300), plannedMinutes: 25, subject: nil, pet: "porcellino")
 check(SessionLog(directory: petProg).recoverInterrupted()?.pet == "porcellino", "recupero con il personaggio")
+
+// ---------------------------------------------------------------- formato e migrazione
+section("Formato versionato e migrazione")
+let fmtDir = tempDirectory()
+let fmtLog = SessionLog(directory: fmtDir, timeZone: rome)
+fmtLog.add(start: date(2026, 10, 14, 9, 30), seconds: 1800, plannedMinutes: 30, completed: true, subject: "Anatomia", pet: "pianty")
+let raw = (try? Data(contentsOf: fmtDir.appendingPathComponent("sessioni.json"))) ?? Data()
+let object = (try? JSONSerialization.jsonObject(with: raw)) as? [String: Any]
+check(object?["version"] as? Int == SessionLog.formatVersion, "il file ha la versione")
+check((object?["sessions"] as? [[String: Any]])?.count == 1, "e la lista delle sessioni")
+check((object?["sessions"] as? [[String: Any]])?.first?["localStart"] as? String == "2026-10-14T09:30", "con l'ora locale")
+
+// vecchio formato: la sola lista, con materie scritte in modi diversi e senza ora locale
+let v0Dir = tempDirectory()
+let v0 = """
+[{"completed": true, "id": "9F6C1A2B-0000-4000-8000-000000000001", "plannedMinutes": 25, "seconds": 1500,
+  "start": "2026-10-12T08:00:00Z", "subject": "anatomia"},
+ {"completed": true, "id": "9F6C1A2B-0000-4000-8000-000000000002", "plannedMinutes": 25, "seconds": 1500,
+  "start": "2026-10-13T08:00:00Z", "subject": "Anatomia"},
+ {"completed": true, "id": "9F6C1A2B-0000-4000-8000-000000000003", "plannedMinutes": 25, "seconds": 1500,
+  "start": "2026-10-14T08:00:00Z", "subject": "FISIOLOGIA"}]
+"""
+try? v0.write(to: v0Dir.appendingPathComponent("sessioni.json"), atomically: true, encoding: .utf8)
+let migrated = SessionLog(directory: v0Dir, timeZone: rome)
+check(migrated.sessions.count == 3, "migrazione: nessuna sessione persa")
+check(migrated.sessions.allSatisfy { $0.localStart != nil }, "migrazione: ora locale aggiunta")
+check(migrated.sessions[0].subject == "Anatomia" && migrated.sessions[1].subject == "Anatomia", "migrazione: materie unite con la scrittura più recente (\(migrated.sessions.map { $0.subject ?? "-" }))")
+let v0After = (try? JSONSerialization.jsonObject(with: Data(contentsOf: v0Dir.appendingPathComponent("sessioni.json")))) as? [String: Any]
+check(v0After?["version"] as? Int == 1, "migrazione: il file è stato riscritto nel formato nuovo")
+check(FileManager.default.fileExists(atPath: v0Dir.appendingPathComponent("backup/sessioni-formato0.json").path), "migrazione: copia intatta del vecchio file")
+
+// file di una versione più nuova: si legge, non si riscrive
+let newerDir = tempDirectory()
+let newer = """
+{"version": 99, "sessions": [{"completed": true, "id": "9F6C1A2B-0000-4000-8000-000000000009", "plannedMinutes": 25,
+ "seconds": 1500, "start": "2026-10-12T08:00:00Z", "subject": "Futuro", "campoNuovo": 1}]}
+"""
+try? newer.write(to: newerDir.appendingPathComponent("sessioni.json"), atomically: true, encoding: .utf8)
+let newerLog = SessionLog(directory: newerDir, timeZone: rome)
+check(newerLog.sessions.count == 1 && newerLog.isReadOnly, "versione più nuova: letta, in sola lettura")
+check(newerLog.add(start: date(2026, 10, 14, 9), seconds: 600, plannedMinutes: 10, completed: true, subject: nil) == nil, "e non si scrive")
+check((try? String(contentsOf: newerDir.appendingPathComponent("sessioni.json"))) == newer, "il file è rimasto identico (nessuna perdita)")
+
+// ---------------------------------------------------------------- materie unite
+section("Materie unite")
+let subjDir = tempDirectory()
+let sl = SessionLog(directory: subjDir, timeZone: rome)
+let s1 = sl.add(start: date(2026, 10, 12, 9), seconds: 1800, plannedMinutes: 30, completed: true, subject: "Anatomia")
+let s2 = sl.add(start: date(2026, 10, 13, 9), seconds: 1800, plannedMinutes: 30, completed: true, subject: "anatomia")
+let s3 = sl.add(start: date(2026, 10, 14, 9), seconds: 1800, plannedMinutes: 30, completed: true, subject: "ANATOMIA ")
+check(s1?.subject == "Anatomia" && s2?.subject == "Anatomia" && s3?.subject == "Anatomia", "una nuova scrittura prende quella già usata")
+let s4 = sl.add(start: date(2026, 10, 14, 11), seconds: 1800, plannedMinutes: 30, completed: true, subject: "Fisica")
+let s5 = sl.add(start: date(2026, 10, 14, 13), seconds: 1800, plannedMinutes: 30, completed: true, subject: "fisíca")
+check(s5?.subject == "Fisica", "senza distinguere gli accenti (\(s5?.subject ?? "-"))")
+check(Subject.key("Èsame") == Subject.key("esame"), "la chiave ignora accenti e maiuscole")
+check(sl.renameSubject(from: "fisica", to: "Fisica generale") == 2, "rinomina in tutte le sessioni")
+check(sl.sessions.filter { $0.subject == "Fisica generale" }.count == 2, "e le sessioni sono cambiate")
+let s6 = sl.add(start: date(2026, 10, 15, 9), seconds: 1800, plannedMinutes: 30, completed: true, subject: "Chimica")
+check(sl.renameSubject(from: "Chimica", to: "anatomia") == 1 && s6 != nil, "unire due materie")
+check(sl.sessions.last?.subject == "Anatomia", "l'unione usa la scrittura della materia che c'è già (\(sl.sessions.last?.subject ?? "-"))")
+check(sl.renameSubject(from: "Anatomia", to: nil) == 4 && sl.sessions.allSatisfy { $0.subject != "Anatomia" }, "rinominare in vuoto toglie la materia")
+
+// le statistiche non separano le scritture diverse
+let mixed = [
+    StudySession(start: date(2026, 10, 12, 9), seconds: 600, plannedMinutes: 10, completed: true, subject: "anatomia"),
+    StudySession(start: date(2026, 10, 12, 10), seconds: 600, plannedMinutes: 10, completed: true, subject: "Anatomia"),
+    StudySession(start: date(2026, 10, 12, 11), seconds: 600, plannedMinutes: 10, completed: true, subject: "ANATOMIA"),
+]
+let mixedSummary = StudyStats.summary(sessions: mixed, period: StudyPeriod.containing(date(2026, 10, 12), kind: .day, calendar: cal), calendar: cal)
+check(mixedSummary.bySubject.count == 1 && mixedSummary.bySubject[0].seconds == 1800, "statistiche: una sola materia (\(mixedSummary.bySubject.map { $0.subject }))")
+check(mixedSummary.bySubject[0].subject == "ANATOMIA", "e si mostra la scrittura più recente")
+
+// ---------------------------------------------------------------- copie di sicurezza e cancellazione
+section("Copie di sicurezza e cancellazione")
+let bkDir = tempDirectory()
+var fakeNow = date(2026, 10, 1, 12)
+let bk = SessionLog(directory: bkDir, now: { fakeNow }, timeZone: rome)
+for day in 1...10 {
+    fakeNow = date(2026, 10, day, 12)
+    bk.add(start: fakeNow, seconds: 600, plannedMinutes: 10, completed: true, subject: "G\(day)")
+}
+let backups = ((try? FileManager.default.contentsOfDirectory(atPath: bkDir.appendingPathComponent("backup").path)) ?? []).sorted()
+check(backups.count == SessionLog.backupsToKeep, "tiene solo le ultime \(SessionLog.backupsToKeep) copie (\(backups.count))")
+check(backups.first == "sessioni-2026-10-04.json" && backups.last == "sessioni-2026-10-10.json", "le più recenti (\(backups.first ?? "-") … \(backups.last ?? "-"))")
+let lastBackup = (try? Data(contentsOf: bkDir.appendingPathComponent("backup/sessioni-2026-10-10.json"))) ?? Data()
+let lastBackupObject = (try? JSONSerialization.jsonObject(with: lastBackup)) as? [String: Any]
+check((lastBackupObject?["sessions"] as? [Any])?.count == 9, "la copia del giorno è lo stato di prima delle modifiche del giorno (\((lastBackupObject?["sessions"] as? [Any])?.count ?? -1) sessioni)")
+fakeNow = date(2026, 10, 10, 18)
+bk.add(start: fakeNow, seconds: 600, plannedMinutes: 10, completed: true, subject: "G10b")
+let againBackups = ((try? FileManager.default.contentsOfDirectory(atPath: bkDir.appendingPathComponent("backup").path)) ?? []).count
+check(againBackups == SessionLog.backupsToKeep, "una sola copia al giorno")
+
+var notified = 0
+bk.addObserver { notified += 1 }
+bk.beginInProgress(start: Date(), plannedMinutes: 10, subject: nil)
+bk.deleteAll()
+check(bk.sessions.isEmpty && notified == 1, "cancella tutto: vuoto e gli osservatori avvisati")
+let leftovers = (try? FileManager.default.contentsOfDirectory(atPath: bkDir.path)) ?? []
+check(leftovers.isEmpty, "cancella tutto: nessun file rimasto (\(leftovers))")
+check(SessionLog(directory: bkDir, timeZone: rome).sessions.isEmpty, "e alla riapertura è ancora vuoto")
+
+// ---------------------------------------------------------------- fuso orario
+section("Fuso orario")
+var tokyo = StudyPeriod.calendar()
+tokyo.timeZone = TimeZone(identifier: "Asia/Tokyo")!
+let lateRome = StudySession(
+    start: date(2026, 10, 14, 23, 30), localStart: "2026-10-14T23:30", seconds: 1800, plannedMinutes: 30, completed: true, subject: nil
+)
+let inTokyo = StudyStats.summary(sessions: [lateRome], period: StudyPeriod.containing(date(2026, 10, 14, 12), kind: .day, calendar: tokyo), calendar: tokyo)
+check(inTokyo.focusCount == 1, "una sessione serale a Roma resta nel suo giorno anche letta con un altro fuso")
+let nextDayTokyo = StudyStats.summary(sessions: [lateRome], period: StudyPeriod.containing(date(2026, 10, 15, 12), kind: .day, calendar: tokyo), calendar: tokyo)
+check(nextDayTokyo.focusCount == 0, "e non compare nel giorno dopo")
+check(inTokyo.buckets.count == 24 && inTokyo.buckets[23].seconds == 1800, "all'ora 23, quella dell'orologio")
+let noLocal = StudySession(start: date(2026, 10, 14, 9), seconds: 600, plannedMinutes: 10, completed: true, subject: nil)
+check(noLocal.startTime(in: cal) == date(2026, 10, 14, 9), "senza ora locale vale l'istante assoluto")
+let badLocal = StudySession(start: date(2026, 10, 14, 9), localStart: "boh", seconds: 600, plannedMinutes: 10, completed: true, subject: nil)
+check(badLocal.startTime(in: cal) == date(2026, 10, 14, 9), "ora locale illeggibile: si ricade sull'istante")
+check(StudyStats.streak(sessions: [lateRome], now: date(2026, 10, 15, 8), calendar: tokyo) == 1, "i giorni di fila usano l'ora locale")
 
 print("\n\(checks) controlli, \(failures) falliti")
 exit(failures == 0 ? 0 : 1)

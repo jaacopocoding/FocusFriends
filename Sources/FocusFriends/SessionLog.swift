@@ -7,6 +7,9 @@ import Foundation
 struct StudySession: Codable, Equatable {
     var id: UUID
     var start: Date
+    /// L'ora "sull'orologio" in cui è iniziato, senza fuso ("2026-10-14T09:30"). Serve a non far cambiare
+    /// giorno (o ora) a una sessione se poi cambia il fuso orario o l'ora legale: le statistiche usano questa.
+    var localStart: String?
     /// Secondi di focus davvero svolti (per un focus interrotto sono meno di quelli previsti).
     var seconds: Int
     var plannedMinutes: Int
@@ -16,14 +19,38 @@ struct StudySession: Codable, Equatable {
     /// registrate prima che esistesse questo campo.
     var pet: String?
 
-    init(id: UUID = UUID(), start: Date, seconds: Int, plannedMinutes: Int, completed: Bool, subject: String?, pet: String? = nil) {
+    init(id: UUID = UUID(), start: Date, localStart: String? = nil, seconds: Int, plannedMinutes: Int,
+         completed: Bool, subject: String?, pet: String? = nil) {
         self.id = id
         self.start = start
+        self.localStart = localStart
         self.seconds = seconds
         self.plannedMinutes = plannedMinutes
         self.completed = completed
         self.subject = subject
         self.pet = pet
+    }
+
+    /// L'istante in cui è iniziata, letto "sull'orologio" nel fuso del calendario dato: se la sessione ha
+    /// l'ora locale registrata vale quella, altrimenti l'istante assoluto.
+    func startTime(in calendar: Calendar) -> Date {
+        guard let local = localStart, let wall = Self.parse(local, calendar: calendar) else { return start }
+        return wall
+    }
+
+    /// "2026-10-14T09:30" per l'istante dato, nel fuso del calendario.
+    static func localString(for date: Date, calendar: Calendar) -> String {
+        let c = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: date)
+        return String(format: "%04d-%02d-%02dT%02d:%02d", c.year ?? 0, c.month ?? 0, c.day ?? 0, c.hour ?? 0, c.minute ?? 0)
+    }
+
+    private static func parse(_ text: String, calendar: Calendar) -> Date? {
+        // Formato fisso: aaaa-mm-ggThh:mm (16 caratteri)
+        let chars = Array(text)
+        guard chars.count == 16, chars[4] == "-", chars[7] == "-", chars[10] == "T", chars[13] == ":",
+              let y = Int(String(chars[0..<4])), let mo = Int(String(chars[5..<7])), let d = Int(String(chars[8..<10])),
+              let h = Int(String(chars[11..<13])), let mi = Int(String(chars[14..<16])) else { return nil }
+        return calendar.date(from: DateComponents(year: y, month: mo, day: d, hour: h, minute: mi))
     }
 }
 
@@ -59,12 +86,33 @@ enum Subject {
         guard !joined.isEmpty else { return nil }
         return String(joined.prefix(maxLength))
     }
+
+    /// La chiave con cui due scritture sono la stessa materia: senza maiuscole e senza accenti
+    /// ("Anatomia", "anatomia" e "ANATOMIA" sono la stessa; "Fisica" e "Física" pure).
+    static func key(_ text: String) -> String {
+        text.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: Locale(identifier: "it_IT"))
+    }
+}
+
+/// Il file di dati: la versione del formato e le sessioni. (Prima della versione 1 il file era la sola lista.)
+private struct LogFile: Codable {
+    var version: Int
+    var sessions: [StudySession]
 }
 
 /// Il file con tutte le sessioni, più un piccolo file "in corso" per non perdere un focus se l'app si chiude di colpo.
+///
+/// Cartella dei dati:
+///   sessioni.json        { "version": 1, "sessions": [...] }
+///   in-corso.json        il focus in corso (sparisce quando finisce)
+///   backup/              una copia al giorno (le ultime 7), fatta prima della prima modifica della giornata
 final class SessionLog {
+    /// La versione del formato di `sessioni.json` che questa app scrive.
+    static let formatVersion = 1
     /// Un focus interrotto sotto il minuto non conta.
     static let minimumSeconds = 60
+    /// Quante copie di sicurezza tenere.
+    static let backupsToKeep = 7
 
     static var defaultDirectory: URL {
         FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support/FocusFriends")
@@ -73,8 +121,14 @@ final class SessionLog {
     static let shared = SessionLog(directory: SessionLog.defaultDirectory)
 
     private(set) var sessions: [StudySession] = []
+    /// Il file è di una versione più nuova di quella che conosco: lo leggo ma non lo riscrivo (non perdo niente).
+    private(set) var isReadOnly = false
+    private let directory: URL
     private let file: URL
     private let progressFile: URL
+    private let backupDirectory: URL
+    private let now: () -> Date
+    private let timeZone: TimeZone
     private var lastHeartbeat = Date.distantPast
     /// Chi vuole sapere quando il registro cambia (le finestre delle statistiche e del giardino).
     private var observers: [() -> Void] = []
@@ -83,10 +137,20 @@ final class SessionLog {
         observers.append(observer)
     }
 
-    init(directory: URL) {
+    init(directory: URL, now: @escaping () -> Date = Date.init, timeZone: TimeZone = .current) {
+        self.directory = directory
+        self.now = now
+        self.timeZone = timeZone
         file = directory.appendingPathComponent("sessioni.json")
         progressFile = directory.appendingPathComponent("in-corso.json")
+        backupDirectory = directory.appendingPathComponent("backup")
         load()
+    }
+
+    private var calendar: Calendar {
+        var c = Calendar(identifier: .gregorian)
+        c.timeZone = timeZone
+        return c
     }
 
     // MARK: - Lettura e scrittura
@@ -106,34 +170,107 @@ final class SessionLog {
 
     private func load() {
         guard let data = try? Data(contentsOf: file) else { return }
-        do {
-            sessions = try Self.decoder().decode([StudySession].self, from: data)
-        } catch {
+        let decoder = Self.decoder()
+        var needsSave = false
+
+        if let wrapped = try? decoder.decode(LogFile.self, from: data) {
+            sessions = wrapped.sessions
+            if wrapped.version > Self.formatVersion { isReadOnly = true }
+        } else if let legacy = try? decoder.decode([StudySession].self, from: data) {
+            // Formato precedente (la sola lista): tengo una copia intatta e passo al nuovo.
+            try? FileManager.default.createDirectory(at: backupDirectory, withIntermediateDirectories: true)
+            try? data.write(to: backupDirectory.appendingPathComponent("sessioni-formato0.json"), options: .atomic)
+            sessions = legacy
+            needsSave = true
+        } else {
             // File rovinato: lo metto da parte invece di perderlo, e si riparte da vuoto.
-            let stamp = Int(Date().timeIntervalSince1970)
-            let aside = file.deletingLastPathComponent().appendingPathComponent("sessioni.corrotto-\(stamp).json")
+            let stamp = Int(now().timeIntervalSince1970)
+            let aside = directory.appendingPathComponent("sessioni.corrotto-\(stamp).json")
             try? FileManager.default.moveItem(at: file, to: aside)
             sessions = []
+            return
         }
+
+        if normalize() { needsSave = true }
+        if needsSave && !isReadOnly { save() }
+    }
+
+    /// Mette in ordine i dati letti: ogni materia con la scrittura più recente (e non una per ogni maiuscola),
+    /// e l'ora locale dove manca. Ritorna true se ha cambiato qualcosa.
+    private func normalize() -> Bool {
+        var changed = false
+        var spelling: [String: String] = [:]
+        for session in sessions.sorted(by: { $0.start < $1.start }) {
+            if let subject = session.subject { spelling[Subject.key(subject)] = subject }   // l'ultima vince
+        }
+        for i in sessions.indices {
+            if let subject = sessions[i].subject, let canonical = spelling[Subject.key(subject)], canonical != subject {
+                sessions[i].subject = canonical
+                changed = true
+            }
+            if sessions[i].localStart == nil {
+                sessions[i].localStart = StudySession.localString(for: sessions[i].start, calendar: calendar)
+                changed = true
+            }
+        }
+        return changed
     }
 
     private func save() {
-        try? FileManager.default.createDirectory(at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
-        if let data = try? Self.encoder().encode(sessions) {
+        guard !isReadOnly else { return }
+        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        makeDailyBackupIfNeeded()
+        let wrapped = LogFile(version: Self.formatVersion, sessions: sessions)
+        if let data = try? Self.encoder().encode(wrapped) {
             try? data.write(to: file, options: .atomic)
         }
         observers.forEach { $0() }
     }
 
+    // MARK: - Copie di sicurezza
+
+    /// Prima della prima modifica della giornata copia il file così com'era (cioè com'è finito ieri) e tiene
+    /// solo le ultime `backupsToKeep`.
+    private func makeDailyBackupIfNeeded() {
+        let fm = FileManager.default
+        guard fm.fileExists(atPath: file.path) else { return }
+        let c = calendar.dateComponents([.year, .month, .day], from: now())
+        let name = String(format: "sessioni-%04d-%02d-%02d.json", c.year ?? 0, c.month ?? 0, c.day ?? 0)
+        let target = backupDirectory.appendingPathComponent(name)
+        guard !fm.fileExists(atPath: target.path) else { return }
+        try? fm.createDirectory(at: backupDirectory, withIntermediateDirectories: true)
+        try? fm.copyItem(at: file, to: target)
+
+        let daily = ((try? fm.contentsOfDirectory(atPath: backupDirectory.path)) ?? [])
+            .filter { $0.hasPrefix("sessioni-2") && $0.hasSuffix(".json") }
+            .sorted()
+        if daily.count > Self.backupsToKeep {
+            for old in daily.prefix(daily.count - Self.backupsToKeep) {
+                try? fm.removeItem(at: backupDirectory.appendingPathComponent(old))
+            }
+        }
+    }
+
     // MARK: - Modifiche
+
+    /// La scrittura di una materia da usare: se esiste già con maiuscole o accenti diversi, vale quella più recente.
+    private func canonicalSubject(_ cleaned: String?) -> String? {
+        guard let cleaned else { return nil }
+        let key = Subject.key(cleaned)
+        for session in sessions.reversed() {                    // dalla più recente
+            if let existing = session.subject, Subject.key(existing) == key { return existing }
+        }
+        return cleaned
+    }
 
     /// Aggiunge una sessione (se dura almeno un minuto) e ritorna quella salvata.
     @discardableResult
     func add(start: Date, seconds: Int, plannedMinutes: Int, completed: Bool, subject: String?, pet: String? = nil) -> StudySession? {
-        guard seconds >= Self.minimumSeconds else { return nil }
+        guard seconds >= Self.minimumSeconds, !isReadOnly else { return nil }
         let session = StudySession(
-            start: start, seconds: seconds, plannedMinutes: plannedMinutes,
-            completed: completed, subject: Subject.clean(subject), pet: pet
+            start: start, localStart: StudySession.localString(for: start, calendar: calendar),
+            seconds: seconds, plannedMinutes: plannedMinutes, completed: completed,
+            subject: canonicalSubject(Subject.clean(subject)), pet: pet
         )
         sessions.append(session)
         sessions.sort { $0.start < $1.start }
@@ -142,14 +279,44 @@ final class SessionLog {
     }
 
     func remove(id: UUID) {
+        guard !isReadOnly else { return }
         sessions.removeAll { $0.id == id }
         save()
     }
 
     func setSubject(id: UUID, subject: String?) {
-        guard let index = sessions.firstIndex(where: { $0.id == id }) else { return }
-        sessions[index].subject = Subject.clean(subject)
+        guard !isReadOnly, let index = sessions.firstIndex(where: { $0.id == id }) else { return }
+        sessions[index].subject = canonicalSubject(Subject.clean(subject))
         save()
+    }
+
+    /// Rinomina una materia in tutte le sessioni (anche quelle scritte con maiuscole diverse). Se esiste già
+    /// una materia con il nuovo nome, le due si uniscono. Ritorna quante sessioni sono cambiate.
+    @discardableResult
+    func renameSubject(from old: String, to new: String?) -> Int {
+        guard !isReadOnly else { return 0 }
+        let oldKey = Subject.key(old)
+        let target = canonicalSubject(Subject.clean(new))
+        var changed = 0
+        for i in sessions.indices {
+            guard let subject = sessions[i].subject, Subject.key(subject) == oldKey, subject != target else { continue }
+            sessions[i].subject = target
+            changed += 1
+        }
+        if changed > 0 { save() }
+        return changed
+    }
+
+    /// Cancella tutto: le sessioni, il focus in corso e le copie di sicurezza. Non si può annullare.
+    func deleteAll() {
+        let fm = FileManager.default
+        sessions = []
+        isReadOnly = false
+        try? fm.removeItem(at: file)
+        try? fm.removeItem(at: progressFile)
+        try? fm.removeItem(at: backupDirectory)
+        lastHeartbeat = .distantPast
+        observers.forEach { $0() }
     }
 
     /// Le materie usate, dalla più recente: per i suggerimenti quando si avvia un focus.
@@ -157,8 +324,8 @@ final class SessionLog {
         var seen = Set<String>()
         var result: [String] = []
         for session in sessions.reversed() {
-            guard let subject = session.subject, !seen.contains(subject.lowercased()) else { continue }
-            seen.insert(subject.lowercased())
+            guard let subject = session.subject, !seen.contains(Subject.key(subject)) else { continue }
+            seen.insert(Subject.key(subject))
             result.append(subject)
             if result.count == limit { break }
         }
@@ -176,14 +343,15 @@ final class SessionLog {
     }
 
     func beginInProgress(start: Date, plannedMinutes: Int, subject: String?, pet: String? = nil) {
-        writeProgress(InProgress(start: start, plannedMinutes: plannedMinutes, subject: subject, pet: pet, lastSeen: Date()))
+        writeProgress(InProgress(start: start, plannedMinutes: plannedMinutes, subject: subject, pet: pet, lastSeen: now()))
     }
 
     /// Segna che l'app è ancora viva (al massimo una volta ogni 30 secondi).
-    func heartbeat(now: Date = Date()) {
-        guard now.timeIntervalSince(lastHeartbeat) >= 30, var progress = readProgress() else { return }
-        lastHeartbeat = now
-        progress.lastSeen = now
+    func heartbeat(now current: Date? = nil) {
+        let moment = current ?? now()
+        guard moment.timeIntervalSince(lastHeartbeat) >= 30, var progress = readProgress() else { return }
+        lastHeartbeat = moment
+        progress.lastSeen = moment
         writeProgress(progress)
     }
 
@@ -282,24 +450,29 @@ struct StudySummary {
 
 enum StudyStats {
     static func summary(sessions: [StudySession], period: StudyPeriod, calendar: Calendar = StudyPeriod.calendar()) -> StudySummary {
-        // Una sessione va al periodo in cui è iniziata (anche se passa la mezzanotte).
-        let inPeriod = sessions.filter { period.contains($0.start) }
+        // Una sessione va al periodo in cui è iniziata (anche se passa la mezzanotte), secondo l'ora
+        // "sull'orologio" a cui l'ha registrata (non cambia se poi cambia il fuso orario).
+        let inPeriod = sessions.filter { period.contains($0.startTime(in: calendar)) }
         var summary = StudySummary()
-        summary.sessions = inPeriod.sorted { $0.start > $1.start }
+        summary.sessions = inPeriod.sorted { $0.startTime(in: calendar) > $1.startTime(in: calendar) }
         summary.focusCount = inPeriod.count
         summary.completedCount = inPeriod.filter { $0.completed }.count
         summary.interruptedCount = summary.focusCount - summary.completedCount
         summary.totalSeconds = inPeriod.reduce(0) { $0 + $1.seconds }
 
-        var bySubject: [String: Int] = [:]
+        // Le materie si raggruppano senza distinguere maiuscole e accenti; si mostra la scrittura più recente.
+        var secondsByKey: [String: Int] = [:]
+        var displayByKey: [String: String] = [:]
         var order: [String] = []
-        for s in inPeriod {
+        for s in inPeriod.sorted(by: { $0.startTime(in: calendar) < $1.startTime(in: calendar) }) {
             let name = s.subject ?? Subject.none
-            if bySubject[name] == nil { order.append(name) }
-            bySubject[name, default: 0] += s.seconds
+            let key = s.subject.map { Subject.key($0) } ?? "\u{0}senza-materia"
+            if secondsByKey[key] == nil { order.append(key) }
+            secondsByKey[key, default: 0] += s.seconds
+            displayByKey[key] = name
         }
         summary.bySubject = order
-            .map { (subject: $0, seconds: bySubject[$0] ?? 0) }
+            .map { (subject: displayByKey[$0] ?? Subject.none, seconds: secondsByKey[$0] ?? 0) }
             .sorted { $0.seconds != $1.seconds ? $0.seconds > $1.seconds : $0.subject < $1.subject }
 
         let step: Calendar.Component = period.kind == .day ? .hour : .day
@@ -307,7 +480,10 @@ enum StudyStats {
         var buckets: [StudyBucket] = []
         while cursor < period.end {
             let next = calendar.date(byAdding: step, value: 1, to: cursor) ?? period.end
-            let seconds = inPeriod.filter { $0.start >= cursor && $0.start < next }.reduce(0) { $0 + $1.seconds }
+            let seconds = inPeriod.filter {
+                let t = $0.startTime(in: calendar)
+                return t >= cursor && t < next
+            }.reduce(0) { $0 + $1.seconds }
             buckets.append(StudyBucket(start: cursor, seconds: seconds))
             cursor = next
         }
@@ -318,7 +494,7 @@ enum StudyStats {
     /// Giorni consecutivi con almeno un focus, fino a oggi. Se oggi non c'è ancora niente conta da ieri,
     /// così la serie non si azzera la mattina.
     static func streak(sessions: [StudySession], now: Date, calendar: Calendar = StudyPeriod.calendar()) -> Int {
-        let days = Set(sessions.map { calendar.startOfDay(for: $0.start) })
+        let days = Set(sessions.map { calendar.startOfDay(for: $0.startTime(in: calendar)) })
         var day = calendar.startOfDay(for: now)
         if !days.contains(day) {
             guard let yesterday = calendar.date(byAdding: .day, value: -1, to: day) else { return 0 }

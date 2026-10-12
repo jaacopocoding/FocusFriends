@@ -55,14 +55,24 @@ materia, oppure si tocca una di quelle usate di recente per partire subito, oppu
 50 minuti. Che bel lavoro!"*.
 
 Ogni focus finisce in un registro (`SessionLog.swift`), un file leggibile in
-`~/Library/Application Support/FocusFriends/sessioni.json`: inizio, minuti fatti davvero, minuti previsti,
-completo o interrotto, materia. Le regole:
+`~/Library/Application Support/FocusFriends/sessioni.json`: inizio, ora "sull'orologio" a cui è iniziato,
+minuti fatti davvero, minuti previsti, completo o interrotto, materia, personaggio. È un JSON con la versione del
+formato (`{"version": 1, "sessions": […]}`). Le regole:
 
 - le pause non contano; un focus **interrotto** conta per i minuti che ha fatto davvero, se sono almeno uno;
-- una sessione che passa la mezzanotte va al giorno in cui è iniziata;
+- una sessione che passa la mezzanotte va al giorno in cui è iniziata, **secondo l'orologio di quando l'hai
+  fatta**: se poi cambia il fuso orario o l'ora legale, non cambia giorno (né ora) (`localStart`);
+- **le materie si uniscono**: "Anatomia", "anatomia" e "ANATOMIA" (e le versioni con o senza accenti) sono
+  la stessa materia; una nuova scrittura prende quella già usata, e nelle sessioni si può cambiare il nome in
+  tutte insieme (nella finestra di modifica: «Cambia la materia in tutte le sessioni»);
 - se l'app si chiude di colpo durante un focus, la sessione si recupera al prossimo avvio come interrotta
   (un piccolo file `in-corso.json` si aggiorna ogni 30 secondi);
-- se `sessioni.json` risulta illeggibile viene messo da parte (`sessioni.corrotto-….json`) e si riparte da vuoto.
+- **copia di sicurezza**: una al giorno, fatta prima della prima modifica, nella cartella `backup/` (le ultime
+  7); quando il formato passa a una versione nuova viene tenuta intatta anche la copia di quello vecchio;
+- se `sessioni.json` risulta illeggibile viene messo da parte (`sessioni.corrotto-….json`) e si riparte da vuoto;
+  se è di una versione **più nuova** di quella dell'app viene letto ma non riscritto, per non perdere nulla;
+- **cancellare tutto**: *Cancella tutto…* nella finestra delle statistiche elimina le sessioni, il focus in
+  corso e anche le copie di sicurezza (con conferma; prima si può esportare in CSV).
 
 *Statistiche e riepilogo…* apre una finestra (`DashboardWindow.swift`) con tre schede: **Oggi** (il
 riepilogo della giornata), **Settimana** (da lunedì) e **Mese**. Con le frecce si va ai periodi precedenti.
@@ -72,7 +82,8 @@ o la si elimina; *Esporta CSV…* salva tutte le sessioni per un foglio di calco
 nessun invio da nessuna parte.
 
 Le regole di calcolo hanno le loro prove: `./tests/run.sh` (compila `SessionLog.swift` da solo e controlla
-periodi, totali, giorni di fila, recupero, file rovinato…).
+periodi, totali, giorni di fila, recupero, file rovinato, migrazione, materie unite, copie di sicurezza,
+fuso orario…).
 
 ## Il giardino
 

@@ -23,6 +23,7 @@ final class DashboardView: NSView {
     private let previousButton = NSButton()
     private let nextButton = NSButton()
     private let exportButton = NSButton()
+    private let deleteButton = NSButton()
 
     init(log: SessionLog, now: @escaping () -> Date = Date.init) {
         self.log = log
@@ -58,6 +59,15 @@ final class DashboardView: NSView {
         exportButton.action = #selector(exportCSV)
         exportButton.frame = NSRect(x: Self.size.width - Self.margin - 120, y: 18, width: 120, height: 26)
         addSubview(exportButton)
+
+        deleteButton.attributedTitle = NSAttributedString(string: "Cancella tutto…", attributes: [
+            .font: NSFont.systemFont(ofSize: 13, weight: .medium), .foregroundColor: Paper.accent,
+        ])
+        deleteButton.isBordered = false
+        deleteButton.target = self
+        deleteButton.action = #selector(deleteEverything)
+        deleteButton.frame = NSRect(x: Self.size.width - Self.margin - 120 - 124, y: 18, width: 124, height: 26)
+        addSubview(deleteButton)
 
         log.addObserver { [weak self] in self?.reload() }
         reload()
@@ -309,7 +319,7 @@ final class DashboardView: NSView {
             let y = top + 24 + CGFloat(i) * 23
             let rect = NSRect(x: m - 6, y: y - 2, width: width - 2 * m + 12, height: 22)
             rowHits.append((rect: rect, id: session.id))
-            let when = kind == .day ? formatted(session.start, "HH:mm") : formatted(session.start, "EEE d MMM, HH:mm")
+            let when = kind == .day ? formatted(session.startTime(in: calendar), "HH:mm") : formatted(session.startTime(in: calendar), "EEE d MMM, HH:mm")
             let subject = session.subject ?? Subject.none
             let dot = NSBezierPath(ovalIn: NSRect(x: m, y: y + 5, width: 9, height: 9))
             (session.subject == nil ? Paper.inkLight.withAlphaComponent(0.5) : Paper.color(forSubject: subject)).setFill()
@@ -345,23 +355,55 @@ final class DashboardView: NSView {
         let alert = NSAlert()
         alert.messageText = "Modifica sessione"
         let minutes = (session.seconds + 30) / 60
-        alert.informativeText = "\(formatted(session.start, "EEEE d MMMM, HH:mm")) · \(minutes) min"
-        let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 260, height: 24))
+        alert.informativeText = "\(formatted(session.startTime(in: calendar), "EEEE d MMMM, HH:mm")) · \(minutes) min"
+
+        let field = NSTextField(frame: NSRect(x: 0, y: 30, width: 280, height: 24))
         field.stringValue = session.subject ?? ""
         field.placeholderString = "Materia"
-        alert.accessoryView = field
+        // Per correggere una materia scritta male (o unirne due) in tutte le sessioni in un colpo solo.
+        let everywhere = NSButton(checkboxWithTitle: "", target: nil, action: nil)
+        everywhere.frame = NSRect(x: 0, y: 0, width: 280, height: 22)
+        if let subject = session.subject {
+            everywhere.title = "Cambia la materia in tutte le sessioni «\(subject)»"
+        } else {
+            everywhere.isHidden = true
+        }
+        let container = NSView(frame: NSRect(x: 0, y: 0, width: 280, height: 58))
+        container.addSubview(field)
+        container.addSubview(everywhere)
+        alert.accessoryView = container
         alert.addButton(withTitle: "Salva")
         alert.addButton(withTitle: "Elimina")
         alert.addButton(withTitle: "Annulla")
         alert.window.initialFirstResponder = field
         switch alert.runModal() {
         case .alertFirstButtonReturn:
-            log.setSubject(id: session.id, subject: field.stringValue)
+            if everywhere.state == .on, let subject = session.subject {
+                log.renameSubject(from: subject, to: field.stringValue)
+            } else {
+                log.setSubject(id: session.id, subject: field.stringValue)
+            }
         case .alertSecondButtonReturn:
             log.remove(id: session.id)
         default:
             break
         }
+    }
+
+    // MARK: - Cancellare tutto
+
+    @objc private func deleteEverything() {
+        let alert = NSAlert()
+        alert.alertStyle = .critical
+        alert.messageText = "Cancellare tutti i dati?"
+        let count = log.sessions.count
+        alert.informativeText = "Verranno cancellate tutte le sessioni di studio (\(count)), il giardino e le copie di sicurezza. "
+            + "Non si può annullare. Se vuoi tenerle, esportale prima con «Esporta CSV…»."
+        let confirm = alert.addButton(withTitle: "Cancella tutto")
+        confirm.hasDestructiveAction = true
+        alert.addButton(withTitle: "Annulla")
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        log.deleteAll()
     }
 
     // MARK: - Esportazione
@@ -377,10 +419,10 @@ final class DashboardView: NSView {
     static func csv(for sessions: [StudySession]) -> String {
         func quoted(_ s: String) -> String { "\"" + s.replacingOccurrences(of: "\"", with: "\"\"") + "\"" }
         let iso = ISO8601DateFormatter()
-        var lines = ["inizio,minuti,minuti_previsti,completa,materia,personaggio"]
+        var lines = ["inizio,inizio_locale,minuti,minuti_previsti,completa,materia,personaggio"]
         for s in sessions {
             lines.append([
-                iso.string(from: s.start), "\((s.seconds + 30) / 60)", "\(s.plannedMinutes)",
+                iso.string(from: s.start), s.localStart ?? "", "\((s.seconds + 30) / 60)", "\(s.plannedMinutes)",
                 s.completed ? "si" : "no", quoted(s.subject ?? ""), s.pet ?? "",
             ].joined(separator: ","))
         }
