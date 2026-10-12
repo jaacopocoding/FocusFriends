@@ -374,6 +374,8 @@ final class MenuController: NSObject, NSMenuDelegate {
             phase: pomodoro.phase, subject: pomodoro.subject, remaining: pomodoro.remainingText,
             breakMinutes: pomodoro.breakMinutes, todaySeconds: today.totalSeconds, todayFocusCount: today.focusCount,
             streak: StudyStats.streak(sessions: SessionLog.shared.sessions, now: now, calendar: calendar),
+            focusTimers: customTimers.all(.focus), restTimers: customTimers.all(.rest),
+            customFocus: customTimers.custom(.focus), customRest: customTimers.custom(.rest),
             chattiness: Chattiness.current, petWalks: window.pet.walks, movementOn: Walker.isMovementEnabled,
             askOn: ReflectionCard.isEnabled
         )
@@ -392,10 +394,15 @@ final class MenuController: NSObject, NSMenuDelegate {
             toggleAsk: { ReflectionCard.isEnabled.toggle() },
             toggleVisibility: { [weak self] in self?.toggleVisibility() },
             speak: { [weak self] in self?.makeSpeak() },
-            otherTimers: { [weak self] in
-                guard let self, let submenu = self.pomofocusItem.submenu else { return }
-                self.menuNeedsUpdate(self.menu)
-                submenu.popUp(positioning: nil, at: NSEvent.mouseLocation, in: nil)
+            addTimer: { [weak self] kind, minutes in
+                guard let self else { return .alreadyExists }
+                let result = self.customTimers.add(minutes, kind: kind)
+                self.populatePomofocusMenu()
+                return result
+            },
+            removeTimer: { [weak self] kind, minutes in
+                self?.customTimers.remove(minutes, kind: kind)
+                self?.populatePomofocusMenu()
             },
             moreSettings: { [weak self] in
                 guard let self else { return }

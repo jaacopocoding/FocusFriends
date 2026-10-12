@@ -98,6 +98,15 @@ apre anche con il tasto destro (o ⌥-clic) sull'icona nella barra dei menu:
   <img src="docs/images/menu.png" width="640" alt="La scheda del menu, a riposo e durante un focus">
 </p>
 
+**Altri timer…** apre «Gira il timer»: un quadrante a forma di pomodoro in cui si trascina il pallino (o si usa la
+rotella, un minuto alla volta) per scegliere i minuti, da 5 a 120 per un focus e da 1 a 30 per una pausa. Sotto,
+i timer che hai: si toccano per metterli sul quadrante. Un valore nuovo si può *salvare tra i miei timer* (fino a 6
+per tipo) e uno tuo si può *rimuovere*. *Avvia* parte con i minuti scelti; la pausa scelta parte da sola dopo ogni focus.
+
+<p align="center">
+  <img src="docs/images/timer.png" width="640" alt="Gira il timer: un focus da 90 minuti e una pausa da 5">
+</p>
+
 ### Il menu classico
 
 | Voce | Cosa fa |

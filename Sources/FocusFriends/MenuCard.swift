@@ -14,6 +14,10 @@ struct MenuCardState {
     var todaySeconds: Int
     var todayFocusCount: Int
     var streak: Int
+    var focusTimers: [Int]
+    var restTimers: [Int]
+    var customFocus: [Int]
+    var customRest: [Int]
     var chattiness: Chattiness
     var petWalks: Bool
     var movementOn: Bool
@@ -33,7 +37,8 @@ struct MenuCardActions {
     var toggleAsk: () -> Void
     var toggleVisibility: () -> Void
     var speak: () -> Void
-    var otherTimers: () -> Void
+    var addTimer: (CustomTimers.Kind, Int) -> CustomTimers.AddResult
+    var removeTimer: (CustomTimers.Kind, Int) -> Void
     var moreSettings: () -> Void
     var quit: () -> Void
 }
@@ -85,6 +90,14 @@ private final class MenuCardView: NSView {
     /// Chiude la scheda (se `close`) e poi esegue l'azione.
     private let perform: (_ close: Bool, _ action: () -> Void) -> Void
     var onResize: ((CGFloat) -> Void)?
+
+    private enum Page { case main, timers }
+    private var page: Page = .main
+    /// Il quadrante dei timer: tiene il suo valore mentre lo si trascina (la pagina intorno si ricostruisce).
+    private var dial: TimerDial?
+    private var dialKind: CustomTimers.Kind = .focus
+    private var dialMinutes = 50
+    private var timerMessage: String?
 
     private var statusLabel: NSTextField?
     private var clockLabel: NSTextField?
@@ -161,12 +174,17 @@ private final class MenuCardView: NSView {
 
     /// Ricostruisce tutta la scheda dallo stato attuale (dopo un tocco, o quando cambia fase del timer).
     func rebuild() {
-        subviews.forEach { $0.removeFromSuperview() }
+        for view in subviews where !(page == .timers && view === dial) { view.removeFromSuperview() }
+        if page == .main { dial = nil }
         statusLabel = nil
         clockLabel = nil
         let s = provide()
         shownPhase = s.phase
         shownRunning = s.phase != nil
+        if page == .timers {
+            buildTimers(s)
+            return
+        }
 
         let w = Self.width
         let pad = Self.pad
@@ -366,7 +384,14 @@ private final class MenuCardView: NSView {
             }
         }
         var next = y + 58 + 6
-        add(NSRect(x: Self.width / 2 - 60, y: next, width: 120, height: 18), label: "Altri timer", close: true, actions.otherTimers) {
+        add(NSRect(x: Self.width / 2 - 60, y: next, width: 120, height: 18), label: "Altri timer", { [weak self] in
+            guard let self else { return }
+            self.dialKind = .focus
+            self.dialMinutes = 50
+            self.timerMessage = nil
+            self.page = .timers
+            self.rebuild()
+        }) {
             rect, pressed, hovered in
             Self.text("Altri timer…", in: rect, font: NSFont.systemFont(ofSize: 12), color: hovered || pressed ? Paper.ink : Paper.inkLight,
                       alignment: .center)
@@ -444,6 +469,205 @@ private final class MenuCardView: NSView {
                       font: NSFont.systemFont(ofSize: 12.5, weight: .medium), color: hovered || pressed ? Paper.ink : Paper.inkLight,
                       alignment: alignment)
         }
+    }
+
+    // MARK: - La pagina dei timer
+
+    private var dialMax: Int { dialKind == .focus ? 120 : 30 }
+    private var dialStep: Int { dialKind == .focus ? 5 : 1 }
+
+    /// "‹ Gira il timer": il quadrante da girare per scegliere i minuti, i timer salvati e Avvia.
+    private func buildTimers(_ s: MenuCardState) {
+        let w = Self.width
+        let pad = Self.pad
+        let inner = w - 2 * pad
+        var y = Self.overflow + 14
+
+        // Intestazione con la freccia indietro
+        add(NSRect(x: pad - 6, y: y, width: 36, height: 30), label: "Torna alla scheda", { [weak self] in
+            self?.page = .main
+            self?.rebuild()
+        }) { rect, pressed, hovered in
+            if let image = Paper.symbolImage("chevron.left", size: 15, color: hovered || pressed ? Paper.ink : Paper.inkLight) {
+                let size = image.size
+                image.draw(in: NSRect(x: rect.midX - size.width / 2, y: rect.midY - size.height / 2, width: size.width, height: size.height),
+                           from: .zero, operation: .sourceOver, fraction: 1, respectFlipped: true, hints: nil)
+            }
+        }
+        _ = label("Gira il timer", font: Paper.markerFont(20), alignment: .left,
+                  frame: NSRect(x: pad + 30, y: y + 2, width: inner - 30, height: 26))
+        y += 42
+
+        // Focus o pausa
+        let backdrop = NSView(frame: NSRect(x: pad, y: y, width: inner, height: 30))
+        backdrop.wantsLayer = true
+        backdrop.layer?.cornerRadius = 15
+        backdrop.layer?.backgroundColor = Paper.paperEdge.withAlphaComponent(0.18).cgColor
+        addSubview(backdrop)
+        for (i, kind) in [CustomTimers.Kind.focus, .rest].enumerated() {
+            let frame = NSRect(x: pad + CGFloat(i) * inner / 2, y: y, width: inner / 2, height: 30)
+            add(frame, label: kind.title, { [weak self] in
+                guard let self, self.dialKind != kind else { return }
+                self.dialKind = kind
+                self.dialMinutes = kind == .rest ? s.breakMinutes : 50
+                self.timerMessage = nil
+                self.rebuild()
+            }) { [dialKind] rect, pressed, hovered in
+                if dialKind == kind {
+                    let shape = NSBezierPath(roundedRect: rect.insetBy(dx: 3, dy: 3), xRadius: 12, yRadius: 12)
+                    Paper.paper.setFill()
+                    shape.fill()
+                    Paper.paperEdge.setStroke()
+                    shape.lineWidth = 1
+                    shape.stroke()
+                }
+                Self.text(kind.title, in: NSRect(x: rect.minX, y: rect.midY - 8.5, width: rect.width, height: 17),
+                          font: NSFont.systemFont(ofSize: 12.5, weight: .medium),
+                          color: dialKind == kind || hovered || pressed ? Paper.ink : Paper.inkLight, alignment: .center)
+            }
+        }
+        y += 30 + 10
+
+        // Il quadrante
+        let dialSize: CGFloat = 176
+        let dialView: TimerDial
+        if let existing = dial {
+            dialView = existing
+        } else {
+            dialView = TimerDial(frame: .zero)
+            dialView.onChange = { [weak self] minutes in
+                self?.dialMinutes = minutes
+                self?.timerMessage = nil
+                self?.rebuild()
+            }
+            dial = dialView
+            addSubview(dialView)
+        }
+        dialView.frame = NSRect(x: (w - dialSize) / 2, y: y, width: dialSize, height: dialSize)
+        dialView.maxMinutes = dialMax
+        dialView.step = dialStep
+        dialView.hardMax = CustomTimers.allowed[dialKind]?.upperBound ?? 120
+        dialView.minutes = dialMinutes
+        y += dialSize + 2
+
+        // Salva (se non c'è) o rimuovi (se è tuo) il timer con questi minuti
+        let all = dialKind == .focus ? s.focusTimers : s.restTimers
+        let mine = dialKind == .focus ? s.customFocus : s.customRest
+        let linkFrame = NSRect(x: pad, y: y, width: inner, height: 20)
+        if let message = timerMessage {
+            _ = label(message, font: NSFont.systemFont(ofSize: 12), color: Paper.accent, frame: linkFrame)
+        } else if mine.contains(dialMinutes) {
+            add(linkFrame, label: "Rimuovi dai miei timer", { [weak self] in
+                guard let self else { return }
+                self.actions.removeTimer(self.dialKind, self.dialMinutes)
+                self.rebuild()
+            }) { rect, pressed, hovered in
+                Self.text("Rimuovi dai miei timer", in: rect, font: NSFont.systemFont(ofSize: 12),
+                          color: hovered || pressed ? Paper.ink : Paper.inkLight, alignment: .center)
+            }
+        } else if !all.contains(dialMinutes) {
+            add(linkFrame, label: "Salva tra i miei timer", { [weak self] in
+                guard let self else { return }
+                switch self.actions.addTimer(self.dialKind, self.dialMinutes) {
+                case .added: break
+                case .tooMany(let max): self.timerMessage = "Puoi salvarne al massimo \(max): togline uno."
+                case .outOfRange(let range): self.timerMessage = "Da \(range.lowerBound) a \(range.upperBound) minuti."
+                case .alreadyExists: break
+                }
+                self.rebuild()
+            }) { rect, pressed, hovered in
+                Self.text("Salva tra i miei timer", in: rect, font: NSFont.systemFont(ofSize: 12, weight: .medium),
+                          color: hovered || pressed ? Paper.accentPressed : Paper.accent, alignment: .center)
+            }
+        } else {
+            _ = label(dialKind == .rest ? "Parte da sola dopo ogni focus."
+                                        : "Trascina il pallino per cambiare i minuti.",
+                      font: NSFont.systemFont(ofSize: 11.5), color: Paper.inkLight, frame: linkFrame)
+        }
+        y += 28
+
+        // I timer che hai: si toccano per metterli sul quadrante.
+        let font = NSFont.systemFont(ofSize: 13, weight: .medium)
+        var rows: [[Int]] = [[]]
+        var rowWidth: CGFloat = 0
+        func chipWidth(_ m: Int) -> CGFloat { ceil(("\(m)" as NSString).size(withAttributes: [.font: font]).width) + 30 }
+        for minutes in all {
+            let cw = chipWidth(minutes)
+            if rowWidth + cw > inner, !rows[rows.count - 1].isEmpty {
+                rows.append([])
+                rowWidth = 0
+            }
+            rows[rows.count - 1].append(minutes)
+            rowWidth += cw + 8
+        }
+        for row in rows {
+            let total = row.reduce(0) { $0 + chipWidth($1) } + 8 * CGFloat(max(row.count - 1, 0))
+            var x = (w - total) / 2
+            for minutes in row {
+                let cw = chipWidth(minutes)
+                let selected = minutes == dialMinutes
+                let isMine = mine.contains(minutes)
+                add(NSRect(x: x, y: y, width: cw, height: 30), label: "\(minutes) minuti", { [weak self] in
+                    self?.dialMinutes = minutes
+                    self?.timerMessage = nil
+                    self?.rebuild()
+                }) { rect, pressed, hovered in
+                    let shape = NSBezierPath(roundedRect: rect.insetBy(dx: 0.5, dy: 0.5), xRadius: rect.height / 2, yRadius: rect.height / 2)
+                    (selected ? (pressed ? Paper.accentPressed : Paper.accent)
+                        : pressed ? Paper.accent.withAlphaComponent(0.3)
+                        : hovered ? Paper.accent.withAlphaComponent(0.14) : Paper.paper).setFill()
+                    shape.fill()
+                    (selected ? Paper.accent : Paper.paperEdge).setStroke()
+                    shape.lineWidth = isMine && !selected ? 1.6 : 1
+                    shape.stroke()
+                    Self.text("\(minutes)", in: NSRect(x: rect.minX, y: rect.midY - 8.5, width: rect.width, height: 17),
+                              font: font, color: selected ? .white : Paper.ink, alignment: .center)
+                }
+                x += cw + 8
+            }
+            y += 30 + 8
+        }
+        y += 4
+
+        // Avvia
+        let isFocus = dialKind == .focus
+        let title = isFocus ? "Avvia il focus" : "Avvia la pausa"
+        add(NSRect(x: pad, y: y, width: inner, height: 42), label: title, close: true, { [weak self] in
+            guard let self else { return }
+            if self.dialKind == .focus { self.actions.startFocus(self.dialMinutes) } else { self.actions.startBreak(self.dialMinutes) }
+        }) { rect, pressed, hovered in
+            let shape = NSBezierPath(roundedRect: rect.insetBy(dx: 0.5, dy: 0.5), xRadius: rect.height / 2, yRadius: rect.height / 2)
+            (pressed ? Paper.accentPressed : Paper.accent).setFill()
+            shape.fill()
+            _ = hovered
+            let font = Paper.markerFont(18)
+            let textWidth = (title as NSString).size(withAttributes: [.font: font]).width
+            let startX = rect.midX - (24 + textWidth) / 2
+            if let play = Paper.symbolImage("play.fill", size: 13, color: .white) {
+                let size = play.size
+                play.draw(in: NSRect(x: startX, y: rect.midY - size.height / 2, width: size.width, height: size.height), from: .zero,
+                          operation: .sourceOver, fraction: 1, respectFlipped: true, hints: nil)
+            }
+            Self.text(title, in: NSRect(x: startX + 24, y: rect.midY - 12, width: textWidth + 6, height: 24),
+                      font: font, color: .white)
+        }
+        y += 42 + 10
+
+        if s.phase != nil {
+            add(NSRect(x: pad, y: y, width: inner, height: 22), label: "Ferma il timer", { [weak self] in
+                self?.actions.stopTimer()
+                self?.rebuild()
+            }) { rect, pressed, hovered in
+                Self.text("Ferma il timer in corso (\(s.remaining))", in: rect, font: NSFont.systemFont(ofSize: 12.5, weight: .medium),
+                          color: hovered || pressed ? Paper.ink : Paper.inkLight, alignment: .center)
+            }
+            y += 24
+        }
+        y += 10
+
+        setFrameSize(NSSize(width: w, height: y))
+        needsDisplay = true
+        onResize?(y)
     }
 
     // MARK: - Aggiornamento dal vivo
@@ -646,4 +870,120 @@ final class MenuCard: NSObject {
 
     /// La scheda disegnata in un'immagine (per le anteprime).
     var contentView: NSView? { content }
+}
+
+
+/// Il quadrante del timer: un pomodoro da girare. Si trascina il pallino (o si usa la rotella) per scegliere i minuti.
+private final class TimerDial: NSView {
+    override var isFlipped: Bool { true }
+
+    var minutes = 50 { didSet { needsDisplay = true } }
+    var maxMinutes = 120 { didSet { needsDisplay = true } }
+    var step = 5
+    /// Il massimo che la rotella può raggiungere (più del giro intero: un timer tuo può essere più lungo).
+    var hardMax = 180
+    var onChange: ((Int) -> Void)?
+
+    override var acceptsFirstResponder: Bool { false }
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
+
+    override func draw(_ dirtyRect: NSRect) {
+        let c = NSPoint(x: bounds.midX, y: bounds.midY + 4)
+        let outer = bounds.width / 2 - 14
+        let ring: CGFloat = outer - 10
+
+        // Il picciolo e le foglie in cima, come il logo.
+        let leaf = NSColor(calibratedRed: 0.48, green: 0.60, blue: 0.35, alpha: 1)
+        let top = c.y - outer
+        for sign: CGFloat in [-1, 1] {
+            let path = NSBezierPath()
+            path.move(to: NSPoint(x: c.x, y: top + 3))
+            path.curve(to: NSPoint(x: c.x + sign * 20, y: top - 3),
+                       controlPoint1: NSPoint(x: c.x + sign * 6, y: top - 12), controlPoint2: NSPoint(x: c.x + sign * 16, y: top - 12))
+            path.curve(to: NSPoint(x: c.x, y: top + 3),
+                       controlPoint1: NSPoint(x: c.x + sign * 16, y: top + 6), controlPoint2: NSPoint(x: c.x + sign * 6, y: top + 6))
+            leaf.setFill()
+            path.fill()
+            Paper.ink.setStroke()
+            path.lineWidth = 1.2
+            path.stroke()
+        }
+        let stem = NSBezierPath(roundedRect: NSRect(x: c.x - 2.5, y: top - 14, width: 5, height: 14), xRadius: 2, yRadius: 2)
+        leaf.setFill()
+        stem.fill()
+        Paper.ink.setStroke()
+        stem.lineWidth = 1.2
+        stem.stroke()
+
+        // Il quadrante
+        let face = NSBezierPath(ovalIn: NSRect(x: c.x - outer, y: c.y - outer, width: 2 * outer, height: 2 * outer))
+        NSColor(calibratedRed: 1.0, green: 0.99, blue: 0.94, alpha: 1).setFill()
+        face.fill()
+        Paper.ink.setStroke()
+        face.lineWidth = 2
+        face.stroke()
+
+        // La pista e la parte già girata
+        let track = NSBezierPath(ovalIn: NSRect(x: c.x - ring, y: c.y - ring, width: 2 * ring, height: 2 * ring))
+        Paper.track.setStroke()
+        track.lineWidth = 12
+        track.stroke()
+        let fraction = TimerDialMath.filledFraction(minutes: minutes, maxMinutes: maxMinutes)
+        let arc = NSBezierPath()
+        let steps = max(Int(fraction * 120), 2)
+        for i in 0...steps {
+            let angle = -CGFloat.pi / 2 + CGFloat(fraction) * 2 * .pi * CGFloat(i) / CGFloat(steps)
+            let p = NSPoint(x: c.x + ring * cos(angle), y: c.y + ring * sin(angle))
+            if i == 0 { arc.move(to: p) } else { arc.line(to: p) }
+        }
+        Paper.accent.setStroke()
+        arc.lineWidth = 12
+        arc.lineCapStyle = .round
+        arc.stroke()
+
+        // Il pallino
+        let end = -CGFloat.pi / 2 + CGFloat(fraction) * 2 * .pi
+        let knob = NSRect(x: c.x + ring * cos(end) - 9, y: c.y + ring * sin(end) - 9, width: 18, height: 18)
+        let knobPath = NSBezierPath(ovalIn: knob)
+        NSColor(calibratedRed: 1.0, green: 0.99, blue: 0.94, alpha: 1).setFill()
+        knobPath.fill()
+        Paper.accent.setStroke()
+        knobPath.lineWidth = 3
+        knobPath.stroke()
+
+        // I minuti
+        let para = NSMutableParagraphStyle()
+        para.alignment = .center
+        ("\(minutes)" as NSString).draw(in: NSRect(x: c.x - 50, y: c.y - 30, width: 100, height: 48),
+                                       withAttributes: [.font: Paper.markerFont(40), .foregroundColor: Paper.ink, .paragraphStyle: para])
+        ("minuti" as NSString).draw(in: NSRect(x: c.x - 50, y: c.y + 18, width: 100, height: 16),
+                                   withAttributes: [.font: NSFont.systemFont(ofSize: 12), .foregroundColor: Paper.inkLight, .paragraphStyle: para])
+    }
+
+    private func update(from event: NSEvent) {
+        let p = convert(event.locationInWindow, from: nil)
+        let dx = p.x - bounds.midX, dy = p.y - (bounds.midY + 4)
+        guard hypot(dx, dy) > 16 else { return }
+        var fraction = atan2(dx, -dy) / (2 * .pi)
+        if fraction < 0 { fraction += 1 }
+        let new = TimerDialMath.minutes(fraction: Double(fraction), previous: minutes, maxMinutes: maxMinutes, step: step)
+        if new != minutes {
+            minutes = new
+            onChange?(new)
+        }
+    }
+
+    override func mouseDown(with event: NSEvent) { update(from: event) }
+    override func mouseDragged(with event: NSEvent) { update(from: event) }
+
+    /// La rotella (o due dita sul trackpad) aggiunge o toglie un minuto alla volta.
+    override func scrollWheel(with event: NSEvent) {
+        let delta = event.scrollingDeltaY
+        guard abs(delta) > 0.5 else { return }
+        let new = min(max(minutes + (delta > 0 ? 1 : -1), 1), hardMax)
+        if new != minutes {
+            minutes = new
+            onChange?(new)
+        }
+    }
 }

@@ -63,3 +63,22 @@ struct CustomTimers {
         defaults.set(custom(kind).filter { $0 != minutes }, forKey: key(kind))
     }
 }
+
+/// Il quadrante dei timer: dal punto in cui si trascina ai minuti.
+enum TimerDialMath {
+    /// `fraction` è 0..<1 del giro, da mezzogiorno in senso orario. I minuti sono multipli di `step`, tra `step`
+    /// e `maxMinutes`; passando per mezzogiorno non si salta da un estremo all'altro (resta al massimo o al minimo).
+    static func minutes(fraction: Double, previous: Int, maxMinutes: Int, step: Int) -> Int {
+        let maxM = max(maxMinutes, step)
+        let before = Double(previous) / Double(maxM)
+        if before > 0.75 && fraction < 0.25 { return maxM }
+        if before < 0.25 && fraction > 0.75 { return step }
+        let snapped = Int((fraction * Double(maxM) / Double(step)).rounded()) * step
+        return min(max(snapped, step), maxM)
+    }
+
+    /// La parte di giro da colorare per `minutes` (al massimo un giro intero).
+    static func filledFraction(minutes: Int, maxMinutes: Int) -> Double {
+        min(max(Double(minutes) / Double(max(maxMinutes, 1)), 0), 1)
+    }
+}
