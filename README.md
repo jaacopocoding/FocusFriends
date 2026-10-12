@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/AppIcon.png" width="120" alt="FocusFriends">
+  <img src="assets/AppIcon.png" width="240" alt="FocusFriends">
 </p>
 
 <h1 align="center">FocusFriends</h1>
@@ -60,7 +60,7 @@ raggiunta (bordo arancione).
 
 ## Scaricare e usare
 
-1. Scarica `FocusFriends-0.2.0-macOS.zip` dalla pagina delle [Releases](https://github.com/jaacopocoding/FocusFriends/releases) e decomprimilo.
+1. Scarica `FocusFriends-0.2.1-macOS.zip` dalla pagina delle [Releases](https://github.com/jaacopocoding/FocusFriends/releases) e decomprimilo.
 2. Trascina **FocusFriends** in *Applicazioni* e aprilo (macOS 13 o successivo, Apple Silicon e Intel).
 3. L'app non è firmata con un account sviluppatore Apple, quindi la prima volta macOS potrebbe rifiutarla.
    Fai clic destro sull'app → **Apri** → **Apri**, oppure da Terminale:
