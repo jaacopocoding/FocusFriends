@@ -130,8 +130,9 @@ per tipo) e uno tuo si può *rimuovere*. *Avvia* parte con i minuti scelti; la p
 Dal menu *Pomofocus* scegli un focus di 30 o 50 minuti: sotto il personaggio compare un mini orologio
 digitale con il conto alla rovescia. L'orologio resta visibile per i primi 2 minuti di ogni fase, poi si
 ritira; ricompare con un'animazione a tendina quando passi il mouse sul personaggio, e resta sempre
-visibile quando mancano 5 minuti o meno. Alla fine del focus suona un avviso e parte da sola la pausa
-(5 minuti, oppure l'ultima durata scelta tra *Pausa 5 min* e *Pausa 10 min*, segnata con la spunta).
+visibile quando mancano 5 minuti o meno. Alla fine del focus suona un avviso e, per 10 secondi, compare accanto al personaggio il pulsante **«+5 minuti»**
+(`ExtendPrompt.swift`, con una barretta che si svuota): se lo tocchi il focus continua per altri 5 minuti (e si può
+ripetere), altrimenti parte da sola la pausa (5 minuti, oppure l'ultima durata scelta tra *Pausa 5 min* e *Pausa 10 min*, segnata con la spunta).
 Alla fine della pausa l'orologio sparisce. Durante il focus il personaggio parla più di rado, per non
 distrarti.
 
