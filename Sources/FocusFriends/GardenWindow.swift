@@ -1,7 +1,8 @@
 import AppKit
 
-/// Il giardino: ogni focus finito è una piantina, che cresce con i minuti studiati. Una aiuola per giorno;
-/// la scheda "Settimana" le mostra grandi, "Mese" in un calendario. Si ricava tutto dal registro delle sessioni.
+/// Il giardino: si conta il tempo di studio di ogni giorno. Ogni 50 minuti è una pianta adulta, e il resto cresce in
+/// una piantina allo stadio di mezzo (GardenRules). Una aiuola per giorno; la scheda "Settimana" le mostra grandi,
+/// "Mese" in un calendario. Si ricava tutto dal registro delle sessioni.
 final class GardenView: NSView, NSViewToolTipOwner {
     static let size = NSSize(width: 1000, height: 540)
     private static let margin: CGFloat = 28
@@ -15,11 +16,11 @@ final class GardenView: NSView, NSViewToolTipOwner {
     private var kind: PeriodKind = .week
     private var period: StudyPeriod
 
-    /// Una piantina disegnata: dove, di che stadio, di quale sessione.
+    /// Una piantina disegnata: dove, e quale (stadio, materie, personaggio) di quale giorno.
     private struct Plant {
         var rect: NSRect
-        var stage: Int
-        var session: StudySession
+        var info: GardenRules.DayPlant
+        var day: Date
         var showsDot: Bool
     }
     private struct Bed {
@@ -33,7 +34,9 @@ final class GardenView: NSView, NSViewToolTipOwner {
     }
     private var plants: [Plant] = []
     private var beds: [Bed] = []
-    private var totalPlants = 0
+    /// Le piantine adulte del periodo e quelle ancora in crescita (una al massimo per giorno).
+    private var adultPlants = 0
+    private var growingPlants = 0
     private var totalSeconds = 0
     private var streak = 0
     /// Le immagini già caricate: "pianty-3", "porcellino-5"... Ogni personaggio può avere la sua collezione
@@ -106,8 +109,16 @@ final class GardenView: NSView, NSViewToolTipOwner {
         streak = StudyStats.streak(sessions: log.sessions, now: today, calendar: calendar)
 
         let inPeriod = log.sessions.filter { period.contains($0.startTime(in: calendar)) }
-        totalPlants = inPeriod.count
         totalSeconds = inPeriod.reduce(0) { $0 + $1.seconds }
+        adultPlants = 0
+        growingPlants = 0
+        var cursor = period.start
+        while cursor < period.end {
+            let day = GardenRules.plants(of: sessions(on: cursor), calendar: calendar)
+            adultPlants += day.filter { $0.isAdult }.count
+            growingPlants += day.filter { !$0.isAdult }.count
+            cursor = calendar.date(byAdding: .day, value: 1, to: cursor) ?? period.end
+        }
 
         plants = []
         beds = []
@@ -139,8 +150,8 @@ final class GardenView: NSView, NSViewToolTipOwner {
     private static let canvasAspect: CGFloat = 208.0 / 341.0
     private static let feetFraction: CGFloat = 0.0176
 
-    private func image(for session: StudySession, stage: Int) -> NSImage? {
-        let pet = session.pet ?? "pianty"
+    private func image(forPet petID: String?, stage: Int) -> NSImage? {
+        let pet = petID ?? "pianty"
         let key = "\(pet)-\(stage)"
         if let cached = imageCache[key] { return cached }
         let candidates = ["garden_\(pet)_\(stage)", "pianty_stage\(stage)_1"]
@@ -158,6 +169,13 @@ final class GardenView: NSView, NSViewToolTipOwner {
         return NSRect(x: centerX - width / 2, y: feetY - height * (1 - Self.feetFraction), width: width, height: height)
     }
 
+    /// Le piantine di un giorno da mostrare: quella in crescita davanti, poi le adulte, fino a `limit`.
+    private func visiblePlants(_ plants: [GardenRules.DayPlant], limit: Int) -> [GardenRules.DayPlant] {
+        let growing = plants.filter { !$0.isAdult }
+        let adults = plants.filter { $0.isAdult }
+        return Array((growing + adults).prefix(limit))
+    }
+
     /// La settimana: sette aiuole in fila, fino a sei piantine ciascuna (tre davanti e tre dietro).
     private func layoutWeek(today: Date) {
         let m = Self.margin
@@ -170,22 +188,21 @@ final class GardenView: NSView, NSViewToolTipOwner {
             let bedRect = NSRect(x: x0 + 5, y: baseY - 10, width: columnWidth - 10, height: 58)
             let items = sessions(on: dayStart)
             let seconds = items.reduce(0) { $0 + $1.seconds }
-            // Le più piccole davanti e le più alte dietro, così si vedono tutte.
-            let shown = items.prefix(6).sorted {
-                let a = GardenRules.stage(for: $0), b = GardenRules.stage(for: $1)
-                return a != b ? a < b : $0.startTime(in: calendar) < $1.startTime(in: calendar)
-            }
+            let all = GardenRules.plants(of: items, calendar: calendar)
+            // Quella che cresce davanti (più piccola) e le adulte dietro, così si vedono tutte.
+            let shown = visiblePlants(all, limit: 6)
             let front = Array(shown.prefix(3))
             let back = Array(shown.dropFirst(3))
             let spacing = columnWidth / 3.35
+            let extra = max(all.count - shown.count, 0)
 
             for (row, group) in [(1, back), (0, front)] {
-                for (k, session) in group.enumerated() {
+                for (k, plant) in group.enumerated() {
                     let cx = x0 + columnWidth / 2 + (CGFloat(k) - CGFloat(group.count - 1) / 2) * spacing
                     let feetY = baseY + 16 - (row == 1 ? 46 : 0)
                     plants.append(Plant(
                         rect: plantRect(centerX: cx, feetY: feetY, height: plantHeight * (row == 1 ? 0.9 : 1)),
-                        stage: GardenRules.stage(for: session), session: session, showsDot: row == 0
+                        info: plant, day: dayStart, showsDot: row == 0
                     ))
                 }
             }
@@ -193,9 +210,8 @@ final class GardenView: NSView, NSViewToolTipOwner {
                 rect: bedRect,
                 dayLabel: formatted(dayStart, "EEE d").lowercased(),
                 dayLabelPoint: NSPoint(x: x0 + columnWidth / 2, y: baseY + 66),
-                total: items.isEmpty ? nil : StudyStats.duration(seconds: seconds)
-                    + (items.count > 6 ? " · +\(items.count - 6)" : ""),
-                extra: max(items.count - 6, 0),
+                total: items.isEmpty ? nil : StudyStats.duration(seconds: seconds) + (extra > 0 ? " · +\(extra)" : ""),
+                extra: extra,
                 isToday: calendar.isDate(dayStart, inSameDayAs: today),
                 anchor: NSPoint(x: x0 + columnWidth / 2, y: baseY - 60)
             ))
@@ -220,19 +236,19 @@ final class GardenView: NSView, NSViewToolTipOwner {
             let slot = offset + n
             let col = slot % 7, row = slot / 7
             let cell = NSRect(x: m + CGFloat(col) * cellWidth, y: top + CGFloat(row) * cellHeight, width: cellWidth, height: cellHeight)
-            let items = sessions(on: dayStart)
-            let shown = Array(items.prefix(4))
+            let all = GardenRules.plants(of: sessions(on: dayStart), calendar: calendar)
+            let shown = visiblePlants(all, limit: 4)
             let spacing: CGFloat = 25
-            for (k, session) in shown.enumerated() {
+            for (k, plant) in shown.enumerated() {
                 let cx = cell.midX + (CGFloat(k) - CGFloat(shown.count - 1) / 2) * spacing
                 plants.append(Plant(
                     rect: plantRect(centerX: cx, feetY: cell.maxY - 7, height: plantHeight),
-                    stage: GardenRules.stage(for: session), session: session, showsDot: false
+                    info: plant, day: dayStart, showsDot: false
                 ))
             }
             beds.append(Bed(
                 rect: cell.insetBy(dx: 3, dy: 3), dayLabel: "\(day)", dayLabelPoint: NSPoint(x: cell.minX + 10, y: cell.minY + 6),
-                total: nil, extra: max(items.count - 4, 0), isToday: calendar.isDate(dayStart, inSameDayAs: today),
+                total: nil, extra: max(all.count - shown.count, 0), isToday: calendar.isDate(dayStart, inSameDayAs: today),
                 anchor: NSPoint(x: cell.midX, y: cell.midY)
             ))
         }
@@ -254,14 +270,16 @@ final class GardenView: NSView, NSViewToolTipOwner {
     func view(_ view: NSView, stringForToolTip tag: NSView.ToolTipTag, point: NSPoint, userData data: UnsafeMutableRawPointer?) -> String {
         let index = Int(bitPattern: data) - 1
         guard plants.indices.contains(index) else { return "" }
-        let s = plants[index].session
-        let minutes = (s.seconds + 30) / 60
-        var parts = [formatted(s.startTime(in: calendar), "EEE d MMM, HH:mm"), s.subject ?? Subject.none, "\(minutes) min"]
-        if !s.completed { parts.append("interrotto") }
-        if let rating = s.rating { parts.append(rating.title) }
-        var text = parts.joined(separator: " · ")
-        if let note = s.note { text += "\n" + note }
-        return text
+        let plant = plants[index]
+        let minutes = (plant.info.seconds + 30) / 60
+        var head = formatted(plant.day, "EEEE d MMMM")
+        head = head.prefix(1).uppercased() + head.dropFirst()
+        let state = plant.info.isAdult ? "pianta adulta · \(GardenRules.minutesPerPlant) min"
+            : "in crescita · \(minutes) min su \(GardenRules.minutesPerPlant)"
+        let subjects = plant.info.subjects.map {
+            "\($0.subject ?? Subject.none) \(StudyStats.duration(seconds: $0.seconds))"
+        }.joined(separator: ", ")
+        return head + " · " + state + (subjects.isEmpty ? "" : "\n" + subjects)
     }
 
     // MARK: - Disegno
@@ -283,11 +301,13 @@ final class GardenView: NSView, NSViewToolTipOwner {
              font: Paper.markerFont(22), alignment: .center)
 
         // Riga di riepilogo e giorni di fila
-        let plantsWord = totalPlants == 1 ? "1 piantina" : "\(totalPlants) piantine"
-        let when = kind == .week ? "in questa settimana" : "in questo mese"
+        let totalPlants = adultPlants + growingPlants
+        let adultWord = adultPlants == 1 ? "1 pianta adulta" : "\(adultPlants) piante adulte"
+        let growingText = growingPlants == 0 ? "" : (growingPlants == 1 ? " e 1 in crescita" : " e \(growingPlants) in crescita")
+        let when = kind == .week ? "questa settimana" : "questo mese"
         let summary = totalPlants == 0
-            ? "Il giardino è ancora vuoto: ogni focus che finisci pianta una piantina."
-            : "\(plantsWord) \(when) · \(StudyStats.duration(seconds: totalSeconds)) di studio."
+            ? "Il giardino è ancora vuoto: ogni 50 minuti di studio in un giorno è una pianta adulta."
+            : "\(StudyStats.duration(seconds: totalSeconds)) di studio \(when): \(adultWord)\(growingText)."
         text(summary, at: NSRect(x: m, y: 100, width: width - 2 * m - 200, height: 20),
              font: NSFont.systemFont(ofSize: 14), color: Paper.inkLight)
         let badge = NSRect(x: width - m - 180, y: 12, width: 180, height: 44)
@@ -331,16 +351,16 @@ final class GardenView: NSView, NSViewToolTipOwner {
         }
         // Piantine: le dietro prima (sono all'inizio della lista della riga dietro), poi quelle davanti
         for plant in plants {
-            image(for: plant.session, stage: plant.stage)?
+            image(forPet: plant.info.pet, stage: plant.info.stage)?
                 .draw(in: plant.rect, from: .zero, operation: .sourceOver, fraction: 1, respectFlipped: true, hints: nil)
             if plant.showsDot {
-                let color = plant.session.subject.map { Paper.color(forSubject: $0) } ?? Paper.inkLight.withAlphaComponent(0.55)
+                let color = plant.info.subject.map { Paper.color(forSubject: $0) } ?? Paper.inkLight.withAlphaComponent(0.55)
                 let dot = NSBezierPath(ovalIn: NSRect(x: plant.rect.midX - 6, y: plant.rect.maxY + 3, width: 12, height: 12))
                 color.setFill()
                 dot.fill()
-                // Bordo bianco per staccarsi dalla terra; arancione se il focus è stato interrotto.
-                (plant.session.completed ? NSColor.white.withAlphaComponent(0.9) : Paper.accent).setStroke()
-                dot.lineWidth = plant.session.completed ? 1 : 2.5
+                // Bordo bianco per staccarsi dalla terra.
+                NSColor.white.withAlphaComponent(0.9).setStroke()
+                dot.lineWidth = 1
                 dot.stroke()
             }
         }
@@ -350,8 +370,8 @@ final class GardenView: NSView, NSViewToolTipOwner {
                      font: NSFont.systemFont(ofSize: 11, weight: .bold), color: Paper.accent, alignment: .right)
             }
         }
-        if totalPlants > 0 {
-            text("Un focus finito è una pianta adulta; se lo interrompi resta della taglia raggiunta (bordo arancione).",
+        if adultPlants + growingPlants > 0 {
+            text("Ogni 50 minuti di studio in un giorno è una pianta adulta; il resto cresce in una piantina più piccola.",
                  at: NSRect(x: m, y: Self.size.height - 48, width: width - 2 * m, height: 18),
                  font: NSFont.systemFont(ofSize: 12), color: Paper.inkLight)
             let hint = kind == .week
@@ -360,7 +380,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
             text(hint, at: NSRect(x: m, y: Self.size.height - 30, width: width - 2 * m, height: 18),
                  font: NSFont.systemFont(ofSize: 12), color: Paper.inkLight)
         }
-        if totalPlants == 0 {
+        if adultPlants + growingPlants == 0 {
             let y: CGFloat = kind == .week ? 220 : 300
             text("Ancora nessuna piantina in questo periodo.", at: NSRect(x: m, y: y, width: width - 2 * m, height: 24),
                  font: Paper.markerFont(20), color: Paper.inkLight, alignment: .center)

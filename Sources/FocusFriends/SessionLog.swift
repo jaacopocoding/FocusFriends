@@ -79,22 +79,97 @@ struct StudySession: Codable, Equatable {
     }
 }
 
-/// Le regole del giardino: ogni focus è una piantina, e cresce con la parte di focus che hai fatto.
-/// Sono le stesse regole della crescita dal vivo durante il timer (un quinto del focus per stadio):
-/// quello che vedi crescere è esattamente quello che trovi nel giardino.
+/// Le regole del giardino: si conta il tempo di studio della giornata. Ogni 50 minuti è una pianta adulta; quello
+/// che avanza cresce in una piantina allo stadio di mezzo (da 1 a 4: l'adulta, la 5, è solo a 50 minuti pieni).
+/// Contano tutti i minuti studiati, anche di un focus interrotto.
 enum GardenRules {
     static let stageCount = 5
+    static let minutesPerPlant = 50
+    static let secondsPerPlant = minutesPerPlant * 60
+    /// Sotto questo resto (in secondi) non nasce ancora niente: serve almeno un minuto.
+    static let minimumRemainder = 60
 
-    /// Quanta parte del focus previsto è stata fatta (0...1). Un focus finito vale sempre 1.
-    static func progress(of session: StudySession) -> Double {
-        if session.completed { return 1 }
-        let planned = Double(max(session.plannedMinutes, 1) * 60)
-        return min(max(Double(session.seconds) / planned, 0), 1)
+    /// Quanto di una materia c'è in una piantina.
+    struct SubjectShare: Equatable {
+        var subject: String?
+        var seconds: Int
     }
 
-    /// Lo stadio (1...5) della piantina: da 0 a 20% è il seme, da 80% in su la pianta adulta.
-    static func stage(for session: StudySession) -> Int {
-        min(Int(progress(of: session) * Double(stageCount)) + 1, stageCount)
+    /// Una piantina del giardino di un giorno.
+    struct DayPlant: Equatable {
+        /// 1...5; 5 solo per i 50 minuti pieni.
+        var stage: Int
+        /// I secondi di studio che la fanno crescere (3000 se è adulta).
+        var seconds: Int
+        /// Le materie che l'hanno fatta crescere, dalla più presente.
+        var subjects: [SubjectShare]
+        /// Il personaggio con cui è stata fatta di più (sceglie il disegno della piantina).
+        var pet: String?
+
+        var isAdult: Bool { stage == GardenRules.stageCount }
+        /// La materia prevalente (il pallino sotto il vaso).
+        var subject: String? { subjects.first?.subject }
+    }
+
+    /// Lo stadio (1...4) di una piantina che ha `seconds` secondi di crescita (meno di 50 minuti).
+    static func intermediateStage(forSeconds seconds: Int) -> Int {
+        let fraction = Double(max(seconds, 0)) / Double(secondsPerPlant)
+        return min(max(Int(fraction * Double(stageCount)) + 1, 1), stageCount - 1)
+    }
+
+    /// Le piantine di una giornata: il tempo di studio, in ordine di inizio, riempie una pianta dopo l'altra.
+    /// Prima le adulte (una ogni 50 minuti), poi, se avanza almeno un minuto, quella che sta crescendo.
+    static func plants(of sessions: [StudySession], calendar: Calendar = StudyPeriod.calendar()) -> [DayPlant] {
+        let ordered = sessions.sorted { $0.startTime(in: calendar) < $1.startTime(in: calendar) }
+        var subjectSeconds: [[String: Int]] = [[:]]
+        var petSeconds: [[String: Int]] = [[:]]
+        var subjectName: [String: String] = [:]          // chiave -> scrittura (vuota = nessuna materia)
+        var position = 0
+        for session in ordered {
+            let key = session.subject.map { Subject.key($0) } ?? ""
+            subjectName[key] = session.subject ?? ""
+            var left = session.seconds
+            while left > 0 {
+                let chunk = position / secondsPerPlant
+                while subjectSeconds.count <= chunk {
+                    subjectSeconds.append([:])
+                    petSeconds.append([:])
+                }
+                let take = min(left, secondsPerPlant - position % secondsPerPlant)
+                subjectSeconds[chunk][key, default: 0] += take
+                petSeconds[chunk][session.pet ?? "pianty", default: 0] += take
+                position += take
+                left -= take
+            }
+        }
+
+        func make(_ chunk: Int, stage: Int, seconds: Int) -> DayPlant {
+            let shares = (subjectSeconds[chunk].sorted { $0.value != $1.value ? $0.value > $1.value : $0.key < $1.key })
+                .map { entry -> SubjectShare in
+                    let name = subjectName[entry.key] ?? ""
+                    return SubjectShare(subject: name.isEmpty ? nil : name, seconds: entry.value)
+                }
+            let pet = petSeconds[chunk].sorted { $0.value != $1.value ? $0.value > $1.value : $0.key < $1.key }.first?.key
+            return DayPlant(stage: stage, seconds: seconds, subjects: shares, pet: pet)
+        }
+
+        let full = position / secondsPerPlant
+        let rest = position % secondsPerPlant
+        var result = (0..<full).map { make($0, stage: stageCount, seconds: secondsPerPlant) }
+        if rest >= minimumRemainder {
+            result.append(make(full, stage: intermediateStage(forSeconds: rest), seconds: rest))
+        }
+        return result
+    }
+
+    /// Una frase per la fine del focus: è nata una pianta adulta, oppure quella di oggi è cresciuta.
+    /// `before` e `after` sono i secondi di studio della giornata prima e dopo il focus.
+    static func finishLine(before: Int, after: Int) -> String {
+        if after / secondsPerPlant > before / secondsPerPlant {
+            return "Nel giardino è nata una pianta adulta."
+        }
+        let left = max(minutesPerPlant - (after % secondsPerPlant + 59) / 60, 1)
+        return "La piantina di oggi è cresciuta: ancora \(left) minuti per la prossima."
     }
 }
 
@@ -573,6 +648,12 @@ enum StudyStats {
         }
         summary.buckets = buckets
         return summary
+    }
+
+    /// I secondi di studio del giorno in cui è iniziata `session` (compresa lei).
+    static func seconds(onDayOf session: StudySession, in sessions: [StudySession], calendar: Calendar = StudyPeriod.calendar()) -> Int {
+        let day = calendar.startOfDay(for: session.startTime(in: calendar))
+        return sessions.filter { calendar.startOfDay(for: $0.startTime(in: calendar)) == day }.reduce(0) { $0 + $1.seconds }
     }
 
     /// Giorni consecutivi con almeno un focus, fino a oggi. Se oggi non c'è ancora niente conta da ieri,

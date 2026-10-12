@@ -6,7 +6,7 @@
 
 <p align="center">
   Un compagno che vive sul desktop del Mac, ti tiene compagnia mentre studi e cresce con il tuo tempo di focus.<br>
-  Pomodoro, materie, statistiche e un giardino con una piantina per ogni focus finito.
+  Pomodoro, materie, statistiche e un giardino che cresce con i minuti di studio: una pianta adulta ogni 50.
 </p>
 
 <p align="center">
@@ -50,8 +50,8 @@ e, da «Mostra le sessioni», una tendina sotto il riepilogo con la nota e la fa
   <img src="docs/images/statistiche-sessioni.png" width="360" alt="Le sessioni di un giorno">
 </p>
 
-**Il giardino**: una piantina per ogni focus finito, per settimana e per mese. Un focus interrotto resta della taglia
-raggiunta (bordo arancione).
+**Il giardino**: ogni 50 minuti di studio in un giorno è una pianta adulta, e il resto cresce in una piantina più
+piccola. Per settimana e per mese.
 
 <p align="center">
   <img src="docs/images/giardino-settimana.png" width="640" alt="Il giardino, settimana">
@@ -115,7 +115,7 @@ per tipo) e uno tuo si può *rimuovere*. *Avvia* parte con i minuti scelti; la p
 | Fai parlare | Mostra subito una frase |
 | Pomofocus ▸ | Timer: *Focus 30/50 min*, *Pausa 5/10 min*, *Personalizza…*, *Ferma timer* |
 | Statistiche e riepilogo… | La finestra con il riepilogo di oggi e le statistiche della settimana e del mese |
-| Il mio giardino… | Una piantina per ogni focus finito, per settimana e per mese (con il tuo nome: «Il giardino di …») |
+| Il mio giardino… | Una pianta adulta ogni 50 minuti di studio del giorno, per settimana e per mese (con il tuo nome: «Il giardino di …») |
 | Il tuo nome… | Cambia il nome che compare nei titoli |
 | Chiedi com'è andata | Se a fine focus compare «Com'è andata?» (spunta = sì) |
 | Frequenza delle frasi ▸ | *Spesso* / *Ogni tanto* / *Raramente* / *Mai* |
@@ -225,27 +225,32 @@ fuso orario…).
 
 ## Il giardino
 
-*Il mio giardino…* (`GardenWindow.swift`) trasforma il registro in qualcosa da guardare: **ogni focus finito
-è una piantina**, e cresce con la parte di focus che hai fatto: la stessa regola della crescita dal vivo
-durante il timer (un quinto del focus per stadio, `GardenRules` in `SessionLog.swift`). Quello che vedi
-crescere mentre studi è esattamente quello che trovi nel giardino:
+*Il mio giardino…* (`GardenWindow.swift`) trasforma il registro in qualcosa da guardare, e si conta **per minuti**:
+in ogni giorno si somma il tempo di studio (anche quello dei focus interrotti), e **ogni 50 minuti è una pianta
+adulta**. Quello che avanza cresce in una piantina allo stadio di mezzo (`GardenRules` in `SessionLog.swift`):
 
-| Parte del focus fatta | Stadio |
+| Minuti che avanzano nel giorno | La piantina che cresce |
 |---|---|
-| meno del 20% | 1 (seme) |
-| 20–39% | 2 |
-| 40–59% | 3 |
-| 60–79% | 4 |
-| 80% o più (e tutti i focus finiti) | 5 (adulta) |
+| meno di 1 | niente |
+| 1–9 | stadio 1 (il seme) |
+| 10–19 | stadio 2 |
+| 20–29 | stadio 3 |
+| 30–49 | stadio 4 |
+| 50 pieni | una pianta adulta (stadio 5), e si ricomincia |
 
-Un focus interrotto non sparisce: è una piantina della taglia raggiunta (se è durato almeno un minuto), segnata
-con il bordo arancione. La scheda *Settimana* ha un'aiuola per giorno (fino a sei piantine, poi "+N"; le più
-piccole stanno davanti); *Mese* è un calendario con le piantine di ogni giorno. Il pallino sotto il vaso è la
-materia, e passando il mouse su una piantina compaiono data, materia e minuti. Si ricava tutto dal registro:
-compare subito anche per i focus già fatti. A fine focus il personaggio dice che è nata una piantina nuova.
+Per esempio 3 h 06 di studio in un giorno sono 186 minuti: **tre piante adulte** e una piantina allo stadio 4 (36
+minuti). I minuti riempiono una pianta dopo l'altra nell'ordine in cui li hai studiati, quindi la materia di ogni
+pianta (il pallino sotto il vaso) è quella che l'ha fatta crescere di più, e anche il personaggio è quello con cui
+l'hai fatta di più. La scheda *Settimana* ha un'aiuola per giorno (fino a sei piantine, poi "+N"; quella che cresce sta
+davanti); *Mese* è un calendario con le piantine di ogni giorno. Passando il mouse su una piantina compaiono il
+giorno, i minuti e le materie. Si ricava tutto dal registro: compare subito anche per i focus già fatti. A fine
+focus il personaggio dice se è nata una pianta adulta o quanti minuti mancano alla prossima.
+
+La crescita **dal vivo** durante un focus (il seme di Pianty che cresce, il nido di Ciccio, la carota del
+Porcellino) segue invece quel focus: un quinto del tempo per stadio.
 
 Ogni sessione ricorda **con quale personaggio** è stata fatta (`pet`), e un personaggio può avere la sua
-collezione: cinque immagini `garden_<personaggio>_<1..5>.png` in `assets/garden/` (stessa tela di Pianty,
+collezione (la piantina usa quella del personaggio con cui hai studiato di più in quei 50 minuti): cinque immagini `garden_<personaggio>_<1..5>.png` in `assets/garden/` (stessa tela di Pianty,
 208×341, piedi sulla stessa riga). Chi non le ha usa le piantine di Pianty. Ci sono quella di **Ciccio** (un nido che
 va dall'uovo alla cocorita adulta) e quella del **Porcellino** (una carota che cresce dalla terra);
 `tools/cutout_garden.py` ritaglia il foglio (`assets/garden/ciccio_nido_original.png`,
@@ -364,7 +369,7 @@ Sources/FocusFriends/
   SubjectPrompt.swift   la scheda "Cosa studi adesso?"
   ReflectionCard.swift  la scheda "Com'è andata?" a fine focus
   DashboardWindow.swift la finestra delle statistiche (Oggi / Settimana / Mese)
-  GardenWindow.swift    il giardino: una piantina per ogni focus, per settimana e per mese
+  GardenWindow.swift    il giardino: le piantine di ogni giorno (50 minuti = una adulta), per settimana e per mese
   PaperUI.swift         elementi grafici in comune delle schede (carta, pulsanti, colori delle materie)
 assets/
   pianty/original.png   immagine di partenza di Pianty senza piedini (5 stadi, non più usata dal ritaglio)

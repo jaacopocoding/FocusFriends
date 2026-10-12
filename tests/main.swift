@@ -168,29 +168,44 @@ check(!StudyStats.encouragement(totalSeconds: 0).isEmpty && !StudyStats.encourag
 
 // ---------------------------------------------------------------- giardino e personaggio
 section("Giardino e personaggio")
-func session(_ planned: Int, _ minutes: Int, completed: Bool) -> StudySession {
-    StudySession(start: date(2026, 10, 14, 9), seconds: minutes * 60, plannedMinutes: planned, completed: completed, subject: nil)
+func daySession(_ hour: Int, _ minutes: Int, _ subject: String? = nil, pet: String? = nil, completed: Bool = true) -> StudySession {
+    StudySession(start: date(2026, 10, 14, hour), seconds: minutes * 60, plannedMinutes: minutes, completed: completed,
+                 subject: subject, pet: pet)
 }
-check(GardenRules.stage(for: session(25, 25, completed: true)) == 5, "un focus finito è sempre adulto, anche da 25 minuti")
-check(GardenRules.stage(for: session(10, 10, completed: true)) == 5, "anche da 10 minuti")
-check(GardenRules.stage(for: session(50, 50, completed: true)) == 5, "da 50 minuti")
-check(GardenRules.stage(for: session(50, 5, completed: false)) == 1, "interrotto al 10% = seme")
-check(GardenRules.stage(for: session(50, 10, completed: false)) == 2, "interrotto al 20% = stadio 2")
-check(GardenRules.stage(for: session(50, 19, completed: false)) == 2, "interrotto al 38% = stadio 2")
-check(GardenRules.stage(for: session(50, 20, completed: false)) == 3, "interrotto al 40% = stadio 3")
-check(GardenRules.stage(for: session(50, 30, completed: false)) == 4, "interrotto al 60% = stadio 4")
-check(GardenRules.stage(for: session(50, 40, completed: false)) == 5, "interrotto all'80% = stadio 5")
-check(GardenRules.stage(for: session(25, 24, completed: false)) == 5, "interrotto al 96% = stadio 5")
-check(GardenRules.stage(for: session(0, 3, completed: false)) <= GardenRules.stageCount, "durata prevista zero: non esce dai limiti")
-check(GardenRules.progress(of: session(25, 30, completed: false)) == 1, "il progresso non supera 1")
-// Gli stadi coincidono con quelli della crescita dal vivo (Pet.focusGrowthStage / Pet.stage).
-for tenth in 0...10 {
-    let p = Double(tenth) / 10
-    let live = min(Int(min(max(p, 0), 0.999_999) * 5), 4) + 1
-    let minutes = Int((p * 50).rounded())
-    let s = session(50, minutes, completed: p >= 1)
-    check(GardenRules.stage(for: s) == live || p == 1, "giardino = dal vivo al \(Int(p * 100))% (\(GardenRules.stage(for: s)) / \(live))")
-}
+func plantsFor(_ sessions: [StudySession]) -> [GardenRules.DayPlant] { GardenRules.plants(of: sessions, calendar: cal) }
+
+check(plantsFor([]).isEmpty, "nessuno studio: nessuna piantina")
+check(plantsFor([daySession(9, 0)]).isEmpty, "zero minuti: niente")
+let gFifty = plantsFor([daySession(9, 50)])
+check(gFifty.count == 1 && gFifty[0].isAdult && gFifty[0].stage == 5, "50 minuti: una pianta adulta")
+check(plantsFor([daySession(9, 49)]).first?.stage == 4, "49 minuti: ancora in crescita, stadio 4 (la 5 solo a 50 pieni)")
+check(plantsFor([daySession(9, 5)]).first?.stage == 1, "5 minuti: il seme")
+check(plantsFor([daySession(9, 10)]).first?.stage == 2, "10 minuti: stadio 2")
+check(plantsFor([daySession(9, 20)]).first?.stage == 3, "20 minuti: stadio 3")
+check(plantsFor([daySession(9, 30)]).first?.stage == 4, "30 minuti: stadio 4")
+let gAlmost = StudySession(start: date(2026, 10, 14, 9), seconds: 59, plannedMinutes: 25, completed: false, subject: nil)
+check(plantsFor([gAlmost]).isEmpty, "meno di un minuto: non nasce niente")
+let gTwoHours = plantsFor([daySession(9, 50), daySession(11, 50), daySession(15, 20)])
+check(gTwoHours.count == 3 && gTwoHours.filter { $0.isAdult }.count == 2 && gTwoHours.last?.stage == 3, "120 minuti: due adulte e una al 3")
+let gSplit = plantsFor([daySession(9, 30), daySession(11, 30)])
+check(gSplit.count == 2 && gSplit[0].isAdult && gSplit[1].stage == 2, "i minuti di focus diversi si sommano: 30+30 = una adulta e 10 minuti (stadio 2)")
+let gLong = plantsFor([daySession(9, 75)])
+check(gLong.count == 2 && gLong[0].isAdult && gLong[1].stage == 3, "un focus lungo passa da una pianta all'altra: 75 = adulta + 25")
+let gCut = plantsFor([daySession(9, 40, completed: false), daySession(11, 10, completed: false)])
+check(gCut.count == 1 && gCut[0].isAdult, "anche i focus interrotti contano i loro minuti")
+// materia e personaggio prevalenti
+let gMixed = plantsFor([daySession(9, 30, "Anatomia", pet: "ciccio"), daySession(11, 40, "Fisiologia", pet: "porcellino")])
+check(gMixed.count == 2 && gMixed[0].subject == "Anatomia" && gMixed[0].pet == "ciccio", "la prima pianta è dell'Anatomia (30 su 50)")
+check(gMixed[0].subjects.count == 2 && gMixed[0].subjects[1].subject == "Fisiologia" && gMixed[0].subjects[1].seconds == 1200, "con 20 minuti di Fisiologia")
+check(gMixed[1].subject == "Fisiologia" && gMixed[1].stage == 3 && gMixed[1].pet == "porcellino", "il resto è Fisiologia (20 minuti)")
+let gSorted = plantsFor([daySession(15, 50, "B"), daySession(9, 50, "A")])
+check(gSorted[0].subject == "A", "in ordine di inizio, non di inserimento")
+// frasi di fine focus
+check(GardenRules.finishLine(before: 2400, after: 3300).contains("pianta adulta"), "supera i 50 minuti: nasce una adulta")
+check(GardenRules.finishLine(before: 0, after: 1500).contains("ancora 25 minuti"), "a 25 minuti ne mancano 25")
+check(GardenRules.finishLine(before: 3000, after: 3300).contains("ancora 45 minuti"), "dopo un'adulta si ricomincia: 5 su 50")
+check(!GardenRules.finishLine(before: 1000, after: 2000).contains("pianta adulta"), "senza traguardo non dice che è nata")
+check(StudyStats.seconds(onDayOf: daySession(9, 30), in: [daySession(9, 30), daySession(15, 20)], calendar: cal) == 3000, "secondi del giorno")
 
 let petDir = tempDirectory()
 let petLog = SessionLog(directory: petDir)

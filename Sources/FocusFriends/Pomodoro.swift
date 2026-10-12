@@ -262,8 +262,15 @@ final class Pomodoro {
             let finishedSubject = subject
             let recorded = recordFocus(completed: true)
             subject = nil
+            // Cosa è successo nel giardino: i minuti della giornata, prima e dopo questo focus.
+            var gardenLine = "Il giardino cresce."
+            if let recorded {
+                let after = StudyStats.seconds(onDayOf: recorded, in: log.sessions)
+                gardenLine = GardenRules.finishLine(before: after - recorded.seconds, after: after)
+            }
             begin(.rest, minutes: breakLength)
-            speaker.say(Self.focusFinishedMessage(subject: finishedSubject, studiedMinutes: studied, breakMinutes: breakLength))
+            speaker.say(Self.focusFinishedMessage(subject: finishedSubject, studiedMinutes: studied, breakMinutes: breakLength,
+                                                  garden: gardenLine))
             onFocusCompleted?()
             if let recorded { onFocusRecorded?(recorded) }
         case .rest:
@@ -272,15 +279,16 @@ final class Pomodoro {
         }
     }
 
-    /// "Hai studiato Anatomia per 50 minuti. Che bel lavoro!", con qualche variante.
-    static func focusFinishedMessage(subject: String?, studiedMinutes: Int, breakMinutes: Int) -> String {
+    /// "Hai studiato Anatomia per 50 minuti. Che bel lavoro!", con qualche variante. `garden` dice cosa è successo
+    /// nel giardino (vedi GardenRules.finishLine).
+    static func focusFinishedMessage(subject: String?, studiedMinutes: Int, breakMinutes: Int, garden: String) -> String {
         guard let subject else {
-            return "Focus finito! Una nuova piantina nel giardino. Ti sei meritato \(breakMinutes) minuti di pausa."
+            return "Focus finito! \(garden) Ti sei meritato \(breakMinutes) minuti di pausa."
         }
         let variants = [
-            "Hai studiato \(subject) per \(studiedMinutes) minuti. Che bel lavoro! Una nuova piantina nel giardino. Ora \(breakMinutes) minuti di pausa.",
-            "\(subject): \(studiedMinutes) minuti di concentrazione. Ottimo lavoro, nel giardino è nata una piantina. Ora \(breakMinutes) minuti di pausa.",
-            "Ben fatto! \(studiedMinutes) minuti su \(subject): una piantina in più nel giardino. Respira: \(breakMinutes) minuti di pausa.",
+            "Hai studiato \(subject) per \(studiedMinutes) minuti. Che bel lavoro! \(garden) Ora \(breakMinutes) minuti di pausa.",
+            "\(subject): \(studiedMinutes) minuti di concentrazione. Ottimo lavoro. \(garden) Ora \(breakMinutes) minuti di pausa.",
+            "Ben fatto! \(studiedMinutes) minuti su \(subject). \(garden) Respira: \(breakMinutes) minuti di pausa.",
         ]
         return variants.randomElement() ?? variants[0]
     }
