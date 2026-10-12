@@ -15,9 +15,12 @@ private final class NoiseSynth {
     private var seedD: UInt32 = 0x2545F491
 
     private var brownL: Float = 0, brownR: Float = 0
-    private var lpL: Float = 0, lpR: Float = 0, hpL: Float = 0, hpR: Float = 0
-    private var dropEnv: Float = 0, dropPhase: Float = 0, dropFreq: Float = 2000, dropPan: Float = 0.5
-    private var rainPhase: Float = 0
+    // Pioggia: un fondo morbido (rumore rosa), una grandine fitta di micro-impatti e rari "tonfi" bassi.
+    private var pinkL: (Float, Float, Float) = (0, 0, 0), pinkR: (Float, Float, Float) = (0, 0, 0)
+    private var bedLowL: Float = 0, bedLowR: Float = 0, bedHighL: Float = 0, bedHighR: Float = 0
+    private var shotEnvL: Float = 0, shotEnvR: Float = 0, shotLpL: Float = 0, shotLpR: Float = 0, shotHpL: Float = 0, shotHpR: Float = 0
+    private var plopEnv: Float = 0, plopLow: Float = 0, plopCoef: Float = 0.1, plopPan: Float = 0.5
+    private var rainPhaseA: Float = 0, rainPhaseB: Float = 0.7
     private var wind1L: Float = 0, wind2L: Float = 0, wind1R: Float = 0, wind2R: Float = 0
     private var lfoA: Float = 0, lfoB: Float = 1.3
 
@@ -47,25 +50,42 @@ private final class NoiseSynth {
             let wl = white(&seedL), wr = white(&seedR)
             var l: Float = 0, r: Float = 0
             switch kind {
-            case 1: // pioggia: fruscio a banda media + gocce
-                lpL += 0.35 * (wl - lpL); hpL += 0.02 * (lpL - hpL)
-                lpR += 0.35 * (wr - lpR); hpR += 0.02 * (lpR - hpR)
-                rainPhase += twoPi * 0.05 / sampleRate
-                if rainPhase > twoPi { rainPhase -= twoPi }
-                let level = 0.88 + 0.12 * sin(rainPhase)
-                let d = white(&seedD)
-                if abs(d) > 0.9988 {                       // circa 25 gocce al secondo
-                    dropEnv = 0.18 + 0.32 * abs(white(&seedD))
-                    dropFreq = 1500 + 2500 * abs(white(&seedD))
-                    dropPhase = 0
-                    dropPan = 0.5 + 0.4 * white(&seedD)
+            case 1: // pioggia: fondo morbido + micro-impatti fitti + rari tonfi (niente toni puri)
+                // Fondo: rumore rosa (Paul Kellet), tolto il rimbombo e addolcito in alto.
+                pinkL.0 = 0.99765 * pinkL.0 + wl * 0.0990460
+                pinkL.1 = 0.96300 * pinkL.1 + wl * 0.2965164
+                pinkL.2 = 0.57000 * pinkL.2 + wl * 1.0526913
+                pinkR.0 = 0.99765 * pinkR.0 + wr * 0.0990460
+                pinkR.1 = 0.96300 * pinkR.1 + wr * 0.2965164
+                pinkR.2 = 0.57000 * pinkR.2 + wr * 1.0526913
+                let pl = (pinkL.0 + pinkL.1 + pinkL.2 + wl * 0.1848) * 0.11
+                let pr = (pinkR.0 + pinkR.1 + pinkR.2 + wr * 0.1848) * 0.11
+                bedLowL += 0.035 * (pl - bedLowL); bedLowR += 0.035 * (pr - bedLowR)       // taglia sotto ~240 Hz
+                bedHighL += 0.55 * ((pl - bedLowL) - bedHighL); bedHighR += 0.55 * ((pr - bedLowR) - bedHighR)   // addolcisce sopra ~4 kHz
+                // La pioggia si fa un po' più forte e un po' più debole, piano e senza un ritmo regolare.
+                rainPhaseA += twoPi * 0.037 / sampleRate
+                rainPhaseB += twoPi * 0.091 / sampleRate
+                if rainPhaseA > twoPi { rainPhaseA -= twoPi }
+                if rainPhaseB > twoPi { rainPhaseB -= twoPi }
+                let intensity = 1 + 0.10 * sin(rainPhaseA) + 0.06 * sin(rainPhaseB)
+                // Micro-impatti: tantissimi, molto brevi, ognuno un lampo di rumore (non una nota).
+                if abs(white(&seedD)) < 0.004 { shotEnvL += 0.15 + 0.35 * abs(white(&seedD)) }
+                if abs(white(&seedD)) < 0.004 { shotEnvR += 0.15 + 0.35 * abs(white(&seedD)) }
+                shotEnvL *= 0.9965; shotEnvR *= 0.9965
+                shotLpL += 0.45 * (wl - shotLpL); shotLpR += 0.45 * (wr - shotLpR)            // niente acuti sibilanti
+                shotHpL += 0.05 * (shotLpL - shotHpL); shotHpR += 0.05 * (shotLpR - shotHpR)  // niente rimbombo
+                let shotL = (shotLpL - shotHpL) * shotEnvL, shotR = (shotLpR - shotHpR) * shotEnvR
+                // Tonfi: ogni tanto una goccia più grossa, un colpetto di rumore scuro e breve.
+                if abs(white(&seedD)) < 0.00008 {
+                    plopEnv = 0.35 + 0.5 * abs(white(&seedD))
+                    plopCoef = 0.04 + 0.16 * abs(white(&seedD))
+                    plopPan = 0.5 + 0.4 * white(&seedD)
                 }
-                let drop = dropEnv * sin(dropPhase)
-                dropPhase += twoPi * dropFreq / sampleRate
-                if dropPhase > twoPi { dropPhase -= twoPi }
-                dropEnv *= 0.9991
-                l = (lpL - hpL) * 0.55 * level + drop * (1 - dropPan)
-                r = (lpR - hpR) * 0.55 * level + drop * dropPan
+                plopEnv *= 0.9988
+                plopLow += plopCoef * (white(&seedD) - plopLow)
+                let plop = plopLow * plopEnv * 1.1
+                l = (bedHighL * 0.72 + shotL * 0.68) * intensity + plop * (1 - plopPan)
+                r = (bedHighR * 0.72 + shotR * 0.68) * intensity + plop * plopPan
             case 2: // rumore marrone: voce bassa e avvolgente
                 brownL = (brownL + 0.02 * wl) / 1.02
                 brownR = (brownR + 0.02 * wr) / 1.02
@@ -77,11 +97,11 @@ private final class NoiseSynth {
                 if lfoA > twoPi { lfoA -= twoPi }
                 if lfoB > twoPi { lfoB -= twoPi }
                 let swell = 0.55 + 0.35 * sin(lfoA) + 0.10 * sin(lfoB)
-                let a = 0.012 + 0.020 * (0.5 + 0.5 * sin(lfoB))
+                let a = 0.03 + 0.07 * (0.5 + 0.5 * sin(lfoB))      // la voce sale e scende tra ~200 e ~700 Hz
                 wind1L += a * (wl - wind1L); wind2L += a * (wind1L - wind2L)
                 wind1R += a * (wr - wind1R); wind2R += a * (wind1R - wind2R)
-                l = wind2L * 5 * swell
-                r = wind2R * 5 * swell
+                l = wind2L * 3.2 * swell
+                r = wind2R * 3.2 * swell
             default:
                 break
             }
