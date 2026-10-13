@@ -62,7 +62,7 @@ piccola. Per settimana e per mese.
 
 ## Scaricare e usare
 
-1. Scarica `FocusFriends-0.4.0-macOS.zip` dalla pagina delle [Releases](https://github.com/jaacopocoding/FocusFriends/releases) e decomprimilo.
+1. Scarica `FocusFriends-0.5.0-macOS.zip` dalla pagina delle [Releases](https://github.com/jaacopocoding/FocusFriends/releases) e decomprimilo.
 2. Trascina **FocusFriends** in *Applicazioni* e aprilo (macOS 13 o successivo, Apple Silicon e Intel).
 3. L'app non è firmata con un account sviluppatore Apple, quindi la prima volta macOS potrebbe rifiutarla.
    Fai clic destro sull'app → **Apri** → **Apri**, oppure da Terminale:
@@ -146,7 +146,13 @@ un timer personalizzato*. Valgono per tutti i personaggi.
 
 Quando un focus è in corso, un clic sul personaggio (o sull'icona) non apre il menu ma la **schermata del focus**:
 una pagina di quaderno con la materia, da che ora a che ora dura, il compagno e un grande pomodoro-timer con
-l'arco del tempo passato e quello che manca. Sotto:
+l'arco del tempo passato e quello che manca.
+
+<p align="center">
+  <img src="docs/images/focus.png" width="640" alt="La schermata del focus e quella della pausa">
+</p>
+
+Sotto il pomodoro:
 
 - **+ 5 minuti** aggiunge cinque minuti al focus (anche prima della fine; si può ripetere); **Ferma** ferma solo il
   conto alla rovescia e resta nella schermata: il pulsante diventa **Riprendi**. Il tempo da fermo non conta nello
