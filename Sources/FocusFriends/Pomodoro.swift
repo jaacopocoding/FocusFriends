@@ -60,6 +60,12 @@ final class Pomodoro {
     private(set) var lastFocus: (minutes: Int, subject: String?, sessionID: UUID?)?
     /// Sta eliminando il focus: la sessione non va registrata.
     private var discarding = false
+    /// Il ciclo dei quattro focus: dopo il quarto la pausa è lunga.
+    private var cycle = BreakCycle()
+    /// La pausa in corso è la lunga (per la schermata della pausa).
+    private(set) var isLongBreak = false
+    /// Quanti focus del ciclo sono stati completati (0...3), per dire a che punto si è.
+    var focusesInCycle: Int { cycle.completed }
     /// Il personaggio con cui è stato avviato il focus in corso.
     private var focusPet: String?
     private let log: SessionLog
@@ -168,6 +174,7 @@ final class Pomodoro {
         extensions = 0
         lastFocus = nil
         isFocusPaused = false
+        isLongBreak = false
         pausedTotal = 0
         notes = []
         subject = nil
@@ -199,6 +206,7 @@ final class Pomodoro {
         let wasPaused = isFocusPaused
         isFocusPaused = false
         pausedTotal = 0
+        isLongBreak = false
         self.phase = phase
         if wasPaused, phase == .focus { onFocusActiveChanged?(true) }
         phaseStart = Date()
@@ -389,7 +397,9 @@ final class Pomodoro {
 
         switch finished {
         case .focus:
-            let breakLength = breakMinutes
+            let longBreak = BreakCycle.isEnabled && cycle.focusCompleted(at: Date())
+            if !BreakCycle.isEnabled { cycle.reset() }
+            let breakLength = longBreak ? max(BreakCycle.longBreakMinutes, breakMinutes) : breakMinutes
             let studied = plannedFocusMinutes
             let finishedSubject = subject
             let recorded = recordFocus(completed: true)
@@ -403,8 +413,9 @@ final class Pomodoro {
                 gardenLine = GardenRules.finishLine(before: after - recorded.seconds, after: after)
             }
             begin(.rest, minutes: breakLength)
+            isLongBreak = longBreak
             speaker.say(Self.focusFinishedMessage(subject: finishedSubject, studiedMinutes: studied, breakMinutes: breakLength,
-                                                  garden: gardenLine))
+                                                  garden: gardenLine, longBreak: longBreak))
             onFocusCompleted?()
             if let recorded { onFocusRecorded?(recorded) }
         case .rest:
@@ -415,7 +426,16 @@ final class Pomodoro {
 
     /// "Hai studiato Anatomia per 50 minuti. Che bel lavoro!", con qualche variante. `garden` dice cosa è successo
     /// nel giardino (vedi GardenRules.finishLine).
-    static func focusFinishedMessage(subject: String?, studiedMinutes: Int, breakMinutes: Int, garden: String) -> String {
+    static func focusFinishedMessage(subject: String?, studiedMinutes: Int, breakMinutes: Int, garden: String,
+                                     longBreak: Bool = false) -> String {
+        if longBreak {
+            let about = subject.map { " su \($0)" } ?? ""
+            let variants = [
+                "Quattro focus di fila\(about): che costanza! \(garden) Ti sei guadagnato una pausa lunga, \(breakMinutes) minuti.",
+                "Il quarto focus\(about) è andato! \(garden) Pausa lunga: \(breakMinutes) minuti per respirare davvero.",
+            ]
+            return variants.randomElement() ?? variants[0]
+        }
         guard let subject else {
             return "Focus finito! \(garden) Ti sei meritato \(breakMinutes) minuti di pausa."
         }

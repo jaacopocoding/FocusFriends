@@ -605,6 +605,30 @@ let csvNotes = SessionCSV.csv(for: [StudySession(start: date(2026, 10, 14, 9), s
                                                 subject: "X", notes: ["uno", "due"])])
 check(csvNotes.contains("\"uno | due\""), "le note nel CSV, separate da |")
 
+// ---------------------------------------------------------------- pausa lunga
+section("Pausa lunga")
+var cycle = BreakCycle()
+let base = date(2026, 10, 14, 9)
+func at(_ minutes: Int) -> Date { base.addingTimeInterval(Double(minutes) * 60) }
+check(!cycle.focusCompleted(at: at(50)) && cycle.completed == 1, "il primo focus: pausa normale")
+check(!cycle.focusCompleted(at: at(105)) && !cycle.focusCompleted(at: at(160)), "secondo e terzo: pausa normale")
+check(cycle.completed == 3, "tre fatti, ne manca uno")
+check(cycle.focusCompleted(at: at(215)), "il quarto: pausa lunga")
+check(cycle.completed == 0 && !cycle.focusCompleted(at: at(270)), "dopo la pausa lunga si riparte")
+// una lunga assenza azzera il ciclo
+var away = BreakCycle()
+_ = away.focusCompleted(at: at(50)); _ = away.focusCompleted(at: at(105)); _ = away.focusCompleted(at: at(160))
+check(!away.focusCompleted(at: at(160 + 3 * 60)), "dopo 3 ore di assenza il ciclo ricomincia (era il 4°, ora è il 1°)")
+check(away.completed == 1, "e conta uno")
+// una pausa di un'ora e mezza non lo azzera
+var pauses = BreakCycle()
+for i in 0..<3 { _ = pauses.focusCompleted(at: at(i * 90)) }
+check(pauses.focusCompleted(at: at(3 * 90)), "pause di un'ora e mezza: il ciclo regge")
+var manual = BreakCycle()
+_ = manual.focusCompleted(at: at(50)); manual.reset()
+check(manual.completed == 0, "reset")
+check(BreakCycle.focusesPerCycle == 4 && BreakCycle.longBreakMinutes == 15, "quattro focus, quindici minuti")
+
 // ---------------------------------------------------------------- scelta del sottofondo
 section("Scelta del sottofondo")
 check(BackgroundChoice.current(ambient: .none, music: .off) == .none, "niente acceso")

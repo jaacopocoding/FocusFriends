@@ -33,6 +33,8 @@ struct MenuCardState {
     var focusMinutes: Int
     /// Il conto alla rovescia è fermo: «Ferma» diventa «Riprendi».
     var isPaused: Bool
+    /// La pausa in corso è quella lunga (dopo quattro focus).
+    var isLongBreak: Bool
     var notes: [String]
     var background: BackgroundChoice
     var backgroundVolume: Double
@@ -396,7 +398,7 @@ private final class MenuCardView: NSView {
     private func statusText(_ s: MenuCardState) -> String {
         switch s.phase {
         case .focus?: return s.subject.map { "Focus · \($0)" } ?? "Focus"
-        case .rest?: return "Pausa"
+        case .rest?: return s.isLongBreak ? "Pausa lunga" : "Pausa"
         case nil: return s.isPetVisible ? "\(s.pet.name) è qui con te" : "\(s.pet.name) è nascosto"
         }
     }
@@ -959,11 +961,11 @@ private extension MenuCardView {
         } else {
             detail = "Stacca un attimo."
         }
-        addHeader(s, title: "Pausa", detail: detail, top: top)
+        addHeader(s, title: s.isLongBreak ? "Pausa lunga" : "Pausa", detail: detail, top: top)
         addTomato(s, ring: FocusPalette.rest, small: "di pausa", top: top)
         addStickerPair(top: top, secondTitle: "Salta", secondIcon: .skip) { [weak self] in self?.actions.stopTimer() }
 
-        _ = label("Bevi un po' d'acqua e guarda lontano.", font: NSFont.systemFont(ofSize: 12.5), frame: NSRect(x: pad, y: top + 448, width: inner, height: 20))
+        _ = label(s.isLongBreak ? "Alzati e muoviti un po': è una pausa lunga." : "Bevi un po' d'acqua e guarda lontano.", font: NSFont.systemFont(ofSize: 12.5), frame: NSRect(x: pad, y: top + 448, width: inner, height: 20))
 
         // Un altro focus
         let again = s.lastFocusMinutes ?? 50

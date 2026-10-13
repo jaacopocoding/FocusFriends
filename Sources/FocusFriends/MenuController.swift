@@ -24,6 +24,7 @@ final class MenuController: NSObject, NSMenuDelegate {
     private let statsItem = NSMenuItem()
     private let subjectPrompt = SubjectPrompt()
     private let askItem = NSMenuItem()
+    private let longBreakItem = NSMenuItem()
     private let dashboard = DashboardController()
     private let garden = GardenController()
     private let gardenItem = NSMenuItem()
@@ -112,6 +113,12 @@ final class MenuController: NSObject, NSMenuDelegate {
         askItem.target = self
         askItem.image = Self.symbol("face.smiling")
         menu.addItem(askItem)
+
+        longBreakItem.title = "Pausa lunga dopo \(BreakCycle.focusesPerCycle) focus"
+        longBreakItem.action = #selector(toggleLongBreak)
+        longBreakItem.target = self
+        longBreakItem.image = Self.symbol("cup.and.saucer")
+        menu.addItem(longBreakItem)
 
         loginItem.title = "Avvia al login"
         loginItem.action = #selector(toggleLaunchAtLogin)
@@ -409,7 +416,7 @@ final class MenuController: NSObject, NSMenuDelegate {
             } else {
                 headerView.status = "\(focus) · \(pomodoro.remainingText)"
             }
-        case .rest?: headerView.status = "Pausa · \(pomodoro.remainingText)"
+        case .rest?: headerView.status = "\(pomodoro.isLongBreak ? "Pausa lunga" : "Pausa") · \(pomodoro.remainingText)"
         case nil: headerView.status = window.isVisible ? "Qui con te" : "Nascosto"
         }
         statsItem.title = Profile.shared.statsTitle + "…"
@@ -457,6 +464,7 @@ final class MenuController: NSObject, NSMenuDelegate {
         }
         loginItem.state = SMAppService.mainApp.status == .enabled ? .on : .off
         askItem.state = ReflectionCard.isEnabled ? .on : .off
+        longBreakItem.state = BreakCycle.isEnabled ? .on : .off
 
         for item in breakItems {
             item.state = item.tag == pomodoro.breakMinutes ? .on : .off
@@ -542,7 +550,7 @@ final class MenuController: NSObject, NSMenuDelegate {
             ambient: AmbientPlayer.shared.sound, ambientVolume: AmbientPlayer.shared.volume,
             music: MusicPlayer.shared.source, musicLabel: MusicPlayer.shared.label, musicVolume: MusicPlayer.shared.volume,
             focusProgress: pomodoro.phaseProgress, phaseRange: pomodoro.phaseRangeText, focusMinutes: pomodoro.focusMinutes,
-            isPaused: pomodoro.isFocusPaused,
+            isPaused: pomodoro.isFocusPaused, isLongBreak: pomodoro.isLongBreak,
             notes: pomodoro.notes, background: background, backgroundVolume: background == .music
                 ? MusicPlayer.shared.volume : AmbientPlayer.shared.volume,
             lastFocusMinutes: pomodoro.lastFocus?.minutes, lastFocusSubject: pomodoro.lastFocus?.subject,
@@ -768,6 +776,10 @@ final class MenuController: NSObject, NSMenuDelegate {
 
     @objc private func toggleAskHowItWent() {
         ReflectionCard.isEnabled.toggle()
+    }
+
+    @objc private func toggleLongBreak() {
+        BreakCycle.isEnabled.toggle()
     }
 
     @objc private func makeSpeak() {

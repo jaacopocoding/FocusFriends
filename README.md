@@ -119,6 +119,7 @@ per tipo) e uno tuo si può *rimuovere*. *Avvia* parte con i minuti scelti; la p
 | Il mio giardino… | Una pianta adulta ogni 50 minuti di studio del giorno, per settimana e per mese (con il tuo nome: «Il giardino di …») |
 | Il tuo nome… | Cambia il nome che compare nei titoli |
 | Chiedi com'è andata | Se a fine focus compare «Com'è andata?» (spunta = sì) |
+| Pausa lunga dopo 4 focus | Dopo quattro focus completati di fila la pausa dura 15 minuti (spunta = sì) |
 | Frequenza delle frasi ▸ | *Spesso* / *Ogni tanto* / *Raramente* / *Mai* |
 | Personaggio ▸ | Sceglie il personaggio (la scelta resta alla riapertura) |
 | Movimento ▸ | *In movimento* / *Fermo*: per i personaggi che camminano |
@@ -136,6 +137,12 @@ visibile quando mancano 5 minuti o meno. Alla fine del focus suona un avviso e, 
 ripetere), altrimenti parte da sola la pausa (5 minuti, oppure l'ultima durata scelta tra *Pausa 5 min* e *Pausa 10 min*, segnata con la spunta).
 Alla fine della pausa l'orologio sparisce. Durante il focus il personaggio parla più di rado, per non
 distrarti.
+
+**Pausa lunga**: dopo **quattro focus completati di fila** la pausa che parte da sola è lunga, **15 minuti** (o la
+tua pausa scelta, se è già più lunga), e il personaggio lo dice; la schermata della pausa diventa «Pausa lunga».
+Poi il conteggio riparte da zero. I focus interrotti non contano e non azzerano il ciclo; se tra un focus e il
+successivo passano più di due ore, si ricomincia da capo (`BreakCycle.swift`, con prove). Si spegne dal menu
+classico, voce *Pausa lunga dopo 4 focus*; spenta, la pausa è sempre quella scelta.
 
 **Timer personalizzati**: *Pomofocus ▸ Personalizza…* apre una finestra per aggiungere un focus (1–180 min) o
 una pausa (1–60 min). I timer aggiunti (al massimo 6 per tipo, senza doppioni) compaiono nel menu in ordine di
@@ -435,6 +442,7 @@ Sources/FocusFriends/
   AmbientSound.swift    i suoni ambiente e le scelte (solo Foundation, con prove)
   AmbientPlayer.swift   il motore audio: rumore filtrato in tempo reale
   MusicLibrary.swift    la musica: quali file e in che ordine (solo Foundation, con prove)
+  BreakCycle.swift      il ciclo dei quattro focus e la pausa lunga (solo Foundation, con prove)
   MusicPlayer.swift     la riproduzione dei brani del focus
   SessionLog.swift      registro delle sessioni di studio e statistiche (solo Foundation, con prove)
   Profile.swift         il nome (solo Foundation, con prove) e i titoli personalizzati
