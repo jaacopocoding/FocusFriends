@@ -31,6 +31,11 @@ final class Pomodoro {
     private var ticker: Timer?
     private var curtainTimer: Timer?
     private var phaseStart = Date()
+    /// Il focus è fermo (dal pulsante «Ferma» della schermata del focus): il conto alla rovescia non scorre.
+    private(set) var isFocusPaused = false
+    /// Quanto è rimasto fermo il focus in corso: va tolto dal tempo trascorso. (`endDate` si sposta insieme.)
+    private var pausedTotal: TimeInterval = 0
+    private var lastTick = Date()
     private var endDate = Date()
     private var isShown = false
     private var hoverUntil = Date.distantPast
@@ -49,6 +54,12 @@ final class Pomodoro {
     /// La materia del focus in corso (nil = nessuna, o non è un focus).
     private(set) var subject: String?
     private var plannedFocusMinutes = 0
+    /// Le note scritte durante il focus in corso: finiscono nella sessione.
+    private(set) var notes: [String] = []
+    /// L'ultimo focus finito: quanti minuti, su quale materia e quale sessione (per la schermata della pausa).
+    private(set) var lastFocus: (minutes: Int, subject: String?, sessionID: UUID?)?
+    /// Sta eliminando il focus: la sessione non va registrata.
+    private var discarding = false
     /// Il personaggio con cui è stato avviato il focus in corso.
     private var focusPet: String?
     private let log: SessionLog
@@ -86,6 +97,11 @@ final class Pomodoro {
         return String(format: "%02d:%02d", seconds / 60, seconds % 60)
     }
 
+    /// Il tempo davvero passato in questa fase, senza i momenti in cui è stata ferma.
+    private var activeElapsed: TimeInterval { Date().timeIntervalSince(phaseStart) - pausedTotal }
+    /// La durata della fase (prevista più i minuti aggiunti), senza i momenti in cui è stata ferma.
+    private var activeTotal: TimeInterval { endDate.timeIntervalSince(phaseStart) - pausedTotal }
+
     // MARK: - Comandi
 
     func startFocus(minutes: Int, subject: String? = nil) {
@@ -93,6 +109,8 @@ final class Pomodoro {
         recordFocus(completed: false)     // se ce n'era uno in corso, finisce qui
         endGrace()
         extensions = 0
+        lastFocus = nil
+        notes = []
         self.subject = Subject.clean(subject)
         plannedFocusMinutes = minutes
         focusPet = petWindow.pet.id
@@ -110,6 +128,7 @@ final class Pomodoro {
         recordFocus(completed: false)
         endGrace()
         extensions = 0
+        lastFocus = nil
         subject = nil
         breakMinutes = minutes
         begin(.rest, minutes: minutes)
@@ -121,14 +140,18 @@ final class Pomodoro {
     @discardableResult
     private func recordFocus(completed: Bool) -> StudySession? {
         guard phase == .focus else { return nil }
+        if discarding {
+            log.finishInProgress()
+            return nil
+        }
         // Se il tempo era già scaduto (il pulsante «+5 minuti» era sullo schermo) il focus è completo.
         let completed = completed || graceUntil != nil
         let planned = plannedFocusMinutes
         let elapsed = completed
-            ? Int(endDate.timeIntervalSince(phaseStart))
-            : min(Int(Date().timeIntervalSince(phaseStart)), planned * Int(Self.secondsPerMinute))
+            ? Int(activeTotal)
+            : min(Int(activeElapsed), planned * Int(Self.secondsPerMinute))
         let session = log.add(start: phaseStart, seconds: elapsed, plannedMinutes: planned,
-                              completed: completed, subject: subject, pet: focusPet)
+                              completed: completed, subject: subject, pet: focusPet, notes: notes)
         log.finishInProgress()
         return session
     }
@@ -143,6 +166,10 @@ final class Pomodoro {
         recordFocus(completed: false)
         endGrace()
         extensions = 0
+        lastFocus = nil
+        isFocusPaused = false
+        pausedTotal = 0
+        notes = []
         subject = nil
         ticker?.invalidate()
         ticker = nil
@@ -169,7 +196,11 @@ final class Pomodoro {
     // MARK: - Andamento
 
     private func begin(_ phase: Phase, minutes: Int) {
+        let wasPaused = isFocusPaused
+        isFocusPaused = false
+        pausedTotal = 0
         self.phase = phase
+        if wasPaused, phase == .focus { onFocusActiveChanged?(true) }
         phaseStart = Date()
         endDate = phaseStart.addingTimeInterval(Double(minutes) * Self.secondsPerMinute)
         refreshChatter()
@@ -194,6 +225,14 @@ final class Pomodoro {
     }
 
     private func tick() {
+        let now = Date()
+        if isFocusPaused {
+            // Il tempo non scorre: la fine si sposta in avanti insieme all'orologio.
+            let gap = now.timeIntervalSince(lastTick)
+            endDate = endDate.addingTimeInterval(gap)
+            pausedTotal += gap
+        }
+        lastTick = now
         if endDate.timeIntervalSinceNow <= 0 {
             // Il focus è scaduto: qualche secondo per aggiungere minuti, poi finisce e parte la pausa.
             if phase == .focus {
@@ -215,6 +254,90 @@ final class Pomodoro {
         window?.timerView.time = remainingText
         updateStage()
         evaluateVisibility()
+    }
+
+    // MARK: - Dalla schermata del focus
+
+    /// Quanta parte della fase in corso è passata (0...1).
+    var phaseProgress: Double {
+        let total = activeTotal
+        guard phase != nil, total > 0 else { return 0 }
+        return min(max(activeElapsed / total, 0), 1)
+    }
+
+    /// "09:00 – 09:50": da quando a quando dura la fase in corso.
+    var phaseRangeText: String {
+        let f = DateFormatter()
+        f.dateFormat = "HH:mm"
+        return "\(f.string(from: phaseStart)) – \(f.string(from: endDate))"
+    }
+
+    /// I minuti previsti del focus in corso (con quelli aggiunti).
+    var focusMinutes: Int { plannedFocusMinutes }
+
+    /// Aggiunge `minutes` alla fase in corso: al focus (anche prima che scada) o alla pausa.
+    func addMinutes(_ minutes: Int = Pomodoro.extensionMinutes) {
+        switch phase {
+        case .focus?:
+            if graceUntil != nil {
+                extendFocus()
+            } else {
+                extensions += 1
+                plannedFocusMinutes += minutes
+                endDate = endDate.addingTimeInterval(Double(minutes) * Self.secondsPerMinute)
+                log.beginInProgress(start: phaseStart, plannedMinutes: plannedFocusMinutes, subject: subject, pet: focusPet, notes: notes)
+                window?.timerView.time = remainingText
+                updateStage()
+                evaluateVisibility()
+            }
+        case .rest?:
+            endDate = endDate.addingTimeInterval(Double(minutes) * Self.secondsPerMinute)
+            window?.timerView.time = remainingText
+        case nil:
+            break
+        }
+    }
+
+    /// «Ferma» / «Riprendi» della schermata del focus: il conto alla rovescia si ferma e il focus resta aperto.
+    /// Se il tempo è già scaduto (i secondi del «+5 minuti») non c'è niente da fermare: il focus si chiude.
+    func toggleFocusPause() {
+        guard phase == .focus else { return }
+        if isFocusPaused {
+            let now = Date()
+            let gap = now.timeIntervalSince(lastTick)
+            endDate = endDate.addingTimeInterval(gap)
+            pausedTotal += gap
+            lastTick = now
+            isFocusPaused = false
+            window?.timerView.label = Phase.focus.label
+            window?.timerView.time = remainingText
+            onFocusActiveChanged?(true)
+            speaker.say("Si riparte!")
+        } else if graceUntil != nil {
+            stop()
+        } else {
+            lastTick = Date()
+            isFocusPaused = true
+            window?.timerView.label = "FERMO"
+            onFocusActiveChanged?(false)
+            speaker.say("Timer fermo. Riprendi quando sei pronto.")
+        }
+    }
+
+    /// Una nota scritta durante il focus (si salva subito, così non si perde).
+    func addNote(_ text: String) {
+        guard phase == .focus, let clean = FocusNotes.clean(text), notes.count < FocusNotes.maxCount else { return }
+        notes.append(clean)
+        log.updateInProgressNotes(notes)
+    }
+
+    /// Elimina il focus in corso: non viene registrato (niente minuti, niente piantina).
+    func discardFocus() {
+        guard phase == .focus else { return }
+        discarding = true
+        stop()
+        discarding = false
+        speaker.say("Focus eliminato: non resta traccia.")
     }
 
     // MARK: - «+5 minuti»
@@ -243,7 +366,7 @@ final class Pomodoro {
         plannedFocusMinutes += Self.extensionMinutes
         endDate = Date().addingTimeInterval(Double(Self.extensionMinutes) * Self.secondsPerMinute)
         endGrace()
-        log.beginInProgress(start: phaseStart, plannedMinutes: plannedFocusMinutes, subject: subject, pet: focusPet)
+        log.beginInProgress(start: phaseStart, plannedMinutes: plannedFocusMinutes, subject: subject, pet: focusPet, notes: notes)
         window?.timerView.time = remainingText
         updateStage()
         evaluateVisibility()
@@ -268,6 +391,8 @@ final class Pomodoro {
             let studied = plannedFocusMinutes
             let finishedSubject = subject
             let recorded = recordFocus(completed: true)
+            lastFocus = (studied, finishedSubject, recorded?.id)
+            notes = []
             subject = nil
             // Cosa è successo nel giardino: i minuti della giornata, prima e dopo questo focus.
             var gardenLine = "Il giardino cresce."
@@ -309,8 +434,8 @@ final class Pomodoro {
         // Chi ha le immagini di crescita del focus (Ciccio): durante il focus prendono il suo posto.
         if !pet.focusGrowthResources.isEmpty {
             if phase == .focus {
-                let total = endDate.timeIntervalSince(phaseStart)
-                let progress = total > 0 && extensions == 0 ? Date().timeIntervalSince(phaseStart) / total : 1
+                let total = activeTotal
+                let progress = total > 0 && extensions == 0 ? activeElapsed / total : 1
                 petWindow.showFocusGrowth(stage: pet.focusGrowthStage(forProgress: progress))
             } else {
                 petWindow.endFocusGrowth()
@@ -322,9 +447,9 @@ final class Pomodoro {
             petWindow.setStage(pet.finalStage)
             return
         }
-        let total = endDate.timeIntervalSince(phaseStart)
+        let total = activeTotal
         // Dopo un «+5 minuti» resta allo stadio finale: la pianta non deve tornare indietro.
-        let progress = total > 0 && extensions == 0 ? Date().timeIntervalSince(phaseStart) / total : 1
+        let progress = total > 0 && extensions == 0 ? activeElapsed / total : 1
         petWindow.setStage(pet.stage(forProgress: progress))
     }
 
@@ -339,7 +464,7 @@ final class Pomodoro {
         if petWindow.isVisible, petWindow.artFrame.contains(NSEvent.mouseLocation) {
             hoverUntil = now.addingTimeInterval(Self.hoverLinger)
         }
-        let wanted = now.timeIntervalSince(phaseStart) < Self.introMinutes * minute
+        let wanted = activeElapsed < Self.introMinutes * minute
             || endDate.timeIntervalSince(now) <= Self.alwaysVisibleMinutes * minute
             || now < hoverUntil
 

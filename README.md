@@ -88,7 +88,8 @@ nome) restano sul tuo Mac, in `~/Library/Application Support/FocusFriends/`: nes
 Un clic sull'icona nella barra dei menu (o il tasto destro sul personaggio) apre la **scheda del menu**
 (`MenuCard.swift`): il compagno sbuca dal bordo, e sotto ci sono i compagni (tocca un nome per cambiarlo), i
 focus da 30 e 50 minuti e la pausa, il riepilogo di oggi, *Giardino* e *Statistiche* e le impostazioni più usate.
-Toccando il compagno parla; mentre il timer va, al posto dei tre pulsanti c'è il tempo che manca e *Ferma*.
+Toccando il compagno parla; mentre il timer va, un clic sull'icona o sul personaggio apre invece la
+[schermata del focus](#la-schermata-del-focus) (o quella della pausa), con *‹ Menu completo* per tornare alla scheda.
 Se l'hai aperta dal personaggio, **lo segue** quando cammina o lo trascini (passa dall'altro lato se arriva al bordo dello schermo). Si chiude con un clic fuori o con Esc. Le schermate che si aprono da lì (la scelta della materia, le statistiche, il giardino)
 hanno una **freccia indietro** (‹, a sinistra del titolo; ‹ Menu nella barra del titolo delle finestre) che le chiude e
 riapre la scheda dov'era, senza ricominciare da capo. *Altri timer…* e *Altre impostazioni…* aprono il menu classico, che si
@@ -140,6 +141,28 @@ distrarti.
 una pausa (1–60 min). I timer aggiunti (al massimo 6 per tipo, senza doppioni) compaiono nel menu in ordine di
 durata insieme a quelli di serie, si ricordano alla riapertura (`CustomTimers.swift`) e si tolgono da *Rimuovi
 un timer personalizzato*. Valgono per tutti i personaggi.
+
+## La schermata del focus
+
+Quando un focus è in corso, un clic sul personaggio (o sull'icona) non apre il menu ma la **schermata del focus**:
+una pagina di quaderno con la materia, da che ora a che ora dura, il compagno e un grande pomodoro-timer con
+l'arco del tempo passato e quello che manca. Sotto:
+
+- **+ 5 minuti** aggiunge cinque minuti al focus (anche prima della fine; si può ripetere); **Ferma** ferma solo il
+  conto alla rovescia e resta nella schermata: il pulsante diventa **Riprendi**. Il tempo da fermo non conta nello
+  studio, e il suono ambiente o la musica si fermano e ripartono con lui. Da fermo compare **Termina e salva**: chiude
+  il focus tenendo i minuti fatti (sotto il minuto non viene registrato, come sempre) e le note;
+- **Sottofondo**: *Nessuno*, *Pioggia*, *Vento*, *Marrone* o *Musica* (uno alla volta) e il volume. Il suono si
+  sente solo durante il focus; la musica sono i brani inclusi, o la tua cartella la prima volta;
+- **Note**: un foglietto per appuntare al volo quello che ti passa per la testa mentre studi («chiedere al prof…»).
+  Scrivi e premi Invio; le note si salvano subito con il focus (non si perdono se l'app si chiude) e si rivedono
+  nelle statistiche, sotto la sessione, e nel CSV (colonna `note_del_focus`). Fino a 40 note da 160 caratteri;
+- **Elimina questo focus**: chiede conferma e poi lo butta come se non fosse mai iniziato (niente minuti, niente
+  piantina, niente note).
+
+Durante la **pausa** la stessa pagina diventa verde: il tempo di pausa che resta, **+ 5 minuti** e **Salta**,
+«Bevi un po' d'acqua e guarda lontano.», **Nuovo focus** (con gli stessi minuti dell'ultimo) e, se non l'hai già
+fatto, **Com'è andata?** con le tre facce per l'ultimo focus, più i collegamenti a giardino e statistiche.
 
 ## Il tuo nome e il compagno
 
@@ -202,11 +225,12 @@ poca testa nel periodo e, quando ci sono almeno 8 focus valutati, fino a due fra
 giornata, giorno della settimana) o **con cosa** (materia) i focus vanno meglio o peggio, sempre con i
 conteggi («di mattina: 7 focus su 9 sono andati bene»). Un gruppo deve avere almeno 3 focus e distare almeno 20
 punti percentuali dalla media: altrimenti non dice niente, meglio che dire una cosa a caso (`StudyStats.insights`).
-Il CSV ha due colonne in più (`com_e_andata`, `nota`) e i campi di testo che iniziano con `= + - @` hanno un
+Il CSV ha tre colonne in più (`com_e_andata`, `nota`, `note_del_focus`) e i campi di testo che iniziano con `= + - @` hanno un
 apice davanti, così un foglio di calcolo non li prende per formule.
 
-Il formato del file passa alla **versione 2**: un file della versione 1 si legge e si riscrive nel nuovo,
-tenendo intatta la copia del vecchio in `backup/sessioni-formato1.json`.
+Il formato del file passa alla **versione 2** (voto e nota) e poi alla **3** (le note scritte durante il focus):
+un file di una versione precedente si legge e si riscrive nel nuovo, tenendo intatta la copia del vecchio in
+`backup/sessioni-formato<N>.json`.
 
 *Statistiche e riepilogo…* apre una finestra (`DashboardWindow.swift`) con tre schede: **Oggi**, **Settimana**
 (da lunedì) e **Mese**. Con le frecce si va ai periodi precedenti. Il **riepilogo** è fatto per essere calmo:
@@ -216,7 +240,7 @@ quando rendi meglio, se ci sono dati sufficienti). Sotto, **Mostra le sessioni**
 pagina** (il riepilogo resta sopra): per un giorno, una striscia con un blocco colorato per ogni focus sulle ore e
 l'elenco con ora, materia, nota, faccia e durata; per una settimana o un mese, le sessioni sotto il loro giorno (con il
 totale del giorno). La finestra resta della stessa altezza: la pagina scorre con la rotella. Toccando una sessione si
-cambia la materia, la nota e il voto, o la si elimina; *Esporta CSV…* salva tutte le sessioni per un foglio di
+cambia la materia, la nota, le note del focus e il voto, o la si elimina; *Esporta CSV…* salva tutte le sessioni per un foglio di
 calcolo. I dati restano sul Mac: nessun invio da nessuna parte.
 
 Le regole di calcolo hanno le loro prove: `./tests/run.sh` (compila `SessionLog.swift` da solo e controlla
@@ -399,7 +423,8 @@ Sources/FocusFriends/
   Pomodoro.swift        logica del timer focus/pausa e crescita
   TimerBubble.swift     orologio digitale sotto il personaggio
   MenuController.swift  icona nella barra, menu classico, avvio al login
-  MenuCard.swift        la scheda del menu (clic sull'icona o tasto destro sul personaggio)
+  MenuCard.swift        la scheda del menu (clic sull'icona o tasto destro sul personaggio) e le schermate del focus e della pausa
+  FocusScreenViews.swift  il pomodoro-timer, il foglietto delle note e i pulsanti della schermata del focus
   AmbientSound.swift    i suoni ambiente e le scelte (solo Foundation, con prove)
   AmbientPlayer.swift   il motore audio: rumore filtrato in tempo reale
   MusicLibrary.swift    la musica: quali file e in che ordine (solo Foundation, con prove)

@@ -62,3 +62,39 @@ enum AmbientSettings {
         volumeSteps.min(by: { abs($0 - volume) < abs($1 - volume) }) ?? defaultVolume
     }
 }
+
+/// La scelta del sottofondo come la vede chi studia: una sola alla volta (un suono, la musica o niente).
+enum BackgroundChoice: String, CaseIterable {
+    case none, rain, wind, brown, music
+
+    var title: String {
+        switch self {
+        case .none: return "Nessuno"
+        case .rain: return "Pioggia"
+        case .wind: return "Vento"
+        case .brown: return "Marrone"
+        case .music: return "Musica"
+        }
+    }
+
+    /// Quale scelta corrisponde a quello che è acceso adesso (il suono vince, ma i due non sono mai accesi insieme).
+    static func current(ambient: AmbientSound, music: MusicSource) -> BackgroundChoice {
+        switch ambient {
+        case .rain: return .rain
+        case .wind: return .wind
+        case .brown: return .brown
+        case .none: return music == .off ? .none : .music
+        }
+    }
+
+    /// Il suono ambiente di questa scelta (nil se è la musica).
+    var ambientSound: AmbientSound? {
+        switch self {
+        case .none: return AmbientSound.none
+        case .rain: return .rain
+        case .wind: return .wind
+        case .brown: return .brown
+        case .music: return nil
+        }
+    }
+}

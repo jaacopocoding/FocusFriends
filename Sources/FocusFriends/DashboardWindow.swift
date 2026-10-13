@@ -523,7 +523,24 @@ final class DashboardView: NSView {
         ratingControl.controlSize = .small
         ratingControl.frame = NSRect(x: 0, y: 94, width: 300, height: 24)
         ratingControl.selectedSegment = session.rating.flatMap { FocusRating.allCases.firstIndex(of: $0) }.map { $0 + 1 } ?? 0
-        let container = NSView(frame: NSRect(x: 0, y: 0, width: 300, height: 122))
+        // Le note scritte durante il focus: una per riga.
+        let notesView = NSTextView(frame: NSRect(x: 0, y: 0, width: 292, height: 60))
+        notesView.string = (session.notes ?? []).joined(separator: "\n")
+        notesView.font = NSFont.systemFont(ofSize: 12)
+        notesView.isRichText = false
+        notesView.isVerticallyResizable = true
+        notesView.textContainerInset = NSSize(width: 2, height: 3)
+        let notesScroll = NSScrollView(frame: NSRect(x: 0, y: 126, width: 300, height: 62))
+        notesScroll.documentView = notesView
+        notesScroll.hasVerticalScroller = true
+        notesScroll.borderType = .bezelBorder
+        let notesCaption = NSTextField(labelWithString: "Note del focus (una per riga)")
+        notesCaption.font = NSFont.systemFont(ofSize: 11)
+        notesCaption.textColor = .secondaryLabelColor
+        notesCaption.frame = NSRect(x: 0, y: 190, width: 300, height: 14)
+        let container = NSView(frame: NSRect(x: 0, y: 0, width: 300, height: 206))
+        container.addSubview(notesScroll)
+        container.addSubview(notesCaption)
         container.addSubview(field)
         container.addSubview(everywhere)
         container.addSubview(noteField)
@@ -543,6 +560,7 @@ final class DashboardView: NSView {
             let selected = ratingControl.selectedSegment
             let rating = selected >= 1 ? FocusRating.allCases[selected - 1] : nil
             log.setReflection(id: session.id, rating: rating, note: noteField.stringValue)
+            log.setNotes(id: session.id, notes: notesView.string.components(separatedBy: .newlines))
         case .alertSecondButtonReturn:
             log.remove(id: session.id)
         default:
@@ -638,11 +656,18 @@ private final class DiaryView: NSView {
                     y += 36
                 }
             }
-            let height: CGFloat = session.note == nil ? 34 : 50
+            let extraLines = (session.note == nil ? 0 : 1) + (Self.focusNotesLine(session) == nil ? 0 : 1)
+            let height: CGFloat = 34 + CGFloat(extraLines) * 16
             entries.append((.session(session), NSRect(x: 0, y: y, width: width, height: height)))
             y += height
         }
         setFrameSize(NSSize(width: width, height: y + 12))
+    }
+
+    /// Le note scritte durante il focus, su una riga ("Note: una · due"), o nil se non ce ne sono.
+    private static func focusNotesLine(_ session: StudySession) -> String? {
+        guard let notes = session.notes, !notes.isEmpty else { return nil }
+        return "Note: " + notes.joined(separator: "  ·  ")
     }
 
     private func color(for session: StudySession) -> NSColor {
@@ -740,8 +765,14 @@ private final class DiaryView: NSView {
         let textX = rect.minX + 84
         text(session.subject ?? Subject.none, in: NSRect(x: textX, y: rect.minY + 8, width: max(textRight - textX, 40), height: 18),
              font: NSFont.systemFont(ofSize: 13.5, weight: .medium), color: Paper.ink)
+        var lineY = rect.minY + 27
         if let note = session.note {
-            text(note, in: NSRect(x: textX, y: rect.minY + 27, width: max(textRight - textX, 40), height: 16),
+            text(note, in: NSRect(x: textX, y: lineY, width: max(textRight - textX, 40), height: 16),
+                 font: NSFont.systemFont(ofSize: 12), color: Paper.inkLight)
+            lineY += 16
+        }
+        if let line = Self.focusNotesLine(session) {
+            text(line, in: NSRect(x: textX, y: lineY, width: max(right - textX, 40), height: 16),
                  font: NSFont.systemFont(ofSize: 12), color: Paper.inkLight)
         }
         // Linea tratteggiata sotto, come le righe di un quaderno.

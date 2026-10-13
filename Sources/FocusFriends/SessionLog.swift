@@ -22,9 +22,12 @@ struct StudySession: Codable, Equatable {
     var rating: FocusRating?
     /// Cosa hai fatto ("cap. 4, nervi cranici"). Facoltativa (formato 2).
     var note: String?
+    /// Le note scritte durante il focus, una per riga (formato 3).
+    var notes: [String]?
 
     init(id: UUID = UUID(), start: Date, localStart: String? = nil, seconds: Int, plannedMinutes: Int,
-         completed: Bool, subject: String?, pet: String? = nil, rating: FocusRating? = nil, note: String? = nil) {
+         completed: Bool, subject: String?, pet: String? = nil, rating: FocusRating? = nil, note: String? = nil,
+         notes: [String]? = nil) {
         self.id = id
         self.start = start
         self.localStart = localStart
@@ -35,10 +38,11 @@ struct StudySession: Codable, Equatable {
         self.pet = pet
         self.rating = rating
         self.note = note
+        self.notes = notes
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, start, localStart, seconds, plannedMinutes, completed, subject, pet, rating, note
+        case id, start, localStart, seconds, plannedMinutes, completed, subject, pet, rating, note, notes
     }
 
     init(from decoder: Decoder) throws {
@@ -54,6 +58,7 @@ struct StudySession: Codable, Equatable {
         // Un voto che non conosco (scritto da una versione futura) non deve rendere illeggibile il file.
         rating = try? c.decodeIfPresent(FocusRating.self, forKey: .rating)
         note = try c.decodeIfPresent(String.self, forKey: .note)
+        notes = try c.decodeIfPresent([String].self, forKey: .notes)
     }
 
     /// L'istante in cui è iniziata, letto "sull'orologio" nel fuso del calendario dato: se la sessione ha
@@ -225,6 +230,30 @@ enum SessionNote {
     }
 }
 
+/// Le note scritte durante un focus: una riga per nota, poche e brevi.
+enum FocusNotes {
+    static let maxLength = 160
+    static let maxCount = 40
+
+    /// Pulisce una nota (spazi, caratteri di controllo, lunghezza); vuota = nessuna.
+    static func clean(_ text: String?) -> String? {
+        guard let text else { return nil }
+        let words = text.split(whereSeparator: { $0.isWhitespace || $0.isNewline }).map { word in
+            String(String.UnicodeScalarView(word.unicodeScalars.filter { !CharacterSet.controlCharacters.contains($0) }))
+        }
+        let joined = words.filter { !$0.isEmpty }.joined(separator: " ")
+        guard !joined.isEmpty else { return nil }
+        return String(joined.prefix(maxLength))
+    }
+
+    /// Una lista pulita: senza note vuote, al massimo `maxCount`. Vuota = nil (così il campo non c'è nel file).
+    static func clean(list: [String]?) -> [String]? {
+        guard let list else { return nil }
+        let cleaned = list.compactMap { clean($0) }
+        return cleaned.isEmpty ? nil : Array(cleaned.prefix(maxCount))
+    }
+}
+
 enum Subject {
     /// Come si chiama, nelle statistiche, chi non ha scritto la materia.
     static let none = "Senza materia"
@@ -255,13 +284,13 @@ private struct LogFile: Codable {
 /// Il file con tutte le sessioni, più un piccolo file "in corso" per non perdere un focus se l'app si chiude di colpo.
 ///
 /// Cartella dei dati:
-///   sessioni.json        { "version": 2, "sessions": [...] }
+///   sessioni.json        { "version": 3, "sessions": [...] }
 ///   in-corso.json        il focus in corso (sparisce quando finisce)
 ///   backup/              una copia al giorno (le ultime 7), fatta prima della prima modifica della giornata
 final class SessionLog {
     /// La versione del formato di `sessioni.json` che questa app scrive.
-    /// 2: le sessioni possono avere `rating` e `note`.
-    static let formatVersion = 2
+    /// 2: le sessioni possono avere `rating` e `note`. 3: e `notes` (le note scritte durante il focus).
+    static let formatVersion = 3
     /// Un focus interrotto sotto il minuto non conta.
     static let minimumSeconds = 60
     /// Quante copie di sicurezza tenere.
@@ -425,12 +454,13 @@ final class SessionLog {
 
     /// Aggiunge una sessione (se dura almeno un minuto) e ritorna quella salvata.
     @discardableResult
-    func add(start: Date, seconds: Int, plannedMinutes: Int, completed: Bool, subject: String?, pet: String? = nil) -> StudySession? {
+    func add(start: Date, seconds: Int, plannedMinutes: Int, completed: Bool, subject: String?, pet: String? = nil,
+             notes: [String]? = nil) -> StudySession? {
         guard seconds >= Self.minimumSeconds, !isReadOnly else { return nil }
         let session = StudySession(
             start: start, localStart: StudySession.localString(for: start, calendar: calendar),
             seconds: seconds, plannedMinutes: plannedMinutes, completed: completed,
-            subject: canonicalSubject(Subject.clean(subject)), pet: pet
+            subject: canonicalSubject(Subject.clean(subject)), pet: pet, notes: FocusNotes.clean(list: notes)
         )
         sessions.append(session)
         sessions.sort { $0.start < $1.start }
@@ -455,6 +485,13 @@ final class SessionLog {
         guard !isReadOnly, let index = sessions.firstIndex(where: { $0.id == id }) else { return }
         sessions[index].rating = rating
         sessions[index].note = SessionNote.clean(note)
+        save()
+    }
+
+    /// Le note del focus di una sessione (una per riga; vuote = nessuna).
+    func setNotes(id: UUID, notes: [String]?) {
+        guard !isReadOnly, let index = sessions.firstIndex(where: { $0.id == id }) else { return }
+        sessions[index].notes = FocusNotes.clean(list: notes)
         save()
     }
 
@@ -516,10 +553,19 @@ final class SessionLog {
         var subject: String?
         var pet: String?
         var lastSeen: Date
+        var notes: [String]?
     }
 
-    func beginInProgress(start: Date, plannedMinutes: Int, subject: String?, pet: String? = nil) {
-        writeProgress(InProgress(start: start, plannedMinutes: plannedMinutes, subject: subject, pet: pet, lastSeen: now()))
+    func beginInProgress(start: Date, plannedMinutes: Int, subject: String?, pet: String? = nil, notes: [String] = []) {
+        writeProgress(InProgress(start: start, plannedMinutes: plannedMinutes, subject: subject, pet: pet, lastSeen: now(),
+                                 notes: notes.isEmpty ? nil : notes))
+    }
+
+    /// Le note del focus in corso: si salvano subito, così non si perdono se l'app si chiude di colpo.
+    func updateInProgressNotes(_ notes: [String]) {
+        guard var progress = readProgress() else { return }
+        progress.notes = notes.isEmpty ? nil : notes
+        writeProgress(progress)
     }
 
     /// Segna che l'app è ancora viva (al massimo una volta ogni 30 secondi).
@@ -544,7 +590,7 @@ final class SessionLog {
         let seconds = Int(progress.lastSeen.timeIntervalSince(progress.start))
         let capped = min(seconds, progress.plannedMinutes * 60)
         return add(start: progress.start, seconds: capped, plannedMinutes: progress.plannedMinutes,
-                   completed: false, subject: progress.subject, pet: progress.pet)
+                   completed: false, subject: progress.subject, pet: progress.pet, notes: progress.notes)
     }
 
     private func readProgress() -> InProgress? {
@@ -818,7 +864,7 @@ enum StudyStats {
 // MARK: - Esportazione
 
 enum SessionCSV {
-    static let header = "inizio,inizio_locale,minuti,minuti_previsti,completa,materia,personaggio,com_e_andata,nota"
+    static let header = "inizio,inizio_locale,minuti,minuti_previsti,completa,materia,personaggio,com_e_andata,nota,note_del_focus"
 
     /// Un campo di testo tra virgolette. Se comincia con un carattere che un foglio di calcolo prende per una
     /// formula (= + - @) gli metto davanti un apice, così non viene eseguito.
@@ -835,7 +881,7 @@ enum SessionCSV {
             lines.append([
                 iso.string(from: s.start), s.localStart ?? "", "\((s.seconds + 30) / 60)", "\(s.plannedMinutes)",
                 s.completed ? "si" : "no", quoted(s.subject ?? ""), s.pet ?? "",
-                s.rating?.rawValue ?? "", quoted(s.note ?? ""),
+                s.rating?.rawValue ?? "", quoted(s.note ?? ""), quoted((s.notes ?? []).joined(separator: " | ")),
             ].joined(separator: ","))
         }
         return lines.joined(separator: "\n") + "\n"

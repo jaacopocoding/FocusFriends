@@ -403,10 +403,11 @@ final class MenuController: NSObject, NSMenuDelegate {
         // Lo stato attuale si legge senza aprire i sottomenu, e la scheda dice cosa sta facendo.
         switch pomodoro.phase {
         case .focus?:
+            let focus = pomodoro.isFocusPaused ? "Focus fermo" : "Focus"
             if let subject = pomodoro.subject {
-                headerView.status = "Focus · \(subject) · \(pomodoro.remainingText)"
+                headerView.status = "\(focus) · \(subject) · \(pomodoro.remainingText)"
             } else {
-                headerView.status = "Focus · \(pomodoro.remainingText)"
+                headerView.status = "\(focus) · \(pomodoro.remainingText)"
             }
         case .rest?: headerView.status = "Pausa · \(pomodoro.remainingText)"
         case nil: headerView.status = window.isVisible ? "Qui con te" : "Nascosto"
@@ -527,6 +528,8 @@ final class MenuController: NSObject, NSMenuDelegate {
         let calendar = StudyPeriod.calendar()
         let today = StudyStats.summary(sessions: SessionLog.shared.sessions,
                                        period: StudyPeriod.containing(now, kind: .day, calendar: calendar), calendar: calendar)
+        let background = BackgroundChoice.current(ambient: AmbientPlayer.shared.sound, music: MusicPlayer.shared.source)
+        let lastSession = pomodoro.lastFocus?.sessionID.flatMap { id in SessionLog.shared.sessions.first { $0.id == id } }
         return MenuCardState(
             pet: window.pet, allPets: Pet.all, userName: Profile.shared.name, isPetVisible: window.isVisible,
             phase: pomodoro.phase, subject: pomodoro.subject, remaining: pomodoro.remainingText,
@@ -537,7 +540,13 @@ final class MenuController: NSObject, NSMenuDelegate {
             chattiness: Chattiness.current, petWalks: window.pet.walks, movementOn: Walker.isMovementEnabled,
             askOn: ReflectionCard.isEnabled,
             ambient: AmbientPlayer.shared.sound, ambientVolume: AmbientPlayer.shared.volume,
-            music: MusicPlayer.shared.source, musicLabel: MusicPlayer.shared.label, musicVolume: MusicPlayer.shared.volume
+            music: MusicPlayer.shared.source, musicLabel: MusicPlayer.shared.label, musicVolume: MusicPlayer.shared.volume,
+            focusProgress: pomodoro.phaseProgress, phaseRange: pomodoro.phaseRangeText, focusMinutes: pomodoro.focusMinutes,
+            isPaused: pomodoro.isFocusPaused,
+            notes: pomodoro.notes, background: background, backgroundVolume: background == .music
+                ? MusicPlayer.shared.volume : AmbientPlayer.shared.volume,
+            lastFocusMinutes: pomodoro.lastFocus?.minutes, lastFocusSubject: pomodoro.lastFocus?.subject,
+            lastSessionID: lastSession?.id, lastRating: lastSession?.rating
         )
     }
 
@@ -573,8 +582,57 @@ final class MenuController: NSObject, NSMenuDelegate {
                 self.menuNeedsUpdate(self.menu)
                 self.menu.popUp(positioning: nil, at: NSEvent.mouseLocation, in: nil)
             },
-            quit: { NSApp.terminate(nil) }
+            quit: { NSApp.terminate(nil) },
+            addMinutes: { [weak self] in self?.pomodoro.addMinutes() },
+            togglePause: { [weak self] in self?.pomodoro.toggleFocusPause() },
+            addNote: { [weak self] in self?.pomodoro.addNote($0) },
+            discardFocus: { [weak self] in self?.confirmDiscard() },
+            setBackground: { [weak self] in self?.setBackground($0) },
+            setBackgroundVolume: { [weak self] value in
+                if BackgroundChoice.current(ambient: AmbientPlayer.shared.sound, music: MusicPlayer.shared.source) == .music {
+                    MusicPlayer.shared.setVolume(value, preview: true)
+                } else {
+                    AmbientPlayer.shared.setVolume(value, preview: true)
+                }
+                _ = self
+            },
+            rateLast: { [weak self] rating in
+                guard let self, let id = self.pomodoro.lastFocus?.sessionID else { return }
+                let note = SessionLog.shared.sessions.first { $0.id == id }?.note
+                SessionLog.shared.setReflection(id: id, rating: rating, note: note)
+                self.speaker.say(ReflectionCard.reply(for: rating))
+            }
         )
+    }
+
+    /// Il sottofondo scelto dalla schermata del focus: uno solo (un suono o la musica); gli altri si spengono.
+    private func setBackground(_ choice: BackgroundChoice) {
+        if let sound = choice.ambientSound {
+            if sound == .none { MusicPlayer.shared.setSource(.off, preview: false) }
+            AmbientPlayer.shared.setSound(sound)
+            return
+        }
+        let hasBundled = !MusicPlayer.shared.bundledTracks.isEmpty
+        select(source: hasBundled ? .bundled : .folder)
+    }
+
+    /// «Elimina questo focus»: chiede conferma (non si torna indietro) e poi lo butta senza lasciare traccia.
+    private func confirmDiscard() {
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            NSApp.activate(ignoringOtherApps: true)
+            let alert = NSAlert()
+            alert.messageText = "Eliminare questo focus?"
+            alert.informativeText = "Non viene registrato: niente minuti, niente piantina."
+            alert.alertStyle = .warning
+            alert.addButton(withTitle: "Annulla")
+            alert.addButton(withTitle: "Elimina")
+            if alert.runModal() == .alertSecondButtonReturn {
+                self.pomodoro.discardFocus()
+            } else {
+                self.returnToMenu()
+            }
+        }
     }
 
     private func cycleChattiness() {

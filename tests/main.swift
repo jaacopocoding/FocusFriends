@@ -416,7 +416,7 @@ try? v1.write(to: v1Dir.appendingPathComponent("sessioni.json"), atomically: tru
 let v1Log = SessionLog(directory: v1Dir, timeZone: rome)
 check(v1Log.sessions.count == 1 && v1Log.sessions[0].rating == nil && !v1Log.isReadOnly, "formato 1 letto")
 let v1After = (try? JSONSerialization.jsonObject(with: Data(contentsOf: v1Dir.appendingPathComponent("sessioni.json")))) as? [String: Any]
-check(v1After?["version"] as? Int == 2, "riscritto nel formato 2")
+check(v1After?["version"] as? Int == SessionLog.formatVersion, "riscritto nel formato nuovo")
 check((try? String(contentsOf: v1Dir.appendingPathComponent("backup/sessioni-formato1.json"))) == v1, "copia intatta del formato 1")
 
 // un voto sconosciuto (da una versione futura) non rende illeggibile il file
@@ -530,6 +530,53 @@ let savedMusic = MusicSettings.Saved(source: .folder, folder: URL(fileURLWithPat
 MusicSettings.save(savedMusic, musicDefaults)
 check(MusicSettings.load(musicDefaults) == savedMusic, "si ricorda la cartella e il volume")
 check(MusicSettings.label(source: .folder, folder: savedMusic.folder) == "Cartella: Lofi" && MusicSettings.label(source: .off, folder: nil) == "Spenta", "le etichette")
+
+// ---------------------------------------------------------------- note del focus
+section("Note del focus")
+check(FocusNotes.clean("  chiedere   al prof \t la trasformata ") == "chiedere al prof la trasformata", "la nota si pulisce")
+check(FocusNotes.clean("   ") == nil && FocusNotes.clean(nil) == nil, "nota vuota = niente")
+check(FocusNotes.clean(String(repeating: "x", count: 500))?.count == FocusNotes.maxLength, "nota accorciata")
+check(FocusNotes.clean(list: ["  a ", "", "  ", "b"]) == ["a", "b"], "la lista toglie le note vuote")
+check(FocusNotes.clean(list: []) == nil && FocusNotes.clean(list: ["   "]) == nil, "lista vuota = nil")
+check((FocusNotes.clean(list: (0..<100).map { "n\($0)" }) ?? []).count == FocusNotes.maxCount, "al massimo \(FocusNotes.maxCount) note")
+let notesDir = tempDirectory()
+let notesLog = SessionLog(directory: notesDir, timeZone: rome)
+let withNotes = notesLog.add(start: date(2026, 10, 14, 9), seconds: 1800, plannedMinutes: 30, completed: true, subject: "Segnali",
+                             notes: ["rivedere la trasformata", "  ", "esercizio 4"])
+check(withNotes?.notes == ["rivedere la trasformata", "esercizio 4"], "le note si salvano pulite")
+check(SessionLog(directory: notesDir, timeZone: rome).sessions.first?.notes == ["rivedere la trasformata", "esercizio 4"], "e si rileggono")
+if let withNotes { notesLog.setNotes(id: withNotes.id, notes: []) }
+check(notesLog.sessions.first?.notes == nil, "si possono togliere")
+// le note del focus in corso sopravvivono a una chiusura improvvisa
+let crashDir = tempDirectory()
+let crashLog = SessionLog(directory: crashDir, now: { date(2026, 10, 14, 9, 20) }, timeZone: rome)
+crashLog.beginInProgress(start: date(2026, 10, 14, 9), plannedMinutes: 50, subject: "Segnali", pet: "ciccio")
+crashLog.updateInProgressNotes(["chiedere al prof"])
+let recoveredNotes = SessionLog(directory: crashDir, now: { date(2026, 10, 14, 9, 30) }, timeZone: rome).recoverInterrupted()
+check(recoveredNotes?.notes == ["chiedere al prof"], "le note del focus interrotto si recuperano")
+// un file del formato 2 (senza note) si legge e si migra
+let v2Dir = tempDirectory()
+let v2 = """
+{"version": 2, "sessions": [{"completed": true, "id": "9F6C1A2B-0000-4000-8000-000000000020", "plannedMinutes": 25,
+ "seconds": 1500, "start": "2026-10-12T08:00:00Z", "subject": "Anatomia", "rating": "good", "note": "nervi"}]}
+"""
+try? v2.write(to: v2Dir.appendingPathComponent("sessioni.json"), atomically: true, encoding: .utf8)
+let v2Log = SessionLog(directory: v2Dir, timeZone: rome)
+check(v2Log.sessions.count == 1 && v2Log.sessions[0].notes == nil && v2Log.sessions[0].rating == .good, "il formato 2 si legge")
+check((try? String(contentsOf: v2Dir.appendingPathComponent("backup/sessioni-formato2.json"))) == v2, "copia intatta del formato 2")
+let csvNotes = SessionCSV.csv(for: [StudySession(start: date(2026, 10, 14, 9), seconds: 600, plannedMinutes: 10, completed: true,
+                                                subject: "X", notes: ["uno", "due"])])
+check(csvNotes.contains("\"uno | due\""), "le note nel CSV, separate da |")
+
+// ---------------------------------------------------------------- scelta del sottofondo
+section("Scelta del sottofondo")
+check(BackgroundChoice.current(ambient: .none, music: .off) == .none, "niente acceso")
+check(BackgroundChoice.current(ambient: .rain, music: .off) == .rain && BackgroundChoice.current(ambient: .wind, music: .off) == .wind, "un suono")
+check(BackgroundChoice.current(ambient: .none, music: .bundled) == .music && BackgroundChoice.current(ambient: .none, music: .folder) == .music, "la musica")
+check(BackgroundChoice.current(ambient: .brown, music: .folder) == .brown, "se per errore sono accesi entrambi vince il suono")
+check(BackgroundChoice.rain.ambientSound == .rain && BackgroundChoice.music.ambientSound == nil && BackgroundChoice.none.ambientSound == AmbientSound.none,
+      "la scelta e il suono corrispondente")
+check(BackgroundChoice.allCases.map { $0.title } == ["Nessuno", "Pioggia", "Vento", "Marrone", "Musica"], "i nomi, nell'ordine della schermata")
 
 print("\n\(checks) controlli, \(failures) falliti")
 exit(failures == 0 ? 0 : 1)

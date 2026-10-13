@@ -27,6 +27,20 @@ struct MenuCardState {
     var music: MusicSource
     var musicLabel: String
     var musicVolume: Double
+    // La schermata del focus e quella della pausa
+    var focusProgress: Double
+    var phaseRange: String
+    var focusMinutes: Int
+    /// Il conto alla rovescia è fermo: «Ferma» diventa «Riprendi».
+    var isPaused: Bool
+    var notes: [String]
+    var background: BackgroundChoice
+    var backgroundVolume: Double
+    /// L'ultimo focus finito (per «Hai fatto 50 minuti di Anatomia» e «Com'è andata?» in pausa).
+    var lastFocusMinutes: Int?
+    var lastFocusSubject: String?
+    var lastSessionID: UUID?
+    var lastRating: FocusRating?
 }
 
 /// Cosa succede quando si tocca qualcosa. Il MenuController le collega a quello che già fa il menu.
@@ -50,6 +64,13 @@ struct MenuCardActions {
     var removeTimer: (CustomTimers.Kind, Int) -> Void
     var moreSettings: () -> Void
     var quit: () -> Void
+    var addMinutes: () -> Void
+    var togglePause: () -> Void
+    var addNote: (String) -> Void
+    var discardFocus: () -> Void
+    var setBackground: (BackgroundChoice) -> Void
+    var setBackgroundVolume: (Double) -> Void
+    var rateLast: (FocusRating) -> Void
 }
 
 /// Un pulsante disegnato a mano (origine in alto): ogni elemento della scheda lo usa con il suo disegno.
@@ -100,8 +121,22 @@ private final class MenuCardView: NSView {
     private let perform: (_ close: Bool, _ action: () -> Void) -> Void
     var onResize: ((CGFloat) -> Void)?
 
-    private enum Page { case main, timers }
+    private enum Page { case main, timers, focus, rest }
     private var page: Page = .main
+    /// In cima alla carta: il compagno sbuca dal bordo nella scheda e nel quadrante; le schermate del quaderno no.
+    static let pageTop: CGFloat = 2
+    private var cardTop: CGFloat { page == .focus || page == .rest ? Self.pageTop : Self.overflow }
+    private var tomato: FocusTomatoView?
+    private var noteField: NSTextField?
+    private var draftNote = ""
+
+    private static func defaultPage(for phase: Pomodoro.Phase?) -> Page {
+        switch phase {
+        case .focus?: return .focus
+        case .rest?: return .rest
+        case nil: return .main
+        }
+    }
     /// Il quadrante dei timer: tiene il suo valore mentre lo si trascina (la pagina intorno si ricostruisce).
     private var dial: TimerDial?
     private var dialKind: CustomTimers.Kind = .focus
@@ -112,6 +147,7 @@ private final class MenuCardView: NSView {
     private var clockLabel: NSTextField?
     private var shownPhase: Pomodoro.Phase?
     private var shownRunning = false
+    private var shownPaused = false
 
     init(state: @escaping () -> MenuCardState, actions: MenuCardActions,
          perform: @escaping (_ close: Bool, _ action: () -> Void) -> Void) {
@@ -120,6 +156,7 @@ private final class MenuCardView: NSView {
         self.perform = perform
         super.init(frame: NSRect(x: 0, y: 0, width: Self.width, height: 400))
         appearance = NSAppearance(named: .aqua)
+        page = Self.defaultPage(for: provide().phase)
         rebuild()
     }
 
@@ -128,13 +165,15 @@ private final class MenuCardView: NSView {
     // MARK: - Disegno della carta
 
     override func draw(_ dirtyRect: NSRect) {
-        let card = NSRect(x: 1, y: Self.overflow, width: bounds.width - 2, height: bounds.height - Self.overflow - 1)
+        let top = cardTop
+        let card = NSRect(x: 1, y: top, width: bounds.width - 2, height: bounds.height - top - 1)
         let shape = NSBezierPath(roundedRect: card, xRadius: 20, yRadius: 20)
         Paper.paper.setFill()
         shape.fill()
         Paper.paperEdge.setStroke()
         shape.lineWidth = 1.5
         shape.stroke()
+        if page == .focus || page == .rest { FocusDraw.spiralHoles(in: bounds.width, top: top) }
     }
 
     // MARK: - Aiuti
@@ -179,32 +218,11 @@ private final class MenuCardView: NSView {
         addSubview(button)
     }
 
-    // MARK: - Costruzione
-
-    /// Ricostruisce tutta la scheda dallo stato attuale (dopo un tocco, o quando cambia fase del timer).
-    func rebuild() {
-        for view in subviews where !(page == .timers && view === dial) { view.removeFromSuperview() }
-        if page == .main { dial = nil }
-        statusLabel = nil
-        clockLabel = nil
-        let s = provide()
-        shownPhase = s.phase
-        shownRunning = s.phase != nil
-        if page == .timers {
-            buildTimers(s)
-            return
-        }
-
-        let w = Self.width
-        let pad = Self.pad
-        let inner = w - 2 * pad
-        var y = Self.overflow + 42
-
-        // Il compagno che sbuca: un tocco e parla.
-        let avatarFrame = NSRect(x: w / 2 - Self.avatar / 2, y: 0, width: Self.avatar, height: Self.avatar)
+    /// Il compagno in un cerchio: un tocco e parla.
+    private func addAvatar(_ s: MenuCardState, frame: NSRect) {
         let icon = MenuController.menuIcon(for: s.pet, height: 160)
         let focus = s.pet.iconFocus
-        add(avatarFrame, label: "Fai parlare \(s.pet.name)", close: true, actions.speak) { rect, pressed, hovered in
+        add(frame, label: "Fai parlare \(s.pet.name)", close: true, actions.speak) { rect, pressed, hovered in
             let circle = NSBezierPath(ovalIn: rect.insetBy(dx: 2, dy: 2))
             NSColor(calibratedRed: 1.0, green: 0.99, blue: 0.94, alpha: 1).setFill()
             circle.fill()
@@ -222,6 +240,46 @@ private final class MenuCardView: NSView {
             circle.lineWidth = 2.5
             circle.stroke()
         }
+    }
+
+    // MARK: - Costruzione
+
+    /// Ricostruisce tutta la scheda dallo stato attuale (dopo un tocco, o quando cambia fase del timer).
+    func rebuild() {
+        if let field = noteField { draftNote = field.stringValue }
+        for view in subviews where !(page == .timers && view === dial) { view.removeFromSuperview() }
+        if page != .timers { dial = nil }
+        statusLabel = nil
+        clockLabel = nil
+        tomato = nil
+        noteField = nil
+        let s = provide()
+        shownPhase = s.phase
+        shownRunning = s.phase != nil
+        shownPaused = s.isPaused
+        // Le schermate del focus e della pausa ci sono solo finché c'è quella fase.
+        if (page == .focus && s.phase != .focus) || (page == .rest && s.phase != .rest) { page = .main }
+        switch page {
+        case .timers:
+            buildTimers(s)
+            return
+        case .focus:
+            buildFocus(s)
+            return
+        case .rest:
+            buildRest(s)
+            return
+        case .main:
+            break
+        }
+
+        let w = Self.width
+        let pad = Self.pad
+        let inner = w - 2 * pad
+        var y = Self.overflow + 42
+
+        // Il compagno che sbuca: un tocco e parla.
+        addAvatar(s, frame: NSRect(x: w / 2 - Self.avatar / 2, y: 0, width: Self.avatar, height: Self.avatar))
 
         // Saluto e stato
         let greeting = s.userName.map { "Ciao \($0)" } ?? "Ciao!"
@@ -709,10 +767,262 @@ private final class MenuCardView: NSView {
     func refreshLive() {
         let s = provide()
         if s.phase != shownPhase || (s.phase != nil) != shownRunning {
+            page = Self.defaultPage(for: s.phase)
+            rebuild()
+            return
+        }
+        if s.isPaused != shownPaused {
             rebuild()
             return
         }
         clockLabel?.stringValue = s.remaining
+        if let tomato {
+            tomato.big = s.remaining
+            tomato.progress = s.focusProgress
+        }
+    }
+}
+
+// MARK: - Le schermate del focus e della pausa
+
+private extension MenuCardView {
+    /// Il titolo e la riga sotto, con il compagno a destra (un tocco e parla).
+    func addHeader(_ s: MenuCardState, title: String, detail: String, top: CGFloat) {
+        let w = Self.width, pad: CGFloat = 22
+        _ = label(title, font: Paper.markerFont(24), alignment: .left, frame: NSRect(x: pad, y: top + 50, width: w - pad - 78, height: 32))
+        _ = label(detail, font: NSFont.systemFont(ofSize: 11), color: Paper.inkLight, alignment: .left,
+                  frame: NSRect(x: pad, y: top + 84, width: w - pad - 70, height: 16))
+        addAvatar(s, frame: NSRect(x: w - 22 - 44, y: top + 48, width: 44, height: 44))
+    }
+
+    /// Il pomodoro al centro (la sua cima sta sotto l'intestazione).
+    func addTomato(_ s: MenuCardState, ring: NSColor, small: String, top: CGFloat) {
+        let view = FocusTomatoView(frame: NSRect(x: 0, y: top + 128, width: Self.width, height: FocusTomatoView.size.height))
+        view.progress = s.focusProgress
+        view.big = s.remaining
+        view.small = small
+        view.ring = ring
+        addSubview(view)
+        tomato = view
+    }
+
+    /// «+ 5 minuti» e (Ferma | Salta): i due pulsanti adesivi affiancati.
+    func addStickerPair(top: CGFloat, secondTitle: String, secondIcon: FocusDraw.Icon, secondFill: NSColor = Paper.paper,
+                        secondAction: @escaping () -> Void) {
+        let w = Self.width, pad: CGFloat = 22
+        let y = top + 378
+        let half = w / 2
+        add(NSRect(x: pad, y: y, width: half - 8 - pad + 4, height: 40), label: "Aggiungi \(Pomodoro.extensionMinutes) minuti", { [weak self] in
+            self?.actions.addMinutes()
+            self?.rebuild()
+        }) { rect, pressed, hovered in
+            FocusDraw.sticker(in: rect, fill: Paper.accent, label: "\(Pomodoro.extensionMinutes) minuti", textColor: .white,
+                              icon: .plus, pressed: pressed, hovered: hovered)
+        }
+        add(NSRect(x: half + 8, y: y, width: w - 22 - 4 - half - 8 + 4, height: 40), label: secondTitle, { [weak self] in
+            secondAction()
+            self?.rebuild()
+        }) { rect, pressed, hovered in
+            FocusDraw.sticker(in: rect, fill: secondFill, label: secondTitle, textColor: Paper.ink, icon: secondIcon,
+                              pressed: pressed, hovered: hovered)
+        }
+    }
+
+    func addMenuLink(y: CGFloat) {
+        add(NSRect(x: 18, y: y, width: 130, height: 24), label: "Torna alla scheda completa", { [weak self] in
+            self?.page = .main
+            self?.rebuild()
+        }) { rect, pressed, hovered in
+            Self.text("‹  Menu completo", in: NSRect(x: rect.minX + 4, y: rect.midY - 8.5, width: rect.width, height: 17),
+                      font: NSFont.systemFont(ofSize: 11.5), color: hovered || pressed ? Paper.ink : Paper.inkLight)
+        }
+    }
+
+    func finish(height: CGFloat) {
+        setFrameSize(NSSize(width: Self.width, height: height))
+        needsDisplay = true
+        onResize?(height)
+    }
+
+    // MARK: Focus
+
+    func buildFocus(_ s: MenuCardState) {
+        let pad: CGFloat = 22, inner = Self.width - 44
+        let top = Self.pageTop
+        addHeader(s, title: s.subject ?? "Focus", detail: "\(s.phaseRange)  ·  \(s.focusMinutes) minuti", top: top)
+        addTomato(s, ring: Paper.accent, small: s.isPaused ? "fermo" : "rimasti", top: top)
+        addStickerPair(top: top, secondTitle: s.isPaused ? "Riprendi" : "Ferma", secondIcon: s.isPaused ? .play : .stop,
+                       secondFill: s.isPaused ? FocusPalette.chipOn : Paper.paper) { [weak self] in self?.actions.togglePause() }
+
+        // Da fermo c'è anche «Termina e salva»: chiude il focus tenendo i minuti fatti.
+        var below = top
+        if s.isPaused {
+            let title = "Termina e salva"
+            add(NSRect(x: pad, y: top + 424, width: inner, height: 24), label: "Termina il focus e salvalo", close: true,
+                actions.stopTimer) { rect, pressed, hovered in
+                let font = NSFont.systemFont(ofSize: 13, weight: .semibold)
+                let tw = (title as NSString).size(withAttributes: [.font: font]).width
+                let start = rect.midX - (20 + tw) / 2
+                let color = pressed ? Paper.accentPressed : hovered ? Paper.accentPressed : Paper.accent
+                if let check = Paper.symbolImage("checkmark.circle", size: 14, color: color) {
+                    let size = check.size
+                    check.draw(in: NSRect(x: start, y: rect.midY - size.height / 2, width: size.width, height: size.height),
+                               from: .zero, operation: .sourceOver, fraction: 1, respectFlipped: true, hints: nil)
+                }
+                Self.text(title, in: NSRect(x: start + 20, y: rect.midY - 8.5, width: tw + 6, height: 17), font: font, color: color)
+            }
+            below += 30
+        }
+
+        // Il sottofondo: uno alla volta, e il volume.
+        _ = label("Sottofondo", font: Paper.markerFont(19), alignment: .left, frame: NSRect(x: pad, y: below + 442, width: 160, height: 26))
+        let choices = BackgroundChoice.allCases
+        let gap: CGFloat = 5
+        let chipWidth = (inner - gap * CGFloat(choices.count - 1)) / CGFloat(choices.count)
+        for (i, choice) in choices.enumerated() {
+            let on = s.background == choice
+            let frame = NSRect(x: pad + CGFloat(i) * (chipWidth + gap), y: below + 474, width: chipWidth, height: 24)
+            add(frame, label: "Sottofondo: \(choice.title)", { [weak self] in
+                self?.actions.setBackground(choice)
+                self?.rebuild()
+            }) { rect, pressed, hovered in
+                let shape = NSBezierPath(roundedRect: rect.insetBy(dx: 0.6, dy: 0.6), xRadius: 11.4, yRadius: 11.4)
+                (on ? FocusPalette.chipOn : pressed ? Paper.accent.withAlphaComponent(0.3)
+                    : hovered ? Paper.accent.withAlphaComponent(0.14) : Paper.paper).setFill()
+                shape.fill()
+                (on ? Paper.accent : Paper.paperEdge).setStroke()
+                shape.lineWidth = on ? 1.4 : 1.1
+                shape.stroke()
+                Self.text(choice.title, in: NSRect(x: rect.minX, y: rect.midY - 7, width: rect.width, height: 14),
+                          font: NSFont.systemFont(ofSize: 9.5, weight: on ? .semibold : .regular), color: Paper.ink, alignment: .center)
+            }
+        }
+        if s.background == .none {
+            _ = label("Scegli un suono o la musica per concentrarti.", font: NSFont.systemFont(ofSize: 11), color: Paper.inkLight,
+                      frame: NSRect(x: pad, y: below + 506, width: inner, height: 16))
+        } else {
+            let slider = VolumeSlider(frame: NSRect(x: pad, y: below + 502, width: inner, height: 28))
+            slider.value = s.backgroundVolume
+            slider.onChange = { [weak self] in self?.actions.setBackgroundVolume($0) }
+            addSubview(slider)
+        }
+
+        // Le note: un foglietto.
+        let noteTop = below + 544
+        let noteHeight = PostItView.height(noteCount: s.notes.count)
+        let postit = PostItView(frame: NSRect(x: pad - 2, y: noteTop, width: inner + 4, height: noteHeight))
+        postit.setNotes(s.notes)
+        postit.field.stringValue = draftNote
+        postit.onSubmit = { [weak self] text in
+            guard let self else { return }
+            self.draftNote = ""
+            self.actions.addNote(text)
+            self.rebuild()
+            self.window?.makeFirstResponder(self.noteField)
+        }
+        addSubview(postit)
+        noteField = postit.field
+
+        // Elimina questo focus
+        let deleteY = noteTop + noteHeight + 14
+        add(NSRect(x: pad, y: deleteY, width: inner, height: 36), label: "Elimina questo focus", close: true, actions.discardFocus) {
+            rect, pressed, hovered in
+            let shape = NSBezierPath(roundedRect: rect.insetBy(dx: 0.8, dy: 0.8), xRadius: rect.height / 2, yRadius: rect.height / 2)
+            (pressed ? FocusPalette.dangerEdge.withAlphaComponent(0.55)
+                : hovered ? FocusPalette.dangerFill.blended(withFraction: 0.35, of: FocusPalette.dangerEdge) ?? FocusPalette.dangerFill
+                : FocusPalette.dangerFill).setFill()
+            shape.fill()
+            FocusPalette.dangerEdge.setStroke()
+            shape.lineWidth = 1.6
+            shape.stroke()
+            let title = "Elimina questo focus"
+            let font = NSFont.systemFont(ofSize: 13)
+            let tw = (title as NSString).size(withAttributes: [.font: font]).width
+            let start = rect.midX - (22 + tw) / 2
+            FocusDraw.trash(centerX: start + 8, centerY: rect.midY, color: FocusPalette.danger)
+            Self.text(title, in: NSRect(x: start + 22, y: rect.midY - 8.5, width: tw + 6, height: 17), font: font, color: FocusPalette.danger)
+        }
+
+        let linkY = deleteY + 36 + 12
+        addMenuLink(y: linkY)
+        finish(height: linkY + 24 + 14)
+    }
+
+    // MARK: Pausa
+
+    func buildRest(_ s: MenuCardState) {
+        let w = Self.width, pad: CGFloat = 22, inner = Self.width - 44
+        let top = Self.pageTop
+        let detail: String
+        if let minutes = s.lastFocusMinutes {
+            detail = "Hai fatto \(minutes) minuti" + (s.lastFocusSubject.map { " di \($0)" } ?? "")
+        } else {
+            detail = "Stacca un attimo."
+        }
+        addHeader(s, title: "Pausa", detail: detail, top: top)
+        addTomato(s, ring: FocusPalette.rest, small: "di pausa", top: top)
+        addStickerPair(top: top, secondTitle: "Salta", secondIcon: .skip) { [weak self] in self?.actions.stopTimer() }
+
+        _ = label("Bevi un po' d'acqua e guarda lontano.", font: NSFont.systemFont(ofSize: 12.5), frame: NSRect(x: pad, y: top + 448, width: inner, height: 20))
+
+        // Un altro focus
+        let again = s.lastFocusMinutes ?? 50
+        let title = "Nuovo focus · \(again) min"
+        add(NSRect(x: pad, y: top + 486, width: inner + 4, height: 52), label: title, close: true, { [weak self] in
+            self?.actions.startFocus(again)
+        }) { rect, pressed, hovered in
+            FocusDraw.sticker(in: rect, fill: Paper.accent, label: title, textColor: .white, icon: .none, pressed: pressed, hovered: hovered)
+        }
+
+        var y = top + 570
+        if s.lastSessionID != nil {
+            if let rating = s.lastRating {
+                _ = label("Com'è andata?", font: Paper.markerFont(19), alignment: .left, frame: NSRect(x: pad, y: y, width: 200, height: 26))
+                let faceRect = NSRect(x: pad + 2, y: y + 38, width: 30, height: 30)
+                add(faceRect, label: "Com'è andata: \(rating.title)", {}) { rect, _, _ in
+                    FaceIcon.draw(rating, in: rect, flipped: true, emphasized: true)
+                }
+                _ = label("Segnato: \(rating.title)", font: NSFont.systemFont(ofSize: 12.5), color: Paper.inkLight, alignment: .left,
+                          frame: NSRect(x: pad + 42, y: y + 46, width: inner - 42, height: 16))
+                y += 82
+            } else {
+                _ = label("Com'è andata?", font: Paper.markerFont(19), alignment: .left, frame: NSRect(x: pad, y: y, width: 200, height: 26))
+                for (i, rating) in FocusRating.allCases.enumerated() {
+                    let cx = w / 2 + CGFloat(i - 1) * 95
+                    let frame = NSRect(x: cx - 40, y: y + 34, width: 80, height: 62)
+                    add(frame, label: rating.title, { [weak self] in
+                        self?.actions.rateLast(rating)
+                        self?.rebuild()
+                    }) { rect, pressed, hovered in
+                        let size: CGFloat = pressed ? 28 : hovered ? 36 : 32
+                        FaceIcon.draw(rating, in: NSRect(x: rect.midX - size / 2, y: rect.minY + 4 + (36 - size) / 2, width: size, height: size),
+                                      flipped: true, emphasized: hovered)
+                        Self.text(rating.title, in: NSRect(x: rect.minX, y: rect.minY + 42, width: rect.width, height: 15),
+                                  font: NSFont.systemFont(ofSize: 10.5, weight: hovered ? .semibold : .regular),
+                                  color: hovered ? Paper.ink : Paper.inkLight, alignment: .center)
+                    }
+                }
+                y += 104
+            }
+        }
+
+        // In fondo: la scheda completa, il giardino e le statistiche.
+        let footY = y + 10
+        addMenuLink(y: footY)
+        let small = NSFont.systemFont(ofSize: 11)
+        let gardenW = ceil(("Giardino" as NSString).size(withAttributes: [.font: small]).width)
+        let statsW = ceil(("Statistiche" as NSString).size(withAttributes: [.font: small]).width)
+        let dotW: CGFloat = 16
+        let statsX = w - pad - statsW
+        let gardenX = statsX - dotW - gardenW
+        for (title, x, width, action) in [("Giardino", gardenX, gardenW, actions.showGarden), ("Statistiche", statsX, statsW, actions.showStats)] {
+            add(NSRect(x: x - 3, y: footY, width: width + 6, height: 24), label: title, close: true, action) { rect, pressed, hovered in
+                Self.text(title, in: NSRect(x: rect.minX + 3, y: rect.midY - 8, width: width + 2, height: 16), font: small,
+                          color: hovered || pressed ? Paper.ink : Paper.inkLight)
+            }
+        }
+        _ = label("·", font: small, color: Paper.inkLight, frame: NSRect(x: gardenX + gardenW, y: footY + 4, width: dotW, height: 16))
+        finish(height: footY + 24 + 14)
     }
 }
 
