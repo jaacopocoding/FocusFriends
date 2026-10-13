@@ -554,6 +554,43 @@ crashLog.beginInProgress(start: date(2026, 10, 14, 9), plannedMinutes: 50, subje
 crashLog.updateInProgressNotes(["chiedere al prof"])
 let recoveredNotes = SessionLog(directory: crashDir, now: { date(2026, 10, 14, 9, 30) }, timeZone: rome).recoverInterrupted()
 check(recoveredNotes?.notes == ["chiedere al prof"], "le note del focus interrotto si recuperano")
+// il tempo fermo non conta nel recupero dopo una chiusura improvvisa
+section("Recupero con il timer fermo")
+// ferma da 09:10, l'app si chiude alle 09:25: 25 minuti trascorsi meno 15 fermo = 10 minuti
+let stopDir = tempDirectory()
+let stopLog = SessionLog(directory: stopDir, now: { date(2026, 10, 14, 9, 10) }, timeZone: rome)
+stopLog.beginInProgress(start: date(2026, 10, 14, 9), plannedMinutes: 50, subject: "Segnali")
+stopLog.updateInProgressPause(seconds: 0, since: date(2026, 10, 14, 9, 10))
+stopLog.heartbeat(now: date(2026, 10, 14, 9, 25))
+check(SessionLog(directory: stopDir, timeZone: rome).recoverInterrupted()?.seconds == 600, "fermo quando si chiude: 10 minuti di studio")
+// ripartito dopo 10 minuti di pausa, chiusura alle 09:30: 30 meno 10 = 20 minuti
+let resumedDir = tempDirectory()
+let resumedLog = SessionLog(directory: resumedDir, now: { date(2026, 10, 14, 9, 20) }, timeZone: rome)
+resumedLog.beginInProgress(start: date(2026, 10, 14, 9), plannedMinutes: 50, subject: "Segnali")
+resumedLog.updateInProgressPause(seconds: 0, since: date(2026, 10, 14, 9, 10))
+resumedLog.updateInProgressPause(seconds: 600, since: nil)
+resumedLog.heartbeat(now: date(2026, 10, 14, 9, 30))
+check(SessionLog(directory: resumedDir, timeZone: rome).recoverInterrupted()?.seconds == 1200, "ripartito: 20 minuti di studio")
+// «+5 minuti» riscrive il file del focus: il tempo fermo resta
+let plusDir = tempDirectory()
+let plusLog = SessionLog(directory: plusDir, now: { date(2026, 10, 14, 9, 20) }, timeZone: rome)
+plusLog.beginInProgress(start: date(2026, 10, 14, 9), plannedMinutes: 50, subject: "Segnali")
+plusLog.updateInProgressPause(seconds: 600, since: nil)
+plusLog.beginInProgress(start: date(2026, 10, 14, 9).addingTimeInterval(0.43), plannedMinutes: 55, subject: "Segnali")
+plusLog.heartbeat(now: date(2026, 10, 14, 9, 30))
+check(SessionLog(directory: plusDir, timeZone: rome).recoverInterrupted()?.seconds == 1200, "dopo +5 minuti il tempo fermo non si perde")
+// un focus nuovo (altra partenza) non eredita il tempo fermo del precedente
+plusLog.beginInProgress(start: date(2026, 10, 14, 10), plannedMinutes: 25, subject: "Altro")
+plusLog.heartbeat(now: date(2026, 10, 14, 10, 20))
+check(SessionLog(directory: plusDir, timeZone: rome).recoverInterrupted()?.seconds == 1200, "un focus nuovo parte da zero")
+// un file «in corso» di prima (senza questi campi) si recupera come sempre
+let oldProgDir = tempDirectory()
+let oldProg = """
+{"start": "2026-10-14T07:00:00Z", "plannedMinutes": 50, "subject": "Segnali", "lastSeen": "2026-10-14T07:20:00Z"}
+"""
+try? oldProg.write(to: oldProgDir.appendingPathComponent("in-corso.json"), atomically: true, encoding: .utf8)
+check(SessionLog(directory: oldProgDir, timeZone: rome).recoverInterrupted()?.seconds == 1200, "un file in corso di prima si recupera")
+
 // un file del formato 2 (senza note) si legge e si migra
 let v2Dir = tempDirectory()
 let v2 = """

@@ -309,6 +309,7 @@ final class Pomodoro {
             pausedTotal += gap
             lastTick = now
             isFocusPaused = false
+            log.updateInProgressPause(seconds: Int(pausedTotal), since: nil)
             window?.timerView.label = Phase.focus.label
             window?.timerView.time = remainingText
             onFocusActiveChanged?(true)
@@ -318,6 +319,7 @@ final class Pomodoro {
         } else {
             lastTick = Date()
             isFocusPaused = true
+            log.updateInProgressPause(seconds: Int(pausedTotal), since: lastTick)
             window?.timerView.label = "FERMO"
             onFocusActiveChanged?(false)
             speaker.say("Timer fermo. Riprendi quando sei pronto.")

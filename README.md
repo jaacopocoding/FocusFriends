@@ -156,7 +156,8 @@ Sotto il pomodoro:
 
 - **+ 5 minuti** aggiunge cinque minuti al focus (anche prima della fine; si può ripetere); **Ferma** ferma solo il
   conto alla rovescia e resta nella schermata: il pulsante diventa **Riprendi**. Il tempo da fermo non conta nello
-  studio, e il suono ambiente o la musica si fermano e ripartono con lui. Da fermo compare **Termina e salva**: chiude
+  studio (nemmeno se l'app si chiude di colpo: nel file del focus in corso resta scritto quanto è stato fermo), e il
+  suono ambiente o la musica si fermano e ripartono con lui. Da fermo compare **Termina e salva**: chiude
   il focus tenendo i minuti fatti (sotto il minuto non viene registrato, come sempre) e le note;
 - **Sottofondo**: *Nessuno*, *Pioggia*, *Vento*, *Marrone* o *Musica* (uno alla volta) e il volume. Il suono si
   sente solo durante il focus; la musica sono i brani inclusi, o la tua cartella la prima volta;

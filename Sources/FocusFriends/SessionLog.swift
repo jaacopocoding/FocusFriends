@@ -554,11 +554,30 @@ final class SessionLog {
         var pet: String?
         var lastSeen: Date
         var notes: [String]?
+        /// I secondi in cui il timer è stato fermo (le pause già finite), da non contare come studio.
+        var pausedSeconds: Int?
+        /// Da quando è fermo adesso (nil = sta andando).
+        var pausedSince: Date?
     }
 
     func beginInProgress(start: Date, plannedMinutes: Int, subject: String?, pet: String? = nil, notes: [String] = []) {
-        writeProgress(InProgress(start: start, plannedMinutes: plannedMinutes, subject: subject, pet: pet, lastSeen: now(),
-                                 notes: notes.isEmpty ? nil : notes))
+        var progress = InProgress(start: start, plannedMinutes: plannedMinutes, subject: subject, pet: pet, lastSeen: now(),
+                                  notes: notes.isEmpty ? nil : notes)
+        // Lo stesso focus che si aggiorna (per esempio con «+5 minuti»): il tempo fermo non si perde.
+        // (le date nel file hanno i secondi interi: si confronta con una tolleranza)
+        if let old = readProgress(), abs(old.start.timeIntervalSince(start)) < 1 {
+            progress.pausedSeconds = old.pausedSeconds
+            progress.pausedSince = old.pausedSince
+        }
+        writeProgress(progress)
+    }
+
+    /// Quanto è rimasto fermo il focus in corso: `seconds` di pause già finite e, se è fermo adesso, da quando.
+    func updateInProgressPause(seconds: Int, since: Date?) {
+        guard var progress = readProgress() else { return }
+        progress.pausedSeconds = seconds > 0 ? seconds : nil
+        progress.pausedSince = since
+        writeProgress(progress)
     }
 
     /// Le note del focus in corso: si salvano subito, così non si perdono se l'app si chiude di colpo.
@@ -587,7 +606,10 @@ final class SessionLog {
     func recoverInterrupted() -> StudySession? {
         guard let progress = readProgress() else { return nil }
         finishInProgress()
-        let seconds = Int(progress.lastSeen.timeIntervalSince(progress.start))
+        // Il tempo fermo non è studio: né le pause finite né quella in corso quando l'app si è chiusa.
+        var stopped = Double(progress.pausedSeconds ?? 0)
+        if let since = progress.pausedSince { stopped += max(0, progress.lastSeen.timeIntervalSince(since)) }
+        let seconds = max(0, Int(progress.lastSeen.timeIntervalSince(progress.start) - stopped))
         let capped = min(seconds, progress.plannedMinutes * 60)
         return add(start: progress.start, seconds: capped, plannedMinutes: progress.plannedMinutes,
                    completed: false, subject: progress.subject, pet: progress.pet, notes: progress.notes)
