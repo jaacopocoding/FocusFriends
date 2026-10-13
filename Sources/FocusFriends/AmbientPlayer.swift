@@ -151,6 +151,8 @@ final class AmbientPlayer {
     func setSound(_ new: AmbientSound, preview: Bool = true) {
         sound = new
         AmbientSettings.save(sound: sound, volume: volume)
+        // Un solo sottofondo alla volta: se accendi un suono, la musica si spegne.
+        if new != .none, MusicPlayer.shared.source != .off { MusicPlayer.shared.setSource(.off, preview: false) }
         apply(previewing: preview && !focusActive)
     }
 

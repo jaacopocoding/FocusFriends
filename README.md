@@ -358,8 +358,8 @@ Si sceglie dalla scheda del menu (riga *Musica*, con il suo cursore del volume) 
   **HoliznaCC0**, pubblicati in pubblico dominio con la licenza **CC0**. Autore, fonti e licenza sono nel file
   [`CREDITS.md`](CREDITS.md). Lo zip dell'app passa da circa 8 a circa 21 MB.
 
-Il volume di partenza è basso (30%), e musica e suono ambiente si possono accendere insieme (ognuno con il suo
-volume). Il codice è in `MusicPlayer.swift` (riproduzione) e `MusicLibrary.swift` (quali file e in che ordine, con le prove).
+Il volume di partenza è basso (30%). **Un solo sottofondo alla volta**: accendendo la musica si spegne il suono
+ambiente (pioggia, vento…) e viceversa. Il codice è in `MusicPlayer.swift` (riproduzione) e `MusicLibrary.swift` (quali file e in che ordine, con le prove).
 
 ## Frasi
 

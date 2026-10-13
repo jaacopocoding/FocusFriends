@@ -26,6 +26,11 @@ final class MusicPlayer: NSObject, AVAudioPlayerDelegate {
         folder = saved.folder
         volume = saved.volume
         super.init()
+        // Un solo sottofondo alla volta: se erano accesi entrambi (scelte di una versione precedente), vince il suono.
+        if source != .off, AmbientSettings.load().sound != .none {
+            source = .off
+            save()
+        }
     }
 
     // MARK: - Che cosa c'è
@@ -56,6 +61,8 @@ final class MusicPlayer: NSObject, AVAudioPlayerDelegate {
         source = new
         if let newFolder { folder = newFolder }
         save()
+        // Un solo sottofondo alla volta: se accendi la musica, il suono ambiente si spegne.
+        if new != .off, AmbientPlayer.shared.sound != .none { AmbientPlayer.shared.setSound(.none, preview: false) }
         // Una nuova scelta ricomincia da un brano nuovo.
         stopNow()
         apply(previewing: preview && !focusActive)
