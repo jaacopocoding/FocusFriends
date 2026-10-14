@@ -97,7 +97,7 @@ FocusFriends/
 │   ├── MenuHeader.swift          header view of the classic menu (avatar + name + status)
 │   ├── MenuCard.swift            the paper "card" UI: main page, timer-dial page, focus page, rest page; MenuCard panel
 │   ├── FocusScreenViews.swift    FocusPalette, FocusTomatoView, PostItView, FocusDraw (stickers, holes), CycleDotsView
-│   ├── PaperUI.swift             shared look: Paper colours/fonts, PillButton, TextButton, ChipButton, PaperCardView, KeyablePanel, FaceIcon, RatingButton, BackToMenuAccessory
+│   ├── PaperUI.swift             shared look: Paper colours/fonts, PillButton, TextButton, ChipButton, PaperCardView, KeyablePanel, FaceIcon, RatingButton, BackToMenuButton
 │   ├── IntroCard.swift           first-run card: name + first companion (CompanionButton)
 │   ├── SubjectPrompt.swift       "What are you studying now?" card shown when a focus starts
 │   ├── ReflectionCard.swift      "How did it go?" card after a completed focus
@@ -837,7 +837,8 @@ file/UserDefaults writes, windows, timers, sound, global state.
 - **Responsibility:** shared visual vocabulary: `Paper` (colours, `subjectColors`, `color(forSubject:)`,
   `symbolImage`, `markerFont`), `PillButton`, `TextButton`, `ChipButton`, `PaperCardView`, `KeyablePanel`
   (borderless key-capable panel with `onCancel`), `FocusRating.color`, `FaceIcon.draw`, `RatingButton`,
-  `BackToMenuAccessory` (title-bar "‹ Menu" accessory).
+  `BackToMenuButton` ("‹ Menu" pill drawn inside the page of the statistics and garden windows; the title bar is the
+  system one with nothing added).
 
 #### `IntroCard.swift` (225)
 - **Responsibility:** `CompanionButton` and `IntroCard` (name field + companion choice + Skip/Start). Auto-layout

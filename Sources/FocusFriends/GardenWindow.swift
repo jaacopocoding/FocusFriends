@@ -51,6 +51,8 @@ final class GardenView: NSView, NSViewToolTipOwner {
     private let segmented = NSSegmentedControl(labels: ["Settimana", "Mese"], trackingMode: .selectOne, target: nil, action: nil)
     private let previousButton = NSButton()
     private let nextButton = NSButton()
+    /// Chiamata dal pulsante «‹ Menu» in alto a sinistra: la finestra si chiude e si torna alla scheda del menu.
+    var onBack: (() -> Void)?
 
     init(log: SessionLog, now: @escaping () -> Date = Date.init) {
         self.log = log
@@ -63,8 +65,12 @@ final class GardenView: NSView, NSViewToolTipOwner {
         segmented.segmentStyle = .rounded
         segmented.target = self
         segmented.action = #selector(kindChanged)
-        segmented.frame = NSRect(x: Self.margin, y: 18, width: 190, height: 26)
+        segmented.frame = NSRect(x: (Self.size.width - 190) / 2, y: 18, width: 190, height: 26)
         addSubview(segmented)
+
+        let back = BackToMenuButton(target: self, action: #selector(backPressed))
+        back.setFrameOrigin(NSPoint(x: 16, y: 14))
+        addSubview(back)
 
         for (button, symbol, action) in [(previousButton, "chevron.left", #selector(goPrevious)), (nextButton, "chevron.right", #selector(goNext))] {
             button.image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)
@@ -99,6 +105,8 @@ final class GardenView: NSView, NSViewToolTipOwner {
     @objc private func kindChanged() {
         select(segmented.selectedSegment == 1 ? .month : .week)
     }
+
+    @objc private func backPressed() { onBack?() }
 
     @objc private func goPrevious() {
         period = period.shifted(by: -1, calendar: calendar)
@@ -698,7 +706,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
 final class GardenController {
     private var window: NSWindow?
     private var view: GardenView?
-    /// Chiamata dalla freccia "‹ Menu" nella barra del titolo: la finestra si chiude e si torna alla scheda del menu.
+    /// Chiamata dal pulsante «‹ Menu» nella pagina: la finestra si chiude e si torna alla scheda del menu.
     var onBack: (() -> Void)?
 
     func show() {
@@ -715,10 +723,10 @@ final class GardenController {
             window.isReleasedWhenClosed = false
             window.backgroundColor = Paper.paper
             window.appearance = NSAppearance(named: .aqua)
-            window.addTitlebarAccessoryViewController(BackToMenuAccessory { [weak self, weak window] in
+            view.onBack = { [weak self, weak window] in
                 window?.orderOut(nil)
                 self?.onBack?()
-            })
+            }
             window.center()
             self.window = window
             self.view = view

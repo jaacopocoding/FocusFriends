@@ -109,7 +109,7 @@ focus da 30 e 50 minuti e la pausa, il riepilogo di oggi, *Giardino* e *Statisti
 Toccando il compagno parla; mentre il timer va, un clic sull'icona (o il tasto destro, o ctrl-clic, sul personaggio) apre invece la
 [schermata del focus](#la-schermata-del-focus) (o quella della pausa), con *‹ Menu completo* per tornare alla scheda.
 Se l'hai aperta dal personaggio, **lo segue** quando cammina o lo trascini (passa dall'altro lato se arriva al bordo dello schermo). Si chiude con un clic fuori o con Esc. Le schermate che si aprono da lì (la scelta della materia, le statistiche, il giardino)
-hanno una **freccia indietro** (‹, a sinistra del titolo; ‹ Menu nella barra del titolo delle finestre) che le chiude e
+hanno una **freccia indietro** (‹, a sinistra del titolo; il pulsante «‹ Menu» in alto a sinistra nelle finestre) che le chiude e
 riapre la scheda dov'era, senza ricominciare da capo. *Altri timer…* e *Altre impostazioni…* aprono il menu classico, che si
 apre anche con il tasto destro (o ⌥-clic) sull'icona nella barra dei menu:
 

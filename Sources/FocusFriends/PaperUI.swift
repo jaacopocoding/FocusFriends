@@ -255,32 +255,72 @@ final class RatingButton: NSButton {
 
 // MARK: - Torna al menu
 
-/// "‹ Menu" nella barra del titolo di una finestra: chiude la finestra e riapre la scheda del menu.
-final class BackToMenuAccessory: NSTitlebarAccessoryViewController {
-    private let onBack: () -> Void
+/// «‹ Menu» in una pillola, in alto a sinistra nella pagina di una finestra: la chiude e riapre la scheda del menu.
+/// La barra del titolo resta quella di sistema, senza altro dentro.
+final class BackToMenuButton: NSButton {
+    static let size = NSSize(width: 92, height: 30)
+    private var hovered = false { didSet { needsDisplay = true } }
+    private var area: NSTrackingArea?
 
-    init(onBack: @escaping () -> Void) {
-        self.onBack = onBack
-        super.init(nibName: nil, bundle: nil)
-        layoutAttribute = .left
+    init(target: AnyObject?, action: Selector) {
+        super.init(frame: NSRect(origin: .zero, size: Self.size))
+        self.target = target
+        self.action = action
+        isBordered = false
+        title = ""
+        focusRingType = .none
+        toolTip = "Torna al menu"
+        setAccessibilityLabel("Torna al menu")
     }
 
     required init?(coder: NSCoder) { nil }
 
-    override func loadView() {
-        let button = NSButton(title: " Menu", target: self, action: #selector(pressed))
-        button.image = NSImage(systemSymbolName: "chevron.left", accessibilityDescription: nil)
-        button.imagePosition = .imageLeading
-        button.isBordered = false
-        button.font = NSFont.systemFont(ofSize: 13, weight: .medium)
-        button.contentTintColor = Paper.inkLight
-        button.toolTip = "Torna al menu"
-        button.setAccessibilityLabel("Torna al menu")
-        button.frame = NSRect(x: 6, y: 0, width: 78, height: 26)
-        let box = NSView(frame: NSRect(x: 0, y: 0, width: 90, height: 26))
-        box.addSubview(button)
-        view = box
+    override var isFlipped: Bool { true }
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        if let area { removeTrackingArea(area) }
+        let new = NSTrackingArea(rect: bounds, options: [.mouseEnteredAndExited, .activeInActiveApp], owner: self)
+        addTrackingArea(new)
+        area = new
     }
 
-    @objc private func pressed() { onBack() }
+    override func mouseEntered(with event: NSEvent) { hovered = true }
+    override func mouseExited(with event: NSEvent) { hovered = false }
+
+    override func draw(_ dirtyRect: NSRect) {
+        let rect = bounds.insetBy(dx: 1, dy: 1)
+        let pill = NSBezierPath(roundedRect: rect, xRadius: rect.height / 2, yRadius: rect.height / 2)
+        let fill: NSColor = isHighlighted
+            ? NSColor(calibratedRed: 0.97, green: 0.92, blue: 0.80, alpha: 1)
+            : (hovered ? NSColor(calibratedRed: 1, green: 0.97, blue: 0.88, alpha: 1)
+                       : NSColor(calibratedRed: 1, green: 0.99, blue: 0.94, alpha: 1))
+        fill.setFill()
+        pill.fill()
+        (hovered ? Paper.accent : Paper.paperEdge).setStroke()
+        pill.lineWidth = 1.2
+        pill.stroke()
+
+        let attrs: [NSAttributedString.Key: Any] = [.font: NSFont.systemFont(ofSize: 13, weight: .medium), .foregroundColor: Paper.ink]
+        let text = "Menu" as NSString
+        let size = text.size(withAttributes: attrs)
+        let config = NSImage.SymbolConfiguration(pointSize: 11, weight: .semibold)
+        let symbol = NSImage(systemSymbolName: "chevron.left", accessibilityDescription: nil)?.withSymbolConfiguration(config)
+        let tinted = symbol.map { source in
+            NSImage(size: source.size, flipped: false) { box in
+                source.draw(in: box)
+                Paper.ink.set()
+                box.fill(using: .sourceAtop)
+                return true
+            }
+        }
+        let gap: CGFloat = 5
+        let total = (tinted?.size.width ?? 0) + (tinted == nil ? 0 : gap) + size.width
+        var x = bounds.midX - total / 2
+        if let tinted {
+            tinted.draw(in: NSRect(x: x, y: bounds.midY - tinted.size.height / 2, width: tinted.size.width, height: tinted.size.height))
+            x += tinted.size.width + gap
+        }
+        text.draw(at: NSPoint(x: x, y: bounds.midY - size.height / 2), withAttributes: attrs)
+    }
 }

@@ -64,6 +64,8 @@ final class DashboardView: NSView {
     private let exportButton = NSButton()
     private let deleteButton = NSButton()
     private let sessionsButton = NSButton()
+    /// Chiamata dal pulsante «‹ Menu» in alto a sinistra: la finestra si chiude e si torna alla scheda del menu.
+    var onBack: (() -> Void)?
 
     init(log: SessionLog, now: @escaping () -> Date = Date.init) {
         self.log = log
@@ -80,6 +82,10 @@ final class DashboardView: NSView {
         segmented.action = #selector(kindChanged)
         segmented.frame = NSRect(x: (width - 260) / 2, y: 18, width: 260, height: 26)
         addSubview(segmented)
+
+        let back = BackToMenuButton(target: self, action: #selector(backPressed))
+        back.setFrameOrigin(NSPoint(x: 16, y: 14))
+        addSubview(back)
 
         for (button, symbol, action) in [(previousButton, "chevron.left", #selector(goPrevious)), (nextButton, "chevron.right", #selector(goNext))] {
             button.image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)
@@ -166,6 +172,8 @@ final class DashboardView: NSView {
     @objc private func kindChanged() {
         select(PeriodKind(rawValue: segmented.selectedSegment) ?? .day)
     }
+
+    @objc private func backPressed() { onBack?() }
 
     @objc private func goPrevious() {
         period = period.shifted(by: -1, calendar: calendar)
@@ -820,7 +828,7 @@ private final class DiaryView: NSView {
 final class DashboardController {
     private var window: NSWindow?
     private var view: DashboardView?
-    /// Chiamata dalla freccia "‹ Menu" nella barra del titolo: la finestra si chiude e si torna alla scheda del menu.
+    /// Chiamata dal pulsante «‹ Menu» nella pagina: la finestra si chiude e si torna alla scheda del menu.
     var onBack: (() -> Void)?
 
     func show(kind: PeriodKind = .day) {
@@ -837,10 +845,10 @@ final class DashboardController {
             window.isReleasedWhenClosed = false
             window.backgroundColor = Paper.paper
             window.appearance = NSAppearance(named: .aqua)
-            window.addTitlebarAccessoryViewController(BackToMenuAccessory { [weak self, weak window] in
+            view.onBack = { [weak self, weak window] in
                 window?.orderOut(nil)
                 self?.onBack?()
-            })
+            }
             window.center()
             self.window = window
             self.view = view
