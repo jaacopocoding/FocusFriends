@@ -1,0 +1,1408 @@
+# FocusFriends — Architecture and code walkthrough
+
+> Purpose: a factual description of how the code in this repository works, written so that another reader (human or AI)
+> can judge whether the code is acceptable as written or needs revision for inefficiency.
+> Snapshot described: branch `main`, commit `b805c11` (release `v0.7.0` plus one README commit). The document was
+> first written against `2043b39`; it was then updated for the fixes made after `ARCHITECTURE_REVIEW.md` (that review is
+> committed next to this file and its §7 says what was changed), the developer-mode flag and the fourth companion.
+> Everything here was read from the files in the repository; statements that could not be fully verified are marked
+> **[uncertain]**. Rationales are labelled **[documented]** (comes from code comments, README, CREDITS or git history),
+> **[inferred]** (deduced from the code) or **[unknown]** (could not be determined).
+> The UI strings and most code comments in the repository are in Italian; identifiers are English or Italian-derived.
+> UI strings quoted here are usually glossed in English or described in the surrounding text.
+
+---
+
+## 1. Overview
+
+### 1.1 What the app does
+
+FocusFriends is a macOS desktop-pet / Pomodoro study timer (`README.md`, header and "Cosa fa").
+A small animated character ("companion") lives in a transparent, always-on-top window on the desktop. The user starts a
+timed "focus" (30 or 50 minutes by default, 1–180 minutes if custom), optionally naming the subject being studied; the
+companion grows or reacts during the focus, a pause follows, and every focus is written to a local JSON log. From that
+log the app derives statistics (day / week / month), a "garden" of plants (one adult plant per 50 minutes studied in a
+day), a streak counter, and unlockable companions. It also offers optional ambient sound (synthesised rain / brown noise /
+wind) or music (bundled tracks or a user folder) during focus, a notes post-it on the focus screen, a "how did it go?"
+rating card, and a long break after four completed focuses.
+
+### 1.2 Who uses it
+
+Students and other people doing timed study sessions on a Mac (`README.md`: "mentre studi", "Cosa studi adesso?").
+Single user per Mac, no accounts, no network: all data is stored locally under
+`~/Library/Application Support/FocusFriends/` and in the app's `UserDefaults` domain (see §4.4).
+
+### 1.3 Stack and versions (read from config files, nothing was run)
+
+| Item | Value | Source |
+|---|---|---|
+| Language | Swift (one module, `Sources/FocusFriends/*.swift`, 33 files, 9,882 lines by `wc -l`) | `build.sh` |
+| UI framework | AppKit, custom-drawn views (no SwiftUI, no storyboards/xibs, no Interface Builder) | all view files |
+| Other Apple frameworks | Foundation, AVFoundation (`AVAudioEngine`, `AVAudioSourceNode`, `AVAudioPlayer`), ServiceManagement (`SMAppService`, launch at login) | `import` lines |
+| Third-party dependencies | None (no Package.swift, no CocoaPods/Carthage, no vendored code) | repository tree |
+| Build system | A shell script calling `swiftc -O` once per architecture, then `lipo` | `build.sh` |
+| Target | macOS 13.0 or later; universal binary (arm64 + x86_64) | `build.sh` (`-target "$arch-apple-macos13.0"`, `LSMinimumSystemVersion`) |
+| App version | `0.7.0` (build `9`), bundle id `com.jacopo.focusfriends` | `build.sh` (generated `Info.plist`) |
+| App type | Menu-bar "agent": `LSUIElement = true`, activation policy `.accessory` | `build.sh`, `AppDelegate.applicationDidFinishLaunching` |
+| Signing | Ad-hoc (`codesign --force --sign -`; `build.sh` stops with exit 1 if signing fails); not notarised, no hardened runtime or sandbox | `build.sh`, `README.md` "Scaricare e usare" |
+| Asset tooling | Python 3 scripts using Pillow and NumPy (not run at build time) | `tools/*.py` |
+| Tests | One hand-written Swift executable (`tests/main.swift`, 24 sections, 284 checks) that compiles seven Foundation-only source files; no XCTest | `tests/run.sh` |
+| License | MIT (`LICENSE`); bundled music is CC0 (`CREDITS.md`) | `LICENSE`, `CREDITS.md` |
+| Swift toolchain version / Python version | Not pinned anywhere in the repository | **[unknown]** |
+
+Network access: a search of `Sources/` for `URLSession`, `http://`, `https://`, `NSURLConnection`, `Process(` and
+`NSTask` returns no match. The README states "nessuna rete, nessun invio" ("no network, nothing is sent").
+
+### 1.4 How to run it (from `build.sh`, `tests/run.sh`, `README.md` "Compilare dai sorgenti")
+
+```bash
+./build.sh                      # compiles both architectures, lipo, copies resources, writes Info.plist, ad-hoc signs
+cp -R build/FocusFriends.app /Applications/
+open /Applications/FocusFriends.app
+./tests/run.sh                  # compiles 7 Foundation-only files + tests/main.swift and runs them
+```
+
+`build.sh` copies a fixed set of assets into `FocusFriends.app/Contents/Resources` with flattened, prefixed names
+(for example `assets/porcellino/frame3.png` → `porcellino_frame3.png`, `assets/music/boredom.m4a` →
+`music_boredom.m4a`); the code looks resources up by those flat names with `Bundle.main.url(forResource:)`.
+
+---
+
+## 2. Project structure
+
+```
+FocusFriends/
+├── .gitignore                    ignores *.app, .DS_Store, build/
+├── LICENSE                       MIT license text (copyright holder: the GitHub account name)
+├── CREDITS.md                    credits/licences for the 5 bundled music tracks (CC0, HoliznaCC0) and a note on the artwork
+├── README.md                     Italian user + developer documentation (features, data formats, structure, how to add a pet)
+├── ARCHITECTURE.md               this file
+├── build.sh                      build script: swiftc ×2 archs → lipo → app bundle, resources, Info.plist, ad-hoc codesign (fails if signing fails)
+├── Sources/FocusFriends/         the whole app (single Swift module, 33 files)
+│   ├── main.swift                entry point: NSApplication + AppDelegate
+│   ├── AppDelegate.swift         composition root: creates window, speaker, walker, pomodoro, menu; wires callbacks
+│   ├── Pet.swift                 value type describing a companion (resources, sizes, behaviours) + the 4 definitions
+│   ├── PetWindow.swift           PetWindow (transparent floating NSWindow) + PetView (drawing, fade, pick-up, Zzz)
+│   ├── Walker.swift              state machine for walking / eating / sleeping / popcorning (30 Hz, 1 Hz when idle)
+│   ├── Speaker.swift             schedules and shows speech bubbles above the pet
+│   ├── SpeechBubble.swift        OverlayWindow base class, BubbleWindow, BubbleView (bubble.png scaled to text)
+│   ├── Quotes.swift              loads phrase files (user file → legacy dir → bundled → fallback)
+│   ├── PhraseDeck.swift          shuffled-deck phrase picker (no repeats until the deck is used)
+│   ├── Chattiness.swift          how often the pet speaks on its own (UserDefaults-backed enum)
+│   ├── Migration.swift           one-off copy of UserDefaults from the old bundle id (Bonsy → FocusFriends)
+│   ├── Pomodoro.swift            focus/rest timer state machine, pause, +5 min, notes, discard, long-break cycle, clock window
+│   ├── TimerBubble.swift         TimerWindow + TimerView: the small seven-segment clock under the pet
+│   ├── ExtendPrompt.swift        the "+5 minutes?" prompt shown for 10 s when a focus expires
+│   ├── MenuController.swift      status-bar item, classic NSMenu, builds MenuCardState/Actions, rewards, music selection
+│   ├── MenuHeader.swift          header view of the classic menu (avatar + name + status)
+│   ├── MenuCard.swift            the paper "card" UI: main page, timer-dial page, focus page, rest page; MenuCard panel
+│   ├── FocusScreenViews.swift    FocusPalette, FocusTomatoView, PostItView, FocusDraw (stickers, holes), CycleDotsView
+│   ├── PaperUI.swift             shared look: Paper colours/fonts, PillButton, TextButton, ChipButton, PaperCardView, KeyablePanel, FaceIcon, RatingButton, BackToMenuAccessory
+│   ├── IntroCard.swift           first-run card: name + first companion (CompanionButton)
+│   ├── SubjectPrompt.swift       "What are you studying now?" card shown when a focus starts
+│   ├── ReflectionCard.swift      "How did it go?" card after a completed focus
+│   ├── DashboardWindow.swift     statistics window: DashboardView, DiaryView, DashboardController
+│   ├── GardenWindow.swift        garden window: GardenView (scene, seasons, plants), GardenController
+│   ├── SessionLog.swift          StudySession model, SessionLog store, GardenRules, Season, notes/subject cleaning, StudyStats, SessionCSV  (Foundation only)
+│   ├── Profile.swift             profilo.json: name, intro-seen flag, unlocked companions, developer flag   (Foundation only)
+│   ├── CustomTimers.swift        user-defined timer durations + TimerDialMath                           (Foundation only)
+│   ├── BreakCycle.swift          four-focus cycle counter for the long break                            (Foundation only)
+│   ├── CompanionRewards.swift    thresholds for unlocking companions                                    (Foundation only)
+│   ├── AmbientSound.swift        AmbientSound, AmbientSettings, BackgroundChoice                        (Foundation only)
+│   ├── AmbientPlayer.swift       NoiseSynth (real-time synthesis) + AmbientPlayer (AVAudioEngine wrapper)
+│   ├── MusicLibrary.swift        MusicSource, MusicLibrary (file discovery, shuffle, titles), MusicSettings  (Foundation only)
+│   └── MusicPlayer.swift         AVAudioPlayer-based music playback with queue and fades
+├── tests/
+│   ├── main.swift                hand-rolled test executable (check()/section()), 24 sections
+│   └── run.sh                    compiles 7 source files + tests/main.swift into build/tests/stats and runs it
+├── tools/                        offline Python (Pillow/NumPy) image-processing scripts used to produce the PNG assets
+│   ├── cutout_pianty.py          Pianty stage sheets → 5 stages × 7 frames (still + 6 walking frames, legs animated procedurally)
+│   ├── cutout_porcellino.py      Porcellino sheets → frame1..19 on a common canvas
+│   ├── cutout_ciccio.py          Ciccio walk + flap sheets → frame1..13 on a common canvas
+│   ├── cutout_gattino.py         Gattino sheets (idle, walk, eat, sleep, groom) → frame1..23 on a common canvas
+│   ├── cutout_picked.py          "picked up by hands" drawing cut-out (generic, takes paths)
+│   ├── cutout_garden.py          5-stage garden collection sheet → garden_<pet>_1..5 on the 208×341 canvas
+│   ├── compose_porcellino_growth.py  composes growth_porcellino_1..5 (pig + growing carrot) from frame1 and garden carrots
+│   ├── cutout_bubble.py          speech-bubble cut-out; prints the geometry constants used by BubbleView
+│   └── make_icon.py              builds AppIcon.png/.icns and docs/images/logo.png from assets/logo_original.png
+├── assets/                       source and processed artwork, phrase files, music (see build.sh for what is bundled)
+│   ├── AppIcon.icns / AppIcon.png, logo_original.png, bubble.png / bubble_original.png
+│   ├── frasi_pianty.txt, frasi_porcellino.txt, frasi_ciccio.txt, frasi_gattino.txt   bundled phrase files (one phrase per line, '#' comments)
+│   ├── pianty/                   original.png, picked(.png/_original.png), sheets/stage1..5.png, stage{1..5}_{1..7}.png (35 frames)
+│   ├── porcellino/               *_original.png sheets, frame1..19.png, picked(.png/_original.png)
+│   ├── ciccio/                   walk_original.png, flap_original.png, frame1..13.png, picked(.png/_original.png)
+│   ├── gattino/                  idle/walk/eat/sleep/groom_original.png sheets, frame1..23.png, picked(.png/_original.png)
+│   ├── garden/                   garden_<pet>_1..5.png (ciccio, porcellino), growth_porcellino_1..5.png, *_original sheets
+│   └── music/                    5 AAC (.m4a) tracks: boredom, love, night-driving, old-age, opinions
+├── docs/images/                  16 PNG screenshots/logo used only by README.md (sample data)
+└── build/                        generated output (git-ignored): FocusFriends.app, zips, release notes, tests/ binary
+```
+
+Notes on the tree:
+
+- `Sources/FocusFriends/` is compiled as a single module by passing all files to one `swiftc` invocation
+  (`build.sh`: `swiftc -O -target "$arch-apple-macos13.0" -o … Sources/FocusFriends/*.swift`).
+- Files marked "Foundation only" import only Foundation and are the ones compiled by `tests/run.sh`
+  (`SessionLog`, `Profile`, `CustomTimers`, `AmbientSound`, `MusicLibrary`, `BreakCycle`, `CompanionRewards`).
+- Resource names are flattened by `build.sh`: `pianty_stage{S}_{F}`, `pianty_picked`, `porcellino_frame{N}`,
+  `porcellino_picked`, `ciccio_frame{N}`, `ciccio_picked`, `gattino_frame{N}`, `gattino_picked`, `garden_<pet>_{1..5}`, `growth_porcellino_{1..5}`,
+  `music_*.m4a`, `bubble.png`, `frasi_<pet>.txt`, `AppIcon.icns`. The `*_original.png` sheets and
+  `logo_original.png` are not copied into the bundle.
+
+---
+
+## 3. Features
+
+Each feature lists: **What** it does, **Entry point** (file → type/function) and the **Execution path** through the
+code. All UI code runs on the main thread; the only other thread is the audio render callback (see §4.6).
+
+### 3.1 App launch and wiring
+
+- **What:** starts a background (no Dock icon) app, shows the pet, wires every collaborator together.
+- **Entry point:** `main.swift` (top-level code) → `AppDelegate.applicationDidFinishLaunching`.
+- **Execution path:**
+  1. `main.swift`: `NSApplication.shared`, `AppDelegate()`, `app.delegate = delegate`, `app.run()`.
+  2. `Migration.run()`: once only (flag `migratedFromBonsy`), copies keys from the `com.jacopo.bonsy` defaults domain that
+     are not already set and do not start with `NS`, `Apple` or `com.apple`.
+  3. `NSApp.setActivationPolicy(.accessory)`.
+  4. `PetWindow(pet: Pet.saved)` → `placeOnGround()` → `orderFrontRegardless()`.
+  5. `Speaker(petWindow:)` → `start()` (first phrase after 5 s unless frequency is "never"); then the problem handlers
+     are installed: `SessionLog.shared.onProblem`, `Profile.shared.onProblem` and `AmbientPlayer.shared.onStartFailure`
+     all end in `speaker.say(...)` (messages produced before the handler existed are delivered on assignment).
+  6. `Walker(petWindow:speaker:)` → `start()` (30 Hz timer).
+  7. `SessionLog.shared.recoverInterrupted()` (see §3.14).
+  8. `Pomodoro(petWindow:speaker:)` and its callbacks: `onFocusCompleted` → `Walker.eatNow`; `onFocusRecorded` →
+     `MenuController.evaluateCompanionRewards(announce: true)` then (if `ReflectionCard.isEnabled`)
+     `ReflectionCard.ask`; `onTimerReset` → `ReflectionCard.dismiss`; `onFocusActiveChanged` →
+     `AmbientPlayer.shared.setFocusActive` and `MusicPlayer.shared.setFocusActive`.
+  9. `MenuController(window:speaker:pomodoro:)` (creates the status item, classic menu and `MenuCard`).
+  10. `Profile.shared.keepAllCompanions(Pet.all.map(\.id))` and `menu.evaluateCompanionRewards(announce: false)` (§3.18).
+  11. If `!Profile.shared.introSeen`: after 0.8 s, `speaker.stop()` and `IntroCard.ask(...)` (§3.19).
+  12. `applicationWillTerminate` → `Pomodoro.recordInterruptedFocusOnQuit()`.
+
+### 3.2 The companion on the desktop (display, drag, pick-up, hide)
+
+- **What:** a transparent borderless window with the pet's current image, a ground shadow, a fade between growth stages,
+  dragging anywhere, and (for pets that have a "picked" drawing) a lift-by-hands drawing with a small wobble.
+- **Entry point:** `PetWindow.init(pet:)`, `PetView.draw`, `PetView.mouseDown/mouseDragged/mouseUp`.
+- **Execution path:**
+  - Creation: `PetWindow` is `.borderless`, `isOpaque = false`, `level = .floating`,
+    `collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]`;
+    `canBecomeKey/Main` are false. `PetView.configure(for:)` loads all images of `pet.imageResources` (+ growth images
+    if all of them exist) via `Bundle.main.url(forResource:)`, computes `topFractions` with
+    `NSImage.opaqueTopFraction`, loads the picked image.
+  - Position: `PetWindow.placeOnGround()` puts the feet above the Dock at the bottom-right of `NSScreen.main.visibleFrame`.
+  - Drag: pets without `pickedResource` use `isMovableByWindowBackground`. Pets with it (all four) handle dragging
+    themselves: `PetView.mouseDown` stores the start point, `mouseDragged` calls `PetWindow.beginPick()` after a 3 pt
+    move, then `movePicked()` each event (keeps the cursor on `pet.pickedGrab`), `mouseUp` → `endPick()`.
+    `setFrameKeepingChildren` re-applies the offsets of child windows (bubble, clock) after each resize.
+  - Hide/show: card row or classic-menu item → `MenuController.toggleVisibility`
+    (`speaker.stop(); window.orderOut` / `window.orderFrontRegardless(); speaker.start()`).
+  - Switch companion: `MenuController.selectPet(_:)` (guards `Profile.shared.isCompanionUnlocked`) →
+    `Pet.remember()` (UserDefaults key `pet`) → `PetWindow.apply(_:)` (resizes around the feet, reconfigures the view)
+    → `updateStatusIcon()` → `showPetIfHidden()` → `speaker.say(pet.greeting)`.
+
+### 3.3 Walking, eating, sleeping, "popcorning"
+
+- **What:** the four companions walk horizontally across the screen; Porcellino and Gattino also eat and nap (with
+  "Zzz"); Porcellino jumps; Ciccio flaps its wings and Gattino licks its paw (both use the "popcorn" slot). Movement
+  can be turned off.
+- **Entry point:** `Walker.start()` → `Walker.tick()` (30 Hz while the pet is visible, walks and movement is enabled;
+  1 Hz otherwise — `tick` recreates the timer through `makeTimer(interval:)` when the wanted rate changes).
+- **Execution path:** `tick` computes `dt` (capped at 0.1 s), then, in order: returns if the pet does not walk or the
+  window is hidden; freezes (and delays the current state by `dt` via `delayState`) while
+  `PetWindow.isShowingFocusGrowth`, while being dragged/picked, or while `Speaker.isSpeaking` (unless eating/sleeping/
+  popcorning); keeps the rest pose when `Walker.isMovementEnabled` (UserDefaults key `movement`) is false. Otherwise it
+  switches on `State`: `.resting` → `chooseNext` (random: eat 30 %, sleep 15 %, popcorn 12 % when the pet has those
+  frames and did not just rest; else walk); `.walking` → `walk` (42 pt/s, bounces at screen edges, keeps a sub-point
+  `exactX`, steps through `pet.walkFrames` at `pet.stepInterval`, mirrors via `PetWindow.setFacing`); `.eating`,
+  `.popcorning`, `.sleeping` cycle their frame arrays and end in `finishActivity`.
+  `Walker.eatNow()` (called from `Pomodoro.onFocusCompleted`) forces `.eating` for 7–10 s if
+  `pet.eatsWhenFocusCompletes` and focus-growth art is shown.
+
+### 3.4 Speech bubbles (random phrases, "Make it speak", edit phrases, frequency)
+
+- **What:** every 40–110 s (default) a bubble with a phrase appears above the pet and follows it; phrase files can be
+  edited by the user; frequency is selectable (often / sometimes / rarely / never) and is lower during a focus.
+- **Entry point:** `Speaker.start/reschedule/sayRandom/say`; menu: `MenuController.makeSpeak`, `openQuotesFile`,
+  `setChattiness` / `cycleChattiness`.
+- **Execution path:** `Speaker.scheduleNext` → `sayRandom` → `Quotes.load(for:)` (re-reads the file on every phrase:
+  user file in `~/Library/Application Support/FocusFriends/frasi_<pet>.txt`, then the legacy `Bonsy` directory, then the
+  bundled `frasi_<pet>.txt`, else `[pet.fallbackQuote]`) → `PhraseDeck.draw(from:)` (shuffled deck, no repeats until
+  exhausted, first phrase of a new deck differs from the last) → `say(_:)`: creates a `BubbleWindow`
+  (`OverlayWindow`, ignores mouse), `BubbleView.size(for:)` tries wrap widths 110…260 pt and picks the ellipse closest to
+  the image proportions, adds it as a child window of `PetWindow`, fades in 0.25 s, starts a 30 Hz `followTimer`
+  (`followNow` / `bubbleOrigin(dt:)`: above `PetWindow.visibleTopY`, smoothing descent at 140 pt/s, side placement if no
+  room above) and a `hideTimer` of `max(4.5, 2.5 + 0.06·characters)` seconds, after which the next phrase is scheduled
+  with `Chattiness.current.interval(whileFocusing: phase == .focus)`.
+  `Pomodoro.refreshChatter()` updates `Speaker.interval` on every phase change.
+  "Edit phrases…" (`openQuotesFile`) creates the user directory, copies the legacy or bundled file there if missing,
+  and opens it with `NSWorkspace.shared.open`.
+
+### 3.5 Starting a focus (subject prompt)
+
+- **What:** asks "What are you studying now?" (free text, up to 6 recent subjects as chips, "no subject", back arrow,
+  last note hint) and starts the timer.
+- **Entry point:** `MenuController.beginFocus(minutes:)`, reached from: card duration buttons (`addDurations`),
+  dial "Start the focus" (`buildTimers`), rest page "New focus · N min" (`buildRest`), classic menu items
+  (`startFocus(_:)`, tag = minutes).
+- **Execution path:** `SubjectPrompt.ask(minutes:recent:lastNote:near:completion:)` (recent from
+  `SessionLog.recentSubjects()`, hint from `SessionLog.lastNote()`) → `.start(subject)` → `showPetIfHidden()` →
+  `Pomodoro.startFocus(minutes:subject:)`:
+  `onTimerReset?()`; `recordFocus(completed: false)` (closes a focus already running); `endGrace()`; reset
+  `extensions`, `lastFocus`, `notes`; `Subject.clean`; remember `focusPet`; `begin(.focus, minutes:)`;
+  `log.beginInProgress(...)`; `speaker.say("Focus of N minutes…")`. `.cancel` does nothing; `.back` →
+  `returnToMenu()` → `MenuCard.reopen`.
+
+### 3.6 The timer engine and the clock window
+
+- **What:** a focus/rest countdown with a small clock window under the pet that shows for the first 2 minutes of a
+  phase, during the last 5 minutes, and while the mouse hovers on the pet; the pet's growth stage follows the progress.
+- **Entry point:** `Pomodoro.begin(_:minutes:)`, `Pomodoro.tick()`.
+- **Execution path:** `begin` sets `phase` (its `didSet` fires `onFocusActiveChanged` when focus starts/ends), `phaseStart`,
+  `endDate = phaseStart + minutes·60`, calls `refreshChatter`, creates a `TimerWindow` (`TimerView` draws a dark case, a
+  paper screen cut from `bubble.png`, and seven-segment digits with shear), `updateStage`, `ensureRoomBelowPet`
+  (raises the pet window if the clock would fall below the screen), `snapClockToPet`, `evaluateVisibility`, and starts a
+  0.2 s `Timer` in `.common` mode. `tick`: if paused, shifts `endDate` and `pausedTotal` by the elapsed gap; else, during
+  a focus with no grace running, a gap since the previous tick longer than `sleepGapSeconds` (10 s: the Mac slept) is
+  treated as paused time in the same way (and written to the in-progress file); if
+  `endDate` passed → grace (focus) or `finish()` (rest); else `log.heartbeat()` (focus only), updates `timerView.time`,
+  `updateStage()`, `evaluateVisibility()` → `reveal()` / `conceal()` → `animateCurtain` (0.35 s, 60 Hz timer).
+  `updateStage`: pets with `focusGrowthResources` (Ciccio, Porcellino) → `PetWindow.showFocusGrowth(stage:)`; pets that
+  `growsWithTimer` (Pianty) → `PetWindow.setStage(pet.stage(forProgress:))`; after any "+5" (`extensions > 0`) progress
+  is forced to 1 so the plant does not shrink. `PetView.setStage` cross-fades for 0.8 s (30 Hz timer).
+
+### 3.7 End of focus: "+5 minutes" grace, completion, rest
+
+- **What:** when the countdown hits zero a chime plays and, for 10 s, a prompt "Ancora 5 minuti?" appears; tapping it
+  extends the focus, otherwise the focus completes and the rest starts automatically.
+- **Entry point:** `Pomodoro.tick` → `beginGrace()` / `finish()`; `ExtendPrompt.show`.
+- **Execution path:** `beginGrace`: `graceUntil = now + 10`, plays `NSSound("Glass")`, `speaker.dismissNow()`,
+  `ExtendPrompt.show(near:seconds:extraMinutes:onExtend:)` (a non-activating `NSPanel` child of the pet window, 30 Hz
+  timer for the bar and position) → on click `extendFocus()` (adds 5 min from now, `log.beginInProgress` rewrite,
+  say a variant). If not tapped: `tick` → `finish()`: `BreakCycle` decision (§3.9), `recordFocus(completed: true)`,
+  `lastFocus = (minutes, subject, sessionID)`, builds the garden sentence with `StudyStats.seconds(onDayOf:in:)` and
+  `GardenRules.finishLine`, `begin(.rest, minutes: breakLength)`, sets `isLongBreak`,
+  `speaker.say(focusFinishedMessage(...))`, then `onFocusCompleted?()` (Porcellino eats) and
+  `onFocusRecorded?(recorded)` (rewards + reflection card). Rest end: `finish()` `.rest` → `stop()` +
+  "Pausa finita!" phrase.
+
+### 3.8 Pause/resume, add minutes, notes, discard, finish early (focus screen controls)
+
+- **What:** "Ferma" freezes the countdown without leaving the focus screen and becomes "Riprendi"; while frozen,
+  "Termina e salva" ends the focus keeping the elapsed study time; "+5 minuti" adds minutes (also before expiry, and to
+  a rest); notes can be typed on a post-it; "Elimina questo focus" discards the focus after a confirmation.
+- **Entry point:** `MenuCardView.buildFocus` → `MenuCardActions.togglePause / addMinutes / addNote / stopTimer / discardFocus`.
+- **Execution path:**
+  - Pause: `MenuController` closure → `Pomodoro.toggleFocusPause()`: if paused → `endDate += gap`, `pausedTotal += gap`,
+    `log.updateInProgressPause(seconds:since: nil)`, `onFocusActiveChanged?(true)`; else if `graceUntil != nil` →
+    `stop()` (nothing to freeze); else sets `isFocusPaused`, `lastTick`, `log.updateInProgressPause(seconds:since:)`,
+    label "FERMO", `onFocusActiveChanged?(false)` (sound/music fade out). While paused, `tick` keeps shifting `endDate`.
+    `activeElapsed` / `activeTotal` subtract `pausedTotal`, so progress, recorded seconds and growth ignore paused time.
+  - Add minutes: `Pomodoro.addMinutes(_:)`: focus in grace → `extendFocus()`; focus otherwise → `plannedFocusMinutes += n`,
+    `endDate += n·60`, `log.beginInProgress` rewrite (preserves pause fields if same start within 1 s); rest →
+    `endDate += n·60`.
+  - Notes: `PostItView` text field → `onSubmit` → `Pomodoro.addNote` → `FocusNotes.clean`, cap 40 notes →
+    `log.updateInProgressNotes`. Shown: last 4, "+N sopra" for older.
+  - Finish early: "Termina e salva" → `actions.stopTimer` → `Pomodoro.stop()` → `recordFocus(completed: false)`
+    (seconds = `min(activeElapsed, planned·60)`; ignored by `SessionLog.add` if < 60 s).
+  - Discard: `MenuController.confirmDiscard` (NSAlert, default "Annulla") → `Pomodoro.discardFocus()` sets
+    `discarding = true`, calls `stop()` (so `recordFocus` only does `log.finishInProgress()`), says
+    "Focus eliminato".
+
+### 3.9 Long break after four focuses and the cycle dots
+
+- **What:** after 4 completed focuses in a row the automatic rest is `max(15, breakMinutes)` minutes; four dots show
+  progress ("Focus 3 di 4" / "2 di 4 fatti" / "4 di 4: ciclo completo"). Can be disabled from the classic menu.
+- **Entry point:** `Pomodoro.finish()` (`.focus` case), `BreakCycle.focusCompleted(at:)`, `Pomodoro.cycleDone`.
+- **Execution path:** `longBreak = BreakCycle.isEnabled && cycle.focusCompleted(at: Date())`; the counter resets if more
+  than 2 h passed since the previous completion (`BreakCycle.resetAfter`), and resets to 0 after returning `true`.
+  Interrupted focuses do not call it. The dots read `Pomodoro.cycleDone` → `MenuCardState.cycleDone` →
+  `MenuCardView.addCycle` → `CycleDotsView`. The toggle is `MenuController.toggleLongBreak` (key `longBreakEnabled`).
+
+### 3.10 The menu-bar item, the "card" and the classic menu
+
+- **What:** a status-bar icon (the current companion's head). Click → paper card; right-click or ⌥-click → classic
+  `NSMenu`. Right-click/ctrl-click on the pet → card beside the pet, following it.
+- **Entry point:** `MenuController.statusItemClicked(_:)`, `MenuController.showCardNearPet`, `MenuCard.toggle/show`.
+- **Execution path:** `statusItemClicked`: classic if `rightMouseUp` or ⌥ held → `card.close()`, temporarily assigns
+  `statusItem.menu = menu`, `performClick`, clears it; otherwise `card.toggle(anchor: .below(frame))`.
+  `PetView.menu(for:)` → `onContextClick` → `showCardNearPet` → `card.toggle(anchor: .beside(window))`.
+  `MenuCard.show`: builds `MenuCardView` (page chosen by `defaultPage(for: phase)`), a `KeyablePanel` at
+  `.popUpMenu` level, positions it (below the icon, or beside/following the pet via move/resize observers), installs
+  global + local mouse-down monitors and a `didResignKey` observer that close it, and a 1 s `Timer` calling
+  `MenuCardView.refreshLive()`, which reads only the four-field `MenuCardLiveState` (`phase`, `isPaused`, `remaining`,
+  `focusProgress`, from `MenuController.cardLiveState()`) and rebuilds — with the full `MenuCardState` — only if phase or
+  pause state changed; otherwise it updates the clock label and tomato. The classic menu (`MenuController.init`, `menuNeedsUpdate`) contains: header view, hide/show, make speak,
+  Pomofocus submenu (built by `populatePomofocusMenu`), statistics, garden, ambient sound submenu, music submenu,
+  phrase frequency, companion submenu, movement submenu, name, ask-how-it-went toggle, long-break toggle,
+  launch-at-login, edit phrases, quit.
+- **Card main page** (`MenuCardView.rebuild`): avatar (tap = speak), greeting with name, status line, companions row
+  (with lock icons and hint, §3.18; the names go on two lines of two when four do not fit in one), either duration buttons 30/50/break + "Altri timer…" or a running box with a
+  stop button, three tiles (today minutes, focus count, streak → statistics), Garden/Statistics buttons, quick
+  settings (phrases, ambient sound + volume, music + volume, walking, ask toggle, hide/show), footer
+  ("Altre impostazioni…" → classic menu popped at the mouse, "Esci").
+
+### 3.11 "Gira il timer": the dial and custom timers
+
+- **What:** a tomato-shaped dial to pick 5–120 min (focus) or 1–30 min (rest); save up to 6 custom durations per kind;
+  also an "add custom timer" alert in the classic menu (focus 1–180, rest 1–60).
+- **Entry point:** card "Altri timer…" → `MenuCardView.buildTimers`; classic menu → `MenuController.addCustomTimer`.
+- **Execution path:** `TimerDial.mouseDown/mouseDragged` → `TimerDialMath.minutes(fraction:previous:maxMinutes:step:)`
+  (step 5 or 1; no wrap-around jump) → `onChange` → `rebuild()`; scroll wheel ±1 min up to `hardMax`.
+  Save/remove → `MenuCardActions.addTimer/removeTimer` → `CustomTimers.add/remove` (UserDefaults keys
+  `customTimers.focus` / `customTimers.rest`) then `populatePomofocusMenu()`. "Avvia" → `startFocus(dialMinutes)` or
+  `startBreak(dialMinutes)`.
+
+### 3.12 The focus screen and the rest screen
+
+- **What:** while a focus runs, opening the card shows a notebook-style page (subject, time range, companion, cycle dots,
+  tomato timer with progress arc, "+5", Ferma/Riprendi, optional "Termina e salva", background sound chips + volume,
+  notes post-it, discard, back-to-menu link). During a rest it shows the green variant (remaining rest time, +5, Skip,
+  hint, "Nuovo focus · N min", rating faces for the last focus, links to garden/statistics).
+- **Entry point:** `MenuCardView.init` (`page = defaultPage(for: provide().phase)`), `buildFocus`, `buildRest`.
+- **Execution path:** state comes from `MenuController.cardState()` (`focusProgress = pomodoro.phaseProgress`,
+  `phaseRange = pomodoro.phaseRangeText`, `isPaused`, `notes`, `background`, `lastSessionID`, …). Page switches are
+  driven by `refreshLive`: phase changes reset the page to the default for the new phase. Rating faces →
+  `MenuCardActions.rateLast` → `SessionLog.setReflection(id:rating:note:)` (keeps the existing note) and a phrase.
+
+### 3.13 Background sound: ambient noise and music
+
+- **What:** optional rain / brown noise / wind (synthesised in real time), or music (5 bundled tracks or a chosen folder),
+  at low volume, only while a focus is active (not paused); one at a time; short preview when selected outside a focus.
+- **Entry point:** `AmbientPlayer.setSound/setVolume/setFocusActive`, `MusicPlayer.setSource/setVolume/setFocusActive`;
+  UI: focus-screen chips (`MenuController.setBackground`), card rows (`cycleAmbient`, `cycleMusic`), classic submenus.
+- **Execution path (ambient):** `apply(previewing:quick:)` → `startEngine()` (`configureIfNeeded` attaches an
+  `AVAudioSourceNode` with a render block calling `NoiseSynth.render`) → sets `synth.kind`, `fadeSeconds`, `targetGain`;
+  off → `targetGain = 0` and, after the fade, `engine.pause()`. **Execution path (music):** `apply` →
+  `playNext(fadeIn:)` builds a shuffled queue via `MusicLibrary.shuffled(...avoidingFirst:)`, creates an
+  `AVAudioPlayer` per track (skipping unreadable files), fades in/out with `setVolume(_:fadeDuration:)`;
+  `audioPlayerDidFinishPlaying` chains the next track while focus/preview is active.
+  Exclusivity: `AmbientPlayer.setSound` turns music off, `MusicPlayer.setSource` turns ambient off,
+  `MusicPlayer.init` clears the music source at launch if both were stored. Folder selection:
+  `MenuController.select(source:)` → `chooseFolder` (`NSOpenPanel`, rejects folders without audio through
+  `MusicLibrary.hasTracks(in:)`, which stops at the first track). The folder's track list is cached in `MusicPlayer`
+  (keyed by folder and its modification date) and prepared on a background queue by `prepareFolderTracks()` at launch
+  and on selection.
+
+### 3.14 Session log, crash recovery, backups, migrations
+
+- **What:** every focus of ≥ 60 s is stored with start (absolute and wall-clock), seconds, planned minutes, completed
+  flag, subject, pet, rating, note and focus notes. A crash during a focus is recovered at next launch.
+- **Entry point:** `SessionLog.add`, `beginInProgress`, `heartbeat`, `recoverInterrupted`, `load`, `save`.
+- **Execution path:** `SessionLog.init` → `load()`: a missing file is simply empty; a file that exists but cannot be
+  read → `isReadOnly = true` plus a message; decodes `LogFile {version, sessions}`; older version → writes a copy
+  `backup/sessioni-formato<N>.json`, re-saves in v3; bare array (v0) → `sessioni-formato0.json`; newer version →
+  `isReadOnly = true` plus a message; if the whole decode fails, `salvage` decodes the sessions one by one and keeps
+  the readable ones (the original is kept as `sessioni.corrotto-<epoch>.json` and the number dropped is reported; if
+  that copy cannot be written the log becomes read-only); only if nothing at all can be read is the file moved to
+  `sessioni.corrotto-<epoch>.json` (failure to move → read-only) and the log starts empty. `normalize()` unifies subject
+  spellings (latest spelling wins) and fills `localStart`. `save()` → `makeDailyBackupIfNeeded()` (one copy per day,
+  keeps 7), atomic write in a `do/catch` — a failure sets `hasUnsavedChanges` and reports once (`fail("save", …)`)
+  until a later write succeeds — and notifies observers either way. Messages go to `onProblem` (§4.7). Crash recovery: `Pomodoro.startFocus/addMinutes/extendFocus` →
+  `beginInProgress` (writes `in-corso.json`), `tick` → `heartbeat` (≥ 30 s apart, rewrites `lastSeen`),
+  `recordFocus` → `finishInProgress` (deletes it). On launch `recoverInterrupted`: seconds =
+  `lastSeen − start − pausedSeconds − (lastSeen − pausedSince)`, capped at planned·60, saved as `completed: false`;
+  `in-corso.json` is deleted only if the session was added or the log is writable (a read-only log keeps it).
+
+### 3.15 "How did it go?" (reflection card, rating, notes)
+
+- **What:** after a completed focus (if enabled) a card beside the pet offers three faces and an optional one-line
+  note; the same rating can also be given on the rest screen.
+- **Entry point:** `Pomodoro.onFocusRecorded` (AppDelegate) → `ReflectionCard.ask(session:near:completion:)`.
+- **Execution path:** card is a non-activating `KeyablePanel` (`becomesKeyOnlyIfNeeded`); rating → `close(save:rating:)` →
+  `SessionLog.setReflection(id:rating:note:)` (when the card is saved with a note only, the session's existing rating is
+  kept: `rating ?? existing`) → completion → `speaker.say(ReflectionCard.reply(for:))`.
+  `dismiss()` on timer reset/stop closes it without saving. Toggle: `ReflectionCard.isEnabled` (key `askHowItWent`).
+
+### 3.16 Statistics window
+
+- **What:** tabs Today / Week / Month; big total, subject bar and legend, streak, ratings counts, insight sentences
+  ("when do you do better"), a collapsible diary of sessions (day strip for Today), edit/delete a session, CSV export,
+  "delete everything".
+- **Entry point:** `MenuController.showStats` → `DashboardController.show(kind:)`.
+- **Execution path:** `DashboardView.reload()` → `StudyStats.summary`, `StudyStats.streak`, `StudyStats.insights`,
+  `buildLayout()`, `relayoutPage()` (adds `DiaryView` when `showsDiary`). Drawing is split between
+  `DashboardView.draw` (title) and `PageView.draw` → `drawSummary`. Row tap → `DashboardView.edit(_:)` (NSAlert with
+  subject, "apply to all", note, rating segmented control, focus notes text view) → `SessionLog.renameSubject` or
+  `setSubject`, `setReflection`, `setNotes`, or `remove`. `exportCSV` → `SessionCSV.csv` (a write failure shows an `NSAlert`). `deleteEverything` →
+  `SessionLog.deleteAll()` + `Profile.shared.reset()`. The view registers `log.addObserver { reload() }`.
+
+### 3.17 Garden window
+
+- **What:** a meadow scene (season by date) with, per day, plants grown from the day's minutes (adult per 50 min,
+  remainder as an intermediate stage), by week (7 mounds with signs) or month (calendar), with tooltips.
+- **Entry point:** `MenuController.showGarden` → `GardenController.show()` → `GardenView.select(.week)`.
+- **Execution path:** `GardenView.reload()` groups the log by day once (`dayItems`, `dayPlants`), then loops the days of
+  the period reading counts, then `layoutWeek` / `layoutMonth` (lookups into the same dictionaries) building `plants`
+  and `beds`; the log observer skips `reload()` while the window is closed (reopening runs `select`, which reloads); `addToolTip` per plant;
+  `draw` renders `GardenView.scene(for:season:)` (cached in a static dictionary), signs/cells, plants (image looked up
+  by `garden_<pet>_<stage>` with fallback `pianty_stage<stage>_1`), the subject dot, summary and hints.
+
+### 3.18 Companion unlocking
+
+- **What:** the first companion (chosen in the intro) is free; the second unlocks at 20 "full focuses" (50 minutes of
+  study each, interrupted minutes included), the third at 50 and the fourth at 100 (50 more for each after the third).
+  `keepAllCompanions` gives every existing user all companions the first time (when the profile has no unlocked set
+  yet), so a user whose profile was already recorded by 0.6.0 has the Gattino locked until 100, while one coming from
+  before the unlock feature gets all four. A developer flag (`Profile.isDeveloper`, UserDefaults key `developerMode`, set from
+  Terminal) makes `isCompanionUnlocked` return `true` for everyone and makes `evaluateCompanionRewards` return early;
+  it does not touch `profilo.json`.
+- **Entry point:** `MenuController.evaluateCompanionRewards(announce:)`, `Profile.chooseFirstCompanion/unlock/keepAllCompanions`,
+  `CompanionRewards`.
+- **Execution path:** launch: `keepAllCompanions` (only if `introSeen` and `unlocked == nil`) then silent evaluation.
+  Intro: `chooseFirstCompanion(pet.id)` sets `unlocked = [id]`. After each recorded focus:
+  `totalFocuses()` (sum of all session seconds / 3000) → `CompanionRewards.earned` → `Profile.unlock` → phrase after 9 s.
+  UI: `MenuController.companionLocks()` → `MenuCardState.companionLocks` → lock icon + hint in `addCompanions`;
+  classic menu items disabled with the same text. `selectPet` rejects locked pets.
+
+### 3.19 First-run intro, name and titles
+
+- **What:** a card asks for a name and the first companion; the name personalises window titles ("Il giardino di X").
+- **Entry point:** `AppDelegate` (step 11 of §3.1), `IntroCard.ask`, `MenuController.editName`.
+- **Execution path:** `IntroCard` builds an `NSStackView` card (width `max(420, n·92 + (n−1)·14 + 56)` for `n` pets, so
+  466 pt with four) with `CompanionButton`s, `finish(name:pet:)` → closure in
+  `AppDelegate`: `Profile.setName`, `markIntroSeen`, `chooseFirstCompanion`, `menu.selectPet`/`speaker.say`,
+  `speaker.reschedule()`. Titles: `Profile.gardenTitle` / `statsTitle` (used in menu items and window titles).
+
+### 3.20 Launch at login, quit
+
+- **What:** toggle "Avvia al login"; quit.
+- **Entry point:** `MenuController.toggleLaunchAtLogin` (classic menu item "Avvia al login"); quit: card footer "Esci"
+  (closure `quit` in `MenuController.cardActions()`) and the classic menu item (`MenuController.quit`), both ending in
+  `NSApp.terminate(nil)`.
+- **Execution path:** `toggleLaunchAtLogin` → `SMAppService.mainApp.status == .enabled ? unregister() : register()`
+  (errors → `showAlert`); if `status == .requiresApproval` → alert pointing to System Settings → Login Items. The
+  item's check mark is refreshed in `menuNeedsUpdate` from `SMAppService.mainApp.status`. Quit: `NSApp.terminate(nil)` →
+  `AppDelegate.applicationWillTerminate` → `Pomodoro.recordInterruptedFocusOnQuit()` → `recordFocus(completed: false)`.
+
+### 3.21 Build, tests and asset tooling (developer-facing)
+
+- **What:** produce the app bundle, run the logic tests, regenerate image assets.
+- **Entry point:** `build.sh`, `tests/run.sh`, `tools/*.py` (each run by hand from the repository root).
+- **Execution path:**
+  - `build.sh`: `rm -rf build/FocusFriends.app` → `mkdir` bundle dirs → for `arm64` and `x86_64`:
+    `swiftc -O -target <arch>-apple-macos13.0 -o build/tmp/FocusFriends-<arch> Sources/FocusFriends/*.swift` →
+    `lipo -create` into `Contents/MacOS/FocusFriends` → copy bubble, phrase files, icon, pet frames (prefixed names),
+    music (`music_*`), garden/growth art, Pianty stage frames → write `Info.plist` via heredoc →
+    `codesign --force --sign -` (a failure prints an error and exits 1) → print the path.
+  - `tests/run.sh`: `swiftc -O -o build/tests/stats` on seven source files + `tests/main.swift` →
+    `build/tests/stats` (prints `• <section>` lines and `N controlli, M falliti`, exit code 0/1; 284 checks now).
+  - Tools: described in §5.9; they read `assets/**/*_original.png` / sheets and write processed PNGs or the icon.
+
+---
+
+## 4. Architecture and data flow
+
+### 4.1 Modules and how they depend on each other
+
+There is a single Swift module with no internal packaging; "modules" below are groups of files. Arrows mean "calls /
+holds a reference to".
+
+```
+main.swift ──► AppDelegate  (composition root: creates and wires everything, owns strong refs)
+                 │
+                 ├─ PetWindow ── PetView ◄── Pet (value type, 4 static definitions + UserDefaults "pet")
+                 ├─ Speaker ──► BubbleWindow/BubbleView (SpeechBubble.swift), Quotes, PhraseDeck, Chattiness, PetWindow
+                 ├─ Walker ───► PetWindow, Speaker, Pet
+                 ├─ Pomodoro ─► PetWindow, Speaker, SessionLog, TimerWindow/TimerView, ExtendPrompt,
+                 │               BreakCycle, GardenRules/StudyStats (SessionLog.swift), FocusNotes, Subject, Chattiness
+                 ├─ MenuController ─► PetWindow, Speaker, Pomodoro, MenuCard, DashboardController, GardenController,
+                 │               SubjectPrompt, CustomTimers, AmbientPlayer.shared, MusicPlayer.shared, MusicLibrary,
+                 │               Profile.shared, SessionLog.shared, CompanionRewards, ReflectionCard (static), Walker (static),
+                 │               BreakCycle (static), Quotes, SMAppService
+                 │      └─ MenuCard ─► MenuCardView ─► FocusScreenViews, PaperUI, TimerDial, VolumeSlider
+                 │                      (talks to the app only through MenuCardState + MenuCardActions)
+                 ├─ IntroCard, ReflectionCard ─► PaperUI, Profile / SessionLog
+                 └─ (lazy) DashboardController/GardenController ─► SessionLog.shared, Profile.shared, PaperUI
+
+Foundation-only core (no AppKit):  SessionLog.swift (StudySession, SessionLog, GardenRules, Season, StudyStats,
+   SessionCSV, Subject, FocusNotes, SessionNote), Profile, CustomTimers (+TimerDialMath), BreakCycle,
+   CompanionRewards, AmbientSound (+AmbientSettings, BackgroundChoice), MusicLibrary (+MusicSource, MusicSettings)
+Audio:  AmbientPlayer.shared ⇄ MusicPlayer.shared   (each calls the other to enforce "one background at a time")
+```
+
+Layering as it exists in the code (not enforced by the compiler):
+
+1. **Domain/logic (Foundation only, unit-tested):** the files listed above. `AmbientSound.swift` references
+   `MusicSource` (defined in `MusicLibrary.swift`), so those two compile together.
+2. **Services with side effects:** `Pomodoro` (timers + windows + log), `Speaker`, `Walker`, `AmbientPlayer`,
+   `MusicPlayer`.
+3. **Presentation:** AppKit views/windows (`PetWindow`, `MenuCard`, `DashboardWindow`, `GardenWindow`, cards).
+4. **Orchestration:** `AppDelegate` (wiring) and `MenuController` (menu, card state composition, several business rules:
+   unlocking, music source selection, discard confirmation).
+
+### 4.2 Singletons and injection
+
+| Object | How obtained | Injectable for tests? |
+|---|---|---|
+| `SessionLog.shared` | `static let shared = SessionLog(directory: defaultDirectory)` | `init(directory:now:timeZone:)` is public; `Pomodoro` and `ReflectionCard` take a `log:` parameter defaulting to `.shared`; `DashboardView`/`GardenView` take a `log:` (the controllers pass `.shared`) |
+| `Profile.shared` | `static let shared = Profile(directory: SessionLog.defaultDirectory)` | `init(directory:)`; callers elsewhere use `.shared` directly |
+| `AmbientPlayer.shared`, `MusicPlayer.shared` | `static let shared` | No injection point; used directly from `MenuController`, `AppDelegate`, and from each other |
+| `UserDefaults.standard` | direct use in `Pet`, `Chattiness`, `Walker`, `ReflectionCard`, `BreakCycle`, `Migration`, `AmbientPlayer`/`MusicPlayer` (through the settings enums); `CustomTimers`, `AmbientSettings`, `MusicSettings` take it as a default parameter | `AmbientSettings`, `MusicSettings`, `CustomTimers` accept a `UserDefaults`; the others do not |
+
+### 4.3 State management
+
+- **No reactive framework.** State is held in plain properties and propagated by explicit calls and closures.
+- **Timer state** lives only in `Pomodoro` private properties (`phase`, `phaseStart`, `endDate`, `graceUntil`,
+  `isFocusPaused`, `pausedTotal`, `plannedFocusMinutes`, `extensions`, `subject`, `notes`, `lastFocus`, `cycle`,
+  `isLongBreak`, `discarding`). It is not persisted except through `SessionLog.beginInProgress` snapshots.
+- **UI state** is local to the views: `MenuCardView` (`page`, `dialKind`, `dialMinutes`, `timerMessage`, `lockHint`,
+  `draftNote`, `shownPhase`, `shownRunning`, `shownPaused`), `DashboardView` (`kind`, `period`, `showsDiary`),
+  `GardenView` (`kind`, `period`).
+- **Snapshot-in-closures pattern for the card:** `MenuCard` receives `state: () -> MenuCardState`,
+  `live: () -> MenuCardLiveState` and `actions: MenuCardActions` (a struct of closures). `MenuController.cardState()`
+  builds a fresh value struct on each call (no caching); `MenuCardView.rebuild()` reads it and re-creates every
+  subview; the 1 s refresh reads only `cardLiveState()`.
+- **Observation:** `SessionLog.addObserver` and `Profile.addObserver` keep arrays of closures called after each
+  `save()`/`deleteAll()`/`reset()`; the only registered observers in the app are the statistics and garden views
+  (`SessionLog`), and both ignore a notification while their window is closed; no app code registers a `Profile`
+  observer. Other callbacks are single closure properties: `SessionLog.onProblem`, `Profile.onProblem`,
+  `AmbientPlayer.onStartFailure`, `Pomodoro.onFocusActiveChanged/onFocusCompleted/onFocusRecorded/onTimerReset`,
+  `PetWindow.onPickStateChanged/onArtChanged/onContextClick`, `MenuCardView.onResize`, `DashboardController.onBack`.
+- **System notifications used:** `AVAudioEngineConfigurationChange` (restart audio), `NSWindow.didMove/didResize`
+  (card follows pet), `NSWindow.didResignKey` (card closes).
+
+### 4.4 Data models and persistence (no database)
+
+All persistence is flat files plus `UserDefaults`. There is no SQLite/CoreData and no network storage.
+
+**Directory:** `~/Library/Application Support/FocusFriends/` (`SessionLog.defaultDirectory`; `Quotes.userDirectory`
+builds the same path independently).
+
+| File | Written by | Content / format |
+|---|---|---|
+| `sessioni.json` | `SessionLog.save()` (atomic) | `{"version": 3, "sessions": [StudySession…]}`, pretty-printed, sorted keys, ISO-8601 dates |
+| `in-corso.json` | `SessionLog.writeProgress` | the focus in progress: `start, plannedMinutes, subject, pet, lastSeen, notes?, pausedSeconds?, pausedSince?`; deleted by `finishInProgress` |
+| `backup/sessioni-YYYY-MM-DD.json` | `makeDailyBackupIfNeeded` | copy of the file taken before the first change of a day; keeps the last 7 (`backupsToKeep`) |
+| `backup/sessioni-formato<N>.json` | `SessionLog.load` | untouched copy of the previous-format file made when migrating (N = 0, 1, 2) |
+| `sessioni.corrotto-<epoch>.json` | `SessionLog.load` | an undecodable file moved aside, or the original kept when only some sessions could be read |
+| `profilo.corrotto-<epoch>.json` | `Profile.init` | a malformed profile moved aside |
+| `profilo.json` | `Profile.save` | `{"version":1,"name"?,"introSeen","unlocked"?:[ids],"firstCompanion"?}` |
+| `frasi_<pet>.txt` | user (created by `openQuotesFile`) | user phrase overrides, one per line, `#` comments |
+| (legacy) `…/Application Support/Bonsy/frasi_<pet>.txt` | — | read-only fallback from the app's previous name |
+
+**`StudySession`** (`SessionLog.swift`): `id: UUID`, `start: Date`, `localStart: String?` ("yyyy-MM-ddTHH:mm" wall-clock,
+used by all statistics through `startTime(in:)`), `seconds: Int`, `plannedMinutes: Int`, `completed: Bool`,
+`subject: String?`, `pet: String?`, `rating: FocusRating?` (`good|soso|poor`), `note: String?` (≤ 80 chars),
+`notes: [String]?` (≤ 40 × 160 chars). Custom `init(from:)` makes `rating` tolerant of unknown values.
+
+**Format versions** (`SessionLog.formatVersion = 3`): bare array (version 0, backup name `sessioni-formato0.json`);
+version 1 (wrapped, with `localStart` per `tests/main.swift`); 2 adds `rating`/`note` (comment above `formatVersion`);
+3 adds `notes`. Reading a newer version sets `isReadOnly` (nothing is written, `add` returns `nil`).
+
+**`UserDefaults` keys** (domain of the app bundle id): `pet`, `phraseFrequency`, `movement`, `askHowItWent`,
+`longBreakEnabled`, `ambientSound`, `ambientVolume`, `musicSource`, `musicFolder`, `musicVolume`,
+`customTimers.focus`, `customTimers.rest`, `migratedFromBonsy`, and `developerMode` (read by `Profile.isDeveloper`,
+never written by the app). Each is declared next to the type that uses it (there is no central registry).
+
+**Other value types:** `Pet` (`Equatable` struct with 29 stored properties), `Pomodoro.Phase`, `MenuCardState`
+(38 fields), `MenuCardLiveState` (4 fields), `MenuCardActions` (26 closures), `StudySummary`, `StudyBucket`, `GardenRules.DayPlant`,
+`GardenView.Plant/Bed`, `SummaryLayout`, `LegendItem`.
+
+### 4.5 External services and APIs
+
+- **Network / third-party services:** none (see §1.3).
+- **Operating-system APIs used:** `NSStatusBar`/`NSStatusItem`; `NSWindow`/`NSPanel` (floating, child windows);
+  `NSEvent.addGlobalMonitorForEvents` / `addLocalMonitorForEvents` / `NSEvent.mouseLocation` /
+  `NSEvent.pressedMouseButtons`; `NSAlert`, `NSOpenPanel`, `NSSavePanel`; `NSWorkspace.shared.open`;
+  `NSSound(named: "Glass")`; `SMAppService.mainApp`; `AVAudioEngine`/`AVAudioSourceNode`; `AVAudioPlayer`;
+  `FileManager` and `UserDefaults`.
+- **Data export:** `SessionCSV.csv(for:)` → file chosen in `NSSavePanel`. No import.
+
+### 4.6 Concurrency and timing
+
+- **Single main thread for all application logic.** There are no operations or `async/await` tasks. The only
+  background work is `MusicPlayer.prepareFolderTracks()` (a `DispatchQueue.global(qos: .utility)` block that lists the
+  chosen music folder and hands the result back on the main queue); the rest is `DispatchQueue.main.async/asyncAfter` in
+  `AppDelegate` (intro after 0.8 s), `MenuController.select(source:)` (open folder panel after closing the card),
+  `confirmDiscard` (alert), `evaluateCompanionRewards` (phrase after 9 s).
+- **Run-loop timers** (all `Timer` instances added in `.common` mode where created with `RunLoop.main.add`):
+
+| Timer | Interval | Active when | File → owner |
+|---|---|---|---|
+| Pomodoro tick | 0.2 s | a phase is running | `Pomodoro.begin` → `ticker` |
+| Walker tick | 1/30 s; 1 s (tolerance 0.25 s) when hidden, not walking or movement is off | always after `start()`; recreated by `makeTimer(interval:)` when the rate changes | `Walker.start` |
+| Speaker follow | 1/30 s | a bubble is visible | `Speaker.startFollowing` |
+| Speaker next / hide | one-shot | scheduled phrase / visible bubble | `Speaker.scheduleNext`, `say` |
+| ExtendPrompt tick | 1/30 s | the "+5" prompt is visible | `ExtendPrompt.show` |
+| Clock curtain | 1/60 s | during the 0.35 s reveal/conceal animation | `Pomodoro.animateCurtain` |
+| Stage cross-fade | 1/30 s | 0.8 s after a stage change | `PetView.setStage` |
+| Sleep marks | 1/15 s | pet is sleeping | `PetView.showsSleepMarks` |
+| Pick-up wobble | 1/30 s | pet is held | `PetView.setPicked` |
+| Card refresh | 1 s | the card panel is open | `MenuCard.show` → `refreshLive` |
+| Ambient/music preview/stop | one-shot (3 s / 5 s / fade+0.2–0.3 s) | selection preview, fade-out | `AmbientPlayer.apply`, `MusicPlayer.apply` |
+
+- **Audio render thread:** `NoiseSynth.render(frames:left:right:)` is called by `AVAudioSourceNode` on the audio
+  thread; it reads `kind`, `targetGain`, `fadeSeconds`, which the main thread writes from `AmbientPlayer.apply`. There
+  is no lock or atomic; the class comment states "Scritto dal thread principale, letto dal thread audio".
+- **File I/O is synchronous on the main thread** (`SessionLog.save`, `readProgress/writeProgress`, `Quotes.load`,
+  `PetView.configure` image loading, and `MusicLibrary.tracks(in:)` when the cache is not ready).
+
+### 4.7 Error-handling approach
+
+Reads and non-critical file operations still use `try?` (lines containing `try?`: `SessionLog` 20, `Profile` 3,
+`MusicPlayer` 3, `MusicLibrary` 2, `Quotes` 1). What changed since the first snapshot is that failures that lose or hide
+user data are now reported to the user through the companion's speech bubble:
+
+- `SessionLog` and `Profile` expose `onProblem: ((String) -> Void)?`; messages produced in `init` (before anyone is
+  registered) are held and delivered when the handler is assigned (`AppDelegate` assigns both). Write failures are
+  reported once per streak (`fail`/`recover` keys), so a disk that stays full does not repeat the message on every save.
+- Reported cases: an unreadable `sessioni.json` or `profilo.json` (the file is not overwritten), a newer data version
+  (read-only), sessions that could not be decoded (and where the original copy is), a corrupt file that was moved aside
+  (or could not be), a failed write of `sessioni.json`, `in-corso.json`, the daily backup or the profile.
+- `AmbientPlayer.onStartFailure` (audio engine did not start), `MenuController.openQuotesFile` (alerts when the user
+  directory or phrase file cannot be created) and `DashboardView.exportCSV` (alert on write failure).
+- Other user-visible dialogs: launch-at-login failure or approval needed (`toggleLaunchAtLogin`), invalid custom timer
+  values (`addCustomTimer`), a music folder without audio files (`chooseFolder`).
+- Corrupt or newer-version session files are preserved (moved aside / read-only) rather than overwritten.
+
+### 4.8 Rendering approach
+
+Nearly every view overrides `draw(_:)` and paints with `NSBezierPath`/`NSImage`, usually with `isFlipped = true`.
+Interactive elements on the card are generic `CardButton`s (private `NSButton` subclass) whose appearance is a
+`drawer` closure supplied at the call site; `MenuCardView` destroys and re-creates all subviews on each interaction
+(`rebuild()`), except the dial view while the timers page is shown. The garden scene is an `NSImage` created with a
+drawing-handler closure and stored in a static dictionary (`GardenView.sceneCache`).
+
+### 4.9 Build and test architecture
+
+`build.sh` compiles `Sources/FocusFriends/*.swift` twice (arm64, x86_64), merges with `lipo`, copies resources by an
+explicit list, writes `Info.plist` with a heredoc, ad-hoc signs. `tests/run.sh` compiles seven Foundation-only files
+with `tests/main.swift` (no `Pomodoro`, `Speaker`, `Walker`, player or UI classes are compiled into the tests). `build.sh`
+stops with an error if the ad-hoc signature cannot be applied.
+
+---
+
+## 5. File-by-file walkthrough
+
+Line counts are from `wc -l` on this snapshot. "Side effects" means anything beyond returning a value:
+file/UserDefaults writes, windows, timers, sound, global state.
+
+### 5.1 `Sources/FocusFriends/` — entry and wiring
+
+#### `main.swift` (6 lines)
+- **Responsibility:** process entry. Creates `NSApplication.shared`, an `AppDelegate`, assigns it, calls `app.run()`.
+- **Side effects:** starts the app run loop.
+
+#### `AppDelegate.swift` (87)
+- **Responsibility:** composition root; holds strong references to `PetWindow`, `Speaker`, `Pomodoro`, `Walker`,
+  `MenuController`, and owns `IntroCard` and `ReflectionCard`.
+- **Key members:** `applicationDidFinishLaunching` (sequence in §3.1), `applicationWillTerminate`.
+- **Inputs/outputs:** none; closures installed on `Pomodoro` connect it to `Walker`, `ReflectionCard`, `AmbientPlayer`,
+  `MusicPlayer`, `MenuController`; the `onProblem` / `onStartFailure` handlers of `SessionLog`, `Profile` and
+  `AmbientPlayer` call `Speaker.say`.
+- **Side effects:** `Migration.run()`, activation policy, windows, `SessionLog.shared.recoverInterrupted()` (writes a
+  session if an in-progress file exists), `Profile.shared` writes (`keepAllCompanions`, intro result).
+
+### 5.2 `Sources/FocusFriends/` — the companion
+
+#### `Pet.swift` (219)
+- **Responsibility:** `struct Pet: Equatable` — static description of a companion; no behaviour beyond arithmetic on
+  stage indices.
+- **Key members:** properties `id, name, imageResources, size, quotesResource, quotesUserFile, fallbackQuote, greeting,
+  shadowWidthFraction, groundFraction, iconCrop, iconFocus, walks, walkFrames, stepInterval, talkFrame, facesRight,
+  eatFrames, sleepIntroFrame, sleepFrames, popcornFrames, popcornInterval, focusGrowthResources,
+  focusGrowthFeetFraction, eatsWhenFocusCompletes, pickedResource, pickedSize, pickedGrab, framesPerStage`; computed
+  `stageCount, finalStage, restStage, restImageIndex, growsWithTimer, iconResource`; `focusGrowthStage(forProgress:)`,
+  `stage(forProgress:)`; statics `pianty` (35 images = 5 stages × 7 frames, 84×141), `ciccio` (13 frames, 112×118,
+  growth art `garden_ciccio_1..5`), `porcellino` (19 frames, 118×121, growth art `growth_porcellino_1..5`),
+  `gattino` (23 frames: still, 6 walk, 5 eat, 6 sleep, 5 groom through the popcorn slot; 144×110; picked drawing; no
+  growth art), `all = [pianty, porcellino, ciccio, gattino]`, `saved`, `remember()`.
+- **Side effects:** `saved` reads and `remember()` writes `UserDefaults` key `pet`.
+
+#### `PetWindow.swift` (552)
+- **Responsibility:** the on-screen companion. `PetWindow` (borderless transparent `NSWindow`, position/size/pick-up
+  logic, geometry queries) and `PetView` (drawing, cross-fade, mirrored drawing, Zzz marks, wobble, mouse handling).
+- **Key members:** `PetWindow`: `init(pet:)`, `placeOnGround`, `feetY`, `apply(_:)`, `setStage`, `showFocusGrowth`,
+  `endFocusGrowth`, `widenForFocusGrowth` (private), `beginPick/movePicked/endPick`, `setFrameKeepingChildren`
+  (private), `setSleepMarks`, `setFacing`, `setPose`, `artFrame`, `headTopY`, `visibleTopY`, callbacks
+  `onPickStateChanged/onArtChanged/onContextClick`. `PetView`: `configure(for:)`, `setStage(_:animated:)`,
+  `setGrowth`, `setPose`, `feetHeight`, `artTop`, `visibleTop`, `drawRect(forImageAt:)`, `drawPicked`,
+  `drawSleepMarks`, `draw`. Private `NSImage.opaqueTopFraction` scans pixels from the top for the first alpha > 25.
+- **Inputs/outputs:** `Pet` in; geometry (`feetY`, `artFrame`, `visibleTopY`) out to `Speaker`, `Pomodoro`,
+  `ExtendPrompt`, `Walker`.
+- **Side effects:** loads PNGs from the bundle on `configure`; creates/invalidates timers (fade, sleep, wobble);
+  resizes/moves the window and its child windows.
+
+#### `Walker.swift` (290)
+- **Responsibility:** autonomous behaviour state machine (`State`: resting, walking, eating, sleeping, popcorning).
+- **Key members:** `start/stop`, `eatNow`, `tick` (30 Hz; 1 Hz via `makeTimer(interval:)` when hidden, not walking or
+  movement is off), `chooseNext`, `walk`, `chooseDirection`, `delayState`, `finishActivity`, static
+  `isMovementEnabled` (UserDefaults `movement`). Constants: speed 42 pt/s, walk 3–8 s,
+  rest 4–10 s, eat 6–12 s, sleep 12–30 s, popcorn 3–6 s, chances 0.30/0.15/0.12, `stepSlack` 0.005 s.
+- **Inputs/outputs:** reads `PetWindow` (frame, pet, visibility, picked), `Speaker.isSpeaking`, `NSEvent.pressedMouseButtons`,
+  `NSEvent.mouseLocation`; drives `PetWindow.setPose/setFacing/setSleepMarks/setFrameOrigin`.
+- **Side effects:** moves the window every tick when walking; `UserDefaults` for the movement flag.
+
+### 5.3 `Sources/FocusFriends/` — speech
+
+#### `Speaker.swift` (174)
+- **Responsibility:** when and where speech bubbles appear.
+- **Key members:** `interval` (set from `Chattiness`), `start/stop/reschedule/dismissNow`, `sayRandom`, `say`,
+  `scheduleNext`, `bubbleOrigin(dt:)`, `startFollowing/followNow`, `dismissBubble`, `isSpeaking`. Owns a `PhraseDeck`.
+- **Side effects:** creates `BubbleWindow` child windows, timers, reads phrase files through `Quotes.load` at each phrase.
+
+#### `SpeechBubble.swift` (111)
+- **Responsibility:** `OverlayWindow` (click-through transparent floating window base class, also used by
+  `TimerWindow`), `BubbleWindow`, `BubbleView` (draws `bubble.png` scaled; computes size from text).
+- **Key members:** `BubbleView.size(for:)` (tries wrap widths 110…260 pt, scores ellipse proportion + area),
+  `draw`, constants `ellipseHeightFraction = 0.837`, `tailTipFraction = 0.825`, `textWidthFraction = 0.65`,
+  `textHeightFraction = 0.55`, static `image`.
+- **Side effects:** loads `bubble.png` once (static).
+
+#### `Quotes.swift` (36)
+- **Responsibility:** `enum Quotes` — locates and parses phrase files (`userFile(for:)`, `load(for:)`,
+  `userDirectory`, `legacyDirectories = ["Bonsy"]`).
+- **I/O:** reads text files (UTF-8), splits by newline, trims, drops empty and `#` lines; returns `[String]`.
+
+#### `PhraseDeck.swift` (38)
+- **Responsibility:** `struct PhraseDeck` — shuffled-deck draw with live reconciliation against the current phrase list
+  (`draw(from:)`), remembers `last`.
+
+#### `Chattiness.swift` (50)
+- **Responsibility:** `enum Chattiness: often/sometimes/rarely/never` with titles, SF Symbol names,
+  `interval(whileFocusing:)` (e.g. sometimes: 40–110 s idle, 240–480 s focusing) and `current` (UserDefaults
+  `phraseFrequency`, default `.sometimes`).
+
+#### `Migration.swift` (20)
+- **Responsibility:** copy preferences from domain `com.jacopo.bonsy` into the current domain once
+  (`migratedFromBonsy`), skipping keys with prefixes `NS`, `Apple`, `com.apple` and keys already set.
+
+### 5.4 `Sources/FocusFriends/` — timer
+
+#### `Pomodoro.swift` (598)
+- **Responsibility:** the focus/rest engine plus the clock window management plus the interface that the focus screen
+  uses (progress, range text, notes, pause, discard, +minutes).
+- **Key members:** `Phase`; `startFocus`, `startBreak`, `stop`, `recordFocus` (private), `recordInterruptedFocusOnQuit`,
+  `begin`, `tick`, `beginGrace/endGrace/extendFocus`, `finish`, `addMinutes`, `toggleFocusPause`, `addNote`,
+  `discardFocus`, `updateStage`, `evaluateVisibility`, `reveal/conceal/animateCurtain`, `ensureRoomBelowPet/
+  restorePetHeight`, `refreshChatter`, computed `remainingText`, `phaseProgress`, `phaseRangeText`, `focusMinutes`,
+  `cycleDone`, `activeElapsed`, `activeTotal`; static `focusFinishedMessage`, `extensionMinutes = 5`. Constants:
+  `introMinutes 2`, `alwaysVisibleMinutes 5`, `hoverLinger 1`, `curtainDuration 0.35`, `graceSeconds 10`,
+  `secondsPerMinute 60`, `sleepGapSeconds 10`.
+- **Inputs/outputs:** collaborators `PetWindow`, `Speaker`, `SessionLog`; exposes read-only state and callbacks
+  (§4.3). Output: sessions written through `SessionLog.add`, in-progress snapshots, speech, window changes.
+- **Side effects:** timers; `NSSound("Glass")`; child windows; raises/lowers the pet window (`shiftedUp`); writes
+  `in-corso.json` and `sessioni.json` through the log; triggers `onFocusActiveChanged` (sound/music).
+
+#### `TimerBubble.swift` (203)
+- **Responsibility:** `TimerWindow` (fixed 132×76 overlay) and `TimerView` (draws case, screen, label, seven-segment
+  digits with shear, curtain `reveal` 0…1).
+- **Side effects:** none besides drawing; depends on `BubbleView.image` for the screen texture
+  (source rect `(230, image.height−300, 250, 100)`).
+
+#### `ExtendPrompt.swift` (150)
+- **Responsibility:** the "+5 minutes?" prompt: `ExtendPrompt` (panel lifecycle, position follows the pet, bar value)
+  and private `ExtendPromptView` (drawing, hover, click, accessibility label).
+- **Side effects:** child panel of the pet window, 30 Hz timer; `isShowing`, `contentView` (preview helper).
+
+### 5.5 `Sources/FocusFriends/` — menu, card and shared UI
+
+#### `MenuController.swift` (938)
+- **Responsibility:** the status item and classic menu, plus the adapter between the app and the card UI, plus
+  several rules.
+- **Key members:** `init` (builds the whole classic menu), `makePetItem/makeAmbientItem/makeMusicItem/
+  makeChattinessItem/makeMovementItem`, `populatePomofocusMenu`, `menuNeedsUpdate` (refreshes titles/states each time
+  the menu opens), `statusItemClicked`, `returnToMenu`, `showCardNearPet`, `cardState()`, `cardActions()`,
+  `cardLiveState()`, `setBackground`, `confirmDiscard`, `beginFocus`, `select(source:)`, `chooseFolder`, `cycleMusic`,
+  `totalFocuses/companionLocks/evaluateCompanionRewards`, `selectPet`, `editName`, `toggleLaunchAtLogin`,
+  `openQuotesFile`, `addCustomTimer`, static `menuIcon(for:height:)` (crops the pet image to an icon; also used by
+  `IntroCard` and the card).
+- **Side effects:** status item, alerts, open/save panels, `NSWorkspace.open`, `SMAppService`, UserDefaults writes
+  through `Chattiness`, `ReflectionCard`, `BreakCycle`, `Walker`; starts/stops audio via the player singletons;
+  `Profile.shared.unlock`.
+
+#### `MenuHeader.swift` (67)
+- **Responsibility:** `MenuHeaderView` (264×62): paper-coloured header with circular avatar, name and status for the
+  classic menu. Has its own private copies of the paper/ink colours.
+
+#### `MenuCard.swift` (1,453)
+- **Responsibility:** the card UI. Contains `MenuCardState` (value snapshot), `MenuCardLiveState` (the four fields the
+  1 s refresh needs), `MenuCardActions` (closure bag),
+  private `CardButton`, private `MenuCardView` (pages `main`, `timers`, `focus`, `rest`), `MenuCard` (panel
+  lifecycle, anchoring, monitors, 1 s refresh), private `TimerDial`, private `VolumeSlider`.
+- **Key members:** `MenuCardView.rebuild`, `addCompanions` (one line, or two lines of two names), `addDurations`, `addRunning`, `addOption`, `addVolume`,
+  `buildTimers`, `buildFocus`, `buildRest` (the latter two in a `private extension`), `refreshLive`; `MenuCard.show`,
+  `toggle`, `reopen`, `reposition`, `close`.
+- **Inputs/outputs:** consumes `MenuCardState`, calls `MenuCardActions`; reports its height through `onResize`.
+- **Side effects:** panel at `.popUpMenu` level; global/local mouse monitors; 1 s timer; `NSApp.activate`.
+
+#### `FocusScreenViews.swift` (358)
+- **Responsibility:** drawing components of the focus/rest pages: `FocusPalette` (colour constants),
+  `FocusTomatoView`, `PostItView` (+ one real `NSTextField`), `FocusDraw` (`sticker`, `trash`, `spiralHoles`),
+  `CycleDotsView`.
+
+#### `PaperUI.swift` (286)
+- **Responsibility:** shared visual vocabulary: `Paper` (colours, `subjectColors`, `color(forSubject:)`,
+  `symbolImage`, `markerFont`), `PillButton`, `TextButton`, `ChipButton`, `PaperCardView`, `KeyablePanel`
+  (borderless key-capable panel with `onCancel`), `FocusRating.color`, `FaceIcon.draw`, `RatingButton`,
+  `BackToMenuAccessory` (title-bar "‹ Menu" accessory).
+
+#### `IntroCard.swift` (225)
+- **Responsibility:** `CompanionButton` and `IntroCard` (name field + companion choice + Skip/Start). Auto-layout
+  `NSStackView` card inside a `KeyablePanel`, as wide as the buttons need (466 pt with four companions). `ask(currentPet:near:completion:)`; skip/Esc → `(nil, initialPet)`.
+
+#### `SubjectPrompt.swift` (198)
+- **Responsibility:** the "What are you studying now?" card (`Choice`: `.start(subject)`, `.cancel`, `.back`);
+  chips for ≤ 6 recent subjects; last-note hint.
+
+#### `ReflectionCard.swift` (205)
+- **Responsibility:** the "How did it go?" card, `reply(for:)` phrases, `isEnabled` flag (UserDefaults
+  `askHowItWent`), `ask/dismiss`. Uses a `.nonactivatingPanel` that becomes key only if needed.
+- **Side effects:** `SessionLog.setReflection` on save.
+
+### 5.6 `Sources/FocusFriends/` — statistics and garden windows
+
+#### `DashboardWindow.swift` (853)
+- **Responsibility:** `DashboardView` (period state, summary drawing, diary toggle, edit/export/delete actions),
+  private `PageView`, `SummaryLayout`, `LegendItem`, private `DiaryView` (day strip, day headers, session rows,
+  hit-testing), `DashboardController` (lazy window).
+- **Key members:** `reload` (skipped by the log observer while the window is closed), `select`, `buildLayout`, `relayoutPage`, `drawSummary`, `drawMiniChart`,
+  `drawSubjectBar`, `drawLegendLine`, `drawStreak`, `drawRatings`, `edit(_:)`, `deleteEverything`, `exportCSV`.
+- **Side effects:** modal `NSAlert`/`NSSavePanel`; writes through `SessionLog` / `Profile.reset()`; registers a
+  log observer.
+
+#### `GardenWindow.swift` (743)
+- **Responsibility:** `GardenView` (period state, layout of beds/plants, scene drawing per season, tooltips) and
+  `GardenController`; private `SeededRandom` (LCG) and `SeasonStyle`; `Season.hashValueStable` extension.
+- **Key members:** `reload` (groups by day once: `dayItems`/`dayPlants`; skipped by the observer while closed),
+  `sessions(on:)`, `plants(on:)` (lookups), `layoutWeek`, `layoutMonth`, `visiblePlants`, `image(forPet:stage:)`
+  (cache), `scene(for:season:)` (static cache), `drawScene`, `draw`, `view(_:stringForToolTip:point:userData:)`.
+- **Side effects:** registers a log observer; static scene cache.
+
+### 5.7 `Sources/FocusFriends/` — domain (Foundation-only) and storage
+
+#### `SessionLog.swift` (1,017)
+- **Responsibility:** the data model, the store and all derived statistics.
+- **Types:** `StudySession` (Codable model with tolerant decoding and wall-clock `startTime(in:)`), `GardenRules`
+  (`plants(of:calendar:)`, `intermediateStage`, `finishLine`, constants 50 min / 5 stages / 60 s minimum remainder),
+  `Season` (`of(_:calendar:)`), `FocusRating`, `SessionNote` (≤ 80), `FocusNotes` (≤ 160 × 40), `Subject`
+  (`clean`, `key` via case/diacritic folding with `it_IT`), private `LogFile`, `SessionLog` (class: load/normalize/
+  save/backup/add/remove/setSubject/setReflection/setNotes/renameSubject/deleteAll/recentSubjects/lastNote,
+  `salvage` (element-wise decode), `onProblem` / `report` / `fail` / `recover`, `hasUnsavedChanges`, in-progress file API `beginInProgress/updateInProgressPause/updateInProgressNotes/heartbeat/finishInProgress/
+  recoverInterrupted`, observers), `PeriodKind`, `StudyPeriod`, `StudyBucket`, `StudySummary`, `StudyStats`
+  (`summary`, `seconds(onDayOf:)`, `streak`, `insights`, `duration`, `dayLine`, `encouragement`, `weekdayName`),
+  `SessionCSV` (`header`, `quoted`, `csv`).
+- **Side effects:** file reads/writes under `directory`, backups, `sessioni.corrotto-*` copies, observer callbacks,
+  `onProblem` messages; `shared` instance reads the real data directory at first use.
+
+#### `Profile.swift` (183)
+- **Responsibility:** `Profile` — name, intro-seen flag, unlocked companions, first companion; title strings; the
+  developer flag.
+- **Key members:** `clean`, `setName`, `markIntroSeen`, `isCompanionUnlocked` (true for everyone when
+  `isDeveloper`), `keepAllCompanions`, `chooseFirstCompanion`, `unlock`, `reset`, `gardenTitle`, `statsTitle`,
+  `addObserver`, `onProblem`, static `developerKey` / `isDeveloper`.
+- **Side effects:** reads in `init` (an unreadable file makes the profile read-only; a malformed one is moved to
+  `profilo.corrotto-<epoch>.json`), writes `profilo.json` on each change (a failure is reported once); `reset` deletes
+  the file.
+
+#### `CustomTimers.swift` (84)
+- **Responsibility:** `CustomTimers` (`all/custom/add/remove/isCustom`, built-in `[30, 50]` / `[5, 10]`, allowed
+  ranges `1…180` / `1…60`, at most 6 per kind) and `TimerDialMath` (`minutes(fraction:previous:maxMinutes:step:)`,
+  `filledFraction`).
+- **Side effects:** UserDefaults keys `customTimers.<kind>`.
+
+#### `BreakCycle.swift` (51)
+- **Responsibility:** `struct BreakCycle` (`focusCompleted(at:)`, `done(at:)`, `reset`), constants (4 focuses, 15 min,
+  2 h reset), static `isEnabled` (UserDefaults `longBreakEnabled`).
+
+#### `CompanionRewards.swift` (45)
+- **Responsibility:** pure functions: `focuses(totalSeconds:)`, `threshold(at:)`, `order(first:all:)`,
+  `earned(first:all:focuses:)`, `need(for:first:all:)`; thresholds `[0, 20, 50]`, then 50 more per position (the fourth
+  companion needs 100).
+
+### 5.8 `Sources/FocusFriends/` — sound
+
+#### `AmbientSound.swift` (100)
+- **Responsibility:** `AmbientSound` (`none, rain, brown, wind`, `next`, `symbolName`), `AmbientSettings` (defaults,
+  `clamp`, `load/save`, `nearestStep`, `volumeSteps [0.10, 0.25, 0.40, 0.60]`), `BackgroundChoice`
+  (`none, rain, wind, brown, music`, `current(ambient:music:)`, `ambientSound`).
+
+#### `AmbientPlayer.swift` (249)
+- **Responsibility:** `NoiseSynth` (private; per-sample synthesis of rain from pink-noise bed + shot noise bursts +
+  rare low "plops"; brown noise; wind with two LFOs) and `AmbientPlayer` (engine lifecycle, fades, preview, device
+  change restart; `onStartFailure` when the engine cannot start).
+- **Side effects:** `AVAudioEngine` start/pause; UserDefaults via `AmbientSettings.save`; calls
+  `MusicPlayer.shared.setSource(.off, preview: false)` when a sound is selected.
+
+#### `MusicLibrary.swift` (99)
+- **Responsibility:** `MusicSource`, `MusicLibrary` (`isAudio`, `tracks(in:)` recursive enumerator sorted with
+  `localizedStandardCompare`, `hasTracks(in:)` (first match), `shuffled(_:avoidingFirst:using:)`, `title(of:)`),
+  `MusicSettings` (load/save, label).
+
+#### `MusicPlayer.swift` (194)
+- **Responsibility:** `MusicPlayer` (`NSObject`, `AVAudioPlayerDelegate`) — source selection, queue, fades, preview.
+- **Key members:** `bundledTracks` (lists the resource directory for files starting `music_`), `folderTracks`
+  (cached by folder + modification date), `folderHasTracks`, `prepareFolderTracks()` (background queue),
+  `setSource/setVolume/setFocusActive`, `apply`, `playNext`, `stopNow`, `audioPlayerDidFinishPlaying`.
+- **Side effects:** `AVAudioPlayer` playback; UserDefaults writes; calls `AmbientPlayer.shared.setSound(.none)`.
+
+### 5.9 Tests, build and tools
+
+#### `tests/main.swift` (780) and `tests/run.sh` (7)
+- A single executable: `check(_:_:line:)`, `section(_:)`, 24 sections (284 checks) covering subjects, log persistence,
+  in-progress recovery, periods, summaries, streaks, texts, garden rules, format versions/migration, subject merging, backups and
+  delete-all, time zones, profile, ratings/notes/insights/CSV, timer dial math, seasons, ambient settings, music
+  library/settings, focus notes, paused-time recovery, companion rewards (including the developer flag), break cycle,
+  background choice, and damaged data (a partly corrupt file, an unreadable file, a malformed profile, a newer
+  version, failed writes). It exits non-zero on failure. Not covered by tests: `Pomodoro`, `Speaker`, `Walker`, all views, both audio engines.
+- `run.sh`: `swiftc -O -o build/tests/stats <7 sources> tests/main.swift && build/tests/stats`.
+
+#### `build.sh` (60)
+- Build and packaging described in §1.4 and §4.9. Side effects: deletes and recreates `build/FocusFriends.app`,
+  creates/removes `build/tmp`.
+
+#### `tools/*.py` (not run by the build)
+- `cutout_pianty.py` (323): loads 5 stage sheets, removes the white background by flood fill from the borders and
+  closed pockets, matches scale and terracotta colour to stage 5, generates 6 walking frames by shearing/lifting the two
+  leg images and tilting the body; writes `stage{S}_{F}.png`.
+- `cutout_porcellino.py` (171): cuts sheets (`original`, `eat_`, `sleep_`, `jump_`) into frames with per-sheet
+  ground modes (`bottom`, `rear`, `jump`) on a common canvas → `frame1..N.png`.
+- `cutout_ciccio.py` (182): cuts two 6-frame sheets, rescales the flap sheet to the walk sheet, anchors on the beak
+  and feet → `frame1..13.png`. (`head_width` is defined and not called.)
+- `cutout_gattino.py` (385): cuts the idle, walk, eat, sleep and groom sheets of the Gattino onto a common canvas.
+  Frames are aligned on the torso (eyes are not always both visible), brought to one height, and the idle drawing is
+  scaled to the walk; neighbouring cats whose whiskers touch are split by ink valley or by connected component, and
+  detached specks (the "z", drops) are removed. `--preview` writes a check sheet in `build/`.
+- `cutout_picked.py` (90), `cutout_garden.py` (169), `compose_porcellino_growth.py` (59), `cutout_bubble.py` (73),
+  `make_icon.py` (48): as listed in §2. All use relative paths from the repository root.
+
+### 5.10 Non-code files
+
+`README.md` (Italian user/developer documentation, includes a structure listing and per-feature rules),
+`CREDITS.md`, `LICENSE`, `.gitignore`, `assets/**` (artwork, phrase files, music), `docs/images/*.png` (README
+screenshots).
+
+---
+
+## 6. Design decisions
+
+Format: **Chosen** (what the code does), **Alternatives** (generic alternatives; the repository does not record that they
+were weighed), **Rationale** with its label. Sources for `[documented]` items are named.
+
+### 6.1 Platform and structure
+
+**D1. AppKit with custom drawing; no SwiftUI, no stock controls for the main UI.**
+- Chosen: `NSView.draw(_:)` with `NSBezierPath`; a generic private `CardButton` whose look is a closure; hand-drawn
+  slider/dial (`VolumeSlider`, `TimerDial`); `NSStackView`/Auto Layout only for the modal cards (`IntroCard`,
+  `SubjectPrompt`, `ReflectionCard`).
+- Alternatives: SwiftUI (available on the macOS 13 target), standard `NSButton`/`NSSlider` styles.
+- Rationale: visual consistency — **[documented]** `MenuCard.swift` ("Stesso linguaggio delle altre schede (carta,
+  inchiostro, pennarello)"), `PaperUI.swift` header ("elementi grafici in comune … carta color crema, inchiostro scuro e
+  il carattere «pennarello»"), `VolumeSlider` ("Disegnato a mano, come il resto"). The choice of AppKit over SwiftUI
+  itself is **[unknown]**; **[inferred]**: transparent borderless windows, child windows, global event monitors and
+  per-pixel placement are AppKit features used throughout.
+
+**D2. Menu-bar agent (no Dock icon) with a transparent always-on-top pet window.**
+- Chosen: `LSUIElement`, `.accessory` activation policy, `PetWindow` at `.floating` level in all Spaces.
+- Alternatives: a normal windowed app; a Dock-hosted app.
+- Rationale: **[documented]** `AppDelegate` ("Nessuna icona nel Dock, nessuna finestra «normale»"), `PetWindow`
+  doc comment, README "Cosa fa".
+
+**D3. Auxiliary UI as child windows of the pet window (bubble, clock, "+5" prompt).**
+- Chosen: `petWindow.addChildWindow(_:ordered:)`; `PetWindow.setFrameKeepingChildren` restores child offsets after
+  resizes.
+- Alternatives: independent windows repositioned from the pet's move notifications; one big transparent window.
+- Rationale: **[documented]** `Speaker.say` ("Figlia della finestra del personaggio: se lo trascini, il fumetto lo
+  segue"), `Pomodoro.reveal` ("è figlia del personaggio: così lo segue sempre"), `PetWindow.setFrameKeepingChildren`
+  (explains AppKit shifted children on parent resize), commit `e0025d9`.
+
+**D4. Single module, built with plain `swiftc` + `lipo`, no Xcode project / SwiftPM.**
+- Chosen: `build.sh`.
+- Alternatives: Xcode project, Swift Package.
+- Rationale: universal binary — **[documented]** `build.sh` comment ("così l'app gira anche su Mac Intel"). Not using
+  Xcode/SwiftPM: **[inferred]** (README requires only "gli strumenti da riga di comando di Xcode").
+
+**D5. Card UI fed by an immutable snapshot struct plus a bag of closures.**
+- Chosen: `MenuCardState` built by `MenuController.cardState()`; `MenuCardActions`.
+- Alternatives: the view reading models directly; delegate protocol; Combine/observation.
+- Rationale: **[documented]** doc comments ("la fotografia del momento, composta dal MenuController"; "Il
+  MenuController le collega a quello che già fa il menu"). Making `MenuCardView` testable/previewable by harness:
+  **[inferred]** (the `contentView` accessors say "per le anteprime").
+
+**D6. Rebuild the whole card on each interaction.**
+- Chosen: `MenuCardView.rebuild()` removes all subviews and reconstructs them from a fresh state.
+- Alternatives: incremental updates per control; data-binding.
+- Rationale: **[documented]** only the "what" ("Ricostruisce tutta la scheda dallo stato attuale (dopo un tocco, o
+  quando cambia fase del timer)"); the "why" is **[inferred]**: one code path for every state.
+
+### 6.2 Persistence
+
+**D7. Flat JSON files in Application Support; whole file rewritten on each change.**
+- Chosen: `sessioni.json`, `in-corso.json`, `profilo.json`; `JSONEncoder` pretty-printed with sorted keys.
+- Alternatives: SQLite/Core Data/SwiftData; `UserDefaults`.
+- Rationale: readability — **[documented]** README ("un file leggibile in …/sessioni.json"). Choice over a database:
+  **[inferred]** (small data, simple migration, easy export).
+
+**D8. Versioned format, migration with intact backup, read-only when newer.**
+- Chosen: `LogFile{version,sessions}`, `formatVersion = 3`, `backup/sessioni-formato<N>.json`, `isReadOnly`.
+- Rationale: **[documented]** README "Materia e statistiche" bullets and `SessionLog.load` comments ("tengo intatta la
+  copia di quello vecchio", "lo leggo ma non lo riscrivo (non perdo niente)"). Since the review, a file with only some
+  undecodable sessions keeps the readable ones and the original as a copy (`salvage`): **[documented]** `load` comment
+  ("Qualche sessione non si legge: tengo le altre, e il file com'era resta come copia").
+
+**D9. Daily backup (last 7) taken before the first change of the day; undecodable file moved aside.**
+- Rationale: **[documented]** README ("una al giorno, fatta prima della prima modifica … le ultime 7";
+  "sessioni.corrotto-….json").
+
+**D10. Wall-clock `localStart` string used for all grouping.**
+- Chosen: `StudySession.localStart` parsed by `startTime(in:)`.
+- Alternatives: store only `Date` and group in the current time zone.
+- Rationale: **[documented]** field comment ("Serve a non far cambiare giorno (o ora) a una sessione se poi cambia il
+  fuso orario o l'ora legale") and README.
+
+**D11. Crash recovery with a small progress file refreshed by a heartbeat.**
+- Chosen: `in-corso.json`, `heartbeat` at most every 30 s, recovery as an interrupted session.
+- Rationale: **[documented]** README ("un piccolo file in-corso.json si aggiorna ogni 30 secondi"). The 30 s value
+  itself: **[unknown]**.
+
+**D12. Subject names unified by case/diacritic-insensitive key; latest spelling wins.**
+- Rationale: **[documented]** README ("le materie si uniscono") and `Subject.key` doc comment.
+
+**D13. Profile (name, unlocks) in its own file; name is not written into sessions.**
+- Rationale: **[documented]** `Profile.swift` header ("Il nome NON è scritto nelle sessioni: i titoli si compongono al
+  momento di mostrarli, quindi cambiandolo cambia ovunque").
+
+**D14. Preferences as individual `UserDefaults` keys declared beside their types.**
+- Rationale: **[inferred]** (no central settings object exists; each enum owns its key).
+
+### 6.3 Timer and growth
+
+**D15. Pause = shift `endDate` forward on each tick and accumulate `pausedTotal`.**
+- Chosen: `Pomodoro.tick` (while paused) and `toggleFocusPause`; `activeElapsed`/`activeTotal` subtract `pausedTotal`.
+- Alternatives: store a `pausedAt` and compute remaining on demand; invalidate the ticker while paused.
+- Rationale: **[documented]** what — comments "(`endDate` si sposta insieme.)" and "Il tempo non scorre: la fine si
+  sposta in avanti insieme all'orologio". The same shift is applied to a gap longer than 10 s between two ticks during
+  a focus (the Mac slept): **[documented]** `Pomodoro.tick` comment (otherwise the sleep would be recorded as study). Why: **[inferred]** so that `remainingText`, `evaluateVisibility`, stage
+  progress and the expiry check keep working unchanged.
+
+**D16. A 10-second grace window with a "+5 minutes" prompt before the rest begins.**
+- Rationale: **[documented]** what — commit `e992024`, README "Pomofocus". Why: **[unknown]**.
+
+**D17. Clock window visible only during the first 2 minutes, the last 5, and on hover.**
+- Rationale: **[documented]** README "Pomofocus" and commit `4b5ec8d`; purpose (not distracting) is **[inferred]**
+  (README states the pet "parla più di rado, per non distrarti" for phrases).
+
+**D18. Clock "curtain" animates only the drawing, never the window frame.**
+- Rationale: **[documented]** `TimerView.reveal` comment ("animare la posizione o la dimensione della finestra lasciava
+  l'orologio indietro se il personaggio si muoveva nel frattempo").
+
+**D19. Live growth by fifths of the focus, kept separate from the garden's minute-based rule; stays at the final
+stage after any "+5".**
+- Rationale: **[documented]** README "Il giardino" (last paragraph) and `Pomodoro.updateStage` comment ("la pianta non
+  deve tornare indietro").
+
+**D20. Garden derived from the log on demand (no stored garden state); 50 minutes = one adult plant.**
+- Rationale: **[documented]** README ("Si ricava tutto dal registro: compare subito anche per i focus già fatti");
+  commit `b5a2e97` for the minute-based rule. Why minutes instead of per-focus plants: **[unknown]**.
+
+**D21. Long break counted by an in-memory `BreakCycle` struct, reset after 2 hours without a completed focus.**
+- Rationale: **[documented]** behaviour in README "Pomofocus → Pausa lunga". Not persisting the counter and the 2 h
+  value: **[inferred]** / **[unknown]** respectively.
+
+### 6.4 Sound and music
+
+**D22. Ambient sounds synthesised at runtime.**
+- Chosen: `NoiseSynth` (pink noise bed + noise bursts + "plops"; brown noise; low-passed wind with LFOs).
+- Alternatives: bundled audio loops.
+- Rationale: **[documented]** README ("generati dall'app in tempo reale … niente file, niente licenze, niente rete");
+  rain redesigned to avoid tonal pings — commit `d2a7ad1` and code comments ("niente toni puri").
+
+**D23. Render without allocation on the audio thread; parameters written by the main thread without locks.**
+- Rationale: **[documented]** `NoiseSynth` comments ("Gira sul thread audio: niente allocazioni"; "Scritto dal thread
+  principale, letto dal thread audio"). The absence of synchronisation is not discussed: **[unknown]**.
+
+**D24. Low default volumes (25 % ambient, 30 % music) and 2-second fades.**
+- Rationale: **[documented]** `AmbientSettings.defaultVolume` ("Basso di proposito: deve restare sotto la voce e la
+  musica"), `MusicSettings.defaultVolume` ("la musica deve restare un sottofondo"), README ("dissolvenza di 2 secondi").
+
+**D25. One background at a time, enforced by the two player singletons calling each other.**
+- Rationale: **[documented]** commit `75aff60` and README ("Un solo sottofondo alla volta"). The mutual-call mechanism
+  is **[inferred]**.
+
+**D26. Music from bundled CC0 tracks (converted to AAC 128 kbps) or from a user folder.**
+- Rationale: **[documented]** `CREDITS.md`, README "Musica".
+
+### 6.5 Companion behaviour and art
+
+**D27. Phrases drawn from a shuffled deck; user override file re-read at every phrase.**
+- Rationale: **[documented]** `PhraseDeck` header, `Speaker.sayRandom` comment ("Rilegge il file a ogni frase: le
+  modifiche si vedono subito, senza riavviare"), README "Frasi".
+
+**D28. Walker keeps a sub-point x position.**
+- Rationale: **[documented]** `Walker.exactX` comment (AppKit rounds window origins to whole points; summing 1.4 pt
+  steps would distort speed). Speed 42 pt/s coordinated with Pianty's step cycle: **[documented]**
+  `tools/cutout_pianty.py` comment ("Va con Walker: a 42 pt/s …").
+
+**D29. Pianty's walking frames generated procedurally from one still image per stage.**
+- Rationale: **[documented]** `tools/cutout_pianty.py` docstring and README ("la pianta è identica in tutti i
+  fotogrammi").
+
+**D30. Speech-bubble size chosen by scoring several wrap widths.**
+- Rationale: **[documented]** `BubbleView.size(for:)` doc comment.
+
+**D31. Subject colour from a stable additive hash.**
+- Rationale: **[documented]** `Paper.color(forSubject:)` comment ("Swift cambia l'hash delle stringhe a ogni avvio").
+
+**D32. Bundled artwork optional per pet for the garden (fallback to Pianty's plants).**
+- Rationale: **[documented]** `build.sh` comment ("opzionali: chi non ce l'ha usa le piantine di Pianty") and
+  `GardenView.image(forPet:stage:)`.
+
+### 6.6 Rules and reporting
+
+**D33. Companion unlocks computed from total studied minutes; the unlocked set is persisted and never re-locked;
+existing users keep everything that existed when they finished the intro.**
+- Rationale: **[documented]** `Profile` comments ("non si richiudono più, anche se poi si cancellano sessioni",
+  "non gli tolgo niente"), `CompanionRewards` header, README "Si sbloccano studiando". The threshold for the fourth
+  companion (100) comes from the existing "50 more for each" rule in `CompanionRewards.threshold(at:)`; whether 100 is
+  the right value for existing users, who therefore find the Gattino locked, is **[unknown]**.
+
+**D34. Insight sentences only with ≥ 8 rated focuses, ≥ 3 per group and ≥ 20 points gap.**
+- Rationale: **[documented]** README and `StudyStats.insights` comment ("meglio tacere che dire una cosa a caso").
+
+**D35. CSV text fields prefixed with `'` when starting with `=`, `+`, `-`, `@`, a tab or a carriage return.**
+- Rationale: **[documented]** `SessionCSV.quoted` comment and README.
+
+**D36. Ad-hoc signed, not notarised; the build fails if signing fails.**
+- Rationale: **[documented]** README ("non è firmata con un account sviluppatore Apple") and `build.sh` (error message
+  and `exit 1` on signing failure); the reason for not using a developer account is **[unknown]**.
+
+**D37. Classic `NSMenu` kept alongside the card.**
+- Rationale: **[documented]** what — `MenuController` comment ("Tasto destro o ⌥-clic sull'icona: il menu di
+  prima") and README. Why: **[unknown]**.
+
+**D38. Hand-written test executable instead of XCTest; only Foundation-only files are compiled into it.**
+- Rationale: **[documented]** the Foundation-only constraint ("Solo Foundation: così si può collaudare da solo" in
+  the header of `SessionLog.swift`; "si collauda da solo" in `AmbientSound.swift`, `Profile.swift`,
+  `MusicLibrary.swift`). Using a custom harness instead of XCTest: **[inferred]**.
+
+**D39. UI strings hard-coded in Italian, no localisation tables.**
+- Rationale: **[inferred]** (no `Localizable.strings` exists; README is Italian).
+
+**D40. A developer flag in `UserDefaults` instead of a menu item or a build setting.**
+- Chosen: `Profile.isDeveloper` reads `developerMode`; it is set with `defaults write com.jacopo.focusfriends
+  developerMode -bool true` and is not shown in the app.
+- Alternatives: a hidden menu entry; a separate build configuration; editing `profilo.json`.
+- Rationale: **[documented]** README ("Chi sviluppa può avere tutti i compagni subito, senza toccare il profilo"). Why
+  not a menu entry: **[inferred]** (it would be a bypass visible to every user).
+
+**D41. Walk frames of the Gattino aligned on the torso, not the eyes; heights equalised.**
+- Rationale: **[documented]** commit `3b13541` ("in alcuni se ne vedeva uno solo e il gatto saltava"; the second row of
+  the sheet was drawn about 3 % larger). A later attempt with an 8-frame sheet was not adopted; the repository does not
+  record why: **[unknown]**.
+
+---
+
+## 7. Review notes for the next AI
+
+Neutral observations only. Each item names the file and function. Cost statements describe what the code does and
+why it may be expensive; none of them was measured (the app was not run for this document), so magnitudes are
+**[uncertain]** unless stated. Data sizes are expected to be small (sessions are appended a few times per day).
+
+Items that were present in the first snapshot (`2043b39`) and have been changed since are marked **Resolved** with the
+review finding that covered them (`ARCHITECTURE_REVIEW.md`, §7 "Resolution"); they are kept so that the history of the
+code is clear. Items without a mark still describe the current code.
+
+### 7.1 Potential performance hotspots
+
+1. **Per-second full state recomputation while the card is open — Resolved (F-02).** The 1 s refresh now reads
+   `MenuCardLiveState` through `MenuController.cardLiveState()` (`phase`, `isPaused`, `remaining`, `focusProgress`).
+   The full `MenuController.cardState()` is still built on every `rebuild()` (each interaction and each phase change):
+   `StudyStats.summary` for today, `StudyStats.streak`, `companionLocks()` → `totalFocuses()` (reduces all sessions),
+   a linear search for `lastSession`, `Pomodoro.phaseRangeText` (creates a `DateFormatter`), four `CustomTimers` reads.
+2. **`StudyStats.summary` repeats `StudySession.startTime(in:)` many times.** `startTime` parses the 16-character
+   `localStart` string every call (`Array(text)`, five `Int(String(...))`, `calendar.date(from:)`). `summary` calls it
+   in the period filter (n), in two sorts (≈ 2·n·log n each), and, for each bucket (24 for a day, 7 for a week, up to 31
+   for a month), in a filter over all in-period sessions (buckets × n). No cache was added (review F-02, option not taken).
+3. **`GardenView.reload()` computed each day's plants twice — Resolved (F-11).** The log is grouped by day once
+   (`dayItems`, `dayPlants`) and `sessions(on:)` / `plants(on:)` are dictionary lookups.
+4. **Hidden windows recomputed on every log change — Resolved (F-11).** The `DashboardView` and `GardenView` observers
+   return early while their window is not visible and not miniaturised; `show`/`select` reload on reopening. The
+   observers are still never unregistered and the controllers keep the views alive.
+5. **`DiaryView.layoutEntries`** (week/month): for each new day header it filters all sessions again
+   (`sessions.filter { startOfDay(...) == day }`), days × n.
+6. **`DateFormatter` creation per call.** `DashboardView.formatted(_:_:)` and `GardenView.formatted(_:_:)` create a
+   formatter each time; they are called for every weekday label in `DashboardView.drawMiniChart` (each redraw), for
+   `periodTitle` in every `draw`, and per bed in `GardenView.layoutWeek`. `Pomodoro.phaseRangeText` does the same.
+7. **Garden scene caching is described as "once per kind and season".** `GardenView.scene(for:season:)` stores an
+   `NSImage(size:flipped:drawingHandler:)` in `sceneCache`. Whether AppKit re-invokes the handler on every draw of such
+   an image (rather than caching a bitmap) was not verified. **[uncertain]** If it does, `drawScene` (≈ 177 lines,
+   ~220 stroked blades, flowers, leaves, snow) runs on each `GardenView.draw`.
+8. **Whole-file rewrite and decode per change.** `SessionLog.save()` encodes all sessions and writes the file atomically
+   on each add/edit; `SessionLog.heartbeat` (≥ 30 s), `beginInProgress`, `updateInProgressPause`,
+   `updateInProgressNotes` each `readProgress()` (disk read + JSON decode) before `writeProgress`.
+9. **Image loading and pixel scan at (re)configuration.** `PetView.configure(for:)` loads every stage image
+   (35 for Pianty, 23 for the Gattino) with `NSImage(contentsOf:)` and `opaqueTopFraction` creates an `NSBitmapImageRep`
+   and scans pixels per image. Runs at launch and at each `PetWindow.apply(_:)`.
+10. **Always-on 30 Hz `Walker.tick` — Resolved for the idle case (F-10).** The timer drops to 1 s (tolerance 0.25 s)
+    while the pet is hidden, not walking or movement is off. While walking, each tick still reads
+    `NSEvent.pressedMouseButtons` / `NSEvent.mouseLocation` and may call `setFrameOrigin`, and with the card open beside
+    the pet every step posts `NSWindow.didMoveNotification` → `MenuCard.reposition()` up to 30 times per second.
+11. **Interaction-driven rebuilds.** `TimerDial.onChange` → `MenuCardView.rebuild()` on every dial step during a drag;
+    each rebuild also calls `provide()` (item 1) and `MenuController.menuIcon(for:height: 160)` (disk load + new
+    cropped `NSImage`) via `addAvatar`.
+12. **`UserDefaults` writes per slider event.** `VolumeSlider.onChange` (fires when the value moves > 0.005) →
+    `AmbientPlayer.setVolume` (`AmbientSettings.save`: 2 writes) or `MusicPlayer.setVolume` (`save()`: 3 writes) and
+    `apply(...)`.
+13. **Directory listing on property access — Resolved for the user folder (F-05).** `MusicPlayer.folderTracks` is cached
+    by folder and modification date and prepared on a background queue; `MusicLibrary.hasTracks(in:)` stops at the first
+    match. `MusicPlayer.bundledTracks` still lists the bundle's `Resources` directory on each access
+    (`menuNeedsUpdate`, `setBackground`, `cycleMusic`, `currentTracks`). The recursive scan has no depth or count limit.
+14. **File read per phrase.** `Speaker.sayRandom` → `Quotes.load(for:)` reads and parses up to three text files each
+    time a phrase is spoken (documented as intentional).
+15. **`PhraseDeck.draw` rebuilds sets per call** (`Array(Set(phrases))`, `filter`, set subtraction). Phrase lists are
+    small (bundled files).
+
+### 7.2 Duplicated logic
+
+- `SessionLog.swift`: `SessionNote.clean(_:)` and `FocusNotes.clean(_:)` have the same algorithm (split on whitespace,
+  strip control characters, join, truncate); only `maxLength` differs. `Subject.clean` and `Profile.clean` follow the
+  same split/join pattern with slightly different control-character handling.
+- `DashboardWindow.swift` / `GardenWindow.swift`: `formatted(_:_:)` is identical in `DashboardView` and `GardenView`;
+  the `text(_:at:font:color:alignment:)` drawing helper exists in `DashboardView`, `DiaryView` and `GardenView`, and as
+  `MenuCardView.text(_:in:font:color:alignment:)`.
+- `MenuCard.swift`: private `MenuCardView.symbol(_:size:color:)` duplicates `Paper.symbolImage(_:size:color:)`
+  (`PaperUI.swift`).
+- Circular avatar drawing (clip circle, scale 1.12, `iconFocus` centring) appears in `MenuCardView.addAvatar`,
+  `MenuHeaderView.draw` and `CompanionButton.draw`.
+- `MenuHeader.swift` declares its own `paper`, `paperEdge` (alpha 0.40), `ink`, `inkLight` constants while `Paper`
+  (`PaperUI.swift`) has the same colours (`paperEdge` alpha 0.45).
+- `IntroCard.ask`, `SubjectPrompt.ask`, `ReflectionCard.ask` each build a `KeyablePanel` with the same property list
+  and an `NSStackView` card with custom spacing.
+- `StudyPeriod.containing` and `StudyPeriod.shifted(by:)` contain the same `PeriodKind → Calendar.Component` switch.
+- Two constants for "50 minutes": `GardenRules.minutesPerPlant` and `CompanionRewards.minutesPerFocus`;
+  `CompanionRewards.threshold(at:)` also uses a literal `50`; the dial default (`MenuCardView.dialMinutes = 50`) and
+  `addDurations` use literals 30/50.
+- The "Application Support/FocusFriends" path — **Resolved (F-16, partly)**: `Quotes.userDirectory` now returns
+  `SessionLog.defaultDirectory`. `Quotes.support` remains for the legacy `Bonsy` directory. The `UserDefaults` keys are
+  still not in a registry (§7.6).
+- `Pomodoro.updateStage` computes the same progress expression in two branches; `addMinutes` and `extendFocus` repeat
+  the same sequence (`extensions`, `plannedFocusMinutes`, `endDate`, `log.beginInProgress`, `updateStage`,
+  `evaluateVisibility`).
+- `MenuController.setChattiness(_:)` and `cycleChattiness()` repeat the same four calls.
+- `SessionLog` and `Profile` each contain the same `onProblem` / pending-message / `report` code (added with F-03/F-04).
+- `tools/*.py`: `flood`, `dilate`, background/halo removal and soft-edge alpha code are repeated across
+  `cutout_pianty.py`, `cutout_ciccio.py`, `cutout_garden.py`, `cutout_porcellino.py`, `cutout_picked.py`,
+  `cutout_gattino.py` (`flood` also in `cutout_bubble.py`).
+
+### 7.3 Dead or unused code (callers searched in `Sources/` and `tests/`)
+
+- `Walker.stop()` — no callers.
+- `PetWindow.headTopY` — no callers.
+- `CustomTimers.isCustom(_:kind:)` — no callers.
+- `MusicPlayer.currentTitle` — assigned in `playNext`/`stopNow`, never read; as a result `MusicLibrary.title(of:)` is
+  only used to fill that property.
+- `MenuCardView.statusLabel` — assigned in `rebuild()`, never read or updated.
+- `StudyStats.dayLine`, `Season.title` — referenced only from `tests/main.swift`.
+- `Profile.addObserver` — only referenced from `tests/main.swift`; `save()`/`reset()` call observers but none is
+  registered by app code.
+- `ExtendPrompt.contentView`, `IntroCard.contentView`, `ReflectionCard.contentView`, `MenuCard.contentView`
+  (documented "per le anteprime") and `isShowing` on `ExtendPrompt`, `IntroCard`, `SubjectPrompt`, `ReflectionCard` —
+  no callers inside the repository.
+- No-op statements: `_ = hovered` in `MenuCardView.addRunning` and `buildTimers`; `_ = self` in the
+  `setBackgroundVolume` closure of `MenuController.cardActions()`.
+- `tools/cutout_ciccio.py`: `head_width(frame)` is defined and not called; `tools/cutout_porcellino.py`:
+  `HEADROOM = 0`.
+- `SessionLog.hasUnsavedChanges` — set by `save()`; only `tests/main.swift` reads it (no UI uses it yet).
+
+### 7.4 Unusually long or complex functions (approximate line counts)
+
+- `MenuCardView.rebuild()` (`MenuCard.swift`) ≈ 155 lines: dispatches to page builders and also builds the whole main
+  page inline (tiles, buttons, six option rows, footer).
+- `MenuCardView.buildTimers(_:)` ≈ 192 lines: header, segmented control, dial, save/remove link, chip wrapping, start
+  button, stop link.
+- `GardenView.drawScene(kind:season:in:)` ≈ 177 lines and `GardenView.draw(_:)` ≈ 128 lines.
+- `SubjectPrompt.ask` ≈ 145, `ReflectionCard.ask` ≈ 124, `IntroCard.ask` ≈ 112 lines (view construction + window
+  setup + positioning in one method).
+- `MenuController.init` ≈ 122 lines and `menuNeedsUpdate` ≈ 84 lines; `MenuController` as a whole (938 lines) combines
+  menu construction, card state composition, music/ambient selection, reward evaluation, alerts, login item and file
+  opening.
+- `Pomodoro` (598 lines) combines: countdown state machine, grace period, pause accounting, long-break cycle,
+  recording to the log, pet-stage updates, clock window visibility/animation, pet window raising/lowering, speech
+  text.
+- `SessionLog.load()` ≈ 70 lines with six branches (missing, unreadable, wrapped, bare array, salvage, corrupt).
+- `PetView` (`PetWindow.swift`) combines image/stage cross-fade, growth-image geometry, mirrored drawing, Zzz drawing,
+  pick-up drawing/wobble, mouse handling and context-menu handling.
+- `NoiseSynth.render` ≈ 74 lines: one per-sample loop with a `switch` holding three separate filter chains and ~25
+  state variables.
+- `StudyStats.insights` ≈ 59 lines with a nested generic `evaluate` closure taking four closures.
+- `DashboardView.edit(_:)` ≈ 69 lines of manual frame layout inside an `NSAlert` accessory view.
+
+### 7.5 Missing or weak error handling
+
+- **Resolved (F-03, F-04, F-09, F-13):** `SessionLog.save()`, `writeProgress` and `makeDailyBackupIfNeeded` report
+  failures once through `onProblem`; `load()` keeps the readable sessions of a partly damaged file and no longer treats an
+  unreadable file as absent; `Profile.init` sets aside a malformed `profilo.json` and does not overwrite an unreadable
+  one; `recoverInterrupted()` keeps `in-corso.json` when the log is read-only; `MenuController.openQuotesFile`,
+  `DashboardView.exportCSV` and `AmbientPlayer.startEngine()` surface failures.
+- **Resolved (F-08):** `ReflectionCard.close(save:rating:)` keeps an existing rating when only a note is saved.
+- `SessionLog.save()` still notifies observers after a failed write (the views show the in-memory state, which did
+  change); the review text had suggested not notifying.
+- `MusicPlayer.playNext` skips unreadable files and ends silently if none can be played.
+- `PetView.configure(for:)` uses `compactMap` over image loads; a missing PNG shortens `images`, while
+  `Pet.stageCount`/`finalStage` are computed from the resource list. Growth images are guarded (all-or-none);
+  main images are not. **[uncertain]** consequences.
+- Force unwraps: `CustomTimers.allowed[kind]!` (`custom`, `add`), `NSGradient(colors:)!` (`TimerView`),
+  `best!.score` (`BubbleView.size(for:)`), `exactX!` (`Walker.walk`).
+- Thread safety: `NoiseSynth.kind/targetGain/fadeSeconds` are written on the main thread and read on the audio render
+  thread without a lock or atomic (review F-12, not changed). **[uncertain]** practical effect (Float/Int32 loads).
+
+### 7.6 Tight coupling and structure
+
+- Direct use of singletons from UI and logic: `SessionLog.shared` (Pomodoro default, MenuController, Dashboard,
+  Garden controllers), `Profile.shared` (AppDelegate, MenuController, DashboardView), `AmbientPlayer.shared` and
+  `MusicPlayer.shared` (AppDelegate, MenuController).
+- `AmbientPlayer.setSound` calls `MusicPlayer.shared.setSource`, and `MusicPlayer.setSource` calls
+  `AmbientPlayer.shared.setSound`; `MusicPlayer.init` also reads `AmbientSettings`. The exclusivity rule lives in both
+  classes plus `BackgroundChoice`/`MenuController.setBackground`.
+- `Pomodoro` creates and owns `TimerWindow` and `ExtendPrompt`, mutates `PetWindow` frame (`ensureRoomBelowPet`,
+  `restorePetHeight`), calls `Speaker.say` with Italian strings, and calls `SessionLog`, `GardenRules`, `StudyStats`
+  (review F-06 proposes extracting a timer state machine; not done).
+- `MenuController` contains business rules (`evaluateCompanionRewards`, `companionLocks`, `setBackground`,
+  `confirmDiscard`) in addition to menu code; `AppDelegate`'s `onFocusRecorded` closure calls
+  `menu?.evaluateCompanionRewards`.
+- `MenuCardView` references `Pomodoro.Phase`, `Pomodoro.extensionMinutes`, `BreakCycle.focusesPerCycle`,
+  `BackgroundChoice`, `AmbientSound`, `MusicSource`, `CustomTimers`, `StudyStats.duration` and the static
+  `MenuController.menuIcon`; `IntroCard.CompanionButton` also calls `MenuController.menuIcon`.
+- `TimerView.drawScreen` reads `BubbleView.image` with a hard-coded source rectangle in image pixels.
+- `DashboardView.deleteEverything` deletes sessions (`SessionLog.deleteAll`) and resets `Profile.shared` from inside
+  the view.
+- `UserDefaults` keys are declared in 10 types (`Pet`, `Chattiness`, `Walker`, `ReflectionCard`, `BreakCycle`,
+  `AmbientSettings`, `MusicSettings`, `CustomTimers`, `Migration`, `Profile`) with no shared registry; data-directory
+  file names are string literals in `SessionLog`, `Profile` and (phrase files) `Pet`.
+- `Walker` depends on `Speaker.isSpeaking` and on global `NSEvent` state; it does not know about the card, which
+  therefore follows a pet that continues to walk.
+- A new companion needs edits in more places than the README's "Aggiungere o cambiare un personaggio" suggests:
+  `Pet.swift`, `build.sh` (frames, picked drawing and phrase file are copied by name), and the pickers, which had to
+  be adapted for a fourth entry (`IntroCard` width, `MenuCardView.addCompanions` wrapping).
+
+### 7.7 Documentation and code discrepancies
+
+- **Resolved (F-15):** the README now says the card opens through right-click / control-click on the pet, shows
+  `"version": 3` in the data example, and `Pomodoro.secondsPerMinute`'s comment no longer mentions tests.
+- The "Struttura" code block in `README.md` lists 27 of the 33 source files (not listed: `Chattiness.swift`,
+  `CustomTimers.swift`, `ExtendPrompt.swift`, `MenuHeader.swift`, `Migration.swift`, `PhraseDeck.swift`).
+- `README.md` states "nessuna rete, nessun invio"; the code contains no network use (§1.3). The README also gives a
+  `shasum` instruction for verifying the download; the SHA-256 is in the release notes, not in the repository.
+
+### 7.8 Test coverage as it exists
+
+- Covered (24 sections, 284 checks in `tests/main.swift`): everything in the Foundation-only files listed in §4.1,
+  including the new damaged-data cases and the developer flag.
+- Not covered by any automated test in the repository: `Pomodoro` (timer, pause, grace, the sleep-gap rule, cycle
+  wiring), `Speaker`, `Walker`, `PetWindow`/`PetView`, `MenuController`, all views and panels,
+  `AmbientPlayer`/`NoiseSynth`, `MusicPlayer` (including the folder cache), `Quotes`, `PhraseDeck`, `Chattiness`,
+  `Migration`, `Pet` stage arithmetic, `tools/*.py`.
+- `tests/run.sh` and `tests/main.swift` are not wired to CI configuration (no CI files exist in the repository).
+
+### 7.9 Findings of `ARCHITECTURE_REVIEW.md` that were not changed
+
+- **F-06** extract the timer state machine and a background-sound coordinator (`Pomodoro`, `MenuController`): a
+  refactoring touching many files.
+- **F-07** unit tests for `Pomodoro` and a CI configuration: depends on F-06; CI would add a configuration file.
+- **F-12** atomics or another synchronisation for the audio synthesiser parameters: options need a dependency, a newer
+  macOS, a deprecated API or a lock on the audio thread.
+- **F-16** a central paths type and a preferences registry: only the user phrase directory was unified.
+- **F-14 (rest)** notarisation, hardened runtime and sandbox were not touched.
+- **F-05 (rest)** no depth or count limit on the recursive scan of the user music folder.
