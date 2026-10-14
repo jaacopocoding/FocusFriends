@@ -103,9 +103,15 @@ final class Profile {
 
     // MARK: - I compagni sbloccati
 
+    /// Modalità sviluppatore: tutti i compagni sono sempre sbloccati, senza toccare il profilo. Non c'è niente nel
+    /// menu: si accende da Terminale con `defaults write com.jacopo.focusfriends developerMode -bool true`
+    /// (e si spegne con `-bool false`, o con `defaults delete`).
+    static let developerKey = "developerMode"
+    static var isDeveloper: Bool { UserDefaults.standard.bool(forKey: developerKey) }
+
     /// Il compagno è usabile? Se non è mai stato deciso niente, sì (non si toglie nulla a chi usava già l'app).
     func isCompanionUnlocked(_ id: String) -> Bool {
-        unlocked?.contains(id) ?? true
+        Self.isDeveloper || (unlocked?.contains(id) ?? true)
     }
 
     /// Chi usava già l'app (la presentazione è già stata vista) li tiene tutti: non gli tolgo niente.

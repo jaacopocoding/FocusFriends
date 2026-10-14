@@ -786,7 +786,8 @@ final class MenuController: NSObject, NSMenuDelegate {
     /// Dopo un focus (o all'avvio): sblocca i compagni guadagnati e, se è la prima volta, li annuncia.
     func evaluateCompanionRewards(announce: Bool) {
         let profile = Profile.shared
-        guard let current = profile.unlocked else { return }
+        // In modalità sviluppatore è tutto già aperto: niente sblocchi da annunciare (e niente da registrare).
+        guard !Profile.isDeveloper, let current = profile.unlocked else { return }
         let ids = Pet.all.map(\.id)
         let earned = CompanionRewards.earned(first: profile.firstCompanion, all: ids, focuses: totalFocuses())
         let fresh = CompanionRewards.order(first: profile.firstCompanion, all: ids).filter { earned.contains($0) && !current.contains($0) }

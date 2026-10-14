@@ -32,6 +32,9 @@ focus: ne hai 12»); quando arriva il momento, a fine focus il personaggio lo an
 Le regole sono in `CompanionRewards.swift` (solo Foundation, con prove). *Cancella tutto…* rifà la presentazione,
 e quindi anche la scelta del primo compagno.
 
+Chi sviluppa può avere tutti i compagni subito, senza toccare il profilo: da Terminale
+`defaults write com.jacopo.focusfriends developerMode -bool true` (e `-bool false` per spegnerlo).
+
 Durante un focus ognuno ha il suo modo di crescere con te: Pianty da seme a pianta, Ciccio da uovo a cocorita
 nel suo nido, il Porcellino guarda crescere una carota e, se finisci il focus, la mangia.
 
