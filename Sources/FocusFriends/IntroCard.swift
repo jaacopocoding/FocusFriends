@@ -58,7 +58,11 @@ final class CompanionButton: NSButton {
 
 /// La scheda di introduzione, alla prima apertura: come ti chiami e chi ti fa compagnia.
 final class IntroCard: NSObject {
-    private static let width: CGFloat = 420
+    /// 420, o di più se i bottoni dei compagni (92 l'uno, 14 di spazio, 28 di margine per lato) non ci stanno.
+    private static let width: CGFloat = {
+        let count = CGFloat(Pet.all.count)
+        return max(420, count * 92 + (count - 1) * 14 + 56)
+    }()
 
     private var panel: KeyablePanel?
     private var field: NSTextField?

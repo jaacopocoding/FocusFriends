@@ -308,7 +308,7 @@ private final class MenuCardView: NSView {
                             frame: NSRect(x: pad, y: y, width: inner, height: 16))
         y += 24
 
-        // I compagni: tre nomi, quello scelto sottolineato.
+        // I compagni: i nomi, quello scelto sottolineato.
         y = addCompanions(s, y: y)
         if !s.companionLocks.isEmpty {
             // Il prossimo da sbloccare (quello che richiede meno), o il compagno bloccato appena toccato.
@@ -435,46 +435,60 @@ private final class MenuCardView: NSView {
         let widths = s.allPets.map {
             ceil(($0.name as NSString).size(withAttributes: [.font: font]).width) + 8 + (s.companionLocks[$0.id] != nil ? lockWidth : 0)
         }
-        let total = widths.reduce(0, +) + separator * CGFloat(max(widths.count - 1, 0))
-        var x = (Self.width - total) / 2
-        for (i, pet) in s.allPets.enumerated() {
-            let selected = pet.id == s.pet.id
-            let lock = s.companionLocks[pet.id]
-            let frame = NSRect(x: x, y: y, width: widths[i], height: 20)
-            add(frame, label: lock.map { "\(pet.name), bloccato: \($0)" } ?? "Compagno: \(pet.name)", { [weak self] in
-                if let lock {
-                    self?.lockHint = "\(pet.name) \(lock)"
-                } else {
-                    self?.lockHint = nil
-                    self?.actions.selectPet(pet)
-                }
-                self?.rebuild()
-            }) { rect, pressed, hovered in
-                var textX = rect.minX + 4
-                if lock != nil {
-                    Self.drawSymbol("lock.fill", size: 10, color: Paper.inkLight.withAlphaComponent(0.7),
-                                    centeredIn: NSRect(x: rect.minX + 2, y: rect.minY, width: 10, height: 17))
-                    textX += lockWidth
-                }
-                let color: NSColor = lock != nil ? Paper.inkLight.withAlphaComponent(hovered || pressed ? 0.9 : 0.6)
-                    : (selected || hovered || pressed ? Paper.ink : Paper.inkLight)
-                Self.text(pet.name, in: NSRect(x: textX, y: rect.minY, width: rect.width - (textX - rect.minX), height: 17),
-                          font: font, color: color)
-                if selected {
-                    Paper.accent.setFill()
-                    NSBezierPath(roundedRect: NSRect(x: rect.minX + 4, y: rect.maxY - 3, width: rect.width - 8, height: 2.5),
-                                 xRadius: 1.2, yRadius: 1.2).fill()
-                }
-            }
-            x += widths[i]
-            if i < s.allPets.count - 1 {
-                let dot = label("·", font: NSFont.systemFont(ofSize: 13), color: Paper.inkLight,
-                                frame: NSRect(x: x, y: y, width: separator, height: 17))
-                dot.alignment = .center
-                x += separator
-            }
+        func lineWidth(_ range: Range<Int>) -> CGFloat {
+            widths[range].reduce(0, +) + separator * CGFloat(max(range.count - 1, 0))
         }
-        return y + 20
+        // Una riga sola se ci stanno tutti; altrimenti due righe, con lo stesso numero di nomi.
+        let available = Self.width - 2 * Self.pad
+        let count = s.allPets.count
+        let perLine = lineWidth(0..<count) <= available ? max(count, 1) : (count + 1) / 2
+        var rowY = y
+        var start = 0
+        while start < count {
+            let end = min(start + perLine, count)
+            var x = (Self.width - lineWidth(start..<end)) / 2
+            for i in start..<end {
+                let pet = s.allPets[i]
+                let selected = pet.id == s.pet.id
+                let lock = s.companionLocks[pet.id]
+                let frame = NSRect(x: x, y: rowY, width: widths[i], height: 20)
+                add(frame, label: lock.map { "\(pet.name), bloccato: \($0)" } ?? "Compagno: \(pet.name)", { [weak self] in
+                    if let lock {
+                        self?.lockHint = "\(pet.name) \(lock)"
+                    } else {
+                        self?.lockHint = nil
+                        self?.actions.selectPet(pet)
+                    }
+                    self?.rebuild()
+                }) { rect, pressed, hovered in
+                    var textX = rect.minX + 4
+                    if lock != nil {
+                        Self.drawSymbol("lock.fill", size: 10, color: Paper.inkLight.withAlphaComponent(0.7),
+                                        centeredIn: NSRect(x: rect.minX + 2, y: rect.minY, width: 10, height: 17))
+                        textX += lockWidth
+                    }
+                    let color: NSColor = lock != nil ? Paper.inkLight.withAlphaComponent(hovered || pressed ? 0.9 : 0.6)
+                        : (selected || hovered || pressed ? Paper.ink : Paper.inkLight)
+                    Self.text(pet.name, in: NSRect(x: textX, y: rect.minY, width: rect.width - (textX - rect.minX), height: 17),
+                              font: font, color: color)
+                    if selected {
+                        Paper.accent.setFill()
+                        NSBezierPath(roundedRect: NSRect(x: rect.minX + 4, y: rect.maxY - 3, width: rect.width - 8, height: 2.5),
+                                     xRadius: 1.2, yRadius: 1.2).fill()
+                    }
+                }
+                x += widths[i]
+                if i < end - 1 {
+                    let dot = label("·", font: NSFont.systemFont(ofSize: 13), color: Paper.inkLight,
+                                    frame: NSRect(x: x, y: rowY, width: separator, height: 17))
+                    dot.alignment = .center
+                    x += separator
+                }
+            }
+            start = end
+            rowY += start < count ? 24 : 20
+        }
+        return rowY
     }
 
     private func addDurations(_ s: MenuCardState, y: CGFloat) -> CGFloat {

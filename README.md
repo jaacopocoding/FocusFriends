@@ -19,11 +19,12 @@
   del focus passa, diventa una pianta adulta) e cammina per lo schermo. È il personaggio di partenza.
 - **Porcellino**, una cavia che cammina per lo schermo, mangia la carota, fa i pisolini e saltella, con frasi sue.
 - **Ciccio**, una cocorita che cammina e ogni tanto sbatte le ali, con frasi sue.
+- **Gattino**, un gatto soriano che cammina per lo schermo, mangia un pesce, dorme e ogni tanto si lecca la zampa, con frasi sue.
 
 ### Si sbloccano studiando
 
-Alla prima apertura scegli il tuo compagno, ed è libero. Gli altri due si guadagnano studiando: il **secondo a 20
-focus** e il **terzo a 50**, dove un «focus» sono 50 minuti di studio (come una pianta adulta del giardino: contano
+Alla prima apertura scegli il tuo compagno, ed è libero. Gli altri si guadagnano studiando: il **secondo a 20
+focus**, il **terzo a 50** e il **quarto a 100**, dove un «focus» sono 50 minuti di studio (come una pianta adulta del giardino: contano
 tutti i minuti, anche quelli dei focus interrotti, e un timer da 5 minuti non sblocca niente più in fretta). Nella
 scheda del menu i compagni ancora bloccati hanno un lucchetto e la frase di quanto manca («Porcellino si sblocca a 20
 focus: ne hai 12»); quando arriva il momento, a fine focus il personaggio lo annuncia. Lo sblocco si ricorda
@@ -197,7 +198,7 @@ fatto, **Com'è andata?** con le tre facce per l'ultimo focus, più i collegamen
 ## Il tuo nome e il compagno
 
 La prima volta che si apre l'app (anche per chi la usava già) compare la scheda di introduzione
-(`IntroCard.swift`): **come ti chiami** e **chi ti fa compagnia** (Pianty, Porcellino o Ciccio). Entrambi sono
+(`IntroCard.swift`): **come ti chiami** e **chi ti fa compagnia** (Pianty, Porcellino, Ciccio o il Gattino). Entrambi sono
 facoltativi: *Salta* o Esc lasciano tutto com'è. Il nome personalizza i **titoli**: il giardino diventa
 «Il giardino di Marco» e le statistiche «Le statistiche di Marco» (nelle voci di menu e nei titoli delle finestre).
 Senza nome restano «Il mio giardino» e «Statistiche e riepilogo». Si cambia in ogni momento da *Il tuo nome…* nel
@@ -329,7 +330,7 @@ pausa e quando non c'è nessun timer resta allo stadio finale.
 
 ## Personaggi che camminano
 
-Pianty, il Porcellino e Ciccio camminano per lo schermo: fanno qualche passo in una direzione
+Pianty, il Porcellino, Ciccio e il Gattino camminano per lo schermo: fanno qualche passo in una direzione
 (3–8 secondi, 42 punti al secondo), si fermano 4–10 secondi, poi ripartono, rimbalzando ai bordi.
 Stanno fermi mentre parlano o mentre li trascini col mouse. Camminano solo in orizzontale, all'altezza
 a cui si trovano. Dal menu *Movimento ▸ Fermo* smettono di camminare e restano dove sono; *In movimento*
@@ -339,6 +340,11 @@ vanno a sinistra.
 Ciccio, la cocorita, ha 6 fotogrammi di camminata e 6 di battito d'ali. Le ali le sbatte sul posto, ogni tanto e in momenti
 casuali, nello stesso modo in cui il porcellino fa il popcorning (stessa probabilità e durata); non mangia e non dorme. Usa le
 frasi sue (`assets/frasi_ciccio.txt`).
+
+Il Gattino ha un disegno da fermo, 6 fotogrammi di camminata, 5 di quando mangia il pesce, 6 di sonno (con gli «Zzz»
+disegnati dall'app, come per il porcellino) e 5 di quando si lecca la zampa, che usano lo stesso meccanismo del battito
+d'ali di Ciccio (`popcornFrames`). Parla con le frasi di `assets/frasi_gattino.txt`. Durante un focus cammina come
+sempre e il giardino usa le piantine di Pianty.
 
 **Ciccio durante un focus** sta fermo e prende il posto del suo nido (`focusGrowthResources` in `Pet.swift`,
 le stesse immagini della sua collezione del giardino): parte dall'uovo e, con il tempo, passa al guscio
@@ -374,7 +380,7 @@ schermo, si ferma a fare una di queste cose (dopo ogni pausa tra due camminate s
 
 Dopo una sosta riparte sempre a camminare. Non dipendono dal Pomofocus. Quando lo trascini col mouse compare un disegno in cui
 viene sollevato da due mani, spaventato (con un leggero tremolio); lasciandolo, torna in piedi dove si trova. Vale per il
-Porcellino, per Pianty (che lo mostra allo stadio finale, con la pianta adulta) e per Ciccio.
+Porcellino, per Pianty (che lo mostra allo stadio finale, con la pianta adulta), per Ciccio e per il Gattino.
 
 ## Compilare dai sorgenti
 
@@ -418,10 +424,10 @@ ambiente (pioggia, vento…) e viceversa. Il codice è in `MusicPlayer.swift` (r
 ## Frasi
 
 Le frasi di partenza sono in `assets/frasi_pianty.txt` (Pianty), `assets/frasi_porcellino.txt`
-(Porcellino) e `assets/frasi_ciccio.txt` (Ciccio), una per riga
+(Porcellino), `assets/frasi_ciccio.txt` (Ciccio) e `assets/frasi_gattino.txt` (Gattino), una per riga
 (le righe che iniziano con `#` sono ignorate). Per usare le tue senza ricompilare, scegli *Modifica le
-frasi…* dal menu: crea e apre `~/Library/Application Support/FocusFriends/frasi_pianty.txt` (o quello del porcellino
-o di Ciccio), che ha la precedenza sul file incluso nell'app. Le modifiche valgono dalla frase successiva.
+frasi…* dal menu: crea e apre `~/Library/Application Support/FocusFriends/frasi_pianty.txt` (o quello del porcellino,
+di Ciccio o del gattino), che ha la precedenza sul file incluso nell'app. Le modifiche valgono dalla frase successiva.
 Se esiste ancora la vecchia cartella `Application Support/Bonsy` (dai tempi in cui l'app si chiamava così), viene
 letta come seconda scelta. Anche le preferenze (personaggio, frequenza, timer personalizzati) vengono copiate
 dalla vecchia app al primo avvio (`Migration.swift`).
@@ -481,8 +487,11 @@ assets/
   ciccio/walk_original.png, flap_original.png   le tavole della cocorita (camminata e ali, 6 fotogrammi ciascuna)
   ciccio/picked_original.png, picked.png   Ciccio sollevato dalle mani (tools/cutout_picked.py ... 252: maniche quasi bianche)
   ciccio/frame1..13.png   fermo (ali chiuse, zampe a terra), 6 di camminata, 6 di ali (tools/cutout_ciccio.py)
+  gattino/idle_original.png, walk_original.png, eat_original.png, sleep_original.png, groom_original.png   le tavole del gatto
+  gattino/frame1..23.png   fermo, 6 di camminata, 5 mangia, 6 dorme, 5 si lecca la zampa, sulla stessa tela (tools/cutout_gattino.py)
+  gattino/picked_original.png, picked.png   il gatto sollevato dalle mani (tools/cutout_picked.py ... 252: maniche quasi bianche)
   bubble_original.png, bubble.png   fumetto e ritaglio (tools/cutout_bubble.py)
-  frasi_pianty.txt, frasi_porcellino.txt, frasi_ciccio.txt   frasi incluse nell'app
+  frasi_pianty.txt, frasi_porcellino.txt, frasi_ciccio.txt, frasi_gattino.txt   frasi incluse nell'app
   logo_original.png     il logo: un pomodoro-timer con l'anello che mostra il tempo
   AppIcon.png, AppIcon.icns   icona dell'app, generata da tools/make_icon.py (il logo nella forma delle icone di macOS);
                         la stessa immagine è in docs/images/logo.png, quella che mostra il README

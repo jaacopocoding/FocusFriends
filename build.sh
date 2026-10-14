@@ -14,11 +14,13 @@ for arch in arm64 x86_64; do
 done
 lipo -create build/tmp/FocusFriends-arm64 build/tmp/FocusFriends-x86_64 -output "$APP/Contents/MacOS/FocusFriends"
 rm -rf build/tmp
-cp assets/bubble.png assets/frasi_pianty.txt assets/frasi_porcellino.txt assets/frasi_ciccio.txt assets/AppIcon.icns "$APP/Contents/Resources/"
+cp assets/bubble.png assets/frasi_pianty.txt assets/frasi_porcellino.txt assets/frasi_ciccio.txt assets/frasi_gattino.txt assets/AppIcon.icns "$APP/Contents/Resources/"
 for f in assets/porcellino/frame*.png; do cp "$f" "$APP/Contents/Resources/porcellino_$(basename "$f")"; done
 cp assets/porcellino/picked.png "$APP/Contents/Resources/porcellino_picked.png"
 for f in assets/ciccio/frame*.png; do cp "$f" "$APP/Contents/Resources/ciccio_$(basename "$f")"; done
 cp assets/ciccio/picked.png "$APP/Contents/Resources/ciccio_picked.png"
+for f in assets/gattino/frame*.png; do cp "$f" "$APP/Contents/Resources/gattino_$(basename "$f")"; done
+cp assets/gattino/picked.png "$APP/Contents/Resources/gattino_picked.png"
 cp assets/pianty/picked.png "$APP/Contents/Resources/pianty_picked.png"
 # I brani inclusi (assets/music, con le licenze in CREDITS.md): nelle risorse con il prefisso music_.
 for f in assets/music/*.m4a assets/music/*.mp3; do

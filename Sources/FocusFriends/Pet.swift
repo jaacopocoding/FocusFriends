@@ -164,8 +164,37 @@ struct Pet: Equatable {
         pickedGrab: CGPoint(x: 0.30, y: 0.60)   // il cursore sta sulle mani
     )
 
+    /// Un gatto soriano: cammina per lo schermo, mangia un pesce, dorme e ogni tanto si lecca la zampa; si può sollevare.
+    /// Le pose vengono da tools/cutout_gattino.py (stessa tela, zampe a terra, la camminata allineata sugli occhi).
+    static let gattino = Pet(
+        id: "gattino",
+        name: "Gattino",
+        imageResources: (1...23).map { "gattino_frame\($0)" },   // 1 fermo, 2-7 cammino, 8-12 mangia, 13-18 dorme, 19-23 si lecca la zampa
+        size: NSSize(width: 144, height: 110),
+        quotesResource: "frasi_gattino",
+        quotesUserFile: "frasi_gattino.txt",
+        fallbackQuote: "Un passo alla volta, con calma: i gatti arrivano sempre dove devono.",
+        greeting: "Ciao! Sono il gattino. Facciamo due passi?",
+        shadowWidthFraction: 0.6,
+        groundFraction: 0.0949,
+        iconCrop: NSRect(x: 0.575, y: 0.439, width: 0.40, height: 0.4985),   // la testa, con un po' d'aria intorno alle orecchie
+        iconFocus: 0.5,
+        walks: true,
+        walkFrames: [1, 2, 3, 4, 5, 6],   // il ciclo dei passi
+        stepInterval: 0.12,
+        facesRight: true,
+        eatFrames: [7, 8, 9, 10, 11, 10, 9, 8],   // guarda il pesce, apre la bocca, morde, mastica, e torna indietro
+        sleepIntroFrame: 13,                       // gli occhi chiusi, tranquillo
+        sleepFrames: [12, 13, 12, 14, 13, 15, 17, 16],   // respiro lento, ogni tanto la coda si muove
+        popcornFrames: [18, 19, 20, 21, 20, 19],   // si lecca la zampa: la alza, la lecca, la passa sul muso
+        popcornInterval: 0.3,
+        pickedResource: "gattino_picked",   // le mani che lo sollevano, spaventato
+        pickedSize: NSSize(width: 150, height: 126),
+        pickedGrab: CGPoint(x: 0.36, y: 0.45)   // il cursore sta sulla mano sinistra
+    )
+
     /// Pianty è il personaggio di partenza.
-    static let all = [pianty, porcellino, ciccio]
+    static let all = [pianty, porcellino, ciccio, gattino]
 
     // MARK: - Scelta ricordata
 

@@ -1,0 +1,33 @@
+# Frasi del Gattino: una per riga. Le righe che iniziano con # sono ignorate.
+# Per usare le tue, scegli "Modifica le frasi…" dal menu: crea e apre
+#   ~/Library/Application Support/FocusFriends/frasi_gattino.txt
+Un passo alla volta, con calma: i gatti arrivano sempre dove devono.
+Respira piano. Io intanto faccio le fusa.
+Sei più forte di quanto pensi. Parola di gatto.
+Hai già fatto la parte più difficile: cominciare.
+Una pausa ogni tanto non è tempo perso: anch'io mi stiracchio, tra un pisolino e l'altro.
+Ogni piccolo sforzo conta. Anche un solo salto sul divano.
+Non serve essere perfetti: basta provarci. Anch'io sbaglio il salto, ogni tanto, e faccio finta di niente.
+Se la fatica si fa sentire, ricorda perché hai iniziato. Io sto qui, accanto a te.
+Bevi un po' d'acqua! Io la bevo sempre dal bicchiere sbagliato.
+Hai già superato giorni più difficili. Questo è niente, in confronto.
+Concentrati su una cosa sola, come me davanti a un filo di lana.
+Sii paziente: un gatto aspetta ore davanti a un buco, e alla fine ottiene quello che vuole.
+Se ti blocchi, cambia posizione. Io lo faccio di continuo, e funziona.
+Anche il riposo fa parte dello studio. Lo dico per esperienza.
+Oggi è un buon giorno per un'altra pagina.
+Miao! Un passetto, e poi un altro.
+Stai andando bene. Davvero.
+Fai quello che puoi, oggi. Domani c'è un altro giorno e un altro raggio di sole sul tappeto.
+Quando la strada sembra lunga, ricorda che anche l'armadio più alto si sale un salto alla volta.
+Ogni tanto basta fermarsi, stirarsi e ricominciare.
+Non ti serve fare tutto subito: i gatti lo sanno, e dormono sedici ore al giorno.
+Un po' di costanza vale più di tanta fretta.
+Se ti distrai, è normale: torna sul libro e riprendi da dove eri. Succede anche a me con le farfalle.
+Sei in buona compagnia. Io sono qui, e non vado da nessuna parte.
+Un respiro profondo, le spalle giù, e si riparte.
+Domani ringrazierai quello che studi oggi.
+Mi piace stare qui mentre studi. Fa caldo, c'è silenzio. Perfetto.
+Un bel lavoro, fatto con calma, vale più di dieci fatti di corsa.
+Anche una piccola pagina è una pagina.
+Ci vuole poco per fare molto: basta cominciare e non smettere troppo presto.
