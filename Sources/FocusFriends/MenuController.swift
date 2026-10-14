@@ -550,7 +550,7 @@ final class MenuController: NSObject, NSMenuDelegate {
             ambient: AmbientPlayer.shared.sound, ambientVolume: AmbientPlayer.shared.volume,
             music: MusicPlayer.shared.source, musicLabel: MusicPlayer.shared.label, musicVolume: MusicPlayer.shared.volume,
             focusProgress: pomodoro.phaseProgress, phaseRange: pomodoro.phaseRangeText, focusMinutes: pomodoro.focusMinutes,
-            isPaused: pomodoro.isFocusPaused, isLongBreak: pomodoro.isLongBreak,
+            isPaused: pomodoro.isFocusPaused, isLongBreak: pomodoro.isLongBreak, cycleDone: pomodoro.cycleDone,
             notes: pomodoro.notes, background: background, backgroundVolume: background == .music
                 ? MusicPlayer.shared.volume : AmbientPlayer.shared.volume,
             lastFocusMinutes: pomodoro.lastFocus?.minutes, lastFocusSubject: pomodoro.lastFocus?.subject,

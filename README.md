@@ -140,7 +140,8 @@ distrarti.
 
 **Pausa lunga**: dopo **quattro focus completati di fila** la pausa che parte da sola è lunga, **15 minuti** (o la
 tua pausa scelta, se è già più lunga), e il personaggio lo dice; la schermata della pausa diventa «Pausa lunga».
-Poi il conteggio riparte da zero. I focus interrotti non contano e non azzerano il ciclo; se tra un focus e il
+Poi il conteggio riparte da zero. Sotto il titolo della schermata del focus quattro puntini dicono a che punto
+sei («Focus 3 di 4»; nella pausa, «2 di 4 fatti»). I focus interrotti non contano e non azzerano il ciclo; se tra un focus e il
 successivo passano più di due ore, si ricomincia da capo (`BreakCycle.swift`, con prove). Si spegne dal menu
 classico, voce *Pausa lunga dopo 4 focus*; spenta, la pausa è sempre quella scelta.
 

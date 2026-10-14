@@ -64,8 +64,12 @@ final class Pomodoro {
     private var cycle = BreakCycle()
     /// La pausa in corso è la lunga (per la schermata della pausa).
     private(set) var isLongBreak = false
-    /// Quanti focus del ciclo sono stati completati (0...3), per dire a che punto si è.
-    var focusesInCycle: Int { cycle.completed }
+    /// Quanti focus del ciclo sono fatti (0...4), per «focus 2 di 4»; nil se la pausa lunga è spenta.
+    /// Durante la pausa lunga sono tutti e quattro.
+    var cycleDone: Int? {
+        guard BreakCycle.isEnabled else { return nil }
+        return isLongBreak ? BreakCycle.focusesPerCycle : cycle.done(at: Date())
+    }
     /// Il personaggio con cui è stato avviato il focus in corso.
     private var focusPet: String?
     private let log: SessionLog

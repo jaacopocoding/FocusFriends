@@ -320,3 +320,39 @@ enum FocusDraw {
         }
     }
 }
+
+/// I quattro puntini del ciclo dei focus, con la scritta accanto («Focus 2 di 4»).
+final class CycleDotsView: NSView {
+    override var isFlipped: Bool { true }
+    override func hitTest(_ point: NSPoint) -> NSView? { nil }
+
+    var done = 0
+    /// Il puntino dopo gli ultimi fatti ha il contorno: è quello che si sta facendo.
+    var highlightsNext = false
+    var text = ""
+
+    override func draw(_ dirtyRect: NSRect) {
+        let size: CGFloat = 10, gap: CGFloat = 6
+        let total = BreakCycle.focusesPerCycle
+        for i in 0..<total {
+            let rect = NSRect(x: CGFloat(i) * (size + gap) + 1, y: bounds.midY - size / 2, width: size, height: size)
+            let dot = NSBezierPath(ovalIn: rect)
+            if i < done {
+                Paper.accent.setFill()
+                dot.fill()
+            } else if highlightsNext && i == done {
+                FocusPalette.dialFace.setFill()
+                dot.fill()
+                Paper.accent.setStroke()
+                dot.lineWidth = 2
+                dot.stroke()
+            } else {
+                FocusPalette.track.setFill()
+                dot.fill()
+            }
+        }
+        let x = CGFloat(total) * (size + gap) + 4
+        (text as NSString).draw(in: NSRect(x: x, y: bounds.midY - 8, width: bounds.width - x, height: 16),
+                                withAttributes: [.font: NSFont.systemFont(ofSize: 11), .foregroundColor: Paper.inkLight])
+    }
+}

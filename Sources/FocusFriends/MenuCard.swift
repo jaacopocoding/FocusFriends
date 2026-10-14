@@ -35,6 +35,8 @@ struct MenuCardState {
     var isPaused: Bool
     /// La pausa in corso è quella lunga (dopo quattro focus).
     var isLongBreak: Bool
+    /// Focus fatti del ciclo dei quattro (nil = pausa lunga spenta).
+    var cycleDone: Int?
     var notes: [String]
     var background: BackgroundChoice
     var backgroundVolume: Double
@@ -797,6 +799,15 @@ private extension MenuCardView {
         addAvatar(s, frame: NSRect(x: w - 22 - 44, y: top + 48, width: 44, height: 44))
     }
 
+    /// I quattro puntini del ciclo («Focus 2 di 4»): i fatti pieni, il corrente con il contorno.
+    func addCycle(done: Int, highlightsNext: Bool, text: String, top: CGFloat) {
+        let view = CycleDotsView(frame: NSRect(x: 22, y: top + 106, width: Self.width - 44, height: 16))
+        view.done = done
+        view.highlightsNext = highlightsNext
+        view.text = text
+        addSubview(view)
+    }
+
     /// Il pomodoro al centro (la sua cima sta sotto l'intestazione).
     func addTomato(_ s: MenuCardState, ring: NSColor, small: String, top: CGFloat) {
         let view = FocusTomatoView(frame: NSRect(x: 0, y: top + 128, width: Self.width, height: FocusTomatoView.size.height))
@@ -852,6 +863,10 @@ private extension MenuCardView {
         let pad: CGFloat = 22, inner = Self.width - 44
         let top = Self.pageTop
         addHeader(s, title: s.subject ?? "Focus", detail: "\(s.phaseRange)  ·  \(s.focusMinutes) minuti", top: top)
+        if let done = s.cycleDone {
+            let current = min(done + 1, BreakCycle.focusesPerCycle)
+            addCycle(done: done, highlightsNext: true, text: "Focus \(current) di \(BreakCycle.focusesPerCycle)", top: top)
+        }
         addTomato(s, ring: Paper.accent, small: s.isPaused ? "fermo" : "rimasti", top: top)
         addStickerPair(top: top, secondTitle: s.isPaused ? "Riprendi" : "Ferma", secondIcon: s.isPaused ? .play : .stop,
                        secondFill: s.isPaused ? FocusPalette.chipOn : Paper.paper) { [weak self] in self?.actions.togglePause() }
@@ -962,6 +977,11 @@ private extension MenuCardView {
             detail = "Stacca un attimo."
         }
         addHeader(s, title: s.isLongBreak ? "Pausa lunga" : "Pausa", detail: detail, top: top)
+        if let done = s.cycleDone {
+            let text = s.isLongBreak ? "\(done) di \(BreakCycle.focusesPerCycle): ciclo completo"
+                                     : "\(done) di \(BreakCycle.focusesPerCycle) fatti"
+            addCycle(done: done, highlightsNext: false, text: text, top: top)
+        }
         addTomato(s, ring: FocusPalette.rest, small: "di pausa", top: top)
         addStickerPair(top: top, secondTitle: "Salta", secondIcon: .skip) { [weak self] in self?.actions.stopTimer() }
 

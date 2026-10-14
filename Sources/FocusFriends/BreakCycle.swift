@@ -37,6 +37,12 @@ struct BreakCycle {
         return false
     }
 
+    /// Quanti focus del ciclo risultano fatti in questo momento (se è passato troppo dall'ultimo, il ciclo è ricominciato).
+    func done(at moment: Date) -> Int {
+        if let last = lastCompletion, moment.timeIntervalSince(last) > Self.resetAfter { return 0 }
+        return completed
+    }
+
     /// Il ciclo ricomincia (per esempio quando si spegne la pausa lunga).
     mutating func reset() {
         completed = 0
