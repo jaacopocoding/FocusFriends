@@ -14,12 +14,19 @@ final class Profile {
         var version: Int
         var name: String?
         var introSeen: Bool
+        /// I compagni sbloccati (nil = ancora nessuno è stato scelto: niente è bloccato).
+        var unlocked: [String]?
+        /// Il compagno scelto all'inizio: gli altri si sbloccano dopo di lui.
+        var firstCompanion: String?
     }
 
     private let file: URL
     private(set) var name: String?
     /// La scheda di introduzione è già stata mostrata (e chiusa).
     private(set) var introSeen = false
+    /// I compagni sbloccati; nil = niente è bloccato (chi usava già l'app, o chi non ha ancora scelto).
+    private(set) var unlocked: Set<String>?
+    private(set) var firstCompanion: String?
     private var observers: [() -> Void] = []
 
     init(directory: URL) {
@@ -27,6 +34,8 @@ final class Profile {
         if let data = try? Data(contentsOf: file), let contents = try? JSONDecoder().decode(Contents.self, from: data) {
             name = Self.clean(contents.name)
             introSeen = contents.introSeen
+            unlocked = contents.unlocked.map(Set.init)
+            firstCompanion = contents.firstCompanion
         }
     }
 
@@ -57,17 +66,52 @@ final class Profile {
         save()
     }
 
+    // MARK: - I compagni sbloccati
+
+    /// Il compagno è usabile? Se non è mai stato deciso niente, sì (non si toglie nulla a chi usava già l'app).
+    func isCompanionUnlocked(_ id: String) -> Bool {
+        unlocked?.contains(id) ?? true
+    }
+
+    /// Chi usava già l'app (la presentazione è già stata vista) li tiene tutti: non gli tolgo niente.
+    func keepAllCompanions(_ ids: [String]) {
+        guard unlocked == nil, introSeen else { return }
+        unlocked = Set(ids)
+        save()
+    }
+
+    /// Il primo compagno, scelto nella presentazione: è l'unico libero, gli altri si guadagnano.
+    func chooseFirstCompanion(_ id: String) {
+        guard unlocked == nil else { return }
+        firstCompanion = id
+        unlocked = [id]
+        save()
+    }
+
+    /// Segna come sbloccati questi compagni (non si richiudono più, anche se poi si cancellano sessioni).
+    func unlock(_ ids: [String]) {
+        guard var current = unlocked, !ids.isEmpty else { return }
+        let before = current
+        current.formUnion(ids)
+        guard current != before else { return }
+        unlocked = current
+        save()
+    }
+
     /// Dimentica nome e introduzione (per "Cancella tutto…"): alla prossima apertura si ricomincia.
     func reset() {
         name = nil
         introSeen = false
+        unlocked = nil
+        firstCompanion = nil
         try? FileManager.default.removeItem(at: file)
         observers.forEach { $0() }
     }
 
     private func save() {
         try? FileManager.default.createDirectory(at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
-        let contents = Contents(version: Self.formatVersion, name: name, introSeen: introSeen)
+        let contents = Contents(version: Self.formatVersion, name: name, introSeen: introSeen,
+                                unlocked: unlocked.map { $0.sorted() }, firstCompanion: firstCompanion)
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         if let data = try? encoder.encode(contents) {

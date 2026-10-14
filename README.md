@@ -20,6 +20,17 @@
 - **Porcellino**, una cavia che cammina per lo schermo, mangia la carota, fa i pisolini e saltella, con frasi sue.
 - **Ciccio**, una cocorita che cammina e ogni tanto sbatte le ali, con frasi sue.
 
+### Si sbloccano studiando
+
+Alla prima apertura scegli il tuo compagno, ed è libero. Gli altri due si guadagnano studiando: il **secondo a 20
+focus** e il **terzo a 50**, dove un «focus» sono 50 minuti di studio (come una pianta adulta del giardino: contano
+tutti i minuti, anche quelli dei focus interrotti, e un timer da 5 minuti non sblocca niente più in fretta). Nella
+scheda del menu i compagni ancora bloccati hanno un lucchetto e la frase di quanto manca («Porcellino si sblocca a 20
+focus: ne hai 12»); quando arriva il momento, a fine focus il personaggio lo annuncia. Lo sblocco si ricorda
+(`profilo.json`) e non si richiude, anche se poi cancelli delle sessioni; chi usava già l'app li ha tutti da subito.
+Le regole sono in `CompanionRewards.swift` (solo Foundation, con prove). *Cancella tutto…* rifà la presentazione,
+e quindi anche la scelta del primo compagno.
+
 Durante un focus ognuno ha il suo modo di crescere con te: Pianty da seme a pianta, Ciccio da uovo a cocorita
 nel suo nido, il Porcellino guarda crescere una carota e, se finisci il focus, la mangia.
 
@@ -444,6 +455,7 @@ Sources/FocusFriends/
   AmbientPlayer.swift   il motore audio: rumore filtrato in tempo reale
   MusicLibrary.swift    la musica: quali file e in che ordine (solo Foundation, con prove)
   BreakCycle.swift      il ciclo dei quattro focus e la pausa lunga (solo Foundation, con prove)
+  CompanionRewards.swift  quando si sbloccano i compagni: 20 e 50 focus (solo Foundation, con prove)
   MusicPlayer.swift     la riproduzione dei brani del focus
   SessionLog.swift      registro delle sessioni di studio e statistiche (solo Foundation, con prove)
   Profile.swift         il nome (solo Foundation, con prove) e i titoli personalizzati

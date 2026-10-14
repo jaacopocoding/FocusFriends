@@ -36,6 +36,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         pomodoro.onFocusCompleted = { [weak walker] in walker?.eatNow() }
         // A fine focus: "com'è andata?" (se non l'hai spenta dal menu). Sparisce da sola quando il timer riparte o si ferma.
         pomodoro.onFocusRecorded = { [weak self, weak window, weak speaker] session in
+            self?.menu?.evaluateCompanionRewards(announce: true)
             guard ReflectionCard.isEnabled, let self, let window else { return }
             self.reflectionCard.ask(session: session, near: window) { rating in
                 if let rating { speaker?.say(ReflectionCard.reply(for: rating)) }
@@ -49,6 +50,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         let menu = MenuController(window: window, speaker: speaker, pomodoro: pomodoro)
         self.menu = menu
+        // Chi usava già l'app li tiene tutti; per gli altri si guadagnano (silenziosamente: al massimo sono già meritati).
+        Profile.shared.keepAllCompanions(Pet.all.map(\.id))
+        menu.evaluateCompanionRewards(announce: false)
 
         // La prima volta (anche per chi la usava già): come ti chiami e chi ti fa compagnia.
         if !Profile.shared.introSeen {
@@ -58,6 +62,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self.introCard.ask(currentPet: window.pet, near: window) { name, pet in
                     Profile.shared.setName(name)
                     Profile.shared.markIntroSeen()
+                    Profile.shared.chooseFirstCompanion(pet.id)
                     if pet != window.pet {
                         menu.selectPet(pet)
                     } else {

@@ -37,6 +37,8 @@ struct MenuCardState {
     var isLongBreak: Bool
     /// Focus fatti del ciclo dei quattro (nil = pausa lunga spenta).
     var cycleDone: Int?
+    /// I compagni ancora bloccati e cosa manca («si sblocca a 20 focus: ne hai 12»).
+    var companionLocks: [String: String] = [:]
     var notes: [String]
     var background: BackgroundChoice
     var backgroundVolume: Double
@@ -131,6 +133,8 @@ private final class MenuCardView: NSView {
     static let pageTop: CGFloat = 2
     private var cardTop: CGFloat { page == .focus || page == .rest ? Self.pageTop : Self.overflow }
     private var tomato: FocusTomatoView?
+    /// Il messaggio mostrato sotto i compagni quando se ne tocca uno bloccato.
+    private var lockHint: String?
     private var noteField: NSTextField?
     private var draftNote = ""
 
@@ -295,6 +299,14 @@ private final class MenuCardView: NSView {
 
         // I compagni: tre nomi, quello scelto sottolineato.
         y = addCompanions(s, y: y)
+        if !s.companionLocks.isEmpty {
+            // Il prossimo da sbloccare (quello che richiede meno), o il compagno bloccato appena toccato.
+            let next = s.allPets.first(where: { s.companionLocks[$0.id] != nil })
+            let hint = lockHint ?? next.flatMap { pet in s.companionLocks[pet.id].map { "\(pet.name) \($0)" } } ?? ""
+            _ = label(hint, font: NSFont.systemFont(ofSize: 11), color: Paper.inkLight,
+                      frame: NSRect(x: pad, y: y + 4, width: inner, height: 15))
+            y += 22
+        }
         y += 14
 
         // Focus e pausa, oppure il timer che sta andando.
@@ -408,15 +420,35 @@ private final class MenuCardView: NSView {
     private func addCompanions(_ s: MenuCardState, y: CGFloat) -> CGFloat {
         let font = NSFont.systemFont(ofSize: 13, weight: .medium)
         let separator: CGFloat = 20
-        let widths = s.allPets.map { ceil(($0.name as NSString).size(withAttributes: [.font: font]).width) + 8 }
+        let lockWidth: CGFloat = 14
+        let widths = s.allPets.map {
+            ceil(($0.name as NSString).size(withAttributes: [.font: font]).width) + 8 + (s.companionLocks[$0.id] != nil ? lockWidth : 0)
+        }
         let total = widths.reduce(0, +) + separator * CGFloat(max(widths.count - 1, 0))
         var x = (Self.width - total) / 2
         for (i, pet) in s.allPets.enumerated() {
             let selected = pet.id == s.pet.id
+            let lock = s.companionLocks[pet.id]
             let frame = NSRect(x: x, y: y, width: widths[i], height: 20)
-            add(frame, label: "Compagno: \(pet.name)", { [weak self] in self?.actions.selectPet(pet); self?.rebuild() }) { rect, pressed, hovered in
-                Self.text(pet.name, in: NSRect(x: rect.minX + 4, y: rect.minY, width: rect.width - 4, height: 17),
-                          font: font, color: selected || hovered || pressed ? Paper.ink : Paper.inkLight)
+            add(frame, label: lock.map { "\(pet.name), bloccato: \($0)" } ?? "Compagno: \(pet.name)", { [weak self] in
+                if let lock {
+                    self?.lockHint = "\(pet.name) \(lock)"
+                } else {
+                    self?.lockHint = nil
+                    self?.actions.selectPet(pet)
+                }
+                self?.rebuild()
+            }) { rect, pressed, hovered in
+                var textX = rect.minX + 4
+                if lock != nil {
+                    Self.drawSymbol("lock.fill", size: 10, color: Paper.inkLight.withAlphaComponent(0.7),
+                                    centeredIn: NSRect(x: rect.minX + 2, y: rect.minY, width: 10, height: 17))
+                    textX += lockWidth
+                }
+                let color: NSColor = lock != nil ? Paper.inkLight.withAlphaComponent(hovered || pressed ? 0.9 : 0.6)
+                    : (selected || hovered || pressed ? Paper.ink : Paper.inkLight)
+                Self.text(pet.name, in: NSRect(x: textX, y: rect.minY, width: rect.width - (textX - rect.minX), height: 17),
+                          font: font, color: color)
                 if selected {
                     Paper.accent.setFill()
                     NSBezierPath(roundedRect: NSRect(x: rect.minX + 4, y: rect.maxY - 3, width: rect.width - 8, height: 2.5),

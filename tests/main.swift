@@ -605,6 +605,51 @@ let csvNotes = SessionCSV.csv(for: [StudySession(start: date(2026, 10, 14, 9), s
                                                 subject: "X", notes: ["uno", "due"])])
 check(csvNotes.contains("\"uno | due\""), "le note nel CSV, separate da |")
 
+// ---------------------------------------------------------------- compagni da sbloccare
+section("Compagni da sbloccare")
+let pets = ["pianty", "porcellino", "ciccio"]
+check(CompanionRewards.focuses(totalSeconds: 0) == 0 && CompanionRewards.focuses(totalSeconds: 49 * 60) == 0, "meno di 50 minuti: nessun focus pieno")
+check(CompanionRewards.focuses(totalSeconds: 50 * 60) == 1 && CompanionRewards.focuses(totalSeconds: 20 * 50 * 60 + 59) == 20, "50 minuti = un focus pieno")
+check(CompanionRewards.focuses(totalSeconds: -5) == 0, "mai negativi")
+check(CompanionRewards.order(first: "ciccio", all: pets) == ["ciccio", "pianty", "porcellino"], "prima il primo scelto, poi gli altri nell'ordine")
+check(CompanionRewards.order(first: nil, all: pets) == pets && CompanionRewards.order(first: "sconosciuto", all: pets) == pets, "senza una scelta valida, l'ordine di sempre")
+check(CompanionRewards.earned(first: "pianty", all: pets, focuses: 0) == ["pianty"], "all'inizio solo il primo")
+check(CompanionRewards.earned(first: "pianty", all: pets, focuses: 19) == ["pianty"], "a 19 ancora no")
+check(CompanionRewards.earned(first: "pianty", all: pets, focuses: 20) == ["pianty", "porcellino"], "a 20 il secondo")
+check(CompanionRewards.earned(first: "pianty", all: pets, focuses: 49) == ["pianty", "porcellino"], "a 49 il terzo non c'è")
+check(CompanionRewards.earned(first: "pianty", all: pets, focuses: 50) == Set(pets), "a 50 tutti")
+check(CompanionRewards.earned(first: "ciccio", all: pets, focuses: 20) == ["ciccio", "pianty"], "con Ciccio per primo, il secondo è Pianty")
+check(CompanionRewards.need(for: "ciccio", first: "pianty", all: pets) == 50 && CompanionRewards.need(for: "porcellino", first: "pianty", all: pets) == 20
+      && CompanionRewards.need(for: "pianty", first: "pianty", all: pets) == 0, "quanto serve a ciascuno")
+check(CompanionRewards.threshold(at: 3) == 100 && CompanionRewards.threshold(at: 4) == 150, "oltre il terzo: altri 50 a testa")
+// il profilo ricorda cosa è sbloccato
+let rwDir = tempDirectory()
+let freshProfile = Profile(directory: rwDir)
+check(freshProfile.isCompanionUnlocked("ciccio"), "senza scelta, niente è bloccato")
+freshProfile.keepAllCompanions(pets)
+check(freshProfile.unlocked == nil, "chi non ha visto la presentazione non li ha ancora tutti")
+freshProfile.chooseFirstCompanion("porcellino")
+check(freshProfile.isCompanionUnlocked("porcellino") && !freshProfile.isCompanionUnlocked("pianty") && freshProfile.firstCompanion == "porcellino", "il primo è libero, gli altri no")
+freshProfile.unlock(["pianty"])
+let reopenedProfile = Profile(directory: rwDir)
+check(reopenedProfile.isCompanionUnlocked("pianty") && reopenedProfile.isCompanionUnlocked("porcellino") && !reopenedProfile.isCompanionUnlocked("ciccio"), "si ricorda alla riapertura")
+check(reopenedProfile.firstCompanion == "porcellino", "e anche il primo scelto")
+reopenedProfile.reset()
+check(Profile(directory: rwDir).unlocked == nil && Profile(directory: rwDir).isCompanionUnlocked("ciccio"), "«Cancella tutto» ricomincia")
+// chi usava già l'app li tiene tutti
+let keepDir = tempDirectory()
+let keepUser = Profile(directory: keepDir)
+keepUser.setName("Anna"); keepUser.markIntroSeen()
+keepUser.keepAllCompanions(pets)
+check(pets.allSatisfy { Profile(directory: keepDir).isCompanionUnlocked($0) } && Profile(directory: keepDir).unlocked == Set(pets), "chi c'era già: tutti sbloccati")
+keepUser.chooseFirstCompanion("ciccio")
+check(Profile(directory: keepDir).unlocked == Set(pets), "e la scelta iniziale non toglie niente")
+// un profilo di prima (senza questi campi) si legge
+let legacyProfDir = tempDirectory()
+try? "{\"version\": 1, \"name\": \"Marco\", \"introSeen\": true}".write(to: legacyProfDir.appendingPathComponent("profilo.json"), atomically: true, encoding: .utf8)
+let legacyProfile = Profile(directory: legacyProfDir)
+check(legacyProfile.name == "Marco" && legacyProfile.introSeen && legacyProfile.unlocked == nil && legacyProfile.isCompanionUnlocked("ciccio"), "un profilo di prima si legge e non blocca niente")
+
 // ---------------------------------------------------------------- pausa lunga
 section("Pausa lunga")
 var cycle = BreakCycle()

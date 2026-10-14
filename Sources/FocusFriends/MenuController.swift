@@ -459,8 +459,17 @@ final class MenuController: NSObject, NSMenuDelegate {
             item.isEnabled = window.pet.walks
             item.state = (item.tag == 1) == Walker.isMovementEnabled ? .on : .off
         }
+        let locks = companionLocks()
         for item in petItems {
-            item.state = (item.representedObject as? String) == window.pet.id ? .on : .off
+            guard let id = item.representedObject as? String, let pet = Pet.all.first(where: { $0.id == id }) else { continue }
+            item.state = id == window.pet.id ? .on : .off
+            if let lock = locks[id] {
+                item.title = "\(pet.name) · \(lock)"
+                item.isEnabled = false
+            } else {
+                item.title = pet.name
+                item.isEnabled = true
+            }
         }
         loginItem.state = SMAppService.mainApp.status == .enabled ? .on : .off
         askItem.state = ReflectionCard.isEnabled ? .on : .off
@@ -550,7 +559,7 @@ final class MenuController: NSObject, NSMenuDelegate {
             ambient: AmbientPlayer.shared.sound, ambientVolume: AmbientPlayer.shared.volume,
             music: MusicPlayer.shared.source, musicLabel: MusicPlayer.shared.label, musicVolume: MusicPlayer.shared.volume,
             focusProgress: pomodoro.phaseProgress, phaseRange: pomodoro.phaseRangeText, focusMinutes: pomodoro.focusMinutes,
-            isPaused: pomodoro.isFocusPaused, isLongBreak: pomodoro.isLongBreak, cycleDone: pomodoro.cycleDone,
+            isPaused: pomodoro.isFocusPaused, isLongBreak: pomodoro.isLongBreak, cycleDone: pomodoro.cycleDone, companionLocks: companionLocks(),
             notes: pomodoro.notes, background: background, backgroundVolume: background == .music
                 ? MusicPlayer.shared.volume : AmbientPlayer.shared.volume,
             lastFocusMinutes: pomodoro.lastFocus?.minutes, lastFocusSubject: pomodoro.lastFocus?.subject,
@@ -746,9 +755,48 @@ final class MenuController: NSObject, NSMenuDelegate {
         selectPet(pet)
     }
 
+    // MARK: - Compagni da sbloccare
+
+    /// Quanti focus pieni (50 minuti) di studio ci sono in tutto: interrotti compresi.
+    private func totalFocuses() -> Int {
+        CompanionRewards.focuses(totalSeconds: SessionLog.shared.sessions.reduce(0) { $0 + $1.seconds })
+    }
+
+    /// Per ogni compagno bloccato, la frase che dice quanto manca («si sblocca a 20 focus: ne hai 12»).
+    private func companionLocks() -> [String: String] {
+        let profile = Profile.shared
+        guard profile.unlocked != nil else { return [:] }
+        let ids = Pet.all.map(\.id)
+        let have = totalFocuses()
+        var result: [String: String] = [:]
+        for id in ids where !profile.isCompanionUnlocked(id) {
+            let need = CompanionRewards.need(for: id, first: profile.firstCompanion, all: ids)
+            result[id] = "si sblocca a \(need) focus: ne hai \(min(have, need))"
+        }
+        return result
+    }
+
+    /// Dopo un focus (o all'avvio): sblocca i compagni guadagnati e, se è la prima volta, li annuncia.
+    func evaluateCompanionRewards(announce: Bool) {
+        let profile = Profile.shared
+        guard let current = profile.unlocked else { return }
+        let ids = Pet.all.map(\.id)
+        let earned = CompanionRewards.earned(first: profile.firstCompanion, all: ids, focuses: totalFocuses())
+        let fresh = CompanionRewards.order(first: profile.firstCompanion, all: ids).filter { earned.contains($0) && !current.contains($0) }
+        guard !fresh.isEmpty else { return }
+        profile.unlock(fresh)
+        guard announce else { return }
+        let names = fresh.compactMap { id in Pet.all.first(where: { $0.id == id })?.name }
+        let text = names.count == 1
+            ? "Hai sbloccato \(names[0])! Lo trovi nel menu, tra i compagni."
+            : "Hai sbloccato \(names.joined(separator: " e "))! Li trovi nel menu, tra i compagni."
+        // Dopo la frase di fine focus, che altrimenti la coprirebbe.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 9) { [weak self] in self?.speaker.say(text) }
+    }
+
     /// Cambia personaggio (dal menu, o dalla scheda di introduzione).
     func selectPet(_ pet: Pet) {
-        guard pet != window.pet else { return }
+        guard pet != window.pet, Profile.shared.isCompanionUnlocked(pet.id) else { return }
         pet.remember()
         window.apply(pet)
         updateStatusIcon()
