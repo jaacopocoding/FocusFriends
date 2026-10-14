@@ -82,6 +82,9 @@ piccola. Per settimana e per mese.
    xattr -dr com.apple.quarantine /Applications/FocusFriends.app
    ```
 
+   Per controllare che lo zip scaricato sia quello pubblicato, il checksum SHA-256 di ogni versione è nelle note
+   della release (`shasum -a 256 FocusFriends-<versione>-macOS.zip`).
+
 Non ha icona nel Dock: la trovi nella barra dei menu e con il tasto destro sul personaggio. I dati (sessioni,
 nome) restano sul tuo Mac, in `~/Library/Application Support/FocusFriends/`: nessuna rete, nessun invio.
 
@@ -99,7 +102,7 @@ nome) restano sul tuo Mac, in `~/Library/Application Support/FocusFriends/`: nes
 Un clic sull'icona nella barra dei menu (o il tasto destro sul personaggio) apre la **scheda del menu**
 (`MenuCard.swift`): il compagno sbuca dal bordo, e sotto ci sono i compagni (tocca un nome per cambiarlo), i
 focus da 30 e 50 minuti e la pausa, il riepilogo di oggi, *Giardino* e *Statistiche* e le impostazioni più usate.
-Toccando il compagno parla; mentre il timer va, un clic sull'icona o sul personaggio apre invece la
+Toccando il compagno parla; mentre il timer va, un clic sull'icona (o il tasto destro, o ctrl-clic, sul personaggio) apre invece la
 [schermata del focus](#la-schermata-del-focus) (o quella della pausa), con *‹ Menu completo* per tornare alla scheda.
 Se l'hai aperta dal personaggio, **lo segue** quando cammina o lo trascini (passa dall'altro lato se arriva al bordo dello schermo). Si chiude con un clic fuori o con Esc. Le schermate che si aprono da lì (la scelta della materia, le statistiche, il giardino)
 hanno una **freccia indietro** (‹, a sinistra del titolo; ‹ Menu nella barra del titolo delle finestre) che le chiude e
@@ -163,7 +166,8 @@ un timer personalizzato*. Valgono per tutti i personaggi.
 
 ## La schermata del focus
 
-Quando un focus è in corso, un clic sul personaggio (o sull'icona) non apre il menu ma la **schermata del focus**:
+Quando un focus è in corso, un clic sull'icona (o il tasto destro, o ctrl-clic, sul personaggio) non apre il menu ma la
+**schermata del focus**:
 una pagina di quaderno con la materia, da che ora a che ora dura, il compagno e un grande pomodoro-timer con
 l'arco del tempo passato e quello che manca.
 
@@ -216,7 +220,7 @@ materia, oppure si tocca una di quelle usate di recente per partire subito, oppu
 Ogni focus finisce in un registro (`SessionLog.swift`), un file leggibile in
 `~/Library/Application Support/FocusFriends/sessioni.json`: inizio, ora "sull'orologio" a cui è iniziato,
 minuti fatti davvero, minuti previsti, completo o interrotto, materia, personaggio. È un JSON con la versione del
-formato (`{"version": 2, "sessions": […]}`). Le regole:
+formato (`{"version": 3, "sessions": […]}`). Le regole:
 
 - le pause non contano; un focus **interrotto** conta per i minuti che ha fatto davvero, se sono almeno uno;
 - una sessione che passa la mezzanotte va al giorno in cui è iniziata, **secondo l'orologio di quando l'hai

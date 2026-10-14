@@ -145,7 +145,8 @@ final class MenuController: NSObject, NSMenuDelegate {
         statusItem.button?.toolTip = "FocusFriends"
 
         // Clic sull'icona o tasto destro sul personaggio: la scheda. Tasto destro o ⌥-clic sull'icona: il menu di prima.
-        card = MenuCard(state: { [unowned self] in self.cardState() }, actions: cardActions())
+        card = MenuCard(state: { [unowned self] in self.cardState() }, live: { [unowned self] in self.cardLiveState() },
+                        actions: cardActions())
         dashboard.onBack = { [weak self] in self?.returnToMenu() }
         garden.onBack = { [weak self] in self?.returnToMenu() }
         statusItem.button?.target = self
@@ -262,7 +263,7 @@ final class MenuController: NSObject, NSMenuDelegate {
 
     private func select(source: MusicSource) {
         let player = MusicPlayer.shared
-        if source == .folder, player.folder == nil || player.folderTracks.isEmpty {
+        if source == .folder, player.folder == nil || !player.folderHasTracks {
             // Serve una cartella (la prima volta, o se quella di prima non c'è più): la finestra di scelta.
             card.close()
             DispatchQueue.main.async { [weak self] in
@@ -285,7 +286,7 @@ final class MenuController: NSObject, NSMenuDelegate {
         panel.message = "Scegli la cartella con la musica da ascoltare mentre studi (mp3, m4a, wav, aiff, flac)."
         if let current = MusicPlayer.shared.folder { panel.directoryURL = current }
         guard panel.runModal() == .OK, let url = panel.url else { return }
-        guard !MusicLibrary.tracks(in: url).isEmpty else {
+        guard MusicLibrary.hasTracks(in: url) else {
             showAlert("Nessun brano in questa cartella", "Non ho trovato file audio (mp3, m4a, wav, aiff, flac). Scegli un'altra cartella.")
             return
         }
@@ -537,6 +538,12 @@ final class MenuController: NSObject, NSMenuDelegate {
 
     private func showCardNearPet() {
         card.toggle(anchor: .beside(window))
+    }
+
+    /// Il minimo che la scheda aggiorna ogni secondo (vedi `MenuCardLiveState`).
+    private func cardLiveState() -> MenuCardLiveState {
+        MenuCardLiveState(phase: pomodoro.phase, isPaused: pomodoro.isFocusPaused, remaining: pomodoro.remainingText,
+                          focusProgress: pomodoro.phaseProgress)
     }
 
     /// Fotografia del momento per la scheda.
@@ -860,17 +867,22 @@ final class MenuController: NSObject, NSMenuDelegate {
         let pet = window.pet
         let file = Quotes.userFile(for: pet)
         if !fm.fileExists(atPath: file.path) {
-            try? fm.createDirectory(at: Quotes.userDirectory, withIntermediateDirectories: true)
             // Parto dal file di una vecchia cartella (se l'utente l'aveva già modificato), altrimenti da quello dell'app.
             let legacy = Quotes.legacyDirectories
                 .map { $0.appendingPathComponent(pet.quotesUserFile) }
                 .first { fm.fileExists(atPath: $0.path) }
             let bundled = Bundle.main.url(forResource: pet.quotesResource, withExtension: "txt")
-            if let legacy {
-                try? fm.copyItem(at: legacy, to: file)
-            } else if let bundled {
-                try? fm.copyItem(at: bundled, to: file)
+            do {
+                try fm.createDirectory(at: Quotes.userDirectory, withIntermediateDirectories: true)
+                if let source = legacy ?? bundled { try fm.copyItem(at: source, to: file) }
+            } catch {
+                showAlert("Non riesco a preparare il file delle frasi", error.localizedDescription)
+                return
             }
+        }
+        guard fm.fileExists(atPath: file.path) else {
+            showAlert("Non trovo il file delle frasi", "Non c'è ancora un file di frasi da aprire per \(pet.name).")
+            return
         }
         NSWorkspace.shared.open(file)
     }

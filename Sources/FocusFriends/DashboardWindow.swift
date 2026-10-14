@@ -126,7 +126,11 @@ final class DashboardView: NSView {
         sessionsButton.action = #selector(toggleDiary)
         page.addSubview(sessionsButton)
 
-        log.addObserver { [weak self] in self?.reload() }
+        // Chiusa la finestra non serve ricalcolare: alla riapertura `select` lo fa. (Minimizzata sì: è ancora lì.)
+        log.addObserver { [weak self] in
+            guard let self, self.window.map({ $0.isVisible || $0.isMiniaturized }) ?? true else { return }
+            self.reload()
+        }
         reload()
     }
 
@@ -592,7 +596,14 @@ final class DashboardView: NSView {
         panel.nameFieldStringValue = "focusfriends-sessioni.csv"
         panel.allowedContentTypes = [.commaSeparatedText]
         guard panel.runModal() == .OK, let url = panel.url else { return }
-        try? Self.csv(for: log.sessions).write(to: url, atomically: true, encoding: .utf8)
+        do {
+            try Self.csv(for: log.sessions).write(to: url, atomically: true, encoding: .utf8)
+        } catch {
+            let alert = NSAlert()
+            alert.messageText = "Non riesco a salvare il file"
+            alert.informativeText = error.localizedDescription
+            alert.runModal()
+        }
     }
 
     static func csv(for sessions: [StudySession]) -> String {

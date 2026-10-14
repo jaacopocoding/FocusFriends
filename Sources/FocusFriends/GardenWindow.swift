@@ -44,6 +44,9 @@ final class GardenView: NSView, NSViewToolTipOwner {
     /// Le immagini già caricate: "pianty-3", "porcellino-5"... Ogni personaggio può avere la sua collezione
     /// (`garden_<personaggio>_<stadio>.png`); chi non ce l'ha usa le piantine di Pianty.
     private var imageCache: [String: NSImage] = [:]
+    /// Le sessioni del periodo e le piantine di ogni giorno (chiave: inizio del giorno), calcolate una volta per ricarica.
+    private var dayItems: [Date: [StudySession]] = [:]
+    private var dayPlants: [Date: [GardenRules.DayPlant]] = [:]
 
     private let segmented = NSSegmentedControl(labels: ["Settimana", "Mese"], trackingMode: .selectOne, target: nil, action: nil)
     private let previousButton = NSButton()
@@ -74,7 +77,11 @@ final class GardenView: NSView, NSViewToolTipOwner {
         previousButton.frame = NSRect(x: Self.margin, y: 58, width: 32, height: 28)
         nextButton.frame = NSRect(x: Self.size.width - Self.margin - 32, y: 58, width: 32, height: 28)
 
-        log.addObserver { [weak self] in self?.reload() }
+        // Chiusa la finestra non serve ricalcolare: alla riapertura `select` lo fa. (Minimizzata sì: è ancora lì.)
+        log.addObserver { [weak self] in
+            guard let self, self.window.map({ $0.isVisible || $0.isMiniaturized }) ?? true else { return }
+            self.reload()
+        }
         reload()
     }
 
@@ -114,9 +121,15 @@ final class GardenView: NSView, NSViewToolTipOwner {
         totalSeconds = inPeriod.reduce(0) { $0 + $1.seconds }
         adultPlants = 0
         growingPlants = 0
+        dayItems = [:]
+        for session in inPeriod {
+            dayItems[calendar.startOfDay(for: session.startTime(in: calendar)), default: []].append(session)
+        }
+        dayPlants = [:]
         var cursor = period.start
         while cursor < period.end {
             let day = GardenRules.plants(of: sessions(on: cursor), calendar: calendar)
+            dayPlants[calendar.startOfDay(for: cursor)] = day
             adultPlants += day.filter { $0.isAdult }.count
             growingPlants += day.filter { !$0.isAdult }.count
             cursor = calendar.date(byAdding: .day, value: 1, to: cursor) ?? period.end
@@ -132,12 +145,14 @@ final class GardenView: NSView, NSViewToolTipOwner {
         needsDisplay = true
     }
 
+    /// Le sessioni di un giorno del periodo (già raggruppate da `reload`).
     private func sessions(on dayStart: Date) -> [StudySession] {
-        guard let next = calendar.date(byAdding: .day, value: 1, to: dayStart) else { return [] }
-        return log.sessions.filter {
-            let t = $0.startTime(in: calendar)
-            return t >= dayStart && t < next
-        }
+        dayItems[calendar.startOfDay(for: dayStart)] ?? []
+    }
+
+    /// Le piantine di un giorno del periodo (già calcolate da `reload`).
+    private func plants(on dayStart: Date) -> [GardenRules.DayPlant] {
+        dayPlants[calendar.startOfDay(for: dayStart)] ?? []
     }
 
     private func formatted(_ date: Date, _ format: String) -> String {
@@ -190,7 +205,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
             let bedRect = NSRect(x: x0 + 8, y: baseY - 14, width: columnWidth - 16, height: 38)   // il monticello di terra
             let items = sessions(on: dayStart)
             let seconds = items.reduce(0) { $0 + $1.seconds }
-            let all = GardenRules.plants(of: items, calendar: calendar)
+            let all = plants(on: dayStart)
             // Quella che cresce davanti (più piccola) e le adulte dietro, così si vedono tutte.
             let shown = visiblePlants(all, limit: 6)
             let front = Array(shown.prefix(3))
@@ -239,7 +254,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
             let slot = offset + n
             let col = slot % 7, row = slot / 7
             let cell = NSRect(x: m + CGFloat(col) * cellWidth, y: top + CGFloat(row) * cellHeight, width: cellWidth, height: cellHeight)
-            let all = GardenRules.plants(of: sessions(on: dayStart), calendar: calendar)
+            let all = plants(on: dayStart)
             let shown = visiblePlants(all, limit: 4)
             let spacing: CGFloat = 25
             for (k, plant) in shown.enumerated() {

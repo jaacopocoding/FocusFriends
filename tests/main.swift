@@ -514,6 +514,10 @@ for name in ["10 b.mp3", "2 a.m4a", "copertina.jpg", ".DS_Store", "Sub/3 c.wav"]
 let musicFound = MusicLibrary.tracks(in: musicDir)
 check(musicFound.map { $0.lastPathComponent } == ["2 a.m4a", "10 b.mp3", "3 c.wav"], "i brani trovati: prima quelli della cartella (ordine naturale, 2 prima di 10), poi le sottocartelle (\(musicFound.map { $0.lastPathComponent }))")
 check(MusicLibrary.tracks(in: tempDirectory()).isEmpty, "cartella vuota: nessun brano")
+check(MusicLibrary.hasTracks(in: musicDir) && !MusicLibrary.hasTracks(in: tempDirectory()), "hasTracks: c'è almeno un brano, senza elencarli tutti")
+let onlyCovers = tempDirectory()
+try? Data([0]).write(to: onlyCovers.appendingPathComponent("copertina.jpg"))
+check(!MusicLibrary.hasTracks(in: onlyCovers), "una cartella senza audio non conta")
 struct FixedRandom: RandomNumberGenerator { var s: UInt64 = 7; mutating func next() -> UInt64 { s = s &* 6364136223846793005 &+ 1442695040888963407; return s } }
 var fixed = FixedRandom()
 let three = [URL(fileURLWithPath: "/a.mp3"), URL(fileURLWithPath: "/b.mp3"), URL(fileURLWithPath: "/c.mp3")]
@@ -649,6 +653,78 @@ let legacyProfDir = tempDirectory()
 try? "{\"version\": 1, \"name\": \"Marco\", \"introSeen\": true}".write(to: legacyProfDir.appendingPathComponent("profilo.json"), atomically: true, encoding: .utf8)
 let legacyProfile = Profile(directory: legacyProfDir)
 check(legacyProfile.name == "Marco" && legacyProfile.introSeen && legacyProfile.unlocked == nil && legacyProfile.isCompanionUnlocked("ciccio"), "un profilo di prima si legge e non blocca niente")
+
+// ---------------------------------------------------------------- dati danneggiati
+section("Dati danneggiati")
+// una sola sessione rovinata: le altre restano, il file com'era resta come copia
+let partialDir = tempDirectory()
+let partial = """
+{"version": 3, "sessions": [
+ {"completed": true, "id": "9F6C1A2B-0000-4000-8000-000000000031", "plannedMinutes": 25, "seconds": 1500, "start": "2026-10-12T08:00:00Z", "subject": "Buona"},
+ {"completed": true, "id": "9F6C1A2B-0000-4000-8000-000000000032", "plannedMinutes": 25, "start": "2026-10-12T09:00:00Z"},
+ {"completed": false, "id": "9F6C1A2B-0000-4000-8000-000000000033", "plannedMinutes": 30, "seconds": 600, "start": "2026-10-13T08:00:00Z"}
+]}
+"""
+try? partial.write(to: partialDir.appendingPathComponent("sessioni.json"), atomically: true, encoding: .utf8)
+var partialMessages: [String] = []
+let partialLog = SessionLog(directory: partialDir, timeZone: rome)
+partialLog.onProblem = { partialMessages.append($0) }
+check(partialLog.sessions.count == 2 && !partialLog.isReadOnly, "una sessione rovinata: le altre due restano (\(partialLog.sessions.count))")
+check(partialMessages.count == 1 && partialMessages[0].contains("non erano leggibili"), "e l'utente viene avvisato, anche se ci si registra dopo (\(partialMessages))")
+let partialFiles = (try? FileManager.default.contentsOfDirectory(atPath: partialDir.path)) ?? []
+check(partialFiles.contains { $0.hasPrefix("sessioni.corrotto-") }, "il file com'era resta come copia")
+check(SessionLog(directory: partialDir, timeZone: rome).sessions.count == 2, "e il file riscritto ha le sessioni buone")
+// un file che c'è ma non si legge non è un file assente: non si sovrascrive
+let lockedDir = tempDirectory()
+let lockedFile = lockedDir.appendingPathComponent("sessioni.json")
+try? "{\"version\": 3, \"sessions\": []}".write(to: lockedFile, atomically: true, encoding: .utf8)
+try? FileManager.default.setAttributes([.posixPermissions: 0o000], ofItemAtPath: lockedFile.path)
+let lockedLog = SessionLog(directory: lockedDir, timeZone: rome)
+check(lockedLog.isReadOnly, "file illeggibile: sola lettura")
+check(lockedLog.add(start: date(2026, 10, 14, 9), seconds: 600, plannedMinutes: 10, completed: true, subject: nil) == nil, "e non si scrive")
+try? FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: lockedFile.path)
+check((try? String(contentsOf: lockedFile)) == "{\"version\": 3, \"sessions\": []}", "il file è rimasto com'era")
+// profilo rovinato: messo da parte, non sovrascritto
+let badProfileDir = tempDirectory()
+try? "{ non e' json".write(to: badProfileDir.appendingPathComponent("profilo.json"), atomically: true, encoding: .utf8)
+var profileMessages: [String] = []
+let badProfile = Profile(directory: badProfileDir)
+badProfile.onProblem = { profileMessages.append($0) }
+let badProfileFiles = (try? FileManager.default.contentsOfDirectory(atPath: badProfileDir.path)) ?? []
+check(badProfile.name == nil && !badProfile.introSeen && badProfileFiles.contains { $0.hasPrefix("profilo.corrotto-") },
+      "profilo rovinato: valori di partenza e file messo da parte (\(badProfileFiles))")
+check(profileMessages.count == 1, "e l'utente viene avvisato")
+badProfile.setName("Anna")
+check(Profile(directory: badProfileDir).name == "Anna", "dopo, il profilo si salva normalmente")
+
+// un file di una versione più nuova: sola lettura, avvisato, e il focus interrotto non va perso
+let futureDir = tempDirectory()
+try? "{\"version\": 99, \"sessions\": []}".write(to: futureDir.appendingPathComponent("sessioni.json"), atomically: true, encoding: .utf8)
+let futureWriter = SessionLog(directory: futureDir, now: { date(2026, 10, 14, 9, 20) }, timeZone: rome)
+futureWriter.beginInProgress(start: date(2026, 10, 14, 9), plannedMinutes: 50, subject: "Segnali")
+var futureMessages: [String] = []
+let futureReader = SessionLog(directory: futureDir, now: { date(2026, 10, 14, 9, 30) }, timeZone: rome)
+futureReader.onProblem = { futureMessages.append($0) }
+check(futureReader.isReadOnly && futureMessages.count == 1 && futureMessages[0].contains("più nuova"), "versione più nuova: l'utente viene avvisato")
+check(futureReader.recoverInterrupted() == nil, "in sola lettura il focus interrotto non si può salvare")
+check((try? Data(contentsOf: futureDir.appendingPathComponent("in-corso.json")))?.isEmpty == false, "ma il segno «in corso» resta")
+
+// una scrittura che non riesce non passa inosservata (la cartella dei dati è un file: non si può creare)
+let blocker = tempDirectory().appendingPathComponent("occupato")
+try? "x".write(to: blocker, atomically: true, encoding: .utf8)
+let failingLog = SessionLog(directory: blocker, timeZone: rome)
+var writeMessages: [String] = []
+failingLog.onProblem = { writeMessages.append($0) }
+let failedAdd = failingLog.add(start: date(2026, 10, 14, 9), seconds: 600, plannedMinutes: 10, completed: true, subject: "X")
+_ = failingLog.add(start: date(2026, 10, 14, 10), seconds: 600, plannedMinutes: 10, completed: true, subject: "X")
+check(failedAdd != nil && failingLog.sessions.count == 2, "la sessione resta in memoria")
+check(failingLog.hasUnsavedChanges, "e si sa che non è sul disco")
+check(writeMessages.count == 1 && writeMessages[0].contains("Non riesco a salvare"), "l'utente viene avvisato una volta sola (\(writeMessages.count))")
+var progressMessages: [String] = []
+failingLog.onProblem = { progressMessages.append($0) }
+failingLog.beginInProgress(start: Date(), plannedMinutes: 25, subject: nil)
+check(progressMessages.count == 1 && progressMessages[0].contains("focus in corso"), "anche il focus in corso: scrittura fallita segnalata")
+check(!SessionLog(directory: tempDirectory(), timeZone: rome).hasUnsavedChanges, "con la cartella a posto non c'è niente da salvare")
 
 // ---------------------------------------------------------------- pausa lunga
 section("Pausa lunga")

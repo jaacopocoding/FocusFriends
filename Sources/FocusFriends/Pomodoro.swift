@@ -9,7 +9,7 @@ final class Pomodoro {
         var label: String { self == .focus ? "FOCUS" : "PAUSA" }
     }
 
-    /// Secondi in un "minuto" del timer (60, salvo nei test).
+    /// Secondi in un "minuto" del timer.
     private static let secondsPerMinute: TimeInterval = 60
 
     /// Per quanto l'orologio resta visibile dall'inizio di ogni fase.
@@ -23,6 +23,9 @@ final class Pomodoro {
     private static let graceSeconds: TimeInterval = 10
     /// Quanti minuti aggiunge il pulsante.
     static let extensionMinutes = 5
+    /// Fra due tick (ogni 0,2 s) non passa mai tanto: se è successo, il Mac ha dormito (o l'app è rimasta ferma) e
+    /// quel tempo non è studio.
+    private static let sleepGapSeconds: TimeInterval = 10
 
 
     private let petWindow: PetWindow
@@ -214,6 +217,7 @@ final class Pomodoro {
         self.phase = phase
         if wasPaused, phase == .focus { onFocusActiveChanged?(true) }
         phaseStart = Date()
+        lastTick = phaseStart      // il primo tick non deve vedere come "salto" il tempo passato da un'altra fase
         endDate = phaseStart.addingTimeInterval(Double(minutes) * Self.secondsPerMinute)
         refreshChatter()
 
@@ -238,11 +242,17 @@ final class Pomodoro {
 
     private func tick() {
         let now = Date()
+        let gap = now.timeIntervalSince(lastTick)
         if isFocusPaused {
             // Il tempo non scorre: la fine si sposta in avanti insieme all'orologio.
-            let gap = now.timeIntervalSince(lastTick)
             endDate = endDate.addingTimeInterval(gap)
             pausedTotal += gap
+        } else if phase == .focus, graceUntil == nil, gap > Self.sleepGapSeconds {
+            // Il Mac ha dormito durante il focus: come se fosse stato fermo. Altrimenti, al risveglio, il tempo
+            // risulterebbe scaduto e le ore di sonno finirebbero nel registro come studio completato.
+            endDate = endDate.addingTimeInterval(gap)
+            pausedTotal += gap
+            log.updateInProgressPause(seconds: Int(pausedTotal), since: nil)
         }
         lastTick = now
         if endDate.timeIntervalSinceNow <= 0 {

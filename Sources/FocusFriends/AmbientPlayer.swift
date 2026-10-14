@@ -123,6 +123,9 @@ final class AmbientPlayer {
     private var stopTimer: Timer?
     private var previewTimer: Timer?
 
+    /// Chiamata quando il motore audio non parte (nessuna uscita disponibile, errore di sistema): il suono non si sente.
+    var onStartFailure: (() -> Void)?
+
     private(set) var sound: AmbientSound
     private(set) var volume: Double
     /// C'è un focus in corso (con il suono acceso si sente).
@@ -181,7 +184,10 @@ final class AmbientPlayer {
         if wanted {
             stopTimer?.invalidate()
             stopTimer = nil
-            guard startEngine() else { return }
+            guard startEngine() else {
+                onStartFailure?()
+                return
+            }
             synth.kind = kindValue(sound)
             // Un cambio di volume si sente subito; l'accensione (e lo spegnimento) sfumano piano.
             synth.fadeSeconds = quick ? 0.25 : Self.fade

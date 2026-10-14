@@ -54,5 +54,5 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 </plist>
 PLIST
 
-codesign --force --sign - "$APP" >/dev/null 2>&1 || true
+codesign --force --sign - "$APP" >/dev/null 2>&1 || { echo "Errore: la firma ad-hoc dell'app non è riuscita." >&2; exit 1; }
 echo "Creato $APP"

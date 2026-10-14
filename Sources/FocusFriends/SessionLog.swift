@@ -315,6 +315,37 @@ final class SessionLog {
     /// Chi vuole sapere quando il registro cambia (le finestre delle statistiche e del giardino).
     private var observers: [() -> Void] = []
 
+    /// Chiamata quando qualcosa non va con i dati (un file non si legge, una scrittura fallisce...): il testo è per
+    /// chi usa l'app. I problemi che nascono in `init`, prima che qualcuno si registri, arrivano appena ci si registra.
+    var onProblem: ((String) -> Void)? {
+        didSet {
+            guard let handler = onProblem, !pendingProblems.isEmpty else { return }
+            let pending = pendingProblems
+            pendingProblems = []
+            pending.forEach(handler)
+        }
+    }
+    private var pendingProblems: [String] = []
+    /// I problemi già segnalati e non ancora risolti: ognuno si segnala una volta sola, finché non passa.
+    private var activeProblems: Set<String> = []
+
+    private func report(_ message: String) {
+        if let handler = onProblem { handler(message) } else { pendingProblems.append(message) }
+    }
+
+    /// Segnala un problema una volta sola, finché non si risolve (`recover`).
+    private func fail(_ key: String, _ message: String) {
+        if activeProblems.insert(key).inserted { report(message) }
+    }
+
+    private func recover(_ key: String) {
+        activeProblems.remove(key)
+    }
+
+    /// L'ultima scrittura di `sessioni.json` non è riuscita: in memoria c'è più di quello che c'è sul disco.
+    /// Ogni modifica successiva riscrive tutto, quindi basta una scrittura riuscita per rimettere a posto.
+    private(set) var hasUnsavedChanges = false
+
     func addObserver(_ observer: @escaping () -> Void) {
         observers.append(observer)
     }
@@ -351,7 +382,13 @@ final class SessionLog {
     }
 
     private func load() {
-        guard let data = try? Data(contentsOf: file) else { return }
+        guard FileManager.default.fileExists(atPath: file.path) else { return }
+        guard let data = try? Data(contentsOf: file) else {
+            // C'è ma non si legge: non è come se non ci fosse, perché la prossima scrittura lo sostituirebbe.
+            isReadOnly = true
+            report("Il file delle sessioni non si legge: non lo modifico. Controlla i permessi della cartella FocusFriends.")
+            return
+        }
         let decoder = Self.decoder()
         var needsSave = false
 
@@ -359,6 +396,7 @@ final class SessionLog {
             sessions = wrapped.sessions
             if wrapped.version > Self.formatVersion {
                 isReadOnly = true
+                report("I dati sono di una versione più nuova di questa app: li leggo ma non li modifico, e i nuovi focus non vengono salvati.")
             } else if wrapped.version < Self.formatVersion {
                 // Passo a un formato nuovo: tengo intatta la copia di quello vecchio.
                 try? FileManager.default.createDirectory(at: backupDirectory, withIntermediateDirectories: true)
@@ -371,17 +409,67 @@ final class SessionLog {
             try? data.write(to: backupDirectory.appendingPathComponent("sessioni-formato0.json"), options: .atomic)
             sessions = legacy
             needsSave = true
+        } else if let salvaged = Self.salvage(data, decoder: decoder) {
+            // Qualche sessione non si legge: tengo le altre, e il file com'era resta come copia.
+            sessions = salvaged.sessions
+            if salvaged.version > Self.formatVersion {
+                isReadOnly = true
+                report("I dati sono di una versione più nuova dell'app e alcune sessioni non si leggono: non li modifico.")
+            } else if salvaged.dropped == 0 {
+                needsSave = true
+            } else {
+                let name = "sessioni.corrotto-\(Int(now().timeIntervalSince1970)).json"
+                if (try? data.write(to: directory.appendingPathComponent(name), options: .atomic)) != nil {
+                    needsSave = true
+                    report("\(salvaged.dropped) sessioni non erano leggibili: le altre sono a posto, e il file com'era è in \(name).")
+                } else {
+                    isReadOnly = true
+                    report("Alcune sessioni non si leggono e non riesco a tenerne una copia: non modifico il file.")
+                }
+            }
         } else {
             // File rovinato: lo metto da parte invece di perderlo, e si riparte da vuoto.
-            let stamp = Int(now().timeIntervalSince1970)
-            let aside = directory.appendingPathComponent("sessioni.corrotto-\(stamp).json")
-            try? FileManager.default.moveItem(at: file, to: aside)
+            let name = "sessioni.corrotto-\(Int(now().timeIntervalSince1970)).json"
+            let aside = directory.appendingPathComponent(name)
+            do {
+                try FileManager.default.moveItem(at: file, to: aside)
+                report("Il file delle sessioni era rovinato: l'ho messo da parte come \(name) e riparto da zero.")
+            } catch {
+                // Non riesco a spostarlo: non lo sovrascrivo.
+                isReadOnly = true
+                report("Il file delle sessioni è rovinato e non riesco a metterlo da parte: non lo modifico.")
+            }
             sessions = []
             return
         }
 
         if normalize() { needsSave = true }
         if needsSave && !isReadOnly { save() }
+    }
+
+    /// Decodifica una sessione alla volta: ritorna quelle leggibili, la versione del file e quante non lo erano, oppure
+    /// nil se il contenuto non è nemmeno un elenco di sessioni.
+    private static func salvage(_ data: Data, decoder: JSONDecoder) -> (sessions: [StudySession], version: Int, dropped: Int)? {
+        guard let object = try? JSONSerialization.jsonObject(with: data) else { return nil }
+        let version: Int
+        let items: [Any]
+        if let dictionary = object as? [String: Any], let list = dictionary["sessions"] as? [Any] {
+            version = dictionary["version"] as? Int ?? 0
+            items = list
+        } else if let list = object as? [Any] {
+            version = 0
+            items = list
+        } else {
+            return nil
+        }
+        var readable: [StudySession] = []
+        for item in items {
+            guard JSONSerialization.isValidJSONObject(item),
+                  let bytes = try? JSONSerialization.data(withJSONObject: item),
+                  let session = try? decoder.decode(StudySession.self, from: bytes) else { continue }
+            readable.append(session)
+        }
+        return (readable, version, items.count - readable.count)
     }
 
     /// Mette in ordine i dati letti: ogni materia con la scrittura più recente (e non una per ogni maiuscola),
@@ -407,12 +495,18 @@ final class SessionLog {
 
     private func save() {
         guard !isReadOnly else { return }
-        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        makeDailyBackupIfNeeded()
-        let wrapped = LogFile(version: Self.formatVersion, sessions: sessions)
-        if let data = try? Self.encoder().encode(wrapped) {
-            try? data.write(to: file, options: .atomic)
+        do {
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            makeDailyBackupIfNeeded()
+            let wrapped = LogFile(version: Self.formatVersion, sessions: sessions)
+            try Self.encoder().encode(wrapped).write(to: file, options: .atomic)
+            hasUnsavedChanges = false
+            recover("save")
+        } catch {
+            hasUnsavedChanges = true
+            fail("save", "Non riesco a salvare le sessioni sul disco (\(error.localizedDescription)): finché l'app resta aperta le vedi, ma se si chiude le perdo.")
         }
+        // Le viste mostrano lo stato in memoria, che è cambiato in ogni caso.
         observers.forEach { $0() }
     }
 
@@ -427,8 +521,14 @@ final class SessionLog {
         let name = String(format: "sessioni-%04d-%02d-%02d.json", c.year ?? 0, c.month ?? 0, c.day ?? 0)
         let target = backupDirectory.appendingPathComponent(name)
         guard !fm.fileExists(atPath: target.path) else { return }
-        try? fm.createDirectory(at: backupDirectory, withIntermediateDirectories: true)
-        try? fm.copyItem(at: file, to: target)
+        do {
+            try fm.createDirectory(at: backupDirectory, withIntermediateDirectories: true)
+            try fm.copyItem(at: file, to: target)
+            recover("backup")
+        } catch {
+            fail("backup", "Non riesco a fare la copia di sicurezza di oggi delle sessioni.")
+            return
+        }
 
         let daily = ((try? fm.contentsOfDirectory(atPath: backupDirectory.path)) ?? [])
             .filter { $0.hasPrefix("sessioni-2") && $0.hasSuffix(".json") }
@@ -605,14 +705,17 @@ final class SessionLog {
     @discardableResult
     func recoverInterrupted() -> StudySession? {
         guard let progress = readProgress() else { return nil }
-        finishInProgress()
         // Il tempo fermo non è studio: né le pause finite né quella in corso quando l'app si è chiusa.
         var stopped = Double(progress.pausedSeconds ?? 0)
         if let since = progress.pausedSince { stopped += max(0, progress.lastSeen.timeIntervalSince(since)) }
         let seconds = max(0, Int(progress.lastSeen.timeIntervalSince(progress.start) - stopped))
         let capped = min(seconds, progress.plannedMinutes * 60)
-        return add(start: progress.start, seconds: capped, plannedMinutes: progress.plannedMinutes,
-                   completed: false, subject: progress.subject, pet: progress.pet, notes: progress.notes)
+        let session = add(start: progress.start, seconds: capped, plannedMinutes: progress.plannedMinutes,
+                          completed: false, subject: progress.subject, pet: progress.pet, notes: progress.notes)
+        // Il segno "in corso" si toglie solo dopo averlo salvato; se il registro è in sola lettura resta dov'è
+        // (sotto il minuto, invece, non c'è niente da conservare).
+        if session != nil || !isReadOnly { finishInProgress() }
+        return session
     }
 
     private func readProgress() -> InProgress? {
@@ -621,9 +724,12 @@ final class SessionLog {
     }
 
     private func writeProgress(_ progress: InProgress) {
-        try? FileManager.default.createDirectory(at: progressFile.deletingLastPathComponent(), withIntermediateDirectories: true)
-        if let data = try? Self.encoder().encode(progress) {
-            try? data.write(to: progressFile, options: .atomic)
+        do {
+            try FileManager.default.createDirectory(at: progressFile.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try Self.encoder().encode(progress).write(to: progressFile, options: .atomic)
+            recover("progress")
+        } catch {
+            fail("progress", "Non riesco a salvare il focus in corso: se l'app si chiude di colpo non lo recupero.")
         }
     }
 }

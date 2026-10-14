@@ -30,6 +30,17 @@ enum MusicLibrary {
         return found.sorted { $0.path.localizedStandardCompare($1.path) == .orderedAscending }
     }
 
+    /// C'è almeno un brano? Si ferma al primo trovato: per sapere solo se la cartella è vuota non serve elencarla tutta.
+    static func hasTracks(in folder: URL, fileManager: FileManager = .default) -> Bool {
+        guard let enumerator = fileManager.enumerator(at: folder, includingPropertiesForKeys: [.isRegularFileKey],
+                                                      options: [.skipsHiddenFiles, .skipsPackageDescendants]) else { return false }
+        for case let url as URL in enumerator {
+            let regular = (try? url.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile) ?? false
+            if regular, isAudio(url) { return true }
+        }
+        return false
+    }
+
     /// Un ordine casuale; il primo brano non è mai quello appena suonato (se ce n'è più di uno).
     static func shuffled<G: RandomNumberGenerator>(_ tracks: [URL], avoidingFirst last: URL?, using generator: inout G) -> [URL] {
         var result = tracks.shuffled(using: &generator)

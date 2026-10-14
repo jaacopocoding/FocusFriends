@@ -31,6 +31,7 @@ final class MusicPlayer: NSObject, AVAudioPlayerDelegate {
             source = .off
             save()
         }
+        prepareFolderTracks()
     }
 
     // MARK: - Che cosa c'è
@@ -43,9 +44,43 @@ final class MusicPlayer: NSObject, AVAudioPlayerDelegate {
             .sorted().map { resources.appendingPathComponent($0) }
     }
 
+    /// L'elenco dei brani della cartella scelta, con la data di modifica della cartella a cui si riferisce: la
+    /// scansione è ricorsiva e può essere lunga (dischi grandi o di rete), quindi non si rifà a ogni focus.
+    private var cachedFolderTracks: (folder: URL, modified: Date?, tracks: [URL])?
+
+    private static func modificationDate(of folder: URL) -> Date? {
+        (try? FileManager.default.attributesOfItem(atPath: folder.path))?[.modificationDate] as? Date
+    }
+
     var folderTracks: [URL] {
         guard let folder else { return [] }
-        return MusicLibrary.tracks(in: folder)
+        let modified = Self.modificationDate(of: folder)
+        if let cache = cachedFolderTracks, cache.folder == folder, cache.modified == modified { return cache.tracks }
+        let tracks = MusicLibrary.tracks(in: folder)
+        cachedFolderTracks = (folder, modified, tracks)
+        return tracks
+    }
+
+    /// Nella cartella scelta c'è almeno un brano? (Senza elencarla tutta, se l'elenco non è già pronto.)
+    var folderHasTracks: Bool {
+        guard let folder else { return false }
+        if let cache = cachedFolderTracks, cache.folder == folder, cache.modified == Self.modificationDate(of: folder) {
+            return !cache.tracks.isEmpty
+        }
+        return MusicLibrary.hasTracks(in: folder)
+    }
+
+    /// Prepara l'elenco in secondo piano (alla scelta della cartella e all'avvio), così il primo focus non aspetta.
+    func prepareFolderTracks() {
+        guard source == .folder, let folder else { return }
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            let modified = Self.modificationDate(of: folder)
+            let tracks = MusicLibrary.tracks(in: folder)
+            DispatchQueue.main.async {
+                guard let self, self.folder == folder else { return }
+                self.cachedFolderTracks = (folder, modified, tracks)
+            }
+        }
     }
 
     var label: String { MusicSettings.label(source: source, folder: folder) }
@@ -65,6 +100,7 @@ final class MusicPlayer: NSObject, AVAudioPlayerDelegate {
         if new != .off, AmbientPlayer.shared.sound != .none { AmbientPlayer.shared.setSound(.none, preview: false) }
         // Una nuova scelta ricomincia da un brano nuovo.
         stopNow()
+        prepareFolderTracks()
         apply(previewing: preview && !focusActive)
     }
 

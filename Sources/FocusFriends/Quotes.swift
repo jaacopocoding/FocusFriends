@@ -6,8 +6,8 @@ enum Quotes {
         FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support")
     }
 
-    /// Dove l'utente tiene le sue frasi.
-    static var userDirectory: URL { support.appendingPathComponent("FocusFriends") }
+    /// Dove l'utente tiene le sue frasi: la stessa cartella dei dati (una sola definizione del percorso).
+    static var userDirectory: URL { SessionLog.defaultDirectory }
     /// Cartella usata quando l'app si chiamava Bonsy: ancora letta, così le frasi già scritte non si perdono.
     static var legacyDirectories: [URL] {
         ["Bonsy"].map { support.appendingPathComponent($0) }

@@ -28,14 +28,49 @@ final class Profile {
     private(set) var unlocked: Set<String>?
     private(set) var firstCompanion: String?
     private var observers: [() -> Void] = []
+    /// Il file c'è ma non si legge (o è rovinato e non si riesce a metterlo da parte): non lo sovrascrivo.
+    private var isReadOnly = false
+
+    /// Chiamata quando qualcosa non va con il file (non si legge, è rovinato, non si scrive): il testo è per chi usa
+    /// l'app. I problemi che nascono in `init` arrivano appena ci si registra.
+    var onProblem: ((String) -> Void)? {
+        didSet {
+            guard let handler = onProblem, !pendingProblems.isEmpty else { return }
+            let pending = pendingProblems
+            pendingProblems = []
+            pending.forEach(handler)
+        }
+    }
+    private var pendingProblems: [String] = []
+    private var writeFailureReported = false
+
+    private func report(_ message: String) {
+        if let handler = onProblem { handler(message) } else { pendingProblems.append(message) }
+    }
 
     init(directory: URL) {
         file = directory.appendingPathComponent("profilo.json")
-        if let data = try? Data(contentsOf: file), let contents = try? JSONDecoder().decode(Contents.self, from: data) {
+        guard FileManager.default.fileExists(atPath: file.path) else { return }
+        guard let data = try? Data(contentsOf: file) else {
+            isReadOnly = true
+            report("Il file del profilo non si legge: non lo modifico.")
+            return
+        }
+        if let contents = try? JSONDecoder().decode(Contents.self, from: data) {
             name = Self.clean(contents.name)
             introSeen = contents.introSeen
             unlocked = contents.unlocked.map(Set.init)
             firstCompanion = contents.firstCompanion
+        } else {
+            // Rovinato: lo metto da parte invece di sovrascriverlo alla prossima modifica.
+            let aside = directory.appendingPathComponent("profilo.corrotto-\(Int(Date().timeIntervalSince1970)).json")
+            do {
+                try FileManager.default.moveItem(at: file, to: aside)
+                report("Il file del profilo era rovinato: l'ho messo da parte come \(aside.lastPathComponent).")
+            } catch {
+                isReadOnly = true
+                report("Il file del profilo è rovinato e non riesco a metterlo da parte: non lo modifico.")
+            }
         }
     }
 
@@ -105,17 +140,25 @@ final class Profile {
         unlocked = nil
         firstCompanion = nil
         try? FileManager.default.removeItem(at: file)
+        isReadOnly = false      // "Cancella tutto" è una scelta esplicita: da qui si riparte
         observers.forEach { $0() }
     }
 
     private func save() {
-        try? FileManager.default.createDirectory(at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
+        guard !isReadOnly else { return }
         let contents = Contents(version: Self.formatVersion, name: name, introSeen: introSeen,
                                 unlocked: unlocked.map { $0.sorted() }, firstCompanion: firstCompanion)
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        if let data = try? encoder.encode(contents) {
-            try? data.write(to: file, options: .atomic)
+        do {
+            try FileManager.default.createDirectory(at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try encoder.encode(contents).write(to: file, options: .atomic)
+            writeFailureReported = false
+        } catch {
+            if !writeFailureReported {
+                writeFailureReported = true
+                report("Non riesco a salvare il profilo (nome e compagni sbloccati): \(error.localizedDescription).")
+            }
         }
         observers.forEach { $0() }
     }

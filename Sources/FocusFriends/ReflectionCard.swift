@@ -189,7 +189,9 @@ final class ReflectionCard: NSObject {
         let done = completion
         completion = nil
         if save, let id = sessionID, rating != nil || note != nil {
-            log.setReflection(id: id, rating: rating, note: note)
+            // Con la sola nota non si cancella un voto già dato (per esempio dalla schermata della pausa).
+            let existing = log.sessions.first { $0.id == id }?.rating
+            log.setReflection(id: id, rating: rating ?? existing, note: note)
         }
         sessionID = nil
         NSAnimationContext.runAnimationGroup({ ctx in

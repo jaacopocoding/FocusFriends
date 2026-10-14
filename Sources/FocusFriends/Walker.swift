@@ -59,8 +59,21 @@ final class Walker {
         self.speaker = speaker
     }
 
+    /// Ritmo normale (fluido) e ritmo a riposo, quando non c'è niente da animare (nascosto, o fermo dal menu).
+    private static let activeInterval: TimeInterval = 1.0 / 30
+    private static let idleInterval: TimeInterval = 1.0
+    private var tickInterval = Walker.activeInterval
+
     func start() {
-        let t = Timer(timeInterval: 1.0 / 30, repeats: true) { [weak self] _ in self?.tick() }
+        makeTimer(interval: Self.activeInterval)
+    }
+
+    private func makeTimer(interval: TimeInterval) {
+        timer?.invalidate()
+        tickInterval = interval
+        let t = Timer(timeInterval: interval, repeats: true) { [weak self] _ in self?.tick() }
+        // A riposo il sistema può raggruppare le sveglie; nell'animazione no, perché il passo è cadenzato.
+        if interval == Self.idleInterval { t.tolerance = 0.25 }
         RunLoop.main.add(t, forMode: .common)
         timer = t
     }
@@ -87,6 +100,11 @@ final class Walker {
         lastTick = now
 
         let pet = petWindow.pet
+        // Nascosto, o fermo dal menu: non c'è niente da animare, basta guardare ogni tanto.
+        if timer != nil {
+            let wanted = pet.walks && petWindow.isVisible && Self.isMovementEnabled ? Self.activeInterval : Self.idleInterval
+            if wanted != tickInterval { makeTimer(interval: wanted) }
+        }
         guard pet.walks, petWindow.isVisible else {
             petWindow.setSleepMarks(false)
             return

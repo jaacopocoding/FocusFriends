@@ -49,6 +49,15 @@ struct MenuCardState {
     var lastRating: FocusRating?
 }
 
+/// Quello che serve ogni secondo mentre la scheda è aperta: poco, perché il resto (statistiche, serie, compagni)
+/// si ricalcola solo quando la scheda si ricostruisce.
+struct MenuCardLiveState {
+    var phase: Pomodoro.Phase?
+    var isPaused: Bool
+    var remaining: String
+    var focusProgress: Double
+}
+
 /// Cosa succede quando si tocca qualcosa. Il MenuController le collega a quello che già fa il menu.
 struct MenuCardActions {
     var startFocus: (Int) -> Void
@@ -122,6 +131,7 @@ private final class MenuCardView: NSView {
     override var isFlipped: Bool { true }
 
     private let provide: () -> MenuCardState
+    private let live: () -> MenuCardLiveState
     private let actions: MenuCardActions
     /// Chiude la scheda (se `close`) e poi esegue l'azione.
     private let perform: (_ close: Bool, _ action: () -> Void) -> Void
@@ -157,9 +167,10 @@ private final class MenuCardView: NSView {
     private var shownRunning = false
     private var shownPaused = false
 
-    init(state: @escaping () -> MenuCardState, actions: MenuCardActions,
+    init(state: @escaping () -> MenuCardState, live: @escaping () -> MenuCardLiveState, actions: MenuCardActions,
          perform: @escaping (_ close: Bool, _ action: () -> Void) -> Void) {
         self.provide = state
+        self.live = live
         self.actions = actions
         self.perform = perform
         super.init(frame: NSRect(x: 0, y: 0, width: Self.width, height: 400))
@@ -801,7 +812,7 @@ private final class MenuCardView: NSView {
 
     /// Ogni secondo mentre è aperta: il tempo che scorre. Se il timer è partito o finito si ricostruisce.
     func refreshLive() {
-        let s = provide()
+        let s = live()
         if s.phase != shownPhase || (s.phase != nil) != shownRunning {
             page = Self.defaultPage(for: s.phase)
             rebuild()
@@ -1083,6 +1094,7 @@ private extension MenuCardView {
 /// Mostra e nasconde la scheda del menu: un pannello senza bordi, chiuso da un clic fuori o da Esc.
 final class MenuCard: NSObject {
     private let provide: () -> MenuCardState
+    private let live: () -> MenuCardLiveState
     private let actions: MenuCardActions
     private var panel: KeyablePanel?
     private var content: MenuCardView?
@@ -1095,8 +1107,9 @@ final class MenuCard: NSObject {
     private var monitors: [Any] = []
     private var resignObserver: NSObjectProtocol?
 
-    init(state: @escaping () -> MenuCardState, actions: MenuCardActions) {
+    init(state: @escaping () -> MenuCardState, live: @escaping () -> MenuCardLiveState, actions: MenuCardActions) {
         self.provide = state
+        self.live = live
         self.actions = actions
         super.init()
     }
@@ -1134,7 +1147,7 @@ final class MenuCard: NSObject {
         guard panel == nil else { return }
         lastAnchor = anchor
         let view = MenuCardView(
-            state: provide, actions: actions,
+            state: provide, live: live, actions: actions,
             perform: { [weak self] close, action in
                 if close { self?.close() }
                 action()
