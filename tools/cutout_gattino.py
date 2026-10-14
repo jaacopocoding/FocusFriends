@@ -225,6 +225,18 @@ def lower_band(frame, ground, fraction=0.4):
     return band
 
 
+def torso_band(rgba):
+    """Il tronco (dalla schiena alla pancia), senza testa, coda né zampe che si muovono: serve a tenere il gatto
+    fermo da un fotogramma all'altro della camminata, dove gli occhi non si vedono sempre tutti e due."""
+    alpha = rgba[..., 3] > 128
+    rows = np.where(alpha.any(axis=1))[0]
+    top, bottom = rows[0], rows[-1]
+    band = np.zeros_like(alpha)
+    lo, hi = int(top + 0.30 * (bottom - top)), int(top + 0.62 * (bottom - top))
+    band[lo:hi] = alpha[lo:hi]
+    return band
+
+
 def silhouette_size(frame):
     ys, xs = np.where(frame["rgba"][..., 3] > 128)
     return float(xs.max() - xs.min()), float(ys.max() - ys.min())
@@ -269,8 +281,35 @@ def main():
     idle_scale = (scale_w + scale_h) / 2
     print(f"scala del gatto fermo: {idle_scale:.3f}  (da larghezza {scale_w:.3f}, da altezza {scale_h:.3f})")
 
-    # Riferimento per mettere gli altri fogli: il baricentro (in x) della parte bassa del corpo, rispetto agli occhi.
+    # La camminata si allinea sul tronco del primo fotogramma (non sugli occhi: se ne vedono due o uno a
+    # seconda del fotogramma e il gatto sobbalzerebbe), con le zampe sulla stessa linea di terra.
+    # I gatti della seconda riga della tavola sono disegnati qualche percento più grandi: li porto tutti alla
+    # stessa altezza (dalla punta delle orecchie alle zampe), altrimenti il gatto "respira" mentre cammina.
+    def height(f):
+        rows = np.where((f["rgba"][..., 3] > 128).any(axis=1))[0]
+        return float(rows[-1] - rows[0])
+    median_height = float(np.median([height(f) for f in walk]))
+    for f in walk:
+        k = median_height / height(f)
+        if abs(k - 1.0) > 0.003:
+            img = Image.fromarray(f["rgba"], "RGBA")
+            img = img.resize((round(img.width * k), round(img.height * k)), Image.LANCZOS)
+            f["rgba"] = np.asarray(img)
+            f["ground"] = float(np.where((f["rgba"][..., 3] > 128).any(axis=1))[0][-1])
     walk_ground = float(np.median([f["ground"] for f in walk]))
+    ref_band = torso_band(walk[0]["rgba"])
+    ref_cx = float(np.where(ref_band)[1].mean())
+    for f in walk:
+        f["dx"] = shift_for(ref_band, torso_band(f["rgba"]))
+        f["ax"] = ref_cx - f["dx"]
+        f["ground"] = walk_ground
+    # Il gatto fermo, già alla scala della camminata, allo stesso modo.
+    idle_img = Image.fromarray(idle["rgba"], "RGBA")
+    idle_img = idle_img.resize((round(idle_img.width * idle_scale), round(idle_img.height * idle_scale)), Image.LANCZOS)
+    idle_arr = np.asarray(idle_img)
+    idle_dx = shift_for(ref_band, torso_band(idle_arr), reach=40)
+    idle_scaled_ax = ref_cx - idle_dx
+    idle_eyes_x = idle["ax"] * idle_scale
     offsets = []
     for f in walk:
         band = lower_band(f, f["ground"])
@@ -284,7 +323,7 @@ def main():
             img = img.resize((round(img.width * scale), round(img.height * scale)), Image.LANCZOS)
         items.append(dict(img=img, ax=ax * scale, ground=ground * scale, label=label))
 
-    add(idle, idle_scale, idle["ax"], idle["ground"], "fermo")
+    items.append(dict(img=idle_img, ax=idle_scaled_ax, ground=idle["ground"] * idle_scale, label="fermo"))
     for n, f in enumerate(walk, 1):
         add(f, 1.0, f["ax"], f["ground"], f"passo {n}")
 
@@ -320,9 +359,10 @@ def main():
     up = int(np.ceil(max(i["ground"] for i in items)))
     down = int(np.ceil(max(i["img"].height - i["ground"] for i in items)))
     cw, ch = left + right + 2 * PAD, up + down + 2 * PAD
-    print(f"formato comune: {cw}x{ch}  (zampe a riga {up + PAD}, {(down + PAD) / ch:.4f} dal fondo, "
-          f"occhi a x={left + PAD} = {(left + PAD) / cw:.3f} della larghezza)")
+    print(f"formato comune: {cw}x{ch}  (zampe a riga {up + PAD}, {(down + PAD) / ch:.4f} dal fondo)")
 
+    eye_x = left + PAD - items[0]["ax"] + idle_eyes_x
+    print(f"occhi nel fotogramma fermo: x={eye_x:.1f} ({eye_x / cw:.3f} della larghezza)")
     canvases = []
     for n, i in enumerate(items, 1):
         canvas = Image.new("RGBA", (cw, ch), (0, 0, 0, 0))

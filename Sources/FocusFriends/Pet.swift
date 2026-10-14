@@ -177,11 +177,11 @@ struct Pet: Equatable {
         greeting: "Ciao! Sono il gattino. Facciamo due passi?",
         shadowWidthFraction: 0.6,
         groundFraction: 0.0949,
-        iconCrop: NSRect(x: 0.575, y: 0.439, width: 0.40, height: 0.4985),   // la testa, con un po' d'aria intorno alle orecchie
+        iconCrop: NSRect(x: 0.577, y: 0.439, width: 0.401, height: 0.499),   // la testa, con un po' d'aria intorno alle orecchie
         iconFocus: 0.5,
         walks: true,
         walkFrames: [1, 2, 3, 4, 5, 6],   // il ciclo dei passi
-        stepInterval: 0.12,
+        stepInterval: 0.15,       // 6 fotogrammi in 0,9 s: i piedi appoggiati scivolano poco a 42 pt/s
         facesRight: true,
         eatFrames: [7, 8, 9, 10, 11, 10, 9, 8],   // guarda il pesce, apre la bocca, morde, mastica, e torna indietro
         sleepIntroFrame: 13,                       // gli occhi chiusi, tranquillo
