@@ -481,3 +481,9 @@ allineate sulla linea di terra), file delle frasi, dimensione della finestra. Un
 fisso, più stadi = cresce con il timer; con `walks: true` le immagini sono pose e il personaggio
 cammina; con `framesPerStage` ogni stadio ha il suo gruppo di pose (cresce e cammina, come Pianty); `stepInterval` regola la velocità del passo. Per ritagliare un'immagine su sfondo bianco si può partire da
 `tools/cutout_picked.py` (un solo disegno) o `tools/cutout_ciccio.py` (tavole con più fotogrammi).
+
+## Licenza
+
+Il codice e le immagini del progetto sono sotto licenza **MIT** (vedi il file [LICENSE](LICENSE)): puoi usarli,
+modificarli e distribuirli, anche in progetti tuoi, mantenendo l'avviso di copyright. I cinque brani inclusi sono di
+HoliznaCC0 e di pubblico dominio (**CC0**): autore e fonti sono in [CREDITS.md](CREDITS.md).
