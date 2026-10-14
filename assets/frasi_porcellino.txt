@@ -1,6 +1,6 @@
 # Frasi del Porcellino: una per riga. Le righe che iniziano con # sono ignorate.
 # Per usare le tue, scegli "Modifica le frasi…" dal menu: crea e apre
-#   ~/Library/Application Support/Bonsy/frasi_porcellino.txt
+#   ~/Library/Application Support/FocusFriends/frasi_porcellino.txt
 Un passo alla volta: io arrivo ovunque trotterellando.
 Sei più forte di quanto pensi.
 Respira. Hai già fatto la parte più difficile: cominciare.

@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/images/compagni.png" width="720" alt="Pianty, Porcellino e Ciccio">
+  <img src="docs/images/compagni.png" width="720" alt="Pianty, Porcellino, Ciccio e il Gattino">
 </p>
 
 ## I compagni

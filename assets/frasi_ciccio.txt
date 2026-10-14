@@ -1,6 +1,6 @@
 # Frasi di Ciccio: una per riga. Le righe che iniziano con # sono ignorate.
 # Per usare le tue, scegli "Modifica le frasi…" dal menu: crea e apre
-#   ~/Library/Application Support/Bonsy/frasi_ciccio.txt
+#   ~/Library/Application Support/FocusFriends/frasi_ciccio.txt
 Cip cip! Un passetto alla volta: anch'io cammino, prima di volare.
 Anche le ali più piccole, prima o poi, si aprono.
 Fai una pausa: anche una cocorita ha bisogno di un po' di miglio.
