@@ -45,6 +45,8 @@ final class DashboardView: NSView {
     private var period: StudyPeriod
     private var summary = StudySummary()
     private var streak = 0
+    /// La serie è ghiacciata: ieri non si è studiato, studiando oggi continua.
+    private var streakFrozen = false
     /// Le frasi su "quando rendi meglio" (da tutte le sessioni con un voto) e quante sessioni hanno un voto.
     private var insights: [String] = []
     private var totalRated = 0
@@ -148,7 +150,9 @@ final class DashboardView: NSView {
     func reload() {
         let today = now()
         summary = StudyStats.summary(sessions: log.sessions, period: period, calendar: calendar)
-        streak = StudyStats.streak(sessions: log.sessions, now: today, calendar: calendar)
+        let streakResult = StudyStreak.analyze(sessions: log.sessions, now: today, calendar: calendar)
+        streak = streakResult.days
+        streakFrozen = streakResult.isFrozen
         insights = StudyStats.insights(sessions: log.sessions, calendar: calendar)
         totalRated = log.sessions.filter { $0.rating != nil }.count
         nextButton.isEnabled = !period.contains(today) && period.end <= today.addingTimeInterval(86_400 * 366)
@@ -479,11 +483,12 @@ final class DashboardView: NSView {
     }
 
     private func drawStreak(y: CGFloat) {
-        let label = streak == 1 ? "1 giorno di fila" : "\(streak) giorni di fila"
+        let label = (streak == 1 ? "1 giorno di fila" : "\(streak) giorni di fila") + (streakFrozen ? " · ghiacciata: studia oggi" : "")
         let font = NSFont.systemFont(ofSize: 13, weight: .medium)
         let textWidth = ceil((label as NSString).size(withAttributes: [.font: font]).width)
         let x = (Self.size.width - (22 + textWidth)) / 2
-        if let flame = Paper.symbolImage("flame", size: 15, color: Paper.accent) {
+        let iconColor = streakFrozen ? NSColor(calibratedRed: 0.30, green: 0.55, blue: 0.82, alpha: 1) : Paper.accent
+        if let flame = Paper.symbolImage(streakFrozen ? "snowflake" : "flame", size: 15, color: iconColor) {
             let s = flame.size
             flame.draw(in: NSRect(x: x, y: y + 12 - s.height / 2, width: s.width, height: s.height), from: .zero,
                        operation: .sourceOver, fraction: 1, respectFlipped: true, hints: nil)
@@ -595,6 +600,7 @@ final class DashboardView: NSView {
         guard alert.runModal() == .alertFirstButtonReturn else { return }
         log.deleteAll()
         Profile.shared.reset()
+        Garden.shared.reset()
     }
 
     // MARK: - Esportazione

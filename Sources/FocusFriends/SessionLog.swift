@@ -853,22 +853,10 @@ enum StudyStats {
         return sessions.filter { calendar.startOfDay(for: $0.startTime(in: calendar)) == day }.reduce(0) { $0 + $1.seconds }
     }
 
-    /// Giorni consecutivi con almeno un focus, fino a oggi. Se oggi non c'è ancora niente conta da ieri,
-    /// così la serie non si azzera la mattina.
+    /// Giorni consecutivi con almeno un focus, fino a oggi. Se oggi non c'è ancora niente conta da ieri, così la serie
+    /// non si azzera la mattina. Un giorno senza studio non la azzera: la ghiaccia (vedi `StudyStreak`).
     static func streak(sessions: [StudySession], now: Date, calendar: Calendar = StudyPeriod.calendar()) -> Int {
-        let days = Set(sessions.map { calendar.startOfDay(for: $0.startTime(in: calendar)) })
-        var day = calendar.startOfDay(for: now)
-        if !days.contains(day) {
-            guard let yesterday = calendar.date(byAdding: .day, value: -1, to: day) else { return 0 }
-            day = yesterday
-        }
-        var count = 0
-        while days.contains(day) {
-            count += 1
-            guard let previous = calendar.date(byAdding: .day, value: -1, to: day) else { break }
-            day = previous
-        }
-        return count
+        StudyStreak.analyze(sessions: sessions, now: now, calendar: calendar).days
     }
 
     // MARK: - Quando rendi meglio

@@ -1,571 +1,411 @@
 import AppKit
 
-/// Il giardino: si conta il tempo di studio di ogni giorno. Ogni 50 minuti è una pianta adulta, e il resto cresce in
-/// una piantina allo stadio di mezzo (GardenRules). Una aiuola per giorno; la scheda "Settimana" le mostra grandi,
-/// "Mese" in un calendario. Si ricava tutto dal registro delle sessioni.
+/// Il giardino: un prato tuo, che arredi con gli oggetti che sblocchi studiando. I punti si guadagnano con le ore di
+/// studio (GardenPoints) e si spendono nel negozio, a destra: un oggetto si sblocca una volta e poi se ne mettono
+/// quanti se ne vogliono. Si trascina tutto dove si vuole. I compagni sbloccati stanno qui, e se li tocchi parlano.
+///
+/// La scena è un disegno solo; gli oggetti e i compagni si disegnano sopra, più piccoli verso il fondo.
 final class GardenView: NSView, NSViewToolTipOwner {
-    static let size = NSSize(width: 1000, height: 540)
-    private static let margin: CGFloat = 28
+    /// La scena (senza il negozio): la proporzione è quella del disegno del prato (1024×506).
+    static let sceneSize = NSSize(width: 1000, height: 494)
+    static let shopWidth: CGFloat = 330
+    private static let pad: CGFloat = 14
 
     override var isFlipped: Bool { true }
+    override var acceptsFirstResponder: Bool { true }
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 
     private let log: SessionLog
+    private let garden: Garden
+    private let profile: Profile
     private let now: () -> Date
     private let calendar = StudyPeriod.calendar()
 
-    private var kind: PeriodKind = .week
-    private var period: StudyPeriod
+    // I punti, ricavati dal registro (reload).
+    private var earned = 0
+    private var balance = 0
+    private var streak = StudyStreak.Result(perDay: [:], days: 0, isFrozen: false, studiedToday: false)
+    private var factor = 1.0
 
-    /// Una piantina disegnata: dove, e quale (stadio, materie, personaggio) di quale giorno.
-    private struct Plant {
-        var rect: NSRect
-        var info: GardenRules.DayPlant
-        var day: Date
-        var showsDot: Bool
-    }
-    private struct Bed {
-        var rect: NSRect
-        var dayLabel: String
-        var dayLabelPoint: NSPoint
-        var total: String?
-        var extra: Int
-        var isToday: Bool
-        var anchor: NSPoint
-        /// Il giorno ha almeno una piantina (nel mese: serve un po' di terra sotto).
-        var hasPlants = false
-    }
-    private var plants: [Plant] = []
-    private var beds: [Bed] = []
-    /// Le piantine adulte del periodo e quelle ancora in crescita (una al massimo per giorno).
-    private var adultPlants = 0
-    private var growingPlants = 0
-    private var totalSeconds = 0
-    private var streak = 0
-    /// Le immagini già caricate: "pianty-3", "porcellino-5"... Ogni personaggio può avere la sua collezione
-    /// (`garden_<personaggio>_<stadio>.png`); chi non ce l'ha usa le piantine di Pianty.
-    private var imageCache: [String: NSImage] = [:]
-    /// Le sessioni del periodo e le piantine di ogni giorno (chiave: inizio del giorno), calcolate una volta per ricarica.
-    private var dayItems: [Date: [StudySession]] = [:]
-    private var dayPlants: [Date: [GardenRules.DayPlant]] = [:]
+    // Il negozio.
+    private(set) var isShopOpen = false
+    private var category: GardenCategory = .flowers
+    private var scrollOffset: CGFloat = 0
+    /// L'oggetto di cui si sta per spendere i punti: serve un secondo tocco per confermare.
+    private var confirming: String?
+    /// Una riga di spiegazione in fondo al negozio, per qualche secondo.
+    private var message: String?
+    private var messageTimer: Timer?
 
-    private let segmented = NSSegmentedControl(labels: ["Settimana", "Mese"], trackingMode: .selectOne, target: nil, action: nil)
-    private let previousButton = NSButton()
-    private let nextButton = NSButton()
-    /// Chiamata dal pulsante «‹ Menu» in alto a sinistra: la finestra si chiude e si torna alla scheda del menu.
+    // Quello che si sta trascinando.
+    private enum Carry: Equatable {
+        case placed(UUID)
+        case companion(String)
+        case fresh(String)
+    }
+    private var carry: Carry?
+    private var carryFeet = NSPoint.zero
+    private var carryGrab = NSSize.zero
+    private var carryStart = NSPoint.zero
+    private var carryMoved = false
+
+    // Il fumetto di un compagno toccato.
+    private var bubble: (petID: String, text: String)?
+    private var bubbleTimer: Timer?
+
+    private let shopButton: PillIconButton
+    /// Chiamata dal pulsante «‹ Menu»: la finestra si chiude e si torna alla scheda del menu.
     var onBack: (() -> Void)?
+    /// Chiamata quando il negozio si apre o si chiude: la finestra si allarga o si stringe.
+    var onShopToggle: ((Bool) -> Void)?
 
-    init(log: SessionLog, now: @escaping () -> Date = Date.init) {
+    init(log: SessionLog, garden: Garden, profile: Profile, now: @escaping () -> Date = Date.init) {
         self.log = log
+        self.garden = garden
+        self.profile = profile
         self.now = now
-        self.period = StudyPeriod.containing(now(), kind: .week)
-        super.init(frame: NSRect(origin: .zero, size: Self.size))
+        shopButton = PillIconButton(caption: "Negozio", symbol: "bag", size: NSSize(width: 112, height: 30),
+                                    target: nil, action: #selector(toggleShop), tip: "Apri il negozio")
+        super.init(frame: NSRect(origin: .zero, size: Self.sceneSize))
         appearance = NSAppearance(named: .aqua)
-
-        segmented.selectedSegment = 0
-        segmented.segmentStyle = .rounded
-        segmented.target = self
-        segmented.action = #selector(kindChanged)
-        segmented.frame = NSRect(x: (Self.size.width - 190) / 2, y: 18, width: 190, height: 26)
-        addSubview(segmented)
+        setAccessibilityLabel("Il giardino")
 
         let back = BackToMenuButton(target: self, action: #selector(backPressed))
         back.setFrameOrigin(NSPoint(x: 16, y: 14))
         addSubview(back)
 
-        for (button, symbol, action) in [(previousButton, "chevron.left", #selector(goPrevious)), (nextButton, "chevron.right", #selector(goNext))] {
-            button.image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)
-            button.isBordered = false
-            button.contentTintColor = Paper.ink
-            button.target = self
-            button.action = action
-            addSubview(button)
-        }
-        previousButton.frame = NSRect(x: Self.margin, y: 58, width: 32, height: 28)
-        nextButton.frame = NSRect(x: Self.size.width - Self.margin - 32, y: 58, width: 32, height: 28)
+        shopButton.target = self
+        shopButton.setFrameOrigin(NSPoint(x: Self.sceneSize.width - 16 - 112, y: 14))
+        addSubview(shopButton)
 
-        // Chiusa la finestra non serve ricalcolare: alla riapertura `select` lo fa. (Minimizzata sì: è ancora lì.)
+        // Chiusa la finestra non serve ricalcolare: alla riapertura `show` lo fa. (Minimizzata sì: è ancora lì.)
         log.addObserver { [weak self] in
             guard let self, self.window.map({ $0.isVisible || $0.isMiniaturized }) ?? true else { return }
             self.reload()
         }
+        garden.addObserver { [weak self] in self?.reload() }
         reload()
     }
 
     required init?(coder: NSCoder) { nil }
 
-    // MARK: - Dati e disposizione
+    // MARK: - Dati
 
-    func select(_ newKind: PeriodKind) {
-        kind = newKind == .month ? .month : .week
-        segmented.selectedSegment = kind == .month ? 1 : 0
-        period = StudyPeriod.containing(now(), kind: kind, calendar: calendar)
-        reload()
-    }
-
-    @objc private func kindChanged() {
-        select(segmented.selectedSegment == 1 ? .month : .week)
-    }
-
-    @objc private func backPressed() { onBack?() }
-
-    @objc private func goPrevious() {
-        period = period.shifted(by: -1, calendar: calendar)
-        reload()
-    }
-
-    @objc private func goNext() {
-        guard !period.contains(now()) else { return }
-        period = period.shifted(by: 1, calendar: calendar)
-        reload()
-    }
-
+    /// Rifà i conti dei punti e ridisegna.
     func reload() {
         let today = now()
-        nextButton.isEnabled = !period.contains(today)
-        nextButton.alphaValue = period.contains(today) ? 0.25 : 1
-        streak = StudyStats.streak(sessions: log.sessions, now: today, calendar: calendar)
-
-        let inPeriod = log.sessions.filter { period.contains($0.startTime(in: calendar)) }
-        totalSeconds = inPeriod.reduce(0) { $0 + $1.seconds }
-        adultPlants = 0
-        growingPlants = 0
-        dayItems = [:]
-        for session in inPeriod {
-            dayItems[calendar.startOfDay(for: session.startTime(in: calendar)), default: []].append(session)
-        }
-        dayPlants = [:]
-        var cursor = period.start
-        while cursor < period.end {
-            let day = GardenRules.plants(of: sessions(on: cursor), calendar: calendar)
-            dayPlants[calendar.startOfDay(for: cursor)] = day
-            adultPlants += day.filter { $0.isAdult }.count
-            growingPlants += day.filter { !$0.isAdult }.count
-            cursor = calendar.date(byAdding: .day, value: 1, to: cursor) ?? period.end
-        }
-
-        plants = []
-        beds = []
+        streak = StudyStreak.analyze(sessions: log.sessions, now: today, calendar: calendar)
+        let weighted = GardenPoints.weightedMinutes(sessions: log.sessions, now: today, calendar: calendar)
+        earned = GardenPoints.points(forWeightedMinutes: weighted)
+        balance = GardenPoints.balance(earned: earned, spent: garden.spent)
+        factor = GardenPoints.multiplierToday(streak)
         removeAllToolTips()
-        if kind == .week { layoutWeek(today: today) } else { layoutMonth(today: today) }
-        for (index, plant) in plants.enumerated() {
-            addToolTip(plant.rect, owner: self, userData: UnsafeMutableRawPointer(bitPattern: index + 1))
-        }
+        let hud = hudLayout()
+        addToolTip(hud.points, owner: self, userData: UnsafeMutableRawPointer(bitPattern: 1))
+        if let chip = hud.factor { addToolTip(chip, owner: self, userData: UnsafeMutableRawPointer(bitPattern: 2)) }
         needsDisplay = true
     }
 
-    /// Le sessioni di un giorno del periodo (già raggruppate da `reload`).
-    private func sessions(on dayStart: Date) -> [StudySession] {
-        dayItems[calendar.startOfDay(for: dayStart)] ?? []
+    override func keyDown(with event: NSEvent) {
+        interpretKeyEvents([event])
     }
 
-    /// Le piantine di un giorno del periodo (già calcolate da `reload`).
-    private func plants(on dayStart: Date) -> [GardenRules.DayPlant] {
-        dayPlants[calendar.startOfDay(for: dayStart)] ?? []
+    /// Esc: chiude il negozio (o lascia a metà un oggetto che si sta trascinando).
+    override func cancelOperation(_ sender: Any?) {
+        if carry != nil {
+            cancelCarry()
+        } else if isShopOpen {
+            setShopOpen(false)
+        }
     }
 
-    private func formatted(_ date: Date, _ format: String) -> String {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "it_IT")
-        f.timeZone = calendar.timeZone
-        f.dateFormat = format
-        return f.string(from: date)
+    @objc private func backPressed() {
+        cancelCarry()
+        onBack?()
     }
 
-    /// L'aspetto delle piantine: la tela di Pianty (208x341) con i piedi a 1,76% dal fondo.
-    private static let canvasAspect: CGFloat = 208.0 / 341.0
-    private static let feetFraction: CGFloat = 0.0176
+    @objc private func toggleShop() {
+        setShopOpen(!isShopOpen)
+    }
 
-    private func image(forPet petID: String?, stage: Int) -> NSImage? {
-        let pet = petID ?? "pianty"
-        let key = "\(pet)-\(stage)"
-        if let cached = imageCache[key] { return cached }
-        let candidates = ["garden_\(pet)_\(stage)", "pianty_stage\(stage)_1"]
-        for name in candidates {
-            if let url = Bundle.main.url(forResource: name, withExtension: "png"), let image = NSImage(contentsOf: url) {
-                imageCache[key] = image
-                return image
+    func setShopOpen(_ open: Bool) {
+        guard open != isShopOpen else { return }
+        cancelCarry()
+        isShopOpen = open
+        confirming = nil
+        message = nil
+        shopButton.caption = open ? "Chiudi" : "Negozio"
+        shopButton.symbolName = open ? "xmark" : "bag"
+        onShopToggle?(open)
+        needsDisplay = true
+    }
+
+    private func cancelCarry() {
+        carry = nil
+        carryMoved = false
+        NSCursor.arrow.set()
+        needsDisplay = true
+    }
+
+    // MARK: - Geometria
+
+    private var sceneW: CGFloat { Self.sceneSize.width }
+    private var sceneH: CGFloat { Self.sceneSize.height }
+    private var sceneRect: NSRect { NSRect(origin: .zero, size: Self.sceneSize) }
+    private var shopRect: NSRect { NSRect(x: sceneW, y: 0, width: Self.shopWidth, height: sceneH) }
+
+    private func point(for spot: GardenSpot) -> NSPoint {
+        NSPoint(x: CGFloat(spot.x) * sceneW, y: CGFloat(spot.y) * sceneH)
+    }
+
+    private func spot(for point: NSPoint) -> GardenSpot {
+        GardenScene.clamped(GardenSpot(x: Double(point.x / sceneW), y: Double(point.y / sceneH)))
+    }
+
+    /// L'altezza a cui si disegna un oggetto con i piedi in `spot`: più piccolo verso il fondo del prato.
+    private func displayHeight(_ referenceHeight: Double, at spot: GardenSpot) -> CGFloat {
+        CGFloat(referenceHeight * GardenScene.depthScale(y: spot.y)) * sceneH / CGFloat(GardenScene.size.height)
+    }
+
+    // MARK: - Le immagini
+
+    private struct Sprite {
+        let image: NSImage
+        /// La parte che non è trasparente, in coordinate dell'immagine (origine in basso a sinistra).
+        let source: NSRect
+        /// Una griglia grossolana dei punti disegnati (dall'alto in basso), per capire se un clic cade sull'oggetto
+        /// e non sul vuoto dentro il suo rettangolo (un arco, le bandierine).
+        let mask: [Bool]
+        let columns: Int
+        let rows: Int
+        var aspect: CGFloat { source.width / max(source.height, 1) }
+
+        /// C'è qualcosa di disegnato in (u, v), dentro la parte visibile (v dall'alto), o a una cella di distanza?
+        func isDrawn(u: CGFloat, v: CGFloat) -> Bool {
+            guard columns > 0, rows > 0, !mask.isEmpty else { return true }
+            let column = Int((u * CGFloat(columns)).rounded(.down)), row = Int((v * CGFloat(rows)).rounded(.down))
+            for r in max(row - 1, 0)...min(row + 1, rows - 1) {
+                for c in max(column - 1, 0)...min(column + 1, columns - 1) where mask[r * columns + c] { return true }
             }
+            return false
+        }
+    }
+
+    private static var sprites: [String: Sprite] = [:]
+
+    private static func sprite(_ resource: String) -> Sprite? {
+        if let known = sprites[resource] { return known }
+        guard let url = Bundle.main.url(forResource: resource, withExtension: "png"),
+              let image = NSImage(contentsOf: url) else { return nil }
+        let made = analyze(image)
+        sprites[resource] = made
+        return made
+    }
+
+    /// Cerca i pixel non trasparenti: i compagni hanno un bordo vuoto intorno, e i piedi devono stare dove dice il
+    /// prato, non dove finisce l'immagine. Ne ricava anche la griglia dei punti disegnati (per i clic).
+    private static func analyze(_ image: NSImage) -> Sprite {
+        let full = Sprite(image: image, source: NSRect(origin: .zero, size: image.size), mask: [], columns: 0, rows: 0)
+        guard let cg = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return full }
+        let w = cg.width, h = cg.height
+        guard w > 0, h > 0 else { return full }
+        var data = [UInt8](repeating: 0, count: w * h * 4)
+        let drawn = data.withUnsafeMutableBytes { buffer -> Bool in
+            guard let context = CGContext(data: buffer.baseAddress, width: w, height: h, bitsPerComponent: 8, bytesPerRow: w * 4,
+                                          space: CGColorSpaceCreateDeviceRGB(),
+                                          bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return false }
+            context.draw(cg, in: CGRect(x: 0, y: 0, width: w, height: h))
+            return true
+        }
+        guard drawn else { return full }
+        let threshold: UInt8 = 24
+        var minX = w, maxX = -1, minY = h, maxY = -1
+        for y in 0..<h {
+            for x in 0..<w where data[(y * w + x) * 4 + 3] > threshold {
+                minX = min(minX, x); maxX = max(maxX, x); minY = min(minY, y); maxY = max(maxY, y)
+            }
+        }
+        guard maxX >= minX, maxY >= minY else { return full }
+        let boxW = maxX - minX + 1, boxH = maxY - minY + 1
+        // La griglia dei clic: al massimo 64 celle sul lato lungo.
+        let long = 64
+        let columns = boxW >= boxH ? long : max(1, Int((Double(long) * Double(boxW) / Double(boxH)).rounded()))
+        let rows = boxH > boxW ? long : max(1, Int((Double(long) * Double(boxH) / Double(boxW)).rounded()))
+        var mask = [Bool](repeating: false, count: columns * rows)
+        for y in minY...maxY {
+            let row = min((y - minY) * rows / boxH, rows - 1)
+            for x in minX...maxX where data[(y * w + x) * 4 + 3] > threshold {
+                mask[row * columns + min((x - minX) * columns / boxW, columns - 1)] = true
+            }
+        }
+        // La memoria parte dalla riga in alto: nell'immagine l'origine è in basso.
+        let sx = image.size.width / CGFloat(w), sy = image.size.height / CGFloat(h)
+        let source = NSRect(x: CGFloat(minX) * sx, y: CGFloat(h - 1 - maxY) * sy, width: CGFloat(boxW) * sx, height: CGFloat(boxH) * sy)
+        return Sprite(image: image, source: source, mask: mask, columns: columns, rows: rows)
+    }
+
+    private lazy var meadow: NSImage? = {
+        Bundle.main.url(forResource: "giardino_prato", withExtension: "png").flatMap { NSImage(contentsOf: $0) }
+    }()
+
+    // MARK: - Cosa c'è nel prato
+
+    private enum Kind: Equatable {
+        case placed(UUID)
+        case companion(String)
+    }
+
+    /// Una cosa nel prato, con dove cade a schermo.
+    private struct Entity {
+        var kind: Kind
+        var sprite: Sprite
+        var spot: GardenSpot
+        var feet: NSPoint
+        var rect: NSRect
+        var shadow: Bool
+    }
+
+    private func entity(kind: Kind, resource: String, referenceHeight: Double, spot: GardenSpot, shadow: Bool) -> Entity? {
+        guard let sprite = Self.sprite(resource) else { return nil }
+        let feet = point(for: spot)
+        let height = displayHeight(referenceHeight, at: spot)
+        let width = height * sprite.aspect
+        let rect = NSRect(x: feet.x - width / 2, y: feet.y - height, width: width, height: height)
+        return Entity(kind: kind, sprite: sprite, spot: spot, feet: feet, rect: rect, shadow: shadow)
+    }
+
+    /// Gli oggetti e i compagni sbloccati, dal fondo al davanti. Quello che si sta trascinando sta dove lo tiene il
+    /// mouse (e va per ultimo, sopra a tutto).
+    private func entities() -> [Entity] {
+        var result: [Entity] = []
+        var lifted: Entity?
+        for placement in garden.placements {
+            guard let item = GardenCatalog.item(withID: placement.item) else { continue }
+            let kind = Kind.placed(placement.id)
+            var at = placement.spot
+            let isCarried = carry == .placed(placement.id)
+            if isCarried { at = spot(for: carryFeet) }
+            guard let made = entity(kind: kind, resource: item.resource, referenceHeight: item.height, spot: at, shadow: item.castsShadow)
+            else { continue }
+            if isCarried { lifted = made } else { result.append(made) }
+        }
+        for (index, pet) in Pet.all.enumerated() where profile.isCompanionUnlocked(pet.id) {
+            var at = garden.companionSpot(pet.id, index: index)
+            let isCarried = carry == .companion(pet.id)
+            if isCarried { at = spot(for: carryFeet) }
+            guard let made = entity(kind: .companion(pet.id), resource: pet.iconResource,
+                                    referenceHeight: GardenCatalog.companionHeight(for: pet.id), spot: at, shadow: true)
+            else { continue }
+            if isCarried { lifted = made } else { result.append(made) }
+        }
+        result.sort { $0.feet.y < $1.feet.y }
+        if let lifted { result.append(lifted) }
+        return result
+    }
+
+    /// La cosa più davanti sotto il mouse, contando solo dove l'immagine è disegnata (con una cella di margine):
+    /// così si può toccare un compagno che sta dietro le bandierine o sotto l'arco.
+    private func entity(at point: NSPoint) -> Entity? {
+        for entity in entities().reversed() where entity.rect.contains(point) {
+            let u = (point.x - entity.rect.minX) / entity.rect.width
+            let v = (point.y - entity.rect.minY) / entity.rect.height
+            if entity.sprite.isDrawn(u: u, v: v) { return entity }
         }
         return nil
     }
 
-    private func plantRect(centerX: CGFloat, feetY: CGFloat, height: CGFloat) -> NSRect {
-        let width = height * Self.canvasAspect
-        return NSRect(x: centerX - width / 2, y: feetY - height * (1 - Self.feetFraction), width: width, height: height)
+    // MARK: - Il negozio: disposizione
+
+    private struct ShopLayout {
+        var tabs: [(category: GardenCategory, rect: NSRect)]
+        var area: NSRect
+        var cards: [(item: GardenItem, rect: NSRect)]
+        var contentHeight: CGFloat
     }
 
-    /// Le piantine di un giorno da mostrare: quella in crescita davanti, poi le adulte, fino a `limit`.
-    private func visiblePlants(_ plants: [GardenRules.DayPlant], limit: Int) -> [GardenRules.DayPlant] {
-        let growing = plants.filter { !$0.isAdult }
-        let adults = plants.filter { $0.isAdult }
-        return Array((growing + adults).prefix(limit))
-    }
+    private static let tabFont = NSFont.systemFont(ofSize: 12.5, weight: .semibold)
+    private static let cardHeight: CGFloat = 86
+    private static let cardGap: CGFloat = 8
+    private static let columns = 3
 
-    /// La settimana: sette aiuole in fila, fino a sei piantine ciascuna (tre davanti e tre dietro).
-    private func layoutWeek(today: Date) {
-        let m = Self.margin
-        let columnWidth = (Self.size.width - 2 * m) / 7
-        let baseY: CGFloat = 392
-        let plantHeight: CGFloat = 124
-        for i in 0..<7 {
-            guard let dayStart = calendar.date(byAdding: .day, value: i, to: period.start) else { continue }
-            let x0 = m + CGFloat(i) * columnWidth
-            let bedRect = NSRect(x: x0 + 8, y: baseY - 14, width: columnWidth - 16, height: 38)   // il monticello di terra
-            let items = sessions(on: dayStart)
-            let seconds = items.reduce(0) { $0 + $1.seconds }
-            let all = plants(on: dayStart)
-            // Quella che cresce davanti (più piccola) e le adulte dietro, così si vedono tutte.
-            let shown = visiblePlants(all, limit: 6)
-            let front = Array(shown.prefix(3))
-            let back = Array(shown.dropFirst(3))
-            let spacing = columnWidth / 3.35
-            let extra = max(all.count - shown.count, 0)
-
-            for (row, group) in [(1, back), (0, front)] {
-                for (k, plant) in group.enumerated() {
-                    let cx = x0 + columnWidth / 2 + (CGFloat(k) - CGFloat(group.count - 1) / 2) * spacing
-                    let feetY = baseY + 6 - (row == 1 ? 36 : 0)
-                    plants.append(Plant(
-                        rect: plantRect(centerX: cx, feetY: feetY, height: plantHeight * (row == 1 ? 0.9 : 1)),
-                        info: plant, day: dayStart, showsDot: row == 0
-                    ))
-                }
-            }
-            beds.append(Bed(
-                rect: bedRect,
-                dayLabel: formatted(dayStart, "EEE d").lowercased(),
-                dayLabelPoint: NSPoint(x: x0 + columnWidth / 2, y: baseY + 30),
-                total: items.isEmpty ? nil : StudyStats.duration(seconds: seconds) + (extra > 0 ? " · +\(extra)" : ""),
-                extra: extra,
-                isToday: calendar.isDate(dayStart, inSameDayAs: today),
-                anchor: NSPoint(x: x0 + columnWidth / 2, y: baseY - 60),
-                hasPlants: !all.isEmpty
-            ))
+    private func shopLayout() -> ShopLayout {
+        let x0 = shopRect.minX, pad = Self.pad
+        var tabs: [(category: GardenCategory, rect: NSRect)] = []
+        var tx = x0 + pad
+        for cat in GardenCategory.allCases {
+            let width = ceil((cat.title as NSString).size(withAttributes: [.font: Self.tabFont]).width) + 24
+            tabs.append((cat, NSRect(x: tx, y: 54, width: width, height: 28)))
+            tx += width + 6
         }
+        let area = NSRect(x: x0 + pad, y: 90, width: Self.shopWidth - 2 * pad, height: sceneH - 90 - 34)
+        let gap = Self.cardGap
+        let cardWidth = floor((area.width - CGFloat(Self.columns - 1) * gap) / CGFloat(Self.columns))
+        let items = GardenCatalog.items(in: category)
+        var cards: [(item: GardenItem, rect: NSRect)] = []
+        for (index, item) in items.enumerated() {
+            let row = index / Self.columns, column = index % Self.columns
+            cards.append((item, NSRect(x: area.minX + CGFloat(column) * (cardWidth + gap),
+                                       y: area.minY + CGFloat(row) * (Self.cardHeight + gap) - scrollOffset,
+                                       width: cardWidth, height: Self.cardHeight)))
+        }
+        let rows = (items.count + Self.columns - 1) / Self.columns
+        let content = CGFloat(rows) * Self.cardHeight + CGFloat(max(rows - 1, 0)) * gap
+        return ShopLayout(tabs: tabs, area: area, cards: cards, contentHeight: content)
     }
 
-    /// Il mese: un calendario con piantine piccole in ogni giorno (fino a quattro, poi "+N").
-    private func layoutMonth(today: Date) {
-        let m = Self.margin
-        let cellWidth = (Self.size.width - 2 * m) / 7
-        let top: CGFloat = 140
-        guard let days = calendar.range(of: .day, in: .month, for: period.start) else { return }
-        // Colonna del primo giorno (la settimana parte dal lunedì).
-        let weekday = calendar.component(.weekday, from: period.start)           // 1 = domenica
-        let offset = (weekday + 5) % 7                                           // 0 = lunedì
-        // Cinque o sei righe: le celle si adattano, così il mese sta sempre nella finestra.
-        let rows = (offset + days.count + 6) / 7
-        let cellHeight = min(78, (Self.size.height - top - 58) / CGFloat(rows))     // 58: lo spazio per la legenda in fondo
-        let plantHeight = min(54, cellHeight - 20)
-        for (n, day) in days.enumerated() {
-            guard let dayStart = calendar.date(byAdding: .day, value: n, to: period.start) else { continue }
-            let slot = offset + n
-            let col = slot % 7, row = slot / 7
-            let cell = NSRect(x: m + CGFloat(col) * cellWidth, y: top + CGFloat(row) * cellHeight, width: cellWidth, height: cellHeight)
-            let all = plants(on: dayStart)
-            let shown = visiblePlants(all, limit: 4)
-            let spacing: CGFloat = 25
-            for (k, plant) in shown.enumerated() {
-                let cx = cell.midX + (CGFloat(k) - CGFloat(shown.count - 1) / 2) * spacing
-                plants.append(Plant(
-                    rect: plantRect(centerX: cx, feetY: cell.maxY - 7, height: plantHeight),
-                    info: plant, day: dayStart, showsDot: false
-                ))
-            }
-            beds.append(Bed(
-                rect: cell.insetBy(dx: 3, dy: 3), dayLabel: "\(day)", dayLabelPoint: NSPoint(x: cell.minX + 10, y: cell.minY + 6),
-                total: nil, extra: max(all.count - shown.count, 0), isToday: calendar.isDate(dayStart, inSameDayAs: today),
-                anchor: NSPoint(x: cell.midX, y: cell.midY), hasPlants: !all.isEmpty
-            ))
-        }
+    private var maxScroll: CGFloat {
+        let layout = shopLayout()
+        return max(0, layout.contentHeight - layout.area.height)
     }
 
-    // MARK: - Testi
+    // MARK: - I comandi in alto
 
-    private var periodTitle: String {
-        switch kind {
-        case .week:
-            let last = period.end.addingTimeInterval(-1)
-            return "\(formatted(period.start, "d MMM")) – \(formatted(last, "d MMM yyyy"))"
-        default:
-            let title = formatted(period.start, "MMMM yyyy")
-            return title.prefix(1).uppercased() + title.dropFirst()
+    private struct HUDLayout {
+        var points: NSRect
+        var factor: NSRect?
+    }
+
+    private let numberFont = Paper.markerFont(20)
+    private let smallFont = NSFont.systemFont(ofSize: 12, weight: .medium)
+
+    private func pointsWord(_ count: Int) -> String { count == 1 ? "punto" : "punti" }
+
+    private func hudLayout() -> HUDLayout {
+        let numberWidth = ceil(("\(balance)" as NSString).size(withAttributes: [.font: numberFont]).width)
+        let labelWidth = ceil((pointsWord(balance) as NSString).size(withAttributes: [.font: smallFont]).width)
+        let width = 14 + numberWidth + 6 + labelWidth + 14
+        let shopX = sceneW - 16 - 112
+        let points = NSRect(x: shopX - 10 - width, y: 14, width: width, height: 30)
+        var chip: NSRect?
+        if factor > 1 || streak.isFrozen {
+            let text = factor > 1 ? "×" + GardenPoints.text(forMultiplier: factor) : "ghiacciata"
+            let textWidth = ceil((text as NSString).size(withAttributes: [.font: smallFont]).width)
+            let icon: CGFloat = streak.isFrozen ? 18 : 0
+            let chipWidth = 12 + icon + textWidth + 12
+            chip = NSRect(x: points.minX - 8 - chipWidth, y: 14, width: chipWidth, height: 30)
         }
+        return HUDLayout(points: points, factor: chip)
     }
 
     func view(_ view: NSView, stringForToolTip tag: NSView.ToolTipTag, point: NSPoint, userData data: UnsafeMutableRawPointer?) -> String {
-        let index = Int(bitPattern: data) - 1
-        guard plants.indices.contains(index) else { return "" }
-        let plant = plants[index]
-        let minutes = (plant.info.seconds + 30) / 60
-        var head = formatted(plant.day, "EEEE d MMMM")
-        head = head.prefix(1).uppercased() + head.dropFirst()
-        let state = plant.info.isAdult ? "pianta adulta · \(GardenRules.minutesPerPlant) min"
-            : "in crescita · \(minutes) min su \(GardenRules.minutesPerPlant)"
-        let subjects = plant.info.subjects.map {
-            "\($0.subject ?? Subject.none) \(StudyStats.duration(seconds: $0.seconds))"
-        }.joined(separator: ", ")
-        return head + " · " + state + (subjects.isEmpty ? "" : "\n" + subjects)
-    }
-
-    // MARK: - La scena
-
-    /// Un generatore deterministico: l'erba e i fiori sono sempre negli stessi punti.
-    private struct SeededRandom {
-        var state: UInt64
-        mutating func next() -> CGFloat {
-            state = state &* 6364136223846793005 &+ 1442695040888963407
-            return CGFloat((state >> 33) & 0xFFFF) / 65535
+        if Int(bitPattern: data) == 1 {
+            return "Punti del giardino: uno per ogni ora di studio (anche dei focus interrotti). Con 3 giorni di fila "
+                + "ogni minuto vale ×1,25, con 7 ×1,5, con 14 ×2. Servono per sbloccare gli oggetti del negozio."
         }
-        mutating func range(_ a: CGFloat, _ b: CGFloat) -> CGFloat { a + (b - a) * next() }
-    }
-
-    private static var sceneCache: [String: NSImage] = [:]
-
-    /// Il prato della stagione: cielo, sole e nuvole, colline, una staccionata e l'erba. Nel mese la scena è più
-    /// bassa (il resto è il calendario sul prato). Si disegna una volta per tipo e stagione.
-    static func scene(for kind: PeriodKind, season: Season) -> NSImage {
-        let key = "\(kind.rawValue)-\(season.rawValue)"
-        if let cached = sceneCache[key] { return cached }
-        let image = NSImage(size: size, flipped: true) { rect in
-            drawScene(kind: kind, season: season, in: rect)
-            return true
+        var text = "Serie di \(streak.days) \(streak.days == 1 ? "giorno" : "giorni")"
+        if factor > 1 {
+            text += ": oggi ogni minuto vale ×\(GardenPoints.text(forMultiplier: factor))"
         }
-        sceneCache[key] = image
-        return image
-    }
-
-    private typealias RGB = (CGFloat, CGFloat, CGFloat)
-
-    private static func rgb(_ r: CGFloat, _ g: CGFloat, _ b: CGFloat, _ a: CGFloat = 1) -> NSColor {
-        NSColor(calibratedRed: r / 255, green: g / 255, blue: b / 255, alpha: a)
-    }
-
-    private static func lerp(_ a: RGB, _ b: RGB, _ t: CGFloat) -> NSColor {
-        rgb(a.0 + (b.0 - a.0) * t, a.1 + (b.1 - a.1) * t, a.2 + (b.2 - a.2) * t)
-    }
-
-    /// I colori e gli elementi di ogni stagione.
-    private struct SeasonStyle {
-        var skyTop: RGB, skyBottom: RGB
-        var sun: RGB, sunRadius: CGFloat, sunGlow: CGFloat
-        var cloud: RGB, cloudCount: Int
-        var farHill: RGB, nearHill: RGB
-        var lawnTop: RGB, lawnBottom: RGB
-        var blade: RGB
-        var flowers: [RGB], flowerCount: Int, flowerRadius: CGFloat
-        var leaves: Int
-        var snow: Bool
-    }
-
-    private static func style(for season: Season) -> SeasonStyle {
-        switch season {
-        case .spring:
-            return SeasonStyle(skyTop: (252, 244, 220), skyBottom: (200, 232, 228), sun: (255, 220, 130), sunRadius: 32, sunGlow: 1,
-                               cloud: (255, 255, 255), cloudCount: 3, farHill: (186, 214, 158), nearHill: (150, 196, 120),
-                               lawnTop: (140, 192, 104), lawnBottom: (104, 162, 82), blade: (90, 142, 68),
-                               flowers: [(255, 255, 255), (250, 190, 205), (255, 224, 130), (206, 190, 240)], flowerCount: 48,
-                               flowerRadius: 3.4, leaves: 0, snow: false)
-        case .summer:
-            return SeasonStyle(skyTop: (255, 238, 196), skyBottom: (170, 214, 240), sun: (255, 206, 90), sunRadius: 36, sunGlow: 1.15,
-                               cloud: (255, 255, 255), cloudCount: 2, farHill: (176, 210, 124), nearHill: (136, 188, 88),
-                               lawnTop: (122, 182, 74), lawnBottom: (90, 150, 58), blade: (68, 128, 50),
-                               flowers: [(255, 214, 80), (255, 168, 70), (240, 110, 100), (255, 255, 255)], flowerCount: 34,
-                               flowerRadius: 4.6, leaves: 0, snow: false)
-        case .autumn:
-            return SeasonStyle(skyTop: (255, 228, 198), skyBottom: (216, 214, 208), sun: (255, 188, 120), sunRadius: 30, sunGlow: 0.8,
-                               cloud: (240, 230, 228), cloudCount: 4, farHill: (218, 198, 132), nearHill: (190, 162, 98),
-                               lawnTop: (178, 170, 92), lawnBottom: (144, 138, 70), blade: (150, 130, 60),
-                               flowers: [(230, 130, 70), (210, 90, 60)], flowerCount: 8, flowerRadius: 3.2, leaves: 90, snow: false)
-        case .winter:
-            return SeasonStyle(skyTop: (238, 240, 246), skyBottom: (206, 220, 232), sun: (255, 255, 255), sunRadius: 26, sunGlow: 0.5,
-                               cloud: (252, 252, 255), cloudCount: 4, farHill: (226, 234, 244), nearHill: (206, 218, 232),
-                               lawnTop: (234, 240, 238), lawnBottom: (204, 218, 214), blade: (150, 176, 168),
-                               flowers: [], flowerCount: 0, flowerRadius: 3, leaves: 0, snow: true)
+        if streak.isFrozen {
+            text += ". Ieri non hai studiato: la serie è ghiacciata, studia oggi per non perderla."
         }
-    }
-
-    private static func drawScene(kind: PeriodKind, season: Season, in rect: NSRect) {
-        let w = rect.width, h = rect.height
-        let isWeek = kind != .month
-        let st = style(for: season)
-        // Dove finisce il cielo e comincia il prato.
-        let lawnTop: CGFloat = isWeek ? 300 : 140
-        let ink = rgb(64, 40, 22)
-        var rng = SeededRandom(state: 20261012 &+ UInt64(season.hashValueStable))
-
-        // Il cielo
-        let skyHeight = lawnTop + 20
-        var y: CGFloat = 0
-        while y < skyHeight {
-            lerp(st.skyTop, st.skyBottom, y / skyHeight).setFill()
-            NSRect(x: 0, y: y, width: w, height: 4).fill()
-            y += 4
-        }
-
-        // Il sole (con un alone) e le nuvole
-        let sun = NSPoint(x: isWeek ? 735 : 690, y: isWeek ? 74 : 40)
-        for (r, a) in [(62, 0.10), (50, 0.16), (40, 0.28)] as [(CGFloat, CGFloat)] {
-            let grown = r * st.sunGlow * (st.sunRadius / 32)
-            rgb(st.sun.0, st.sun.1, st.sun.2, a * min(st.sunGlow, 1.4)).setFill()
-            NSBezierPath(ovalIn: NSRect(x: sun.x - grown, y: sun.y - grown, width: 2 * grown, height: 2 * grown)).fill()
-        }
-        rgb(st.sun.0, st.sun.1, st.sun.2, season == .winter ? 0.7 : 1).setFill()
-        NSBezierPath(ovalIn: NSRect(x: sun.x - st.sunRadius, y: sun.y - st.sunRadius, width: 2 * st.sunRadius, height: 2 * st.sunRadius)).fill()
-        let allClouds: [(CGFloat, CGFloat, CGFloat)] = isWeek
-            ? [(120, 150, 1.0), (520, 168, 0.8), (905, 140, 0.9), (330, 110, 0.7)]
-            : [(110, 110, 0.7), (560, 118, 0.6), (340, 92, 0.55), (900, 120, 0.6)]
-        for (cx, cy, scale) in allClouds.prefix(st.cloudCount) {
-            rgb(st.cloud.0, st.cloud.1, st.cloud.2, 0.88).setFill()
-            for (dx, dy, r) in [(0, 0, 24), (26, 5, 20), (-26, 5, 18), (48, 11, 14), (-48, 11, 13)] as [(CGFloat, CGFloat, CGFloat)] {
-                NSBezierPath(ovalIn: NSRect(x: cx + dx * scale - r * scale * 1.3, y: cy + dy * scale - r * scale * 0.8,
-                                            width: 2.6 * r * scale, height: 1.6 * r * scale)).fill()
-            }
-        }
-
-        // Le colline
-        func hill(base: CGFloat, amp: CGFloat, phase: CGFloat, color: NSColor) {
-            let path = NSBezierPath()
-            path.move(to: NSPoint(x: 0, y: h))
-            var x: CGFloat = 0
-            while x <= w + 8 {
-                path.line(to: NSPoint(x: x, y: base + amp * sin(x / 140 + phase)))
-                x += 8
-            }
-            path.line(to: NSPoint(x: w, y: h))
-            path.close()
-            color.setFill()
-            path.fill()
-        }
-        hill(base: lawnTop - 130 + (isWeek ? 0 : 60), amp: isWeek ? 22 : 12, phase: 0, color: rgb(st.farHill.0, st.farHill.1, st.farHill.2))
-        hill(base: lawnTop - 94 + (isWeek ? 0 : 42), amp: isWeek ? 16 : 9, phase: 1.7, color: rgb(st.nearHill.0, st.nearHill.1, st.nearHill.2))
-
-        // La staccionata (nel mese è bassa: sopra c'è il riepilogo, sotto il calendario)
-        let fenceHeight: CGFloat = isWeek ? 64 : 18
-        let fenceTop = lawnTop - fenceHeight - 2
-        let fenceBottom = lawnTop - 2
-        let railThickness: CGFloat = isWeek ? 8 : 4
-        let picketWidth: CGFloat = isWeek ? 18 : 12
-        let picketStep: CGFloat = isWeek ? 30 : 20
-        rgb(250, 238, 210).setFill()
-        ink.setStroke()
-        for rail in [fenceTop + fenceHeight * 0.34, fenceTop + fenceHeight * 0.70] {
-            let r = NSRect(x: -2, y: rail, width: w + 4, height: railThickness)
-            r.fill()
-            NSBezierPath(rect: r).stroke()
-        }
-        var x: CGFloat = 14
-        while x < w {
-            let picket = NSBezierPath()
-            picket.move(to: NSPoint(x: x, y: fenceTop + fenceHeight * 0.2))
-            picket.line(to: NSPoint(x: x + picketWidth / 2, y: fenceTop))
-            picket.line(to: NSPoint(x: x + picketWidth, y: fenceTop + fenceHeight * 0.2))
-            picket.line(to: NSPoint(x: x + picketWidth, y: fenceBottom))
-            picket.line(to: NSPoint(x: x, y: fenceBottom))
-            picket.close()
-            rgb(252, 243, 220).setFill()
-            picket.fill()
-            picket.lineWidth = 1
-            picket.stroke()
-            if st.snow {
-                // Un cappuccio di neve su ogni paletto
-                let cap = NSBezierPath(roundedRect: NSRect(x: x - 1, y: fenceTop - 3, width: picketWidth + 2, height: isWeek ? 9 : 5),
-                                       xRadius: 3, yRadius: 3)
-                rgb(255, 255, 255).setFill()
-                cap.fill()
-                rgb(150, 170, 190).setStroke()
-                cap.lineWidth = 1
-                cap.stroke()
-            }
-            x += picketStep
-        }
-
-        // Il prato
-        var ly = lawnTop
-        while ly < h {
-            lerp(st.lawnTop, st.lawnBottom, (ly - lawnTop) / (h - lawnTop)).setFill()
-            NSRect(x: 0, y: ly, width: w, height: 4).fill()
-            ly += 4
-        }
-        rgb(st.blade.0, st.blade.1, st.blade.2).setStroke()
-        for _ in 0..<(season == .winter ? 120 : 220) {
-            let gx = rng.range(0, w), gy = rng.range(lawnTop + 10, h - 4)
-            let blade = NSBezierPath()
-            blade.move(to: NSPoint(x: gx, y: gy))
-            blade.line(to: NSPoint(x: gx + rng.range(-3, 3), y: gy - rng.range(5, 10)))
-            blade.lineWidth = 2
-            blade.stroke()
-        }
-        if st.snow {
-            // Chiazze di neve sul prato
-            rgb(255, 255, 255, 0.85).setFill()
-            for _ in 0..<26 {
-                let sx = rng.range(0, w), sy = rng.range(lawnTop + 14, h - 10)
-                NSBezierPath(ovalIn: NSRect(x: sx - rng.range(14, 30), y: sy - 4, width: rng.range(28, 60), height: rng.range(8, 14))).fill()
-            }
-        }
-
-        // Fiori
-        let flowerCount = isWeek ? st.flowerCount : st.flowerCount / 2
-        for i in 0..<flowerCount {
-            let fx = rng.range(10, w - 10), fy = rng.range(lawnTop + 16, h - 10)
-            let c = st.flowers[i % st.flowers.count]
-            let r = st.flowerRadius
-            if season == .summer {
-                // Girasoli: petali gialli e cuore scuro
-                rgb(c.0, c.1, c.2).setFill()
-                NSBezierPath(ovalIn: NSRect(x: fx - r, y: fy - r, width: 2 * r, height: 2 * r)).fill()
-                rgb(110, 70, 36).setFill()
-                NSBezierPath(ovalIn: NSRect(x: fx - r * 0.45, y: fy - r * 0.45, width: r * 0.9, height: r * 0.9)).fill()
-            } else {
-                rgb(c.0, c.1, c.2).setFill()
-                let dot = NSBezierPath(ovalIn: NSRect(x: fx - r, y: fy - r, width: 2 * r, height: 2 * r))
-                dot.fill()
-                ink.setStroke()
-                dot.lineWidth = 1
-                dot.stroke()
-            }
-        }
-
-        // Foglie d'autunno: sul prato e in aria
-        if st.leaves > 0 {
-            let colors: [RGB] = [(205, 96, 44), (224, 156, 52), (170, 62, 40), (196, 120, 40)]
-            for i in 0..<st.leaves {
-                let inAir = i % 5 == 0
-                let lx = rng.range(8, w - 8)
-                let ly = inAir ? rng.range(60, lawnTop + 10) : rng.range(lawnTop + 14, h - 10)
-                let c = colors[i % colors.count]
-                NSGraphicsContext.saveGraphicsState()
-                let t = NSAffineTransform()
-                t.translateX(by: lx, yBy: ly)
-                t.rotate(byDegrees: rng.range(-60, 60))
-                t.concat()
-                rgb(c.0, c.1, c.2, inAir ? 0.85 : 0.95).setFill()
-                NSBezierPath(ovalIn: NSRect(x: -7, y: -3.5, width: 14, height: 7)).fill()
-                rgb(c.0 * 0.6, c.1 * 0.6, c.2 * 0.6).setStroke()
-                let vein = NSBezierPath()
-                vein.move(to: NSPoint(x: -7, y: 0))
-                vein.line(to: NSPoint(x: 7, y: 0))
-                vein.lineWidth = 0.8
-                vein.stroke()
-                NSGraphicsContext.restoreGraphicsState()
-            }
-        }
-
-        // Fiocchi di neve
-        if st.snow {
-            rgb(255, 255, 255, 0.95).setFill()
-            for _ in 0..<(isWeek ? 90 : 60) {
-                let fx = rng.range(0, w), fy = rng.range(0, h)
-                let r = rng.range(1.4, 3.2)
-                NSBezierPath(ovalIn: NSRect(x: fx - r, y: fy - r, width: 2 * r, height: 2 * r)).fill()
-            }
-        }
+        return text + "."
     }
 
     // MARK: - Disegno
 
-    private func text(_ string: String, at rect: NSRect, font: NSFont, color: NSColor = Paper.ink, alignment: NSTextAlignment = .left) {
+    private func text(_ string: String, in rect: NSRect, font: NSFont, color: NSColor = Paper.ink,
+                      alignment: NSTextAlignment = .left) {
         let para = NSMutableParagraphStyle()
         para.alignment = alignment
         para.lineBreakMode = .byTruncatingTail
@@ -573,131 +413,404 @@ final class GardenView: NSView, NSViewToolTipOwner {
     }
 
     override func draw(_ dirtyRect: NSRect) {
-        let anchorDate = calendar.date(byAdding: .day, value: kind == .week ? 3 : 14, to: period.start) ?? period.start
-        Self.scene(for: kind, season: Season.of(anchorDate, calendar: calendar)).draw(in: bounds)
-        let width = Self.size.width
-        let m = Self.margin
+        NSGraphicsContext.current?.imageInterpolation = .high
+        if let meadow {
+            meadow.draw(in: sceneRect, from: .zero, operation: .sourceOver, fraction: 1, respectFlipped: true, hints: nil)
+        } else {
+            Paper.paper.setFill()
+            sceneRect.fill()
+        }
+        let laid = entities()
+        for entity in laid { drawEntity(entity, lifted: carry != nil && entity.kind == carryKind && carryMoved) }
+        if let bubble, let target = laid.first(where: { $0.kind == .companion(bubble.petID) }) {
+            drawBubble(bubble.text, above: target.rect)
+        }
+        drawHUD()
+        if garden.placements.isEmpty && !isShopOpen && carry == nil {
+            drawHint("Apri il negozio e trascina qualcosa nel prato.")
+        }
+        if isShopOpen { drawShop() }
+        // Un oggetto nuovo preso dal negozio: si vede sotto al mouse.
+        if case .fresh(let id)? = carry, carryMoved, let item = GardenCatalog.item(withID: id),
+           let made = entity(kind: .placed(UUID()), resource: item.resource, referenceHeight: item.height,
+                             spot: spot(for: carryFeet), shadow: item.castsShadow) {
+            drawEntity(made, lifted: true)
+        }
+    }
 
-        text(periodTitle, at: NSRect(x: m + 40, y: 60, width: width - 2 * m - 80, height: 26),
-             font: Paper.markerFont(22), alignment: .center)
+    private var carryKind: Kind? {
+        switch carry {
+        case .placed(let id)?: return .placed(id)
+        case .companion(let id)?: return .companion(id)
+        default: return nil
+        }
+    }
 
-        // Riga di riepilogo e giorni di fila
-        let totalPlants = adultPlants + growingPlants
-        let adultWord = adultPlants == 1 ? "1 pianta adulta" : "\(adultPlants) piante adulte"
-        let growingText = growingPlants == 0 ? "" : (growingPlants == 1 ? " e 1 in crescita" : " e \(growingPlants) in crescita")
-        let when = kind == .week ? "questa settimana" : "questo mese"
-        let summary = totalPlants == 0
-            ? "Il giardino è ancora vuoto: ogni 50 minuti di studio in un giorno è una pianta adulta."
-            : "\(StudyStats.duration(seconds: totalSeconds)) di studio \(when): \(adultWord)\(growingText)."
-        text(summary, at: NSRect(x: m, y: 100, width: width - 2 * m - 200, height: 20),
-             font: NSFont.systemFont(ofSize: 14), color: Paper.inkLight)
-        let badge = NSRect(x: width - m - 180, y: 12, width: 180, height: 44)
-        let badgeShape = NSBezierPath(roundedRect: badge, xRadius: 12, yRadius: 12)
-        Paper.accent.withAlphaComponent(0.12).setFill()
-        badgeShape.fill()
-        text("\(streak)", at: NSRect(x: badge.minX + 14, y: badge.minY + 4, width: 40, height: 34), font: Paper.markerFont(30))
-        text(streak == 1 ? "giorno di fila" : "giorni di fila", at: NSRect(x: badge.minX + 54, y: badge.minY + 14, width: 120, height: 18),
-             font: NSFont.systemFont(ofSize: 14), color: Paper.inkLight)
+    private func drawEntity(_ entity: Entity, lifted: Bool) {
+        let rect = lifted ? entity.rect.offsetBy(dx: 0, dy: -4) : entity.rect
+        if entity.shadow {
+            let width = entity.rect.width * 0.7
+            let height = max(entity.rect.height * 0.09, 5)
+            let shadow = NSRect(x: entity.feet.x - width / 2, y: entity.feet.y - height * 0.45, width: width, height: height)
+            NSColor(calibratedRed: 0.24, green: 0.32, blue: 0.20, alpha: lifted ? 0.18 : 0.26).setFill()
+            NSBezierPath(ovalIn: shadow).fill()
+        }
+        entity.sprite.image.draw(in: rect, from: entity.sprite.source, operation: .sourceOver, fraction: 1,
+                                 respectFlipped: true, hints: [.interpolation: NSImageInterpolation.high])
+    }
 
-        // Monticelli di terra (settimana) o caselle del calendario sul prato (mese)
-        let soilFill = NSColor(calibratedRed: 0.61, green: 0.45, blue: 0.31, alpha: 1)
-        let outlineInk = NSColor(calibratedRed: 0.25, green: 0.16, blue: 0.09, alpha: 1)
-        for bed in beds {
-            if kind == .week {
-                let mound = NSBezierPath(ovalIn: bed.rect)
-                soilFill.setFill()
-                mound.fill()
-                (bed.isToday ? Paper.accent : outlineInk).setStroke()
-                mound.lineWidth = bed.isToday ? 3 : 2
-                mound.stroke()
-                // Il cartello di legno con il giorno e le ore, su un paletto.
-                let cx = bed.dayLabelPoint.x
-                let sign = NSRect(x: cx - 46, y: bed.dayLabelPoint.y, width: 92, height: 44)
-                outlineInk.setStroke()
-                let stake = NSBezierPath()
-                stake.move(to: NSPoint(x: cx, y: bed.rect.maxY - 6))
-                stake.line(to: NSPoint(x: cx, y: sign.minY + 2))
-                stake.lineWidth = 3
-                stake.stroke()
-                let tag = NSBezierPath(roundedRect: sign, xRadius: 8, yRadius: 8)
-                NSColor(calibratedRed: 0.96, green: 0.89, blue: 0.71, alpha: 1).setFill()
-                tag.fill()
-                (bed.isToday ? Paper.accent : outlineInk).setStroke()
-                tag.lineWidth = bed.isToday ? 2.5 : 1.5
-                tag.stroke()
-                text(bed.dayLabel, at: NSRect(x: sign.minX, y: sign.minY + 4, width: sign.width, height: 22),
-                     font: Paper.markerFont(17), alignment: .center)
-                text(bed.total ?? "—", at: NSRect(x: sign.minX, y: sign.minY + 26, width: sign.width, height: 16),
-                     font: NSFont.systemFont(ofSize: 11.5), color: Paper.inkLight, alignment: .center)
+    private func drawChip(_ rect: NSRect, fill: NSColor, stroke: NSColor) {
+        let path = NSBezierPath(roundedRect: rect, xRadius: rect.height / 2, yRadius: rect.height / 2)
+        fill.setFill()
+        path.fill()
+        stroke.setStroke()
+        path.lineWidth = 1.2
+        path.stroke()
+    }
+
+    private func tinted(_ symbol: String, size: CGFloat, color: NSColor) -> NSImage? {
+        let config = NSImage.SymbolConfiguration(pointSize: size, weight: .semibold)
+        guard let source = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)?.withSymbolConfiguration(config) else { return nil }
+        return NSImage(size: source.size, flipped: false) { box in
+            source.draw(in: box)
+            color.set()
+            box.fill(using: .sourceAtop)
+            return true
+        }
+    }
+
+    private func drawHUD() {
+        let hud = hudLayout()
+        // I punti
+        drawChip(hud.points, fill: NSColor(calibratedRed: 1, green: 0.99, blue: 0.94, alpha: 0.95), stroke: Paper.paperEdge)
+        let numberWidth = ceil(("\(balance)" as NSString).size(withAttributes: [.font: numberFont]).width)
+        text("\(balance)", in: NSRect(x: hud.points.minX + 14, y: hud.points.minY + 3, width: numberWidth + 2, height: 26), font: numberFont)
+        text(pointsWord(balance), in: NSRect(x: hud.points.minX + 14 + numberWidth + 6, y: hud.points.minY + 8, width: 50, height: 16),
+             font: smallFont, color: Paper.inkLight)
+        // Il valore di un minuto, o la serie ghiacciata
+        if let rect = hud.factor {
+            let ice = NSColor(calibratedRed: 0.20, green: 0.38, blue: 0.58, alpha: 1)
+            if streak.isFrozen {
+                drawChip(rect, fill: NSColor(calibratedRed: 0.85, green: 0.93, blue: 0.99, alpha: 0.96),
+                         stroke: NSColor(calibratedRed: 0.45, green: 0.66, blue: 0.86, alpha: 1))
+                var x = rect.minX + 12
+                if let flake = tinted("snowflake", size: 12, color: NSColor(calibratedRed: 0.30, green: 0.55, blue: 0.82, alpha: 1)) {
+                    flake.draw(in: NSRect(x: x, y: rect.midY - flake.size.height / 2, width: flake.size.width, height: flake.size.height))
+                    x += 18
+                }
+                let label = factor > 1 ? "×" + GardenPoints.text(forMultiplier: factor) : "ghiacciata"
+                text(label, in: NSRect(x: x, y: rect.minY + 8, width: rect.maxX - x - 8, height: 16), font: smallFont, color: ice)
             } else {
-                let patch = NSBezierPath(roundedRect: bed.rect, xRadius: 12, yRadius: 12)
-                NSColor.white.withAlphaComponent(bed.isToday ? 0.30 : 0.13).setFill()
-                patch.fill()
-                if bed.isToday {
-                    Paper.accent.setStroke()
-                    patch.lineWidth = 2.5
-                    patch.stroke()
+                drawChip(rect, fill: Paper.accent.withAlphaComponent(0.18), stroke: Paper.accent.withAlphaComponent(0.5))
+                text("×" + GardenPoints.text(forMultiplier: factor),
+                     in: NSRect(x: rect.minX + 12, y: rect.minY + 8, width: rect.width - 24, height: 16),
+                     font: smallFont, color: Paper.accentPressed)
+            }
+        }
+    }
+
+    private func drawHint(_ string: String) {
+        let width: CGFloat = 400
+        let rect = NSRect(x: (sceneW - width) / 2, y: sceneH - 50, width: width, height: 34)
+        let pill = NSBezierPath(roundedRect: rect, xRadius: 17, yRadius: 17)
+        Paper.paper.withAlphaComponent(0.88).setFill()
+        pill.fill()
+        text(string, in: NSRect(x: rect.minX, y: rect.minY + 8, width: rect.width, height: 18),
+             font: NSFont.systemFont(ofSize: 13), color: Paper.inkLight, alignment: .center)
+    }
+
+    private func drawBubble(_ string: String, above rect: NSRect) {
+        let font = NSFont.systemFont(ofSize: 12.5)
+        let attributes: [NSAttributedString.Key: Any] = [.font: font, .foregroundColor: Paper.ink]
+        let bounds = (string as NSString).boundingRect(with: NSSize(width: 230, height: 300),
+                                                       options: [.usesLineFragmentOrigin], attributes: attributes)
+        let width = ceil(bounds.width) + 24, height = ceil(bounds.height) + 18
+        let x = min(max(rect.midX - width / 2, 8), sceneW - width - 8)
+        let y = max(rect.minY - height - 12, 56)
+        let box = NSRect(x: x, y: y, width: width, height: height)
+        let path = NSBezierPath(roundedRect: box, xRadius: 12, yRadius: 12)
+        let tailX = min(max(rect.midX, box.minX + 18), box.maxX - 18)
+        path.move(to: NSPoint(x: tailX - 7, y: box.maxY - 0.5))
+        path.line(to: NSPoint(x: tailX, y: box.maxY + 9))
+        path.line(to: NSPoint(x: tailX + 7, y: box.maxY - 0.5))
+        NSColor(calibratedRed: 1, green: 0.99, blue: 0.94, alpha: 0.97).setFill()
+        path.fill()
+        Paper.paperEdge.setStroke()
+        path.lineWidth = 1.2
+        path.stroke()
+        (string as NSString).draw(in: NSRect(x: box.minX + 12, y: box.minY + 9, width: width - 24, height: height - 14),
+                                  withAttributes: attributes)
+    }
+
+    // MARK: - Disegno del negozio
+
+    private func drawShop() {
+        let panel = shopRect
+        Paper.paper.setFill()
+        panel.fill()
+        Paper.paperEdge.setStroke()
+        let edge = NSBezierPath()
+        edge.move(to: NSPoint(x: panel.minX + 0.5, y: 0))
+        edge.line(to: NSPoint(x: panel.minX + 0.5, y: panel.maxY))
+        edge.lineWidth = 1.5
+        edge.stroke()
+
+        let layout = shopLayout()
+        let pad = Self.pad
+        text("Il negozio", in: NSRect(x: panel.minX + pad, y: 14, width: 160, height: 30), font: Paper.markerFont(24))
+        // il saldo
+        let numberWidth = ceil(("\(balance)" as NSString).size(withAttributes: [.font: numberFont]).width)
+        let labelWidth = ceil((pointsWord(balance) as NSString).size(withAttributes: [.font: smallFont]).width)
+        let chipWidth = 14 + numberWidth + 6 + labelWidth + 14
+        let chip = NSRect(x: panel.maxX - pad - chipWidth, y: 14, width: chipWidth, height: 30)
+        drawChip(chip, fill: NSColor(calibratedRed: 0.97, green: 0.87, blue: 0.75, alpha: 1), stroke: .clear)
+        text("\(balance)", in: NSRect(x: chip.minX + 14, y: chip.minY + 3, width: numberWidth + 2, height: 26), font: numberFont)
+        text(pointsWord(balance), in: NSRect(x: chip.minX + 14 + numberWidth + 6, y: chip.minY + 8, width: 50, height: 16),
+             font: smallFont, color: Paper.inkLight)
+        // le schede
+        for tab in layout.tabs {
+            let selected = tab.category == category
+            let path = NSBezierPath(roundedRect: tab.rect, xRadius: 14, yRadius: 14)
+            if selected {
+                Paper.accent.setFill()
+                path.fill()
+            } else {
+                Paper.paperEdge.setStroke()
+                path.lineWidth = 1.2
+                path.stroke()
+            }
+            text(tab.category.title, in: NSRect(x: tab.rect.minX, y: tab.rect.minY + 6, width: tab.rect.width, height: 16),
+                 font: Self.tabFont, color: selected ? .white : Paper.inkLight, alignment: .center)
+        }
+        // le carte, ritagliate nella loro area (si scorrono con la rotella)
+        NSGraphicsContext.saveGraphicsState()
+        NSBezierPath(rect: layout.area).addClip()
+        for card in layout.cards where card.rect.maxY > layout.area.minY && card.rect.minY < layout.area.maxY {
+            drawCard(card.item, in: card.rect)
+        }
+        NSGraphicsContext.restoreGraphicsState()
+        // in fondo: cosa si può fare
+        let footer = NSRect(x: panel.minX + pad, y: sceneH - 31, width: panel.width - 2 * pad, height: 28)
+        let line = message ?? defaultShopHint
+        (line as NSString).draw(in: footer, withAttributes: [
+            .font: NSFont.systemFont(ofSize: 11), .foregroundColor: Paper.inkLight,
+        ])
+        // trascinando un oggetto del prato sul negozio: lo si toglie
+        if case .placed? = carry, carryMoved, panel.contains(carryPointer) {
+            Paper.accent.withAlphaComponent(0.14).setFill()
+            panel.fill()
+            text("Rilascia per togliere", in: NSRect(x: panel.minX, y: panel.midY - 12, width: panel.width, height: 26),
+                 font: Paper.markerFont(20), color: Paper.accentPressed, alignment: .center)
+        }
+    }
+
+    private var defaultShopHint: String {
+        "Un oggetto si sblocca una volta, poi ne metti quanti vuoi. Trascinalo nel prato; per toglierlo, trascinalo qui."
+    }
+
+    private var carryPointer = NSPoint.zero
+
+    private func drawCard(_ item: GardenItem, in rect: NSRect) {
+        let unlocked = garden.isUnlocked(item.id)
+        let affordable = unlocked || item.price <= balance
+        let isConfirming = confirming == item.id
+        let path = NSBezierPath(roundedRect: rect, xRadius: 12, yRadius: 12)
+        NSColor(calibratedRed: 1, green: 0.99, blue: 0.94, alpha: 1).setFill()
+        path.fill()
+        (isConfirming ? Paper.accent : Paper.paperEdge).setStroke()
+        path.lineWidth = isConfirming ? 2.5 : 1.2
+        path.stroke()
+
+        if let sprite = Self.sprite(item.resource) {
+            let box = NSRect(x: rect.minX + 8, y: rect.minY + 6, width: rect.width - 16, height: 44)
+            let scale = min(box.width / sprite.source.width, box.height / sprite.source.height)
+            let size = NSSize(width: sprite.source.width * scale, height: sprite.source.height * scale)
+            let target = NSRect(x: box.midX - size.width / 2, y: box.maxY - size.height, width: size.width, height: size.height)
+            sprite.image.draw(in: target, from: sprite.source, operation: .sourceOver, fraction: affordable ? 1 : 0.4,
+                              respectFlipped: true, hints: [.interpolation: NSImageInterpolation.high])
+        }
+        var font = NSFont.systemFont(ofSize: 10.5, weight: .semibold)
+        if (item.name as NSString).size(withAttributes: [.font: font]).width > rect.width - 8 {
+            font = NSFont.systemFont(ofSize: 9, weight: .semibold)
+        }
+        text(item.name, in: NSRect(x: rect.minX + 3, y: rect.minY + 51, width: rect.width - 6, height: 14), font: font,
+             color: affordable ? Paper.ink : Paper.inkLight, alignment: .center)
+
+        let label: String
+        let color: NSColor
+        if unlocked {
+            label = "Tuo"
+            color = NSColor(calibratedRed: 0.38, green: 0.58, blue: 0.36, alpha: 1)
+        } else if isConfirming {
+            label = "Sblocca"
+            color = Paper.accentPressed
+        } else {
+            label = "\(item.price) \(item.price == 1 ? "punto" : "punti")"
+            color = affordable ? Paper.accent : NSColor(calibratedRed: 0.72, green: 0.68, blue: 0.62, alpha: 1)
+        }
+        let chipFont = NSFont.systemFont(ofSize: 10, weight: .semibold)
+        let chipWidth = ceil((label as NSString).size(withAttributes: [.font: chipFont]).width) + 16
+        let chip = NSRect(x: rect.midX - chipWidth / 2, y: rect.minY + 66, width: chipWidth, height: 16)
+        color.setFill()
+        NSBezierPath(roundedRect: chip, xRadius: 8, yRadius: 8).fill()
+        text(label, in: NSRect(x: chip.minX, y: chip.minY + 2, width: chip.width, height: 13), font: chipFont, color: .white,
+             alignment: .center)
+    }
+
+    // MARK: - Il mouse
+
+    private func flash(_ string: String) {
+        message = string
+        messageTimer?.invalidate()
+        messageTimer = Timer.scheduledTimer(withTimeInterval: 4, repeats: false) { [weak self] _ in
+            self?.message = nil
+            self?.needsDisplay = true
+        }
+        needsDisplay = true
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        window?.makeFirstResponder(self)
+        let p = convert(event.locationInWindow, from: nil)
+        carryPointer = p
+        carryStart = p
+        carryMoved = false
+        bubble = nil
+        if isShopOpen && shopRect.contains(p) {
+            shopMouseDown(at: p)
+            return
+        }
+        confirming = nil
+        guard sceneRect.contains(p), let found = entity(at: p) else {
+            needsDisplay = true
+            return
+        }
+        switch found.kind {
+        case .placed(let id): carry = .placed(id)
+        case .companion(let petID): carry = .companion(petID)
+        }
+        carryGrab = NSSize(width: found.feet.x - p.x, height: found.feet.y - p.y)
+        carryFeet = found.feet
+        needsDisplay = true
+    }
+
+    private func shopMouseDown(at p: NSPoint) {
+        let layout = shopLayout()
+        if let tab = layout.tabs.first(where: { $0.rect.contains(p) }) {
+            category = tab.category
+            scrollOffset = 0
+            confirming = nil
+            message = nil
+            needsDisplay = true
+            return
+        }
+        guard layout.area.contains(p), let card = layout.cards.first(where: { $0.rect.contains(p) }) else {
+            confirming = nil
+            needsDisplay = true
+            return
+        }
+        let item = card.item
+        if garden.isUnlocked(item.id) {
+            // Si prende una copia: un clic la mette nel prato, trascinando la si mette dove si lascia.
+            confirming = nil
+            carry = .fresh(item.id)
+            carryGrab = .zero
+            carryFeet = p
+        } else if item.price <= balance {
+            if confirming == item.id {
+                if garden.unlock(item.id, balance: balance) {
+                    garden.place(item.id, at: GardenScene.defaultPlacementSpot(salt: garden.placements.count + item.id.count))
+                    flash("\(item.name): sbloccato e messo nel prato. Puoi metterne quanti vuoi.")
                 }
-                let tag = NSRect(x: bed.rect.minX + 6, y: bed.rect.minY + 5, width: bed.dayLabel.count > 1 ? 24 : 20, height: 16)
-                let tagShape = NSBezierPath(roundedRect: tag, xRadius: 5, yRadius: 5)
-                NSColor(calibratedRed: 0.96, green: 0.89, blue: 0.71, alpha: 1).setFill()
-                tagShape.fill()
-                outlineInk.setStroke()
-                tagShape.lineWidth = 1
-                tagShape.stroke()
-                text(bed.dayLabel, at: NSRect(x: tag.minX, y: tag.minY + 1, width: tag.width, height: 14),
-                     font: NSFont.systemFont(ofSize: 10.5, weight: .semibold), color: Paper.ink, alignment: .center)
-                // Un po' di terra sotto le piantine del giorno.
-                if bed.hasPlants {
-                    let soil = NSBezierPath(ovalIn: NSRect(x: bed.rect.midX - bed.rect.width * 0.38, y: bed.rect.maxY - 17,
-                                                           width: bed.rect.width * 0.76, height: 13))
-                    soilFill.setFill()
-                    soil.fill()
-                }
+                confirming = nil
+            } else {
+                confirming = item.id
+                flash("\(item.name) costa \(item.price) \(item.price == 1 ? "punto" : "punti"): tocca ancora per sbloccarlo.")
+            }
+        } else {
+            confirming = nil
+            let missing = item.price - balance
+            flash("Ti manc\(missing == 1 ? "a" : "ano") \(missing) \(missing == 1 ? "punto" : "punti") per \(item.name).")
+        }
+        needsDisplay = true
+    }
+
+    override func mouseDragged(with event: NSEvent) {
+        guard carry != nil else { return }
+        let p = convert(event.locationInWindow, from: nil)
+        carryPointer = p
+        if !carryMoved, hypot(p.x - carryStart.x, p.y - carryStart.y) > 4 { carryMoved = true }
+        if carryMoved {
+            NSCursor.closedHand.set()
+            carryFeet = NSPoint(x: p.x + carryGrab.width, y: p.y + carryGrab.height)
+            needsDisplay = true
+        }
+    }
+
+    override func mouseUp(with event: NSEvent) {
+        guard let current = carry else { return }
+        let p = convert(event.locationInWindow, from: nil)
+        let overShop = isShopOpen && shopRect.contains(p)
+        let landing = spot(for: carryFeet)
+        carry = nil
+        NSCursor.arrow.set()
+        switch current {
+        case .placed(let id):
+            if carryMoved {
+                if overShop { garden.remove(id) } else { garden.move(id, to: landing) }
+            }
+        case .companion(let petID):
+            if carryMoved {
+                if !overShop { garden.setCompanionSpot(petID, to: landing) }
+            } else {
+                speak(petID)
+            }
+        case .fresh(let id):
+            if !carryMoved {
+                garden.place(id, at: GardenScene.defaultPlacementSpot(salt: garden.placements.count + id.count))
+            } else if sceneRect.contains(p) {
+                garden.place(id, at: landing)
             }
         }
-        // Piantine: le dietro prima (sono all'inizio della lista della riga dietro), poi quelle davanti
-        for plant in plants {
-            image(forPet: plant.info.pet, stage: plant.info.stage)?
-                .draw(in: plant.rect, from: .zero, operation: .sourceOver, fraction: 1, respectFlipped: true, hints: nil)
-            if plant.showsDot {
-                let color = plant.info.subject.map { Paper.color(forSubject: $0) } ?? Paper.inkLight.withAlphaComponent(0.55)
-                let dot = NSBezierPath(ovalIn: NSRect(x: plant.rect.midX - 6, y: plant.rect.maxY + 3, width: 12, height: 12))
-                color.setFill()
-                dot.fill()
-                // Bordo bianco per staccarsi dalla terra.
-                NSColor.white.withAlphaComponent(0.9).setStroke()
-                dot.lineWidth = 1
-                dot.stroke()
-            }
+        carryMoved = false
+        needsDisplay = true
+    }
+
+    override func scrollWheel(with event: NSEvent) {
+        let p = convert(event.locationInWindow, from: nil)
+        guard isShopOpen, shopRect.contains(p), maxScroll > 0 else {
+            super.scrollWheel(with: event)
+            return
         }
-        if kind == .month {
-            for bed in beds where bed.extra > 0 {
-                text("+\(bed.extra)", at: NSRect(x: bed.rect.maxX - 34, y: bed.rect.minY + 4, width: 28, height: 14),
-                     font: NSFont.systemFont(ofSize: 11, weight: .bold), color: Paper.accent, alignment: .right)
-            }
-        }
-        if adultPlants + growingPlants > 0 {
-            let strip = NSRect(x: m - 10, y: Self.size.height - 58, width: width - 2 * m + 20, height: 50)
-            let shape = NSBezierPath(roundedRect: strip, xRadius: 12, yRadius: 12)
-            Paper.paper.withAlphaComponent(0.88).setFill()
-            shape.fill()
-            text("Ogni 50 minuti di studio in un giorno è una pianta adulta; il resto cresce in una piantina più piccola.",
-                 at: NSRect(x: m, y: Self.size.height - 48, width: width - 2 * m, height: 18),
-                 font: NSFont.systemFont(ofSize: 12), color: Paper.inkLight)
-            let hint = kind == .week
-                ? "Il pallino sotto il vaso è la materia. Passa il mouse su una piantina per i dettagli."
-                : "Passa il mouse su una piantina per i dettagli."
-            text(hint, at: NSRect(x: m, y: Self.size.height - 30, width: width - 2 * m, height: 18),
-                 font: NSFont.systemFont(ofSize: 12), color: Paper.inkLight)
-        }
-        if adultPlants + growingPlants == 0 {
-            let y: CGFloat = kind == .week ? 350 : 330
-            let pill = NSRect(x: width / 2 - 240, y: y - 8, width: 480, height: 40)
-            Paper.paper.withAlphaComponent(0.9).setFill()
-            NSBezierPath(roundedRect: pill, xRadius: 14, yRadius: 14).fill()
-            text("Ancora nessuna piantina in questo periodo.", at: NSRect(x: pill.minX, y: y, width: pill.width, height: 24),
-                 font: Paper.markerFont(20), color: Paper.ink, alignment: .center)
+        scrollOffset = min(max(scrollOffset - event.scrollingDeltaY * (event.hasPreciseScrollingDeltas ? 1 : 8), 0), maxScroll)
+        needsDisplay = true
+    }
+
+    /// Un clic con il tasto destro su una copia: toglierla dal prato.
+    override func menu(for event: NSEvent) -> NSMenu? {
+        let p = convert(event.locationInWindow, from: nil)
+        guard sceneRect.contains(p), let found = entity(at: p), case .placed(let id) = found.kind else { return nil }
+        let menu = NSMenu()
+        let item = NSMenuItem(title: "Togli dal giardino", action: #selector(removeFromMenu(_:)), keyEquivalent: "")
+        item.representedObject = id
+        item.target = self
+        menu.addItem(item)
+        return menu
+    }
+
+    @objc private func removeFromMenu(_ sender: NSMenuItem) {
+        guard let id = sender.representedObject as? UUID else { return }
+        garden.remove(id)
+    }
+
+    private func speak(_ petID: String) {
+        guard let pet = Pet.all.first(where: { $0.id == petID }) else { return }
+        let phrases = Quotes.load(for: pet)
+        bubble = (petID, phrases.randomElement() ?? pet.fallbackQuote)
+        bubbleTimer?.invalidate()
+        bubbleTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: false) { [weak self] _ in
+            self?.bubble = nil
+            self?.needsDisplay = true
         }
     }
 }
@@ -709,17 +822,28 @@ final class GardenController {
     /// Chiamata dal pulsante «‹ Menu» nella pagina: la finestra si chiude e si torna alla scheda del menu.
     var onBack: (() -> Void)?
 
+    /// Quanto rimpicciolire il giardino perché ci stia, con il negozio aperto, nello schermo (1 = a grandezza piena).
+    static func scale(forScreenWidth width: CGFloat) -> CGFloat {
+        let full = GardenView.sceneSize.width + GardenView.shopWidth
+        return min(1, max((width - 40) / full, 0.5))
+    }
+
     func show() {
         if window == nil {
-            let view = GardenView(log: .shared)
+            let scale = Self.scale(forScreenWidth: NSScreen.main?.visibleFrame.width ?? 1440)
+            let size = NSSize(width: GardenView.sceneSize.width * scale, height: GardenView.sceneSize.height * scale)
+            let view = GardenView(log: .shared, garden: .shared, profile: .shared)
             let window = NSWindow(
-                contentRect: NSRect(origin: .zero, size: GardenView.size),
+                contentRect: NSRect(origin: .zero, size: size),
                 styleMask: [.titled, .closable, .miniaturizable],
                 backing: .buffered,
                 defer: false
             )
             window.title = Profile.shared.gardenTitle
             window.contentView = view
+            // Su uno schermo stretto il disegno si rimpicciolisce (il sistema di coordinate resta lo stesso, e
+            // resta anche la proporzione quando la finestra si allarga per il negozio).
+            if scale < 1 { view.setBoundsSize(GardenView.sceneSize) }
             window.isReleasedWhenClosed = false
             window.backgroundColor = Paper.paper
             window.appearance = NSAppearance(named: .aqua)
@@ -727,25 +851,24 @@ final class GardenController {
                 window?.orderOut(nil)
                 self?.onBack?()
             }
+            // Il negozio è un pannello a destra: la finestra si allarga per farlo stare, senza coprire il prato.
+            view.onShopToggle = { [weak window] open in
+                guard let window else { return }
+                let target = (GardenView.sceneSize.width + (open ? GardenView.shopWidth : 0)) * scale
+                var frame = window.frame
+                frame.size.width += target - window.contentRect(forFrameRect: frame).width
+                if let visible = window.screen?.visibleFrame, frame.maxX > visible.maxX {
+                    frame.origin.x = max(visible.minX, visible.maxX - frame.width)
+                }
+                window.setFrame(frame, display: true, animate: scale == 1)
+            }
             window.center()
             self.window = window
             self.view = view
         }
         window?.title = Profile.shared.gardenTitle      // se nel frattempo è cambiato il nome
-        view?.select(.week)
+        view?.reload()
         NSApp.activate(ignoringOtherApps: true)
         window?.makeKeyAndOrderFront(nil)
-    }
-}
-
-private extension Season {
-    /// Un numero fisso per stagione (hashValue cambia a ogni avvio): serve a variare erba e fiori.
-    var hashValueStable: Int {
-        switch self {
-        case .spring: return 1
-        case .summer: return 2
-        case .autumn: return 3
-        case .winter: return 4
-        }
     }
 }

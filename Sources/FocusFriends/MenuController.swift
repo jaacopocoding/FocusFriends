@@ -552,13 +552,14 @@ final class MenuController: NSObject, NSMenuDelegate {
         let calendar = StudyPeriod.calendar()
         let today = StudyStats.summary(sessions: SessionLog.shared.sessions,
                                        period: StudyPeriod.containing(now, kind: .day, calendar: calendar), calendar: calendar)
+        let streak = StudyStreak.analyze(sessions: SessionLog.shared.sessions, now: now, calendar: calendar)
         let background = BackgroundChoice.current(ambient: AmbientPlayer.shared.sound, music: MusicPlayer.shared.source)
         let lastSession = pomodoro.lastFocus?.sessionID.flatMap { id in SessionLog.shared.sessions.first { $0.id == id } }
         return MenuCardState(
             pet: window.pet, allPets: Pet.all, userName: Profile.shared.name, isPetVisible: window.isVisible,
             phase: pomodoro.phase, subject: pomodoro.subject, remaining: pomodoro.remainingText,
             breakMinutes: pomodoro.breakMinutes, todaySeconds: today.totalSeconds, todayFocusCount: today.focusCount,
-            streak: StudyStats.streak(sessions: SessionLog.shared.sessions, now: now, calendar: calendar),
+            streak: streak.days, streakFrozen: streak.isFrozen,
             focusTimers: customTimers.all(.focus), restTimers: customTimers.all(.rest),
             customFocus: customTimers.custom(.focus), customRest: customTimers.custom(.rest),
             chattiness: Chattiness.current, petWalks: window.pet.walks, movementOn: Walker.isMovementEnabled,

@@ -420,11 +420,15 @@ final class Pomodoro {
             lastFocus = (studied, finishedSubject, recorded?.id)
             notes = []
             subject = nil
-            // Cosa è successo nel giardino: i minuti della giornata, prima e dopo questo focus.
+            // Cosa è successo nel giardino: i punti guadagnati con questo focus (e quanto manca al prossimo).
             var gardenLine = "Il giardino cresce."
-            if let recorded {
-                let after = StudyStats.seconds(onDayOf: recorded, in: log.sessions)
-                gardenLine = GardenRules.finishLine(before: after - recorded.seconds, after: after)
+            if recorded != nil {
+                let today = Date()
+                let before = GardenPoints.weightedMinutes(sessions: log.sessions.filter { $0.id != recorded?.id }, now: today)
+                let after = GardenPoints.weightedMinutes(sessions: log.sessions, now: today)
+                let streak = StudyStreak.analyze(sessions: log.sessions, now: today)
+                gardenLine = GardenPoints.finishLine(beforeMinutes: before, afterMinutes: after,
+                                                     factor: GardenPoints.multiplierToday(streak))
             }
             begin(.rest, minutes: breakLength)
             isLongBreak = longBreak
@@ -439,7 +443,7 @@ final class Pomodoro {
     }
 
     /// "Hai studiato Anatomia per 50 minuti. Che bel lavoro!", con qualche variante. `garden` dice cosa è successo
-    /// nel giardino (vedi GardenRules.finishLine).
+    /// nel giardino (vedi GardenPoints.finishLine).
     static func focusFinishedMessage(subject: String?, studiedMinutes: Int, breakMinutes: Int, garden: String,
                                      longBreak: Bool = false) -> String {
         if longBreak {

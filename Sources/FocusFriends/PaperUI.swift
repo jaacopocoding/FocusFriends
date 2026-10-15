@@ -255,22 +255,25 @@ final class RatingButton: NSButton {
 
 // MARK: - Torna al menu
 
-/// «‹ Menu» in una pillola, in alto a sinistra nella pagina di una finestra: la chiude e riapre la scheda del menu.
-/// La barra del titolo resta quella di sistema, senza altro dentro.
-final class BackToMenuButton: NSButton {
-    static let size = NSSize(width: 92, height: 30)
+/// Una pillola con una scritta e, se c'è, un simbolo davanti (come «‹ Menu»): sfondo chiaro, bordo che al passaggio
+/// del mouse diventa arancione.
+class PillIconButton: NSButton {
+    var caption: String { didSet { needsDisplay = true } }
+    var symbolName: String? { didSet { needsDisplay = true } }
     private var hovered = false { didSet { needsDisplay = true } }
     private var area: NSTrackingArea?
 
-    init(target: AnyObject?, action: Selector) {
-        super.init(frame: NSRect(origin: .zero, size: Self.size))
+    init(caption: String, symbol: String?, size: NSSize, target: AnyObject?, action: Selector, tip: String? = nil) {
+        self.caption = caption
+        self.symbolName = symbol
+        super.init(frame: NSRect(origin: .zero, size: size))
         self.target = target
         self.action = action
         isBordered = false
         title = ""
         focusRingType = .none
-        toolTip = "Torna al menu"
-        setAccessibilityLabel("Torna al menu")
+        toolTip = tip
+        setAccessibilityLabel(tip ?? caption)
     }
 
     required init?(coder: NSCoder) { nil }
@@ -302,10 +305,10 @@ final class BackToMenuButton: NSButton {
         pill.stroke()
 
         let attrs: [NSAttributedString.Key: Any] = [.font: NSFont.systemFont(ofSize: 13, weight: .medium), .foregroundColor: Paper.ink]
-        let text = "Menu" as NSString
+        let text = caption as NSString
         let size = text.size(withAttributes: attrs)
         let config = NSImage.SymbolConfiguration(pointSize: 11, weight: .semibold)
-        let symbol = NSImage(systemSymbolName: "chevron.left", accessibilityDescription: nil)?.withSymbolConfiguration(config)
+        let symbol = symbolName.flatMap { NSImage(systemSymbolName: $0, accessibilityDescription: nil)?.withSymbolConfiguration(config) }
         let tinted = symbol.map { source in
             NSImage(size: source.size, flipped: false) { box in
                 source.draw(in: box)
@@ -323,4 +326,16 @@ final class BackToMenuButton: NSButton {
         }
         text.draw(at: NSPoint(x: x, y: bounds.midY - size.height / 2), withAttributes: attrs)
     }
+}
+
+/// «‹ Menu» in una pillola, in alto a sinistra nella pagina di una finestra: la chiude e riapre la scheda del menu.
+/// La barra del titolo resta quella di sistema, senza altro dentro.
+final class BackToMenuButton: PillIconButton {
+    static let size = NSSize(width: 92, height: 30)
+
+    init(target: AnyObject?, action: Selector) {
+        super.init(caption: "Menu", symbol: "chevron.left", size: Self.size, target: target, action: action, tip: "Torna al menu")
+    }
+
+    required init?(coder: NSCoder) { nil }
 }

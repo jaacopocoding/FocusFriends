@@ -26,6 +26,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // I problemi con i dati (un file che non si legge, una scrittura che fallisce) li dice il personaggio.
         SessionLog.shared.onProblem = { [weak speaker] in speaker?.say($0) }
         Profile.shared.onProblem = { [weak speaker] in speaker?.say($0) }
+        Garden.shared.onProblem = { [weak speaker] in speaker?.say($0) }
         AmbientPlayer.shared.onStartFailure = { [weak speaker] in
             speaker?.say("Non riesco ad avviare l'audio: il suono ambiente non si sente.")
         }

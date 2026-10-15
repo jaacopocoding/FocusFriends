@@ -147,7 +147,8 @@ func s(_ day: Int) -> StudySession {
     StudySession(start: date(2026, 10, day, 10), seconds: 600, plannedMinutes: 10, completed: true, subject: nil)
 }
 check(StudyStats.streak(sessions: [s(12), s(13), s(14)], now: date(2026, 10, 14, 20), calendar: cal) == 3, "tre di fila")
-check(StudyStats.streak(sessions: [s(11), s(13), s(14)], now: date(2026, 10, 14, 20), calendar: cal) == 2, "un buco spezza la serie")
+check(StudyStats.streak(sessions: [s(11), s(13), s(14)], now: date(2026, 10, 14, 20), calendar: cal) == 3, "un giorno saltato non spezza la serie: la ghiaccia")
+check(StudyStats.streak(sessions: [s(10), s(13), s(14)], now: date(2026, 10, 14, 20), calendar: cal) == 2, "due giorni di fila senza studio la spezzano")
 check(StudyStats.streak(sessions: [s(12), s(13)], now: date(2026, 10, 14, 8), calendar: cal) == 2, "oggi ancora vuoto: conta da ieri")
 check(StudyStats.streak(sessions: [s(10)], now: date(2026, 10, 14, 8), calendar: cal) == 0, "serie finita")
 check(StudyStats.streak(sessions: [], now: date(2026, 10, 14), calendar: cal) == 0, "senza sessioni")
@@ -775,6 +776,169 @@ check(BackgroundChoice.current(ambient: .brown, music: .folder) == .brown, "se p
 check(BackgroundChoice.rain.ambientSound == .rain && BackgroundChoice.music.ambientSound == nil && BackgroundChoice.none.ambientSound == AmbientSound.none,
       "la scelta e il suono corrispondente")
 check(BackgroundChoice.allCases.map { $0.title } == ["Nessuno", "Pioggia", "Vento", "Marrone", "Musica"], "i nomi, nell'ordine della schermata")
+
+// ---------------------------------------------------------------- serie ghiacciata
+section("Serie ghiacciata")
+func analysis(_ days: [Int], today: Int, hour: Int = 20) -> StudyStreak.Result {
+    StudyStreak.analyze(sessions: days.map { s($0) }, now: date(2026, 10, today, hour), calendar: cal)
+}
+let straight = analysis([12, 13, 14], today: 14)
+check(straight.days == 3 && straight.perDay[date(2026, 10, 12)] == 1 && straight.perDay[date(2026, 10, 14)] == 3
+      && !straight.isFrozen && straight.studiedToday, "tre di fila, nessun ghiaccio")
+let oneGap = analysis([11, 13, 14], today: 14)
+check(oneGap.days == 3 && oneGap.perDay[date(2026, 10, 13)] == 2 && oneGap.perDay[date(2026, 10, 14)] == 3,
+      "un giorno saltato: la serie resta ferma e poi riparte da lì")
+let twoGaps = analysis([10, 13, 14], today: 14)
+check(twoGaps.days == 2 && twoGaps.perDay[date(2026, 10, 13)] == 1, "due giorni di fila senza studio: ricomincia da uno")
+let tooOften = analysis([10, 12, 14], today: 14)
+check(tooOften.perDay[date(2026, 10, 12)] == 2 && tooOften.perDay[date(2026, 10, 14)] == 1 && tooOften.days == 1,
+      "il ghiaccio non si usa due volte in meno di una settimana")
+let reusable = analysis([1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 13], today: 13)
+check(reusable.days == 11 && reusable.perDay[date(2026, 10, 13)] == 11, "dopo sette giorni il ghiaccio si può riusare")
+let frozenNow = analysis([12, 13], today: 15, hour: 8)
+check(frozenNow.days == 2 && frozenNow.isFrozen && !frozenNow.studiedToday, "ieri saltato, oggi ancora vuoto: ghiacciata")
+let thawed = analysis([12, 13, 15], today: 15)
+check(thawed.days == 3 && !thawed.isFrozen && thawed.studiedToday, "studiando oggi si scongela e continua")
+let notYet = analysis([12, 13], today: 14, hour: 8)
+check(notYet.days == 2 && !notYet.isFrozen, "oggi ancora vuoto ma ieri sì: niente ghiaccio, conta da ieri")
+let lost = analysis([11], today: 14, hour: 8)
+check(lost.days == 0 && !lost.isFrozen, "il ghiaccio non salva due giorni di fila")
+check(analysis([], today: 14).days == 0 && !analysis([], today: 14).isFrozen, "senza sessioni")
+check(analysis([14, 14], today: 14).perDay[date(2026, 10, 14)] == 1, "più sessioni nello stesso giorno = un giorno")
+
+// ---------------------------------------------------------------- punti del giardino
+section("Punti del giardino")
+check(GardenPoints.multiplier(forStreak: 0) == 1 && GardenPoints.multiplier(forStreak: 2) == 1, "fino a due giorni: ×1")
+check(GardenPoints.multiplier(forStreak: 3) == 1.25 && GardenPoints.multiplier(forStreak: 6) == 1.25, "da 3 giorni: ×1,25")
+check(GardenPoints.multiplier(forStreak: 7) == 1.5 && GardenPoints.multiplier(forStreak: 13) == 1.5, "da 7 giorni: ×1,5")
+check(GardenPoints.multiplier(forStreak: 14) == 2 && GardenPoints.multiplier(forStreak: 90) == 2, "da 14 giorni: ×2, e non sale più")
+func studyHour(_ day: Int, minutes: Int = 60, completed: Bool = true) -> StudySession {
+    StudySession(start: date(2026, 10, day, 10), seconds: minutes * 60, plannedMinutes: 60, completed: completed, subject: nil)
+}
+// 14 giorni di fila, un'ora al giorno: 2×60 + 4×60×1,25 + 7×60×1,5 + 1×60×2 = 1170 minuti
+let fortnight = (1...14).map { studyHour($0) }
+let fortnightMinutes = GardenPoints.weightedMinutes(sessions: fortnight, now: date(2026, 10, 14, 20), calendar: cal)
+check(abs(fortnightMinutes - 1170) < 0.001, "i minuti pesati di due settimane (\(fortnightMinutes))")
+check(GardenPoints.earned(sessions: fortnight, now: date(2026, 10, 14, 20), calendar: cal) == 19, "19 punti (e mezzo)")
+check(abs(GardenPoints.progressToNextPoint(weightedMinutes: fortnightMinutes) - 0.5) < 0.001, "a metà del prossimo")
+let spaced = [studyHour(1), studyHour(5), studyHour(12)]
+check(GardenPoints.earned(sessions: spaced, now: date(2026, 10, 12, 20), calendar: cal) == 3, "senza serie un'ora è un punto")
+check(GardenPoints.earned(sessions: [studyHour(1, minutes: 30, completed: false)], now: date(2026, 10, 1, 20), calendar: cal) == 0
+      && abs(GardenPoints.weightedMinutes(sessions: [studyHour(1, minutes: 30, completed: false)], now: date(2026, 10, 1, 20), calendar: cal) - 30) < 0.001,
+      "i minuti di un focus interrotto contano")
+check(GardenPoints.earned(sessions: [], now: date(2026, 10, 1), calendar: cal) == 0, "senza sessioni niente punti")
+check(GardenPoints.balance(earned: 5, spent: 3) == 2 && GardenPoints.balance(earned: 2, spent: 5) == 0, "il saldo non va sotto zero")
+check(GardenPoints.multiplierToday(analysis([12, 13], today: 14, hour: 8)) == 1.25
+      && GardenPoints.multiplierToday(analysis([12, 13, 14], today: 14)) == 1.25
+      && GardenPoints.multiplierToday(analysis([], today: 14)) == 1, "il valore di un minuto oggi")
+check(GardenPoints.text(forMultiplier: 1.25) == "1,25" && GardenPoints.text(forMultiplier: 1.5) == "1,5"
+      && GardenPoints.text(forMultiplier: 2) == "2", "il moltiplicatore in italiano")
+check(GardenPoints.finishLine(beforeMinutes: 50, afterMinutes: 70, factor: 1) == "Un punto in più per il giardino.", "un punto in più")
+check(GardenPoints.finishLine(beforeMinutes: 50, afterMinutes: 170, factor: 1.25).hasPrefix("2 punti in più per il giardino")
+      && GardenPoints.finishLine(beforeMinutes: 50, afterMinutes: 170, factor: 1.25).contains("×1,25"), "due punti, con la serie")
+check(GardenPoints.finishLine(beforeMinutes: 10, afterMinutes: 30, factor: 1).contains("ancora 30 minuti"), "quanto manca")
+check(GardenPoints.finishLine(beforeMinutes: 10, afterMinutes: 30, factor: 1.5).contains("ancora 20 minuti"), "con la serie manca meno")
+
+// ---------------------------------------------------------------- giardino: catalogo e scena
+section("Giardino: catalogo e scena")
+let allItems = GardenCatalog.items
+check(Set(allItems.map { $0.id }).count == allItems.count, "id tutti diversi")
+check(allItems.count == 36 && GardenCategory.allCases.allSatisfy { !GardenCatalog.items(in: $0).isEmpty }, "36 oggetti, ogni scheda ne ha")
+check(allItems.allSatisfy { $0.height > 0 && $0.price >= 0 && !$0.name.isEmpty }, "altezze, prezzi e nomi sensati")
+check(allItems.filter { $0.price == 0 }.count == 4, "quattro oggetti ci sono fin dall'inizio")
+check(GardenCatalog.item(withID: "tulipani")?.resource == "giardino_tulipani" && GardenCatalog.item(withID: "no") == nil, "le risorse")
+check(allItems.allSatisfy { FileManager.default.fileExists(atPath: "assets/giardino/\($0.id).png") }
+      && FileManager.default.fileExists(atPath: "assets/giardino/prato.png"), "ogni oggetto ha il suo disegno in assets/giardino")
+check(GardenScene.depthScale(y: GardenScene.horizon) == GardenScene.farScale && GardenScene.depthScale(y: 1) == 1
+      && GardenScene.depthScale(y: 0) == GardenScene.farScale, "la scala va da lontano a vicino")
+check(GardenScene.depthScale(y: 0.6) < GardenScene.depthScale(y: 0.8), "più in basso è più grande")
+let outside = GardenScene.clamped(GardenSpot(x: -3, y: 9))
+check(outside.x == GardenScene.lawn.minX && outside.y == GardenScene.lawn.maxY, "fuori dal prato si riporta dentro")
+let spots = (0..<4).map { GardenScene.defaultCompanionSpot(index: $0) }
+check(Set(spots.map { "\($0.x)-\($0.y)" }).count == 4 && spots.allSatisfy { GardenScene.clamped($0) == $0 }, "posti di partenza diversi e nel prato")
+let drops = (0..<9).map { GardenScene.defaultPlacementSpot(salt: $0) }
+check(Set(drops.map { "\($0.x)-\($0.y)" }).count > 4 && drops.allSatisfy { GardenScene.clamped($0) == $0 }, "i posti sfalsati")
+check(GardenCatalog.companionHeight(for: "gattino") > 0 && GardenCatalog.companionHeight(for: "sconosciuto") == 100, "altezze dei compagni")
+
+// ---------------------------------------------------------------- giardino: sblocchi e copie
+section("Giardino: sblocchi e copie")
+UserDefaults.standard.removeObject(forKey: Profile.developerKey)
+let gardenDir = tempDirectory()
+let garden = Garden(directory: gardenDir)
+check(garden.placements.isEmpty && garden.spent == 0 && garden.unlocked.isEmpty, "all'inizio è vuoto")
+check(garden.isUnlocked("margherite") && !garden.isUnlocked("rosaio") && !garden.isUnlocked("inesistente"), "i gratuiti ci sono, gli altri no")
+check(!garden.unlock("rosaio", balance: 7) && garden.spent == 0, "con 7 punti il rosaio (8) non si sblocca")
+check(garden.unlock("rosaio", balance: 8) && garden.isUnlocked("rosaio") && garden.spent == 8, "con 8 sì, e si spendono")
+check(!garden.unlock("rosaio", balance: 99) && garden.spent == 8, "già sbloccato: non si spende due volte")
+check(!garden.unlock("margherite", balance: 99) && garden.spent == 8, "un gratuito non costa niente")
+check(garden.place("lampione", at: GardenSpot(x: 0.5, y: 0.7)) == nil, "bloccato: non si mette")
+let first = garden.place("margherite", at: GardenSpot(x: 0.4, y: 0.7))
+check(first != nil && garden.placements.count == 1 && garden.count(of: "margherite") == 1, "una copia nel prato")
+for i in 0..<9 { _ = garden.place("margherite", at: GardenSpot(x: 0.1 + 0.05 * Double(i), y: 0.8)) }
+check(garden.count(of: "margherite") == 10, "se ne possono avere quante se ne vuole: dieci margherite")
+let wild = garden.place("rosaio", at: GardenSpot(x: -2, y: 7))
+check(wild?.x == GardenScene.lawn.minX && wild?.y == GardenScene.lawn.maxY, "fuori dal prato lo riporta dentro")
+if let first { garden.move(first.id, to: GardenSpot(x: 0.9, y: 0.6)) }
+check(garden.placements.first(where: { $0.id == first?.id })?.spot == GardenSpot(x: 0.9, y: 0.6), "spostata")
+if let first { garden.remove(first.id) }
+check(garden.count(of: "margherite") == 9 && garden.spent == 8, "tolta una copia: i punti spesi non tornano e l'oggetto resta tuo")
+check(garden.isUnlocked("rosaio"), "l'oggetto sbloccato resta sbloccato anche senza copie")
+garden.setCompanionSpot("gattino", to: GardenSpot(x: 0.5, y: 0.9))
+check(garden.companionSpot("gattino", index: 3) == GardenSpot(x: 0.5, y: 0.9), "il compagno spostato")
+check(garden.companionSpot("pianty", index: 0) == GardenScene.defaultCompanionSpot(index: 0), "gli altri al posto di partenza")
+let reopenedGarden = Garden(directory: gardenDir)
+check(reopenedGarden.placements == garden.placements && reopenedGarden.unlocked == garden.unlocked
+      && reopenedGarden.spent == 8 && reopenedGarden.companionSpots == garden.companionSpots, "si ricorda alla riapertura")
+var observed = 0
+garden.addObserver { observed += 1 }
+_ = garden.place("trifoglio", at: GardenSpot(x: 0.5, y: 0.7))
+check(observed == 1, "chi guarda viene avvisato")
+// il tetto di sicurezza
+let crowd = Garden(directory: tempDirectory())
+for i in 0..<(Garden.maxPlacements + 20) { _ = crowd.place("erba-alta", at: GardenSpot(x: 0.5, y: 0.7 + Double(i % 10) * 0.01)) }
+check(crowd.placements.count == Garden.maxPlacements, "non più di \(Garden.maxPlacements) copie")
+
+// ---------------------------------------------------------------- giardino: file e modalità sviluppatore
+section("Giardino: file e sviluppatore")
+let brokenDir = tempDirectory()
+try? "{ non è un giardino".write(to: brokenDir.appendingPathComponent("giardino.json"), atomically: true, encoding: .utf8)
+let broken = Garden(directory: brokenDir)
+var problems: [String] = []
+broken.onProblem = { problems.append($0) }
+check(problems.count == 1 && problems[0].contains("giardino.corrotto-"), "il file rovinato si mette da parte e lo dice")
+check(!FileManager.default.fileExists(atPath: brokenDir.appendingPathComponent("giardino.json").path)
+      && (try? FileManager.default.contentsOfDirectory(atPath: brokenDir.path))?.contains { $0.hasPrefix("giardino.corrotto-") } == true,
+      "la copia c'è")
+check(broken.placements.isEmpty, "e si riparte da vuoto")
+let newerGardenDir = tempDirectory()
+let newerGardenFile = newerGardenDir.appendingPathComponent("giardino.json")
+let newerGardenText = "{\"version\": 99, \"unlocked\": [\"rosaio\"], \"spent\": 3, \"placements\": [], \"companions\": {}}"
+try? newerGardenText.write(to: newerGardenFile, atomically: true, encoding: .utf8)
+let newerGarden = Garden(directory: newerGardenDir)
+var newerGardenProblems: [String] = []
+newerGarden.onProblem = { newerGardenProblems.append($0) }
+check(newerGarden.isUnlocked("rosaio") && newerGarden.spent == 3 && newerGardenProblems.count == 1, "una versione più nuova si legge e si avvisa")
+_ = newerGarden.place("margherite", at: GardenSpot(x: 0.5, y: 0.7))
+check((try? String(contentsOf: newerGardenFile, encoding: .utf8)) == newerGardenText, "ma non si riscrive")
+// una scrittura che non riesce si dice una volta sola
+let gardenBlocker = tempDirectory().appendingPathComponent("occupato")
+try? "x".write(to: gardenBlocker, atomically: true, encoding: .utf8)
+let failing = Garden(directory: gardenBlocker.appendingPathComponent("sotto"))
+var writeProblems: [String] = []
+failing.onProblem = { writeProblems.append($0) }
+_ = failing.place("margherite", at: GardenSpot(x: 0.5, y: 0.7))
+_ = failing.place("margherite", at: GardenSpot(x: 0.6, y: 0.7))
+check(writeProblems.count == 1 && failing.placements.count == 2, "scrittura fallita: un solo avviso, le copie restano in memoria")
+// modalità sviluppatore: tutto sbloccato, senza spendere
+UserDefaults.standard.set(true, forKey: Profile.developerKey)
+check(GardenCatalog.items.allSatisfy { garden.isUnlocked($0.id) }, "sviluppatore: tutto sbloccato")
+let devGarden = Garden(directory: tempDirectory())
+check(devGarden.place("arco-rose", at: GardenSpot(x: 0.5, y: 0.7)) != nil && devGarden.spent == 0, "e si può mettere senza spendere")
+UserDefaults.standard.removeObject(forKey: Profile.developerKey)
+check(!garden.isUnlocked("arco-rose"), "spenta, torna come prima")
+garden.reset()
+check(garden.placements.isEmpty && garden.unlocked.isEmpty && garden.spent == 0 && garden.companionSpots.isEmpty
+      && !FileManager.default.fileExists(atPath: gardenDir.appendingPathComponent("giardino.json").path), "«Cancella tutto» ricomincia")
 
 print("\n\(checks) controlli, \(failures) falliti")
 exit(failures == 0 ? 0 : 1)

@@ -14,6 +14,8 @@ struct MenuCardState {
     var todaySeconds: Int
     var todayFocusCount: Int
     var streak: Int
+    /// La serie è ghiacciata: ieri non si è studiato, studiando oggi continua.
+    var streakFrozen = false
     var focusTimers: [Int]
     var restTimers: [Int]
     var customFocus: [Int]
@@ -333,7 +335,7 @@ private final class MenuCardView: NSView {
         let tiles: [(String, String)] = [
             (StudyStats.duration(seconds: s.todaySeconds), "oggi"),
             ("\(s.todayFocusCount)", "focus"),
-            ("\(s.streak)", s.streak == 1 ? "giorno di fila" : "di fila"),
+            ("\(s.streak)", s.streakFrozen ? "ghiacciata" : (s.streak == 1 ? "giorno di fila" : "di fila")),
         ]
         for (i, tile) in tiles.enumerated() {
             let frame = NSRect(x: pad + CGFloat(i) * (tileWidth + 6), y: y, width: tileWidth, height: 50)

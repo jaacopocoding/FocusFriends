@@ -26,9 +26,14 @@ cp assets/pianty/picked.png "$APP/Contents/Resources/pianty_picked.png"
 for f in assets/music/*.m4a assets/music/*.mp3; do
     [ -f "$f" ] && cp "$f" "$APP/Contents/Resources/music_$(basename "$f")"
 done
-# Le collezioni del giardino per personaggio (opzionali: chi non ce l'ha usa le piantine di Pianty).
+# Le immagini che crescono con il focus (la collezione di Ciccio, la carota del porcellino).
 for f in assets/garden/garden_*.png assets/garden/growth_*.png; do
     [ -f "$f" ] && cp "$f" "$APP/Contents/Resources/$(basename "$f")"
+done
+# Il giardino: il prato e gli oggetti del negozio (i fogli *_original.png non servono nell'app).
+for f in assets/giardino/*.png; do
+    case "$f" in *_original.png) continue ;; esac
+    cp "$f" "$APP/Contents/Resources/giardino_$(basename "$f")"
 done
 for i in 1 2 3 4 5; do
     for f in 1 2 3 4 5 6 7; do
