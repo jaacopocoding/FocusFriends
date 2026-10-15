@@ -2,10 +2,10 @@
 
 > Purpose: a factual description of how the code in this repository works, written so that another reader (human or AI)
 > can judge whether the code is acceptable as written or needs revision for inefficiency.
-> Snapshot described: branch `main` after commit `0607da6` (release `v0.7.0` plus later commits), with the new garden
-> (points, shop, free placement) as uncommitted work in the working tree. The document was first written against
-> `2043b39`; it was then updated for the fixes made after `ARCHITECTURE_REVIEW.md` (that review is committed next to
-> this file and its §7 says what was changed), the developer-mode flag, the fourth companion and the garden rewrite.
+> Snapshot described: branch `main` after commit `4bf4576`, prepared as release `v0.8.0` (the previous release is
+> `v0.7.0`). The document was first written against `2043b39`; it was then updated for the fixes made after
+> `ARCHITECTURE_REVIEW.md` (that review is committed next to this file and its §7 says what was changed), the
+> developer-mode flag, the fourth companion and the garden rewrite (points, shop, free placement).
 > Everything here was read from the files in the repository; statements that could not be fully verified are marked
 > **[uncertain]**. Rationales are labelled **[documented]** (comes from code comments, README, CREDITS or git history),
 > **[inferred]** (deduced from the code) or **[unknown]** (could not be determined).
@@ -44,7 +44,7 @@ Single user per Mac, no accounts, no network: all data is stored locally under
 | Third-party dependencies | None (no Package.swift, no CocoaPods/Carthage, no vendored code) | repository tree |
 | Build system | A shell script calling `swiftc -O` once per architecture, then `lipo` | `build.sh` |
 | Target | macOS 13.0 or later; universal binary (arm64 + x86_64) | `build.sh` (`-target "$arch-apple-macos13.0"`, `LSMinimumSystemVersion`) |
-| App version | `0.7.0` (build `9`), bundle id `com.jacopo.focusfriends` | `build.sh` (generated `Info.plist`) |
+| App version | `0.8.0` (build `10`), bundle id `com.jacopo.focusfriends` | `build.sh` (generated `Info.plist`) |
 | App type | Menu-bar "agent": `LSUIElement = true`, activation policy `.accessory` | `build.sh`, `AppDelegate.applicationDidFinishLaunching` |
 | Signing | Ad-hoc (`codesign --force --sign -`; `build.sh` stops with exit 1 if signing fails); not notarised, no hardened runtime or sandbox | `build.sh`, `README.md` "Scaricare e usare" |
 | Asset tooling | Python 3 scripts using Pillow and NumPy (not run at build time) | `tools/*.py` |
