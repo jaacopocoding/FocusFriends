@@ -38,7 +38,7 @@ Single user per Mac, no accounts, no network: all data is stored locally under
 
 | Item | Value | Source |
 |---|---|---|
-| Language | Swift (one module, `Sources/FocusFriends/*.swift`, 36 files, 10,556 lines by `wc -l`) | `build.sh` |
+| Language | Swift (one module, `Sources/FocusFriends/*.swift`, 36 files, 10,462 lines by `wc -l`) | `build.sh` |
 | UI framework | AppKit, custom-drawn views (no SwiftUI, no storyboards/xibs, no Interface Builder) | all view files |
 | Other Apple frameworks | Foundation, AVFoundation (`AVAudioEngine`, `AVAudioSourceNode`, `AVAudioPlayer`), ServiceManagement (`SMAppService`, launch at login) | `import` lines |
 | Third-party dependencies | None (no Package.swift, no CocoaPods/Carthage, no vendored code) | repository tree |
@@ -48,7 +48,7 @@ Single user per Mac, no accounts, no network: all data is stored locally under
 | App type | Menu-bar "agent": `LSUIElement = true`, activation policy `.accessory` | `build.sh`, `AppDelegate.applicationDidFinishLaunching` |
 | Signing | Ad-hoc (`codesign --force --sign -`; `build.sh` stops with exit 1 if signing fails); not notarised, no hardened runtime or sandbox | `build.sh`, `README.md` "Scaricare e usare" |
 | Asset tooling | Python 3 scripts using Pillow and NumPy (not run at build time) | `tools/*.py` |
-| Tests | One hand-written Swift executable (`tests/main.swift`, 29 sections, 353 checks) that compiles ten Foundation-only source files; no XCTest | `tests/run.sh` |
+| Tests | One hand-written Swift executable (`tests/main.swift`, 29 sections, 332 checks) that compiles ten Foundation-only source files; no XCTest | `tests/run.sh` |
 | License | MIT (`LICENSE`); bundled music is CC0 (`CREDITS.md`) | `LICENSE`, `CREDITS.md` |
 | Swift toolchain version / Python version | Not pinned anywhere in the repository | **[unknown]** |
 
@@ -105,7 +105,7 @@ FocusFriends/
 │   ├── ReflectionCard.swift      "How did it go?" card after a completed focus
 │   ├── DashboardWindow.swift     statistics window: DashboardView, DiaryView, DashboardController
 │   ├── GardenWindow.swift        garden window: GardenView (meadow, placed objects, companions, shop panel, drag), GardenController
-│   ├── SessionLog.swift          StudySession model, SessionLog store, GardenRules, Season, notes/subject cleaning, StudyStats, SessionCSV  (Foundation only)
+│   ├── SessionLog.swift          StudySession model, SessionLog store, Season, notes/subject cleaning, StudyStats, SessionCSV  (Foundation only)
 │   ├── Profile.swift             profilo.json: name, intro-seen flag, unlocked companions, developer flag   (Foundation only)
 │   ├── CustomTimers.swift        user-defined timer durations + TimerDialMath                           (Foundation only)
 │   ├── BreakCycle.swift          four-focus cycle counter for the long break                            (Foundation only)
@@ -141,7 +141,7 @@ FocusFriends/
 │   ├── garden/                   garden_<pet>_1..5.png (ciccio, porcellino), growth_porcellino_1..5.png, *_original sheets (live growth)
 │   ├── giardino/                 fiori/compagni/arredi_original.png sheets, prato_original.png, 36 object PNGs, prato.png
 │   └── music/                    5 AAC (.m4a) tracks: boredom, love, night-driving, old-age, opinions
-├── docs/images/                  PNG screenshots/logo used only by README.md (sample data); giardino*.png are the current garden
+├── docs/images/                  PNG screenshots/logo used only by README.md (sample data); giardino.png and giardino-negozio.png are the garden
 └── build/                        generated output (git-ignored): FocusFriends.app, zips, release notes, tests/ binary
 ```
 
@@ -542,8 +542,8 @@ main.swift ──► AppDelegate  (composition root: creates and wires everythin
                  ├─ IntroCard, ReflectionCard ─► PaperUI, Profile / SessionLog
                  └─ (lazy) DashboardController/GardenController ─► SessionLog.shared, Profile.shared, Garden.shared, PaperUI
 
-Foundation-only core (no AppKit):  SessionLog.swift (StudySession, SessionLog, GardenRules [no longer used by the app],
-   Season, StudyStats, SessionCSV, Subject, FocusNotes, SessionNote), Profile, CustomTimers (+TimerDialMath), BreakCycle,
+Foundation-only core (no AppKit):  SessionLog.swift (StudySession, SessionLog, Season [unused by the app], StudyStats,
+   SessionCSV, Subject, FocusNotes, SessionNote), Profile, CustomTimers (+TimerDialMath), BreakCycle,
    CompanionRewards, Garden, GardenCatalog (+GardenScene), GardenPoints (+StudyStreak), AmbientSound (+AmbientSettings,
    BackgroundChoice), MusicLibrary (+MusicSource, MusicSettings)
 Audio:  AmbientPlayer.shared ⇄ MusicPlayer.shared   (each calls the other to enforce "one background at a time")
@@ -909,12 +909,10 @@ file/UserDefaults writes, windows, timers, sound, global state.
 
 ### 5.7 `Sources/FocusFriends/` — domain (Foundation-only) and storage
 
-#### `SessionLog.swift` (1,017)
+#### `SessionLog.swift` (911)
 - **Responsibility:** the data model, the store and all derived statistics.
-- **Types:** `StudySession` (Codable model with tolerant decoding and wall-clock `startTime(in:)`), `GardenRules`
-  (`plants(of:calendar:)`, `intermediateStage`, `finishLine`, constants 50 min / 5 stages / 60 s minimum remainder —
-  **no longer used by the app** since the garden rewrite; only `tests/main.swift` references it),
-  `Season` (`of(_:calendar:)`), `FocusRating`, `SessionNote` (≤ 80), `FocusNotes` (≤ 160 × 40), `Subject`
+- **Types:** `StudySession` (Codable model with tolerant decoding and wall-clock `startTime(in:)`),
+  `Season` (`of(_:calendar:)`; no longer used by the app, see §7.3), `FocusRating`, `SessionNote` (≤ 80), `FocusNotes` (≤ 160 × 40), `Subject`
   (`clean`, `key` via case/diacritic folding with `it_IT`), private `LogFile`, `SessionLog` (class: load/normalize/
   save/backup/add/remove/setSubject/setReflection/setNotes/renameSubject/deleteAll/recentSubjects/lastNote,
   `salvage` (element-wise decode), `onProblem` / `report` / `fail` / `recover`, `hasUnsavedChanges`, in-progress file API `beginInProgress/updateInProgressPause/updateInProgressNotes/heartbeat/finishInProgress/
@@ -995,7 +993,7 @@ file/UserDefaults writes, windows, timers, sound, global state.
 
 ### 5.9 Tests, build and tools
 
-#### `tests/main.swift` (944) and `tests/run.sh` (7)
+#### `tests/main.swift` (911) and `tests/run.sh` (7)
 - A single executable: `check(_:_:line:)`, `section(_:)`, 29 sections (353 checks) covering subjects, log persistence,
   in-progress recovery, periods, summaries, streaks, texts, garden rules, format versions/migration, subject merging, backups and
   delete-all, time zones, profile, ratings/notes/insights/CSV, timer dial math, seasons, ambient settings, music
@@ -1156,7 +1154,7 @@ were weighed), **Rationale** with its label. Sources for `[documented]` items ar
 - Rationale: **[documented]** README ("I punti si ricavano dal registro … quelli spesi sono l'unica cosa che il giardino
   ricorda"). Consequence: deleting sessions lowers the balance but never takes back an unlocked object (the balance is
   clamped at zero). The earlier design (one plant per 50 minutes per day, derived entirely from the log, commit
-  `b5a2e97`) was replaced because the user asked for "un posto personale in cui l'utente può spendere i propri punti":
+  `b5a2e97`; its `GardenRules` type and screenshots were removed afterwards) was replaced because the user asked for "un posto personale in cui l'utente può spendere i propri punti":
   **[documented]** in the conversation that produced this change, not in the repository.
 
 **D21. Long break counted by an in-memory `BreakCycle` struct, reset after 2 hours without a completed focus.**
@@ -1354,9 +1352,8 @@ code is clear. Items without a mark still describe the current code.
 - `IntroCard.ask`, `SubjectPrompt.ask`, `ReflectionCard.ask` each build a `KeyablePanel` with the same property list
   and an `NSStackView` card with custom spacing.
 - `StudyPeriod.containing` and `StudyPeriod.shifted(by:)` contain the same `PeriodKind → Calendar.Component` switch.
-- Two constants for "50 minutes": `GardenRules.minutesPerPlant` (unused by the app) and `CompanionRewards.minutesPerFocus`;
-  `CompanionRewards.threshold(at:)` also uses a literal `50`; the dial default (`MenuCardView.dialMinutes = 50`) and
-  `addDurations` use literals 30/50.
+- "50 minutes" is `CompanionRewards.minutesPerFocus`, and `CompanionRewards.threshold(at:)` also uses a literal `50`;
+  the dial default (`MenuCardView.dialMinutes = 50`) and `addDurations` use literals 30/50.
 - The "Application Support/FocusFriends" path — **Resolved (F-16, partly)**: `Quotes.userDirectory` now returns
   `SessionLog.defaultDirectory`. `Quotes.support` remains for the legacy `Bonsy` directory. The `UserDefaults` keys are
   still not in a registry (§7.6).
@@ -1378,10 +1375,9 @@ code is clear. Items without a mark still describe the current code.
   only used to fill that property.
 - `MenuCardView.statusLabel` — assigned in `rebuild()`, never read or updated.
 - `StudyStats.dayLine`, `Season.title` — referenced only from `tests/main.swift`.
-- `GardenRules` (`plants(of:)`, `finishLine`, `DayPlant`, the 50-minute constants) and `Season.of` — no longer used by the
-  app since the garden rewrite; referenced only from `tests/main.swift` (and `Season` by its own tests). The README no
-  longer documents them. The per-season painted scene code was removed with the old `GardenView`.
-- `docs/images/giardino-settimana.png`, `giardino-mese.png`, `giardino-stagioni.png` — no longer referenced by the README.
+- `Season` (`of`, `title`) — no longer used by the app since the garden rewrite (the meadow has no seasons); referenced
+  only from its own tests. `StudyStats.seconds(onDayOf:in:)` — same: it fed the old end-of-focus garden sentence and is now
+  referenced only from `tests/main.swift`.
 - `assets/garden/garden_porcellino_<1..5>.png` — used only as source for `compose_porcellino_growth.py`.
 - `Profile.addObserver` — only referenced from `tests/main.swift`; `save()`/`reset()` call observers but none is
   registered by app code.
