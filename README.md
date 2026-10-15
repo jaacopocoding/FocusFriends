@@ -6,7 +6,7 @@
 
 <p align="center">
   Un compagno che vive sul desktop del Mac, ti tiene compagnia mentre studi e cresce con il tuo tempo di focus.<br>
-  Pomodoro, materie, statistiche e un giardino che cresce con i minuti di studio: una pianta adulta ogni 50.
+  Pomodoro, materie, statistiche e un giardino tutto tuo, che arredi con i punti che guadagni studiando.
 </p>
 
 <p align="center">
@@ -24,7 +24,7 @@
 ### Si sbloccano studiando
 
 Alla prima apertura scegli il tuo compagno, ed è libero. Gli altri si guadagnano studiando: il **secondo a 20
-focus**, il **terzo a 50** e il **quarto a 100**, dove un «focus» sono 50 minuti di studio (come una pianta adulta del giardino: contano
+focus**, il **terzo a 50** e il **quarto a 100**, dove un «focus» sono 50 minuti di studio (contano
 tutti i minuti, anche quelli dei focus interrotti, e un timer da 5 minuti non sblocca niente più in fretta). Nella
 scheda del menu i compagni ancora bloccati hanno un lucchetto e la frase di quanto manca («Porcellino si sblocca a 20
 focus: ne hai 12»); quando arriva il momento, a fine focus il personaggio lo annuncia. Lo sblocco si ricorda
@@ -65,12 +65,12 @@ e, da «Mostra le sessioni», una tendina sotto il riepilogo con la nota e la fa
   <img src="docs/images/statistiche-sessioni.png" width="360" alt="Le sessioni di un giorno">
 </p>
 
-**Il giardino**: ogni 50 minuti di studio in un giorno è una pianta adulta, e il resto cresce in una piantina più
-piccola. Per settimana e per mese.
+**Il giardino**: un prato tuo, da arredare. Per ogni ora di studio guadagni un punto (di più se hai una serie di
+giorni di fila) e con i punti sblocchi nel negozio fiori, case per i compagni e arredi, che metti dove vuoi. I
+compagni sbloccati ci vivono, e se li tocchi parlano.
 
 <p align="center">
-  <img src="docs/images/giardino-settimana.png" width="640" alt="Il giardino, settimana">
-  <img src="docs/images/giardino-mese.png" width="640" alt="Il giardino, mese">
+  <img src="docs/images/giardino.png" width="760" alt="Il giardino con i quattro compagni e gli oggetti sbloccati">
 </p>
 
 > Le schermate usano dati di esempio.
@@ -134,7 +134,7 @@ per tipo) e uno tuo si può *rimuovere*. *Avvia* parte con i minuti scelti; la p
 | Fai parlare | Mostra subito una frase |
 | Pomofocus ▸ | Timer: *Focus 30/50 min*, *Pausa 5/10 min*, *Personalizza…*, *Ferma timer* |
 | Statistiche e riepilogo… | La finestra con il riepilogo di oggi e le statistiche della settimana e del mese |
-| Il mio giardino… | Una pianta adulta ogni 50 minuti di studio del giorno, per settimana e per mese (con il tuo nome: «Il giardino di …») |
+| Il mio giardino… | Il tuo prato: i punti dello studio, il negozio e i compagni (con il tuo nome: «Il giardino di …») |
 | Il tuo nome… | Cambia il nome che compare nei titoli |
 | Chiedi com'è andata | Se a fine focus compare «Com'è andata?» (spunta = sì) |
 | Pausa lunga dopo 4 focus | Dopo quattro focus completati di fila la pausa dura 15 minuti (spunta = sì) |
@@ -278,50 +278,88 @@ cambia la materia, la nota, le note del focus e il voto, o la si elimina; *Espor
 calcolo. I dati restano sul Mac: nessun invio da nessuna parte.
 
 Le regole di calcolo hanno le loro prove: `./tests/run.sh` (compila `SessionLog.swift` da solo e controlla
-periodi, totali, giorni di fila, recupero, file rovinato, migrazione, materie unite, copie di sicurezza,
-fuso orario…).
+periodi, totali, giorni di fila e serie ghiacciata, punti del giardino, oggetti e copie nel prato, recupero, file
+rovinato, migrazione, materie unite, copie di sicurezza, fuso orario…).
 
 ## Il giardino
 
-*Il mio giardino…* (`GardenWindow.swift`) trasforma il registro in qualcosa da guardare, e si conta **per minuti**:
-in ogni giorno si somma il tempo di studio (anche quello dei focus interrotti), e **ogni 50 minuti è una pianta
-adulta**. Quello che avanza cresce in una piantina allo stadio di mezzo (`GardenRules` in `SessionLog.swift`):
-
-| Minuti che avanzano nel giorno | La piantina che cresce |
-|---|---|
-| meno di 1 | niente |
-| 1–9 | stadio 1 (il seme) |
-| 10–19 | stadio 2 |
-| 20–29 | stadio 3 |
-| 30–49 | stadio 4 |
-| 50 pieni | una pianta adulta (stadio 5), e si ricomincia |
-
-Per esempio 3 h 06 di studio in un giorno sono 186 minuti: **tre piante adulte** e una piantina allo stadio 4 (36
-minuti). I minuti riempiono una pianta dopo l'altra nell'ordine in cui li hai studiati, quindi la materia di ogni
-pianta (il pallino sotto il vaso) è quella che l'ha fatta crescere di più, e anche il personaggio è quello con cui
-l'hai fatta di più. Il giardino è un prato con il cielo, il sole, le colline e una staccionata: la scheda *Settimana* ha un monticello
-di terra per giorno, con il suo cartello di legno (giorno e ore), fino a sei piantine, poi "+N"; quella che cresce sta
-davanti; *Mese* è lo stesso prato con le caselle del calendario.
-
-Il prato **cambia con le stagioni**, secondo la data del periodo che guardi (primavera da marzo a maggio, estate da
-giugno ad agosto, autunno da settembre a novembre, inverno da dicembre a febbraio): in primavera è fresco e pieno di
-fiorellini, d'estate più verde, con il cielo azzurro e un sole grande; d'autunno ha le foglie che cadono e i toni
-dorati; d'inverno c'è la neve sul prato e sulla staccionata, e cadono i fiocchi. Tornando indietro con le frecce
-si rivede la stagione di quel periodo.
+*Il mio giardino…* (`GardenWindow.swift`) è un prato **tuo**: un posto calmo, da arredare con i punti che guadagni
+studiando. Non conta i focus e non misura niente: le cifre dello studio stanno nelle *Statistiche*.
 
 <p align="center">
-  <img src="docs/images/giardino-stagioni.png" width="720" alt="Il giardino nelle quattro stagioni">
-</p> Passando il mouse su una piantina compaiono il
-giorno, i minuti e le materie. Si ricava tutto dal registro: compare subito anche per i focus già fatti. A fine
-focus il personaggio dice se è nata una pianta adulta o quanti minuti mancano alla prossima.
+  <img src="docs/images/giardino.png" width="760" alt="Il giardino">
+</p>
+
+### I punti
+
+Un punto ogni **ora di studio** (`GardenPoints.swift`): contano tutti i minuti, anche quelli dei focus interrotti,
+e un timer da 5 minuti non dà più punti. Ogni minuto vale di più se hai studiato più giorni di fila:
+
+| Giorni di fila | Quanto vale un minuto |
+|---|---|
+| 1–2 | ×1 |
+| 3–6 | ×1,25 |
+| 7–13 | ×1,5 |
+| 14 o più | ×2 |
+
+Un minuto vale il moltiplicatore che la serie aveva **in quel giorno**: 50 minuti al settimo giorno di fila
+sono 75 minuti di giardino. I punti si ricavano dal registro (compaiono subito anche per i focus già fatti) e quelli
+spesi sono l'unica cosa che il giardino ricorda. A fine focus il personaggio dice quanti punti sono arrivati, o
+quanto manca al prossimo. Passando il mouse sul numero dei punti si legge come funziona.
+
+**La serie ghiacciata.** Un giorno senza studio non azzera la serie: la **ghiaccia**. Il numero resta fermo
+(nella scheda del menu, nelle statistiche e nel giardino compare un fiocco di neve) e, se studi il giorno dopo,
+continua da dov'era. Due giorni di fila senza studio la azzerano, e il ghiaccio si può usare **una volta ogni 7
+giorni** (`StudyStreak` in `GardenPoints.swift`), altrimenti basterebbe studiare a giorni alterni. Se oggi non hai
+ancora studiato non si giudica niente: la giornata non è finita.
+
+### Il negozio
+
+Il pulsante *Negozio* apre un pannello a destra, con tre schede: **Fiori**, **Per i compagni** (case, ceste,
+tiragraffi…) e **Arredi** (panchina, altalena, lampione…). Ci sono 36 oggetti; qualcuno c'è fin dall'inizio.
+
+- **Un oggetto si sblocca una volta** (un tocco dice quanto costa, il secondo lo sblocca e ne mette subito una copia
+  nel prato) e poi **ne puoi mettere quanti ne vuoi**: dieci margherite, tre panchine.
+- **Si trascina tutto**: dal negozio al prato per metterlo, nel prato per spostarlo, sul negozio per toglierlo (o
+  tasto destro → *Togli dal giardino*). Togliere una copia non rende niente, perché per la copia non hai speso
+  niente: l'oggetto resta tuo.
+- Le cose più lontane (verso la casetta) sono più piccole, quelle davanti più grandi; chi sta più in basso sta
+  davanti. Il prato è lo stesso in ogni stagione.
+- Quello che hai sbloccato **non si richiude**, anche se poi cancelli delle sessioni.
+
+I prezzi sono provvisori e stanno tutti in `GardenCatalog.swift`, insieme alle altezze degli oggetti.
+
+<p align="center">
+  <img src="docs/images/giardino-negozio.png" width="760" alt="Il negozio del giardino, scheda Per i compagni">
+</p>
+
+### I compagni nel giardino
+
+I compagni **sbloccati** stanno sul prato (quelli bloccati no). Li trascini dove vuoi, e se ne tocchi uno dice una
+delle sue frasi. Non si comprano e non si tolgono: sono casa loro.
+
+### Dove sta
+
+`giardino.json`, accanto a `sessioni.json`: `{"version": 1, "unlocked": […], "spent": 12, "placements": [{"id",
+"item", "x", "y"}], "companions": {"gattino": {"x", "y"}}}`. `x` e `y` sono frazioni della scena (da 0 a 1) e
+dicono dove stanno i piedi; si tengono dentro il prato. Un file rovinato viene messo da parte
+(`giardino.corrotto-….json`), uno di una versione più nuova si legge ma non si riscrive, e *Cancella tutto…* lo
+toglie con il resto. Le regole stanno in `Garden.swift`, `GardenCatalog.swift` e `GardenPoints.swift` (solo
+Foundation, con prove). Con `developerMode` (vedi sopra) è tutto sbloccato.
+
+### Aggiungere oggetti
+
+Si chiede a un generatore di immagini un foglio di 12 oggetti in una griglia di 4 per 3, nello stesso stile, su
+sfondo **magenta pieno** (`#FF00FF`: si toglie senza intaccare petali o campanule bianche), senza ombre e con la base
+di ogni oggetto sul fondo della sua cella. Poi: il foglio in `assets/giardino/<nome>_original.png`, una riga in
+`SHEETS` di `tools/cutout_giardino.py` (che scrive `assets/giardino/<id>.png`), una riga per oggetto in
+`GardenCatalog.swift`. `./tests/run.sh` controlla che ogni oggetto del catalogo abbia il suo disegno.
+
+### La crescita durante un focus
 
 La crescita **dal vivo** durante un focus (il seme di Pianty che cresce, il nido di Ciccio, la carota del
-Porcellino) segue invece quel focus: un quinto del tempo per stadio.
-
-Ogni sessione ricorda **con quale personaggio** è stata fatta (`pet`), e un personaggio può avere la sua
-collezione (la piantina usa quella del personaggio con cui hai studiato di più in quei 50 minuti): cinque immagini `garden_<personaggio>_<1..5>.png` in `assets/garden/` (stessa tela di Pianty,
-208×341, piedi sulla stessa riga). Chi non le ha usa le piantine di Pianty. Ci sono quella di **Ciccio** (un nido che
-va dall'uovo alla cocorita adulta) e quella del **Porcellino** (una carota che cresce dalla terra);
+Porcellino) segue invece quel focus: un quinto del tempo per stadio. Sono le immagini `garden_ciccio_<1..5>.png` e
+`growth_porcellino_<1..5>.png` in `assets/garden/` (stessa tela di Pianty, 208×341, piedi sulla stessa riga);
 `tools/cutout_garden.py` ritaglia il foglio (`assets/garden/ciccio_nido_original.png`,
 `assets/garden/porcellino_carota_original.png`).
 
@@ -347,10 +385,10 @@ frasi sue (`assets/frasi_ciccio.txt`).
 Il Gattino ha un disegno da fermo, 6 fotogrammi di camminata, 5 di quando mangia il pesce, 6 di sonno (con gli «Zzz»
 disegnati dall'app, come per il porcellino) e 5 di quando si lecca la zampa, che usano lo stesso meccanismo del battito
 d'ali di Ciccio (`popcornFrames`). Parla con le frasi di `assets/frasi_gattino.txt`. Durante un focus cammina come
-sempre e il giardino usa le piantine di Pianty.
+sempre.
 
 **Ciccio durante un focus** sta fermo e prende il posto del suo nido (`focusGrowthResources` in `Pet.swift`,
-le stesse immagini della sua collezione del giardino): parte dall'uovo e, con il tempo, passa al guscio
+le immagini `garden_ciccio_<1..5>.png`): parte dall'uovo e, con il tempo, passa al guscio
 incrinato, al pulcino, al piccolo con le piume e infine alla cocorita adulta sul nido; ogni stadio dura un
 quinto del focus, come per Pianty. Il fumetto e l'orologio restano nello stesso posto. A fine focus (o se lo
 fermi) torna a camminare. Mentre lo sollevi col mouse compare il solito disegno con le mani.
@@ -360,7 +398,7 @@ carota (la matura occupa quasi tutta l'altezza), lui è più piccolo e sta a gua
 porcellino + carota sta al centro, sopra l'orologio, che durante questa fase si abbassa di 12 punti per non
 coprire le zampe
 (`growth_porcellino_1..5.png`, composte da `tools/compose_porcellino_growth.py` con il suo fotogramma a riposo
-rimpicciolito e le carote della sua collezione del giardino). La finestra si allarga attorno ai suoi piedi per fare spazio alla carota (e resta nello schermo),
+rimpicciolito e le carote di `garden_porcellino_<1..5>.png`). La finestra si allarga attorno ai suoi piedi per fare spazio alla carota (e resta nello schermo),
 poi torna com'era. Ogni stadio dura un quinto del focus; **a fine focus, se lo hai completato, mangia la
 carota** con la sua animazione, poi riprende a camminare. Se fermi il focus a metà torna a camminare senza
 mangiare.
@@ -468,7 +506,10 @@ Sources/FocusFriends/
   AmbientPlayer.swift   il motore audio: rumore filtrato in tempo reale
   MusicLibrary.swift    la musica: quali file e in che ordine (solo Foundation, con prove)
   BreakCycle.swift      il ciclo dei quattro focus e la pausa lunga (solo Foundation, con prove)
-  CompanionRewards.swift  quando si sbloccano i compagni: 20 e 50 focus (solo Foundation, con prove)
+  CompanionRewards.swift  quando si sbloccano i compagni: 20, 50 e 100 focus (solo Foundation, con prove)
+  Garden.swift          il giardino di chi usa l'app: oggetti sbloccati, copie nel prato, compagni (solo Foundation, con prove)
+  GardenCatalog.swift   gli oggetti del negozio, i prezzi e la scena (solo Foundation, con prove)
+  GardenPoints.swift    i punti, il moltiplicatore e la serie con un giorno di ghiaccio (solo Foundation, con prove)
   MusicPlayer.swift     la riproduzione dei brani del focus
   SessionLog.swift      registro delle sessioni di studio e statistiche (solo Foundation, con prove)
   Profile.swift         il nome (solo Foundation, con prove) e i titoli personalizzati
@@ -476,7 +517,7 @@ Sources/FocusFriends/
   SubjectPrompt.swift   la scheda "Cosa studi adesso?"
   ReflectionCard.swift  la scheda "Com'è andata?" a fine focus
   DashboardWindow.swift la finestra delle statistiche (Oggi / Settimana / Mese)
-  GardenWindow.swift    il giardino: le piantine di ogni giorno (50 minuti = una adulta), per settimana e per mese
+  GardenWindow.swift    il giardino: il prato, il negozio, il trascinamento e i compagni
   PaperUI.swift         elementi grafici in comune delle schede (carta, pulsanti, colori delle materie)
 assets/
   pianty/original.png   immagine di partenza di Pianty senza piedini (5 stadi, non più usata dal ritaglio)
@@ -493,6 +534,8 @@ assets/
   gattino/idle_original.png, walk_original.png, eat_original.png, sleep_original.png, groom_original.png   le tavole del gatto
   gattino/frame1..23.png   fermo, 6 di camminata, 5 mangia, 6 dorme, 5 si lecca la zampa, sulla stessa tela (tools/cutout_gattino.py)
   gattino/picked_original.png, picked.png   il gatto sollevato dalle mani (tools/cutout_picked.py ... 252: maniche quasi bianche)
+  giardino/*_original.png   i fogli degli oggetti del giardino (fiori, case dei compagni, arredi) e il prato
+  giardino/<id>.png, prato.png   gli oggetti ritagliati, uno per file (tools/cutout_giardino.py), e il prato ingrandito
   bubble_original.png, bubble.png   fumetto e ritaglio (tools/cutout_bubble.py)
   frasi_pianty.txt, frasi_porcellino.txt, frasi_ciccio.txt, frasi_gattino.txt   frasi incluse nell'app
   logo_original.png     il logo: un pomodoro-timer con l'anello che mostra il tempo

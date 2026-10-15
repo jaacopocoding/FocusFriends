@@ -2,9 +2,10 @@
 
 > Purpose: a factual description of how the code in this repository works, written so that another reader (human or AI)
 > can judge whether the code is acceptable as written or needs revision for inefficiency.
-> Snapshot described: branch `main`, commit `b805c11` (release `v0.7.0` plus one README commit). The document was
-> first written against `2043b39`; it was then updated for the fixes made after `ARCHITECTURE_REVIEW.md` (that review is
-> committed next to this file and its §7 says what was changed), the developer-mode flag and the fourth companion.
+> Snapshot described: branch `main` after commit `0607da6` (release `v0.7.0` plus later commits), with the new garden
+> (points, shop, free placement) as uncommitted work in the working tree. The document was first written against
+> `2043b39`; it was then updated for the fixes made after `ARCHITECTURE_REVIEW.md` (that review is committed next to
+> this file and its §7 says what was changed), the developer-mode flag, the fourth companion and the garden rewrite.
 > Everything here was read from the files in the repository; statements that could not be fully verified are marked
 > **[uncertain]**. Rationales are labelled **[documented]** (comes from code comments, README, CREDITS or git history),
 > **[inferred]** (deduced from the code) or **[unknown]** (could not be determined).
@@ -21,8 +22,9 @@ FocusFriends is a macOS desktop-pet / Pomodoro study timer (`README.md`, header 
 A small animated character ("companion") lives in a transparent, always-on-top window on the desktop. The user starts a
 timed "focus" (30 or 50 minutes by default, 1–180 minutes if custom), optionally naming the subject being studied; the
 companion grows or reacts during the focus, a pause follows, and every focus is written to a local JSON log. From that
-log the app derives statistics (day / week / month), a "garden" of plants (one adult plant per 50 minutes studied in a
-day), a streak counter, and unlockable companions. It also offers optional ambient sound (synthesised rain / brown noise /
+log the app derives statistics (day / week / month), a streak counter (with one "frozen" day of tolerance), "garden
+points" (one per hour studied, multiplied by the streak) that are spent in a shop to furnish a personal garden, and
+unlockable companions. It also offers optional ambient sound (synthesised rain / brown noise /
 wind) or music (bundled tracks or a user folder) during focus, a notes post-it on the focus screen, a "how did it go?"
 rating card, and a long break after four completed focuses.
 
@@ -36,7 +38,7 @@ Single user per Mac, no accounts, no network: all data is stored locally under
 
 | Item | Value | Source |
 |---|---|---|
-| Language | Swift (one module, `Sources/FocusFriends/*.swift`, 33 files, 9,882 lines by `wc -l`) | `build.sh` |
+| Language | Swift (one module, `Sources/FocusFriends/*.swift`, 36 files, 10,556 lines by `wc -l`) | `build.sh` |
 | UI framework | AppKit, custom-drawn views (no SwiftUI, no storyboards/xibs, no Interface Builder) | all view files |
 | Other Apple frameworks | Foundation, AVFoundation (`AVAudioEngine`, `AVAudioSourceNode`, `AVAudioPlayer`), ServiceManagement (`SMAppService`, launch at login) | `import` lines |
 | Third-party dependencies | None (no Package.swift, no CocoaPods/Carthage, no vendored code) | repository tree |
@@ -46,7 +48,7 @@ Single user per Mac, no accounts, no network: all data is stored locally under
 | App type | Menu-bar "agent": `LSUIElement = true`, activation policy `.accessory` | `build.sh`, `AppDelegate.applicationDidFinishLaunching` |
 | Signing | Ad-hoc (`codesign --force --sign -`; `build.sh` stops with exit 1 if signing fails); not notarised, no hardened runtime or sandbox | `build.sh`, `README.md` "Scaricare e usare" |
 | Asset tooling | Python 3 scripts using Pillow and NumPy (not run at build time) | `tools/*.py` |
-| Tests | One hand-written Swift executable (`tests/main.swift`, 24 sections, 284 checks) that compiles seven Foundation-only source files; no XCTest | `tests/run.sh` |
+| Tests | One hand-written Swift executable (`tests/main.swift`, 29 sections, 353 checks) that compiles ten Foundation-only source files; no XCTest | `tests/run.sh` |
 | License | MIT (`LICENSE`); bundled music is CC0 (`CREDITS.md`) | `LICENSE`, `CREDITS.md` |
 | Swift toolchain version / Python version | Not pinned anywhere in the repository | **[unknown]** |
 
@@ -59,7 +61,7 @@ Network access: a search of `Sources/` for `URLSession`, `http://`, `https://`, 
 ./build.sh                      # compiles both architectures, lipo, copies resources, writes Info.plist, ad-hoc signs
 cp -R build/FocusFriends.app /Applications/
 open /Applications/FocusFriends.app
-./tests/run.sh                  # compiles 7 Foundation-only files + tests/main.swift and runs them
+./tests/run.sh                  # compiles 10 Foundation-only files + tests/main.swift and runs them
 ```
 
 `build.sh` copies a fixed set of assets into `FocusFriends.app/Contents/Resources` with flattened, prefixed names
@@ -78,7 +80,7 @@ FocusFriends/
 ├── README.md                     Italian user + developer documentation (features, data formats, structure, how to add a pet)
 ├── ARCHITECTURE.md               this file
 ├── build.sh                      build script: swiftc ×2 archs → lipo → app bundle, resources, Info.plist, ad-hoc codesign (fails if signing fails)
-├── Sources/FocusFriends/         the whole app (single Swift module, 33 files)
+├── Sources/FocusFriends/         the whole app (single Swift module, 36 files)
 │   ├── main.swift                entry point: NSApplication + AppDelegate
 │   ├── AppDelegate.swift         composition root: creates window, speaker, walker, pomodoro, menu; wires callbacks
 │   ├── Pet.swift                 value type describing a companion (resources, sizes, behaviours) + the 4 definitions
@@ -102,26 +104,30 @@ FocusFriends/
 │   ├── SubjectPrompt.swift       "What are you studying now?" card shown when a focus starts
 │   ├── ReflectionCard.swift      "How did it go?" card after a completed focus
 │   ├── DashboardWindow.swift     statistics window: DashboardView, DiaryView, DashboardController
-│   ├── GardenWindow.swift        garden window: GardenView (scene, seasons, plants), GardenController
+│   ├── GardenWindow.swift        garden window: GardenView (meadow, placed objects, companions, shop panel, drag), GardenController
 │   ├── SessionLog.swift          StudySession model, SessionLog store, GardenRules, Season, notes/subject cleaning, StudyStats, SessionCSV  (Foundation only)
 │   ├── Profile.swift             profilo.json: name, intro-seen flag, unlocked companions, developer flag   (Foundation only)
 │   ├── CustomTimers.swift        user-defined timer durations + TimerDialMath                           (Foundation only)
 │   ├── BreakCycle.swift          four-focus cycle counter for the long break                            (Foundation only)
 │   ├── CompanionRewards.swift    thresholds for unlocking companions                                    (Foundation only)
+│   ├── Garden.swift              giardino.json: unlocked objects, points spent, placed copies, companion spots (Foundation only)
+│   ├── GardenCatalog.swift       the 36 shop objects (id, name, category, height, price) + GardenScene geometry (Foundation only)
+│   ├── GardenPoints.swift        StudyStreak (streak with one frozen day) + GardenPoints (hours × multiplier)  (Foundation only)
 │   ├── AmbientSound.swift        AmbientSound, AmbientSettings, BackgroundChoice                        (Foundation only)
 │   ├── AmbientPlayer.swift       NoiseSynth (real-time synthesis) + AmbientPlayer (AVAudioEngine wrapper)
 │   ├── MusicLibrary.swift        MusicSource, MusicLibrary (file discovery, shuffle, titles), MusicSettings  (Foundation only)
 │   └── MusicPlayer.swift         AVAudioPlayer-based music playback with queue and fades
 ├── tests/
 │   ├── main.swift                hand-rolled test executable (check()/section()), 24 sections
-│   └── run.sh                    compiles 7 source files + tests/main.swift into build/tests/stats and runs it
+│   └── run.sh                    compiles 10 source files + tests/main.swift into build/tests/stats and runs it
 ├── tools/                        offline Python (Pillow/NumPy) image-processing scripts used to produce the PNG assets
 │   ├── cutout_pianty.py          Pianty stage sheets → 5 stages × 7 frames (still + 6 walking frames, legs animated procedurally)
 │   ├── cutout_porcellino.py      Porcellino sheets → frame1..19 on a common canvas
 │   ├── cutout_ciccio.py          Ciccio walk + flap sheets → frame1..13 on a common canvas
 │   ├── cutout_gattino.py         Gattino sheets (idle, walk, eat, sleep, groom) → frame1..23 on a common canvas
 │   ├── cutout_picked.py          "picked up by hands" drawing cut-out (generic, takes paths)
-│   ├── cutout_garden.py          5-stage garden collection sheet → garden_<pet>_1..5 on the 208×341 canvas
+│   ├── cutout_garden.py          5-stage collection sheet → garden_<pet>_1..5 on the 208×341 canvas (used for the live growth during a focus)
+│   ├── cutout_giardino.py        the three 4×3 object sheets (white or magenta background) → one PNG per shop object + the 2× meadow
 │   ├── compose_porcellino_growth.py  composes growth_porcellino_1..5 (pig + growing carrot) from frame1 and garden carrots
 │   ├── cutout_bubble.py          speech-bubble cut-out; prints the geometry constants used by BubbleView
 │   └── make_icon.py              builds AppIcon.png/.icns and docs/images/logo.png from assets/logo_original.png
@@ -132,9 +138,10 @@ FocusFriends/
 │   ├── porcellino/               *_original.png sheets, frame1..19.png, picked(.png/_original.png)
 │   ├── ciccio/                   walk_original.png, flap_original.png, frame1..13.png, picked(.png/_original.png)
 │   ├── gattino/                  idle/walk/eat/sleep/groom_original.png sheets, frame1..23.png, picked(.png/_original.png)
-│   ├── garden/                   garden_<pet>_1..5.png (ciccio, porcellino), growth_porcellino_1..5.png, *_original sheets
+│   ├── garden/                   garden_<pet>_1..5.png (ciccio, porcellino), growth_porcellino_1..5.png, *_original sheets (live growth)
+│   ├── giardino/                 fiori/compagni/arredi_original.png sheets, prato_original.png, 36 object PNGs, prato.png
 │   └── music/                    5 AAC (.m4a) tracks: boredom, love, night-driving, old-age, opinions
-├── docs/images/                  16 PNG screenshots/logo used only by README.md (sample data)
+├── docs/images/                  PNG screenshots/logo used only by README.md (sample data); giardino*.png are the current garden
 └── build/                        generated output (git-ignored): FocusFriends.app, zips, release notes, tests/ binary
 ```
 
@@ -146,6 +153,7 @@ Notes on the tree:
   (`SessionLog`, `Profile`, `CustomTimers`, `AmbientSound`, `MusicLibrary`, `BreakCycle`, `CompanionRewards`).
 - Resource names are flattened by `build.sh`: `pianty_stage{S}_{F}`, `pianty_picked`, `porcellino_frame{N}`,
   `porcellino_picked`, `ciccio_frame{N}`, `ciccio_picked`, `gattino_frame{N}`, `gattino_picked`, `garden_<pet>_{1..5}`, `growth_porcellino_{1..5}`,
+  `giardino_<object id>` and `giardino_prato`,
   `music_*.m4a`, `bubble.png`, `frasi_<pet>.txt`, `AppIcon.icns`. The `*_original.png` sheets and
   `logo_original.png` are not copied into the bundle.
 
@@ -281,8 +289,9 @@ code. All UI code runs on the main thread; the only other thread is the audio re
   `ExtendPrompt.show(near:seconds:extraMinutes:onExtend:)` (a non-activating `NSPanel` child of the pet window, 30 Hz
   timer for the bar and position) → on click `extendFocus()` (adds 5 min from now, `log.beginInProgress` rewrite,
   say a variant). If not tapped: `tick` → `finish()`: `BreakCycle` decision (§3.9), `recordFocus(completed: true)`,
-  `lastFocus = (minutes, subject, sessionID)`, builds the garden sentence with `StudyStats.seconds(onDayOf:in:)` and
-  `GardenRules.finishLine`, `begin(.rest, minutes: breakLength)`, sets `isLongBreak`,
+  `lastFocus = (minutes, subject, sessionID)`, builds the garden sentence from the weighted minutes before and after
+  this focus (`GardenPoints.weightedMinutes`, `StudyStreak.analyze`, `GardenPoints.finishLine`),
+  `begin(.rest, minutes: breakLength)`, sets `isLongBreak`,
   `speaker.say(focusFinishedMessage(...))`, then `onFocusCompleted?()` (Porcellino eats) and
   `onFocusRecorded?(recorded)` (rewards + reflection card). Rest end: `finish()` `.rest` → `stop()` +
   "Pausa finita!" phrase.
@@ -426,18 +435,35 @@ code. All UI code runs on the main thread; the only other thread is the audio re
   `DashboardView.draw` (title) and `PageView.draw` → `drawSummary`. Row tap → `DashboardView.edit(_:)` (NSAlert with
   subject, "apply to all", note, rating segmented control, focus notes text view) → `SessionLog.renameSubject` or
   `setSubject`, `setReflection`, `setNotes`, or `remove`. `exportCSV` → `SessionCSV.csv` (a write failure shows an `NSAlert`). `deleteEverything` →
-  `SessionLog.deleteAll()` + `Profile.shared.reset()`. The view registers `log.addObserver { reload() }`.
+  `SessionLog.deleteAll()` + `Profile.shared.reset()` + `Garden.shared.reset()`. The view registers `log.addObserver { reload() }`.
 
-### 3.17 Garden window
+### 3.17 Garden window (points, shop, free placement)
 
-- **What:** a meadow scene (season by date) with, per day, plants grown from the day's minutes (adult per 50 min,
-  remainder as an intermediate stage), by week (7 mounds with signs) or month (calendar), with tooltips.
-- **Entry point:** `MenuController.showGarden` → `GardenController.show()` → `GardenView.select(.week)`.
-- **Execution path:** `GardenView.reload()` groups the log by day once (`dayItems`, `dayPlants`), then loops the days of
-  the period reading counts, then `layoutWeek` / `layoutMonth` (lookups into the same dictionaries) building `plants`
-  and `beds`; the log observer skips `reload()` while the window is closed (reopening runs `select`, which reloads); `addToolTip` per plant;
-  `draw` renders `GardenView.scene(for:season:)` (cached in a static dictionary), signs/cells, plants (image looked up
-  by `garden_<pet>_<stage>` with fallback `pianty_stage<stage>_1`), the subject dot, summary and hints.
+- **What:** a personal meadow (one painted scene) that the user furnishes. Points are earned by studying (one per hour,
+  every minute weighted by the streak reached that day), spent in a side shop to **unlock** an object type once, and
+  any number of copies of an unlocked type can then be dragged onto the lawn, moved, or dropped back on the shop to
+  remove them (no refund: nothing was spent per copy). Unlocked companions live on the lawn and speak when tapped.
+- **Entry point:** `MenuController.showGarden` → `GardenController.show()` → `GardenView.reload()`.
+- **Execution path:**
+  - Points: `GardenView.reload()` → `StudyStreak.analyze(sessions:now:)` (per-day streak counts, current streak,
+    frozen flag) → `GardenPoints.weightedMinutes` → `points(forWeightedMinutes:)` → balance = earned − `Garden.spent`
+    (never below zero). The top row shows the multiplier chip (only when > 1 or frozen), the balance and the shop button;
+    tooltips explain both.
+  - Scene: `giardino_prato.png` drawn full-width; every placed copy and unlocked companion becomes an `Entity` (sprite,
+    feet point, rect). Height = catalog height × `GardenScene.depthScale(y:)`; entities are sorted by feet `y` (lower on
+    screen = in front); the carried one is drawn last, slightly raised. Sprites are measured once (`analyze`): the
+    opaque rectangle (so feet sit where the lawn says) and a 64-cell coarse mask used for hit-testing.
+  - Mouse: `mouseDown` → shop tab / card, or the front-most entity whose **drawn** pixels (mask, ±1 cell) contain the
+    point; `mouseDragged` moves the carried thing (`carryFeet`); `mouseUp` → `Garden.move` / `Garden.place` /
+    `Garden.setCompanionSpot` / `Garden.remove` (dropped over the shop panel), or, for a companion that did not move,
+    a phrase from `Quotes.load(for:)` in a bubble for 5 s. Right-click on a copy → "Togli dal giardino".
+  - Shop: tabs from `GardenCategory`, 3-column cards from `GardenCatalog.items(in:)`; free or unlocked → "Tuo" and a
+    click places a copy / a drag places it where dropped; locked and affordable → first tap shows the price, second tap
+    `Garden.unlock` and places the first copy; not affordable → a line says how many points are missing.
+    `setShopOpen` widens the window by `shopWidth` (`onShopToggle`); on screens narrower than 1370 pt the controller
+    scales the whole view with `setBoundsSize` (`GardenController.scale(forScreenWidth:)`) and does not animate.
+  - Observers: `SessionLog.addObserver` (ignored while the window is closed) and `Garden.addObserver` both call
+    `reload()`. Esc closes the shop (`cancelOperation`) or drops what is being carried.
 
 ### 3.18 Companion unlocking
 
@@ -486,7 +512,7 @@ code. All UI code runs on the main thread; the only other thread is the audio re
     `lipo -create` into `Contents/MacOS/FocusFriends` → copy bubble, phrase files, icon, pet frames (prefixed names),
     music (`music_*`), garden/growth art, Pianty stage frames → write `Info.plist` via heredoc →
     `codesign --force --sign -` (a failure prints an error and exits 1) → print the path.
-  - `tests/run.sh`: `swiftc -O -o build/tests/stats` on seven source files + `tests/main.swift` →
+  - `tests/run.sh`: `swiftc -O -o build/tests/stats` on ten source files + `tests/main.swift` →
     `build/tests/stats` (prints `• <section>` lines and `N controlli, M falliti`, exit code 0/1; 284 checks now).
   - Tools: described in §5.9; they read `assets/**/*_original.png` / sheets and write processed PNGs or the icon.
 
@@ -506,7 +532,7 @@ main.swift ──► AppDelegate  (composition root: creates and wires everythin
                  ├─ Speaker ──► BubbleWindow/BubbleView (SpeechBubble.swift), Quotes, PhraseDeck, Chattiness, PetWindow
                  ├─ Walker ───► PetWindow, Speaker, Pet
                  ├─ Pomodoro ─► PetWindow, Speaker, SessionLog, TimerWindow/TimerView, ExtendPrompt,
-                 │               BreakCycle, GardenRules/StudyStats (SessionLog.swift), FocusNotes, Subject, Chattiness
+                 │               BreakCycle, GardenPoints/StudyStreak (GardenPoints.swift), StudyStats (SessionLog.swift), FocusNotes, Subject, Chattiness
                  ├─ MenuController ─► PetWindow, Speaker, Pomodoro, MenuCard, DashboardController, GardenController,
                  │               SubjectPrompt, CustomTimers, AmbientPlayer.shared, MusicPlayer.shared, MusicLibrary,
                  │               Profile.shared, SessionLog.shared, CompanionRewards, ReflectionCard (static), Walker (static),
@@ -514,11 +540,12 @@ main.swift ──► AppDelegate  (composition root: creates and wires everythin
                  │      └─ MenuCard ─► MenuCardView ─► FocusScreenViews, PaperUI, TimerDial, VolumeSlider
                  │                      (talks to the app only through MenuCardState + MenuCardActions)
                  ├─ IntroCard, ReflectionCard ─► PaperUI, Profile / SessionLog
-                 └─ (lazy) DashboardController/GardenController ─► SessionLog.shared, Profile.shared, PaperUI
+                 └─ (lazy) DashboardController/GardenController ─► SessionLog.shared, Profile.shared, Garden.shared, PaperUI
 
-Foundation-only core (no AppKit):  SessionLog.swift (StudySession, SessionLog, GardenRules, Season, StudyStats,
-   SessionCSV, Subject, FocusNotes, SessionNote), Profile, CustomTimers (+TimerDialMath), BreakCycle,
-   CompanionRewards, AmbientSound (+AmbientSettings, BackgroundChoice), MusicLibrary (+MusicSource, MusicSettings)
+Foundation-only core (no AppKit):  SessionLog.swift (StudySession, SessionLog, GardenRules [no longer used by the app],
+   Season, StudyStats, SessionCSV, Subject, FocusNotes, SessionNote), Profile, CustomTimers (+TimerDialMath), BreakCycle,
+   CompanionRewards, Garden, GardenCatalog (+GardenScene), GardenPoints (+StudyStreak), AmbientSound (+AmbientSettings,
+   BackgroundChoice), MusicLibrary (+MusicSource, MusicSettings)
 Audio:  AmbientPlayer.shared ⇄ MusicPlayer.shared   (each calls the other to enforce "one background at a time")
 ```
 
@@ -538,6 +565,7 @@ Layering as it exists in the code (not enforced by the compiler):
 |---|---|---|
 | `SessionLog.shared` | `static let shared = SessionLog(directory: defaultDirectory)` | `init(directory:now:timeZone:)` is public; `Pomodoro` and `ReflectionCard` take a `log:` parameter defaulting to `.shared`; `DashboardView`/`GardenView` take a `log:` (the controllers pass `.shared`) |
 | `Profile.shared` | `static let shared = Profile(directory: SessionLog.defaultDirectory)` | `init(directory:)`; callers elsewhere use `.shared` directly |
+| `Garden.shared` | `static let shared = Garden(directory: SessionLog.defaultDirectory)` | `init(directory:)`; `GardenView` takes `log:`, `garden:` and `profile:` (the controller passes the shared ones) |
 | `AmbientPlayer.shared`, `MusicPlayer.shared` | `static let shared` | No injection point; used directly from `MenuController`, `AppDelegate`, and from each other |
 | `UserDefaults.standard` | direct use in `Pet`, `Chattiness`, `Walker`, `ReflectionCard`, `BreakCycle`, `Migration`, `AmbientPlayer`/`MusicPlayer` (through the settings enums); `CustomTimers`, `AmbientSettings`, `MusicSettings` take it as a default parameter | `AmbientSettings`, `MusicSettings`, `CustomTimers` accept a `UserDefaults`; the others do not |
 
@@ -549,7 +577,7 @@ Layering as it exists in the code (not enforced by the compiler):
   `isLongBreak`, `discarding`). It is not persisted except through `SessionLog.beginInProgress` snapshots.
 - **UI state** is local to the views: `MenuCardView` (`page`, `dialKind`, `dialMinutes`, `timerMessage`, `lockHint`,
   `draftNote`, `shownPhase`, `shownRunning`, `shownPaused`), `DashboardView` (`kind`, `period`, `showsDiary`),
-  `GardenView` (`kind`, `period`).
+  `GardenView` (`category`, `isShopOpen`, `scrollOffset`, `confirming`, the carried thing, the open speech bubble).
 - **Snapshot-in-closures pattern for the card:** `MenuCard` receives `state: () -> MenuCardState`,
   `live: () -> MenuCardLiveState` and `actions: MenuCardActions` (a struct of closures). `MenuController.cardState()`
   builds a fresh value struct on each call (no caching); `MenuCardView.rebuild()` reads it and re-creates every
@@ -557,9 +585,11 @@ Layering as it exists in the code (not enforced by the compiler):
 - **Observation:** `SessionLog.addObserver` and `Profile.addObserver` keep arrays of closures called after each
   `save()`/`deleteAll()`/`reset()`; the only registered observers in the app are the statistics and garden views
   (`SessionLog`), and both ignore a notification while their window is closed; no app code registers a `Profile`
-  observer. Other callbacks are single closure properties: `SessionLog.onProblem`, `Profile.onProblem`,
+  observer; `Garden.addObserver` is used by `GardenView`. Other callbacks are single closure properties:
+  `SessionLog.onProblem`, `Profile.onProblem`, `Garden.onProblem`,
   `AmbientPlayer.onStartFailure`, `Pomodoro.onFocusActiveChanged/onFocusCompleted/onFocusRecorded/onTimerReset`,
-  `PetWindow.onPickStateChanged/onArtChanged/onContextClick`, `MenuCardView.onResize`, `DashboardController.onBack`.
+  `PetWindow.onPickStateChanged/onArtChanged/onContextClick`, `MenuCardView.onResize`, `DashboardController.onBack`,
+  `GardenView.onBack/onShopToggle`.
 - **System notifications used:** `AVAudioEngineConfigurationChange` (restart audio), `NSWindow.didMove/didResize`
   (card follows pet), `NSWindow.didResignKey` (card closes).
 
@@ -578,6 +608,8 @@ builds the same path independently).
 | `backup/sessioni-formato<N>.json` | `SessionLog.load` | untouched copy of the previous-format file made when migrating (N = 0, 1, 2) |
 | `sessioni.corrotto-<epoch>.json` | `SessionLog.load` | an undecodable file moved aside, or the original kept when only some sessions could be read |
 | `profilo.corrotto-<epoch>.json` | `Profile.init` | a malformed profile moved aside |
+| `giardino.json` | `Garden.save` (atomic) | `{"version": 1, "unlocked": [ids], "spent": N, "placements": [{id, item, x, y}], "companions": {petID: {x, y}}}`; `x`/`y` are fractions of the scene (feet), clamped to the lawn; points are not stored, only what was spent |
+| `giardino.corrotto-<epoch>.json` | `Garden.init` | a malformed garden file moved aside (a newer version is read-only; at most 150 copies are kept) |
 | `profilo.json` | `Profile.save` | `{"version":1,"name"?,"introSeen","unlocked"?:[ids],"firstCompanion"?}` |
 | `frasi_<pet>.txt` | user (created by `openQuotesFile`) | user phrase overrides, one per line, `#` comments |
 | (legacy) `…/Application Support/Bonsy/frasi_<pet>.txt` | — | read-only fallback from the app's previous name |
@@ -597,8 +629,8 @@ version 1 (wrapped, with `localStart` per `tests/main.swift`); 2 adds `rating`/`
 never written by the app). Each is declared next to the type that uses it (there is no central registry).
 
 **Other value types:** `Pet` (`Equatable` struct with 29 stored properties), `Pomodoro.Phase`, `MenuCardState`
-(38 fields), `MenuCardLiveState` (4 fields), `MenuCardActions` (26 closures), `StudySummary`, `StudyBucket`, `GardenRules.DayPlant`,
-`GardenView.Plant/Bed`, `SummaryLayout`, `LegendItem`.
+(39 fields), `MenuCardLiveState` (4 fields), `MenuCardActions` (26 closures), `StudySummary`, `StudyBucket`,
+`GardenItem`, `GardenPlacement`, `GardenSpot`, `StudyStreak.Result`, `GardenView.Entity/Sprite`, `SummaryLayout`, `LegendItem`.
 
 ### 4.5 External services and APIs
 
@@ -662,13 +694,14 @@ user data are now reported to the user through the companion's speech bubble:
 Nearly every view overrides `draw(_:)` and paints with `NSBezierPath`/`NSImage`, usually with `isFlipped = true`.
 Interactive elements on the card are generic `CardButton`s (private `NSButton` subclass) whose appearance is a
 `drawer` closure supplied at the call site; `MenuCardView` destroys and re-creates all subviews on each interaction
-(`rebuild()`), except the dial view while the timers page is shown. The garden scene is an `NSImage` created with a
-drawing-handler closure and stored in a static dictionary (`GardenView.sceneCache`).
+(`rebuild()`), except the dial view while the timers page is shown. The garden is one painted PNG with sprites drawn
+on top in a `draw(_:)` of `GardenView`; sprite measurements are kept in a static dictionary (`GardenView.sprites`),
+and shop cards and objects use the same `Sprite` values.
 
 ### 4.9 Build and test architecture
 
 `build.sh` compiles `Sources/FocusFriends/*.swift` twice (arm64, x86_64), merges with `lipo`, copies resources by an
-explicit list, writes `Info.plist` with a heredoc, ad-hoc signs. `tests/run.sh` compiles seven Foundation-only files
+explicit list, writes `Info.plist` with a heredoc, ad-hoc signs. `tests/run.sh` compiles ten Foundation-only files
 with `tests/main.swift` (no `Pomodoro`, `Speaker`, `Walker`, player or UI classes are compiled into the tests). `build.sh`
 stops with an error if the ad-hoc signature cannot be applied.
 
@@ -864,20 +897,23 @@ file/UserDefaults writes, windows, timers, sound, global state.
 - **Side effects:** modal `NSAlert`/`NSSavePanel`; writes through `SessionLog` / `Profile.reset()`; registers a
   log observer.
 
-#### `GardenWindow.swift` (743)
-- **Responsibility:** `GardenView` (period state, layout of beds/plants, scene drawing per season, tooltips) and
-  `GardenController`; private `SeededRandom` (LCG) and `SeasonStyle`; `Season.hashValueStable` extension.
-- **Key members:** `reload` (groups by day once: `dayItems`/`dayPlants`; skipped by the observer while closed),
-  `sessions(on:)`, `plants(on:)` (lookups), `layoutWeek`, `layoutMonth`, `visiblePlants`, `image(forPet:stage:)`
-  (cache), `scene(for:season:)` (static cache), `drawScene`, `draw`, `view(_:stringForToolTip:point:userData:)`.
-- **Side effects:** registers a log observer; static scene cache.
+#### `GardenWindow.swift` (874)
+- **Responsibility:** `GardenView` (the meadow, placed objects, unlocked companions, the shop panel, drag and drop,
+  tooltips, speech bubble) and `GardenController` (window, scaling on narrow screens, widening for the shop).
+- **Key members:** `reload`, `setShopOpen`, `entities()` / `entity(at:)` (sorted by feet `y`, mask hit-test),
+  `shopLayout`, `hudLayout`, `drawEntity/drawHUD/drawShop/drawCard/drawBubble`, `mouseDown/Dragged/Up`,
+  `scrollWheel`, `menu(for:)`, `cancelOperation`, `view(_:stringForToolTip:point:userData:)`; `Sprite`/`analyze`
+  (opaque rect + coarse mask); `GardenController.scale(forScreenWidth:)`.
+- **Side effects:** window resizes (shop), `Garden` writes (place, move, remove, unlock, companion spots), a 4 s timer for
+  the shop message and a 5 s timer for a companion's phrase, reading phrase files through `Quotes.load`.
 
 ### 5.7 `Sources/FocusFriends/` — domain (Foundation-only) and storage
 
 #### `SessionLog.swift` (1,017)
 - **Responsibility:** the data model, the store and all derived statistics.
 - **Types:** `StudySession` (Codable model with tolerant decoding and wall-clock `startTime(in:)`), `GardenRules`
-  (`plants(of:calendar:)`, `intermediateStage`, `finishLine`, constants 50 min / 5 stages / 60 s minimum remainder),
+  (`plants(of:calendar:)`, `intermediateStage`, `finishLine`, constants 50 min / 5 stages / 60 s minimum remainder —
+  **no longer used by the app** since the garden rewrite; only `tests/main.swift` references it),
   `Season` (`of(_:calendar:)`), `FocusRating`, `SessionNote` (≤ 80), `FocusNotes` (≤ 160 × 40), `Subject`
   (`clean`, `key` via case/diacritic folding with `it_IT`), private `LogFile`, `SessionLog` (class: load/normalize/
   save/backup/add/remove/setSubject/setReflection/setNotes/renameSubject/deleteAll/recentSubjects/lastNote,
@@ -907,6 +943,24 @@ file/UserDefaults writes, windows, timers, sound, global state.
 #### `BreakCycle.swift` (51)
 - **Responsibility:** `struct BreakCycle` (`focusCompleted(at:)`, `done(at:)`, `reset`), constants (4 focuses, 15 min,
   2 h reset), static `isEnabled` (UserDefaults `longBreakEnabled`).
+
+#### `Garden.swift` (184)
+- **Responsibility:** `final class Garden` — what the user owns and where it is: `unlocked` (types bought with points),
+  `spent`, `placements`, `companionSpots`. `isUnlocked` (free price, bought, or `Profile.isDeveloper`), `unlock(_:balance:)`,
+  `place/move/remove`, `count(of:)`, `companionSpot/setCompanionSpot`, `reset`, `addObserver`, `onProblem`.
+- **Side effects:** reads in `init` (unreadable → read-only + message; malformed → moved aside; newer version → read-only),
+  atomic writes of `giardino.json` (a failure is reported once and the copies stay in memory), `reset` deletes the file.
+
+#### `GardenCatalog.swift` (152)
+- **Responsibility:** `GardenCategory`, `GardenItem` (id, name, category, reference height, price, shadow flag,
+  `resource`), `GardenSpot`, `GardenPlacement`, `GardenScene` (reference size 1024×506, horizon, lawn limits,
+  `depthScale`, `clamped`, default spots) and `GardenCatalog.items` (36 objects, prices provisional).
+
+#### `GardenPoints.swift` (142)
+- **Responsibility:** `StudyStreak.analyze` (per-day streak counts; a missed day freezes the streak once every
+  `freezeInterval` = 7 days, two missed days in a row reset it; today without study is not judged) and `GardenPoints`
+  (multipliers ×1 / 1.25 / 1.5 / 2 from 1 / 3 / 7 / 14 days, `weightedMinutes`, `earned`, `balance`, `finishLine`).
+  `StudyStats.streak` now delegates to `StudyStreak`.
 
 #### `CompanionRewards.swift` (45)
 - **Responsibility:** pure functions: `focuses(totalSeconds:)`, `threshold(at:)`, `order(first:all:)`,
@@ -941,14 +995,15 @@ file/UserDefaults writes, windows, timers, sound, global state.
 
 ### 5.9 Tests, build and tools
 
-#### `tests/main.swift` (780) and `tests/run.sh` (7)
-- A single executable: `check(_:_:line:)`, `section(_:)`, 24 sections (284 checks) covering subjects, log persistence,
+#### `tests/main.swift` (944) and `tests/run.sh` (7)
+- A single executable: `check(_:_:line:)`, `section(_:)`, 29 sections (353 checks) covering subjects, log persistence,
   in-progress recovery, periods, summaries, streaks, texts, garden rules, format versions/migration, subject merging, backups and
   delete-all, time zones, profile, ratings/notes/insights/CSV, timer dial math, seasons, ambient settings, music
   library/settings, focus notes, paused-time recovery, companion rewards (including the developer flag), break cycle,
-  background choice, and damaged data (a partly corrupt file, an unreadable file, a malformed profile, a newer
-  version, failed writes). It exits non-zero on failure. Not covered by tests: `Pomodoro`, `Speaker`, `Walker`, all views, both audio engines.
-- `run.sh`: `swiftc -O -o build/tests/stats <7 sources> tests/main.swift && build/tests/stats`.
+  background choice, damaged data (a partly corrupt file, an unreadable file, a malformed profile, a newer
+  version, failed writes), the frozen streak, garden points, the catalog (including that every object has its
+  PNG under `assets/giardino`) and the garden store (unlock, copies, limits, damaged/newer/unwritable file, developer flag). It exits non-zero on failure. Not covered by tests: `Pomodoro`, `Speaker`, `Walker`, all views, both audio engines.
+- `run.sh`: `swiftc -O -o build/tests/stats <10 sources> tests/main.swift && build/tests/stats`.
 
 #### `build.sh` (60)
 - Build and packaging described in §1.4 and §4.9. Side effects: deletes and recreates `build/FocusFriends.app`,
@@ -966,6 +1021,10 @@ file/UserDefaults writes, windows, timers, sound, global state.
   Frames are aligned on the torso (eyes are not always both visible), brought to one height, and the idle drawing is
   scaled to the walk; neighbouring cats whose whiskers touch are split by ink valley or by connected component, and
   detached specks (the "z", drops) are removed. `--preview` writes a check sheet in `build/`.
+- `cutout_giardino.py` (≈ 190): cuts the 12 objects of each 4×3 sheet by cell; white-background sheets (flowers) drop the
+  white that is reachable from the border and the enclosed pockets (except inside white flowers), magenta sheets are
+  keyed on "minimum of red and blue minus green" and cleaned of pink fringes; writes `assets/giardino/<id>.png` and the 2×
+  meadow.
 - `cutout_picked.py` (90), `cutout_garden.py` (169), `compose_porcellino_growth.py` (59), `cutout_bubble.py` (73),
   `make_icon.py` (48): as listed in §2. All use relative paths from the repository root.
 
@@ -1089,14 +1148,16 @@ were weighed), **Rationale** with its label. Sources for `[documented]` items ar
 - Rationale: **[documented]** `TimerView.reveal` comment ("animare la posizione o la dimensione della finestra lasciava
   l'orologio indietro se il personaggio si muoveva nel frattempo").
 
-**D19. Live growth by fifths of the focus, kept separate from the garden's minute-based rule; stays at the final
-stage after any "+5".**
-- Rationale: **[documented]** README "Il giardino" (last paragraph) and `Pomodoro.updateStage` comment ("la pianta non
-  deve tornare indietro").
+**D19. Live growth by fifths of the focus (independent of the garden); stays at the final stage after any "+5".**
+- Rationale: **[documented]** README "Il giardino" → "La crescita durante un focus" and `Pomodoro.updateStage` comment
+  ("la pianta non deve tornare indietro").
 
-**D20. Garden derived from the log on demand (no stored garden state); 50 minutes = one adult plant.**
-- Rationale: **[documented]** README ("Si ricava tutto dal registro: compare subito anche per i focus già fatti");
-  commit `b5a2e97` for the minute-based rule. Why minutes instead of per-focus plants: **[unknown]**.
+**D20. Garden points derived from the log on demand; only what was spent (and what was placed) is stored.**
+- Rationale: **[documented]** README ("I punti si ricavano dal registro … quelli spesi sono l'unica cosa che il giardino
+  ricorda"). Consequence: deleting sessions lowers the balance but never takes back an unlocked object (the balance is
+  clamped at zero). The earlier design (one plant per 50 minutes per day, derived entirely from the log, commit
+  `b5a2e97`) was replaced because the user asked for "un posto personale in cui l'utente può spendere i propri punti":
+  **[documented]** in the conversation that produced this change, not in the repository.
 
 **D21. Long break counted by an in-memory `BreakCycle` struct, reset after 2 hours without a completed focus.**
 - Rationale: **[documented]** behaviour in README "Pomofocus → Pausa lunga". Not persisting the counter and the 2 h
@@ -1146,9 +1207,8 @@ stage after any "+5".**
 **D31. Subject colour from a stable additive hash.**
 - Rationale: **[documented]** `Paper.color(forSubject:)` comment ("Swift cambia l'hash delle stringhe a ogni avvio").
 
-**D32. Bundled artwork optional per pet for the garden (fallback to Pianty's plants).**
-- Rationale: **[documented]** `build.sh` comment ("opzionali: chi non ce l'ha usa le piantine di Pianty") and
-  `GardenView.image(forPet:stage:)`.
+**D32. [superseded by D42] Bundled artwork optional per pet for the garden (fallback to Pianty's plants).**
+- The per-pet garden collections are now used only for the live growth during a focus (`focusGrowthResources`).
 
 ### 6.6 Rules and reporting
 
@@ -1193,6 +1253,26 @@ existing users keep everything that existed when they finished the intro.**
   the sheet was drawn about 3 % larger). A later attempt with an 8-frame sheet was not adopted; the repository does not
   record why: **[unknown]**.
 
+**D42. The garden is a personal, free-placement lawn furnished with unlocked object types.**
+- Chosen: points (1 per hour, weighted by streak) → shop → unlock a type once → unlimited copies, free placement with a
+  depth scale; companions unlocked by the earlier rule live there.
+- Alternatives: per-day plants (the earlier garden); fixed slots; buying every copy; a currency spent per copy.
+- Rationale: **[documented]** README "Il giardino" (a calm personal place, not a counter). Unlimited copies once
+  unlocked and no refund on removal were choices of the author in the conversation: **[documented]** there, not in code.
+
+**D43. A streak with one frozen day of tolerance, usable once every 7 days.**
+- Rationale: **[documented]** README "La serie ghiacciata" and `StudyStreak` header. The 7-day interval and the
+  multiplier table (×1 / 1.25 / 1.5 / 2 at 1 / 3 / 7 / 14 days) are proposals that the author accepted without
+  discussing the numbers: **[unknown]** whether they are final. Prices in `GardenCatalog` are explicitly provisional.
+
+**D44. Object art on a flat magenta background, cut out by chroma-keying.**
+- Rationale: **[documented]** README "Aggiungere oggetti" and `tools/cutout_giardino.py` (white petals and bells are
+  lost with a white background). The flower sheet was the first one made on white and is cut with the white rule.
+
+**D45. Hit-testing the garden by drawn pixels, not by bounding rectangles.**
+- Rationale: **[inferred]** from `GardenView.entity(at:)` and `Sprite.isDrawn`: wide, mostly empty objects (the rose
+  arch, the bunting, the hammock) would otherwise hide whatever stands behind them.
+
 ---
 
 ## 7. Review notes for the next AI
@@ -1216,8 +1296,10 @@ code is clear. Items without a mark still describe the current code.
    `localStart` string every call (`Array(text)`, five `Int(String(...))`, `calendar.date(from:)`). `summary` calls it
    in the period filter (n), in two sorts (≈ 2·n·log n each), and, for each bucket (24 for a day, 7 for a week, up to 31
    for a month), in a filter over all in-period sessions (buckets × n). No cache was added (review F-02, option not taken).
-3. **`GardenView.reload()` computed each day's plants twice — Resolved (F-11).** The log is grouped by day once
-   (`dayItems`, `dayPlants`) and `sessions(on:)` / `plants(on:)` are dictionary lookups.
+3. **`GardenView.reload()` computed each day's plants twice — Resolved (F-11), then superseded.** The per-day plants no
+   longer exist; `reload()` now recomputes the streak and the weighted minutes over the whole log
+   (`StudyStreak.analyze` walks every day from the first study day to today; `weightedMinutes` runs it once more) on
+   every garden or log change while the window is visible. `Pomodoro.finish` does the same twice at the end of a focus.
 4. **Hidden windows recomputed on every log change — Resolved (F-11).** The `DashboardView` and `GardenView` observers
    return early while their window is not visible and not miniaturised; `show`/`select` reload on reopening. The
    observers are still never unregistered and the controllers keep the views alive.
@@ -1225,11 +1307,11 @@ code is clear. Items without a mark still describe the current code.
    (`sessions.filter { startOfDay(...) == day }`), days × n.
 6. **`DateFormatter` creation per call.** `DashboardView.formatted(_:_:)` and `GardenView.formatted(_:_:)` create a
    formatter each time; they are called for every weekday label in `DashboardView.drawMiniChart` (each redraw), for
-   `periodTitle` in every `draw`, and per bed in `GardenView.layoutWeek`. `Pomodoro.phaseRangeText` does the same.
-7. **Garden scene caching is described as "once per kind and season".** `GardenView.scene(for:season:)` stores an
-   `NSImage(size:flipped:drawingHandler:)` in `sceneCache`. Whether AppKit re-invokes the handler on every draw of such
-   an image (rather than caching a bitmap) was not verified. **[uncertain]** If it does, `drawScene` (≈ 177 lines,
-   ~220 stroked blades, flowers, leaves, snow) runs on each `GardenView.draw`.
+   `periodTitle` in every `draw`. `Pomodoro.phaseRangeText` does the same. (`GardenView` no longer formats dates.)
+7. **The garden redraws everything on each mouse move while dragging.** `GardenView.draw` draws the 2048×1012 meadow, every
+   entity (sorting `entities()` each time, which also lists the catalog item for each placement) and the open shop; while
+   a copy is carried `needsDisplay` is set on every `mouseDragged`. The meadow image is scaled by AppKit on each draw.
+   **[uncertain]** whether that is noticeable with 150 copies (the cap).
 8. **Whole-file rewrite and decode per change.** `SessionLog.save()` encodes all sessions and writes the file atomically
    on each add/edit; `SessionLog.heartbeat` (≥ 30 s), `beginInProgress`, `updateInProgressPause`,
    `updateInProgressNotes` each `readProgress()` (disk read + JSON decode) before `writeProgress`.
@@ -1272,7 +1354,7 @@ code is clear. Items without a mark still describe the current code.
 - `IntroCard.ask`, `SubjectPrompt.ask`, `ReflectionCard.ask` each build a `KeyablePanel` with the same property list
   and an `NSStackView` card with custom spacing.
 - `StudyPeriod.containing` and `StudyPeriod.shifted(by:)` contain the same `PeriodKind → Calendar.Component` switch.
-- Two constants for "50 minutes": `GardenRules.minutesPerPlant` and `CompanionRewards.minutesPerFocus`;
+- Two constants for "50 minutes": `GardenRules.minutesPerPlant` (unused by the app) and `CompanionRewards.minutesPerFocus`;
   `CompanionRewards.threshold(at:)` also uses a literal `50`; the dial default (`MenuCardView.dialMinutes = 50`) and
   `addDurations` use literals 30/50.
 - The "Application Support/FocusFriends" path — **Resolved (F-16, partly)**: `Quotes.userDirectory` now returns
@@ -1296,6 +1378,11 @@ code is clear. Items without a mark still describe the current code.
   only used to fill that property.
 - `MenuCardView.statusLabel` — assigned in `rebuild()`, never read or updated.
 - `StudyStats.dayLine`, `Season.title` — referenced only from `tests/main.swift`.
+- `GardenRules` (`plants(of:)`, `finishLine`, `DayPlant`, the 50-minute constants) and `Season.of` — no longer used by the
+  app since the garden rewrite; referenced only from `tests/main.swift` (and `Season` by its own tests). The README no
+  longer documents them. The per-season painted scene code was removed with the old `GardenView`.
+- `docs/images/giardino-settimana.png`, `giardino-mese.png`, `giardino-stagioni.png` — no longer referenced by the README.
+- `assets/garden/garden_porcellino_<1..5>.png` — used only as source for `compose_porcellino_growth.py`.
 - `Profile.addObserver` — only referenced from `tests/main.swift`; `save()`/`reset()` call observers but none is
   registered by app code.
 - `ExtendPrompt.contentView`, `IntroCard.contentView`, `ReflectionCard.contentView`, `MenuCard.contentView`
@@ -1313,7 +1400,8 @@ code is clear. Items without a mark still describe the current code.
   page inline (tiles, buttons, six option rows, footer).
 - `MenuCardView.buildTimers(_:)` ≈ 192 lines: header, segmented control, dial, save/remove link, chip wrapping, start
   button, stop link.
-- `GardenView.drawScene(kind:season:in:)` ≈ 177 lines and `GardenView.draw(_:)` ≈ 128 lines.
+- `GardenView` as a whole (874 lines) combines sprite analysis, hit-testing, the shop (layout, drawing, taps), the
+  HUD, dragging and a speech bubble; `mouseUp` and `shopMouseDown` hold most of the rules.
 - `SubjectPrompt.ask` ≈ 145, `ReflectionCard.ask` ≈ 124, `IntroCard.ask` ≈ 112 lines (view construction + window
   setup + positioning in one method).
 - `MenuController.init` ≈ 122 lines and `menuNeedsUpdate` ≈ 84 lines; `MenuController` as a whole (938 lines) combines
@@ -1358,7 +1446,7 @@ code is clear. Items without a mark still describe the current code.
   `AmbientPlayer.shared.setSound`; `MusicPlayer.init` also reads `AmbientSettings`. The exclusivity rule lives in both
   classes plus `BackgroundChoice`/`MenuController.setBackground`.
 - `Pomodoro` creates and owns `TimerWindow` and `ExtendPrompt`, mutates `PetWindow` frame (`ensureRoomBelowPet`,
-  `restorePetHeight`), calls `Speaker.say` with Italian strings, and calls `SessionLog`, `GardenRules`, `StudyStats`
+  `restorePetHeight`), calls `Speaker.say` with Italian strings, and calls `SessionLog`, `GardenPoints`, `StudyStreak`, `StudyStats`
   (review F-06 proposes extracting a timer state machine; not done).
 - `MenuController` contains business rules (`evaluateCompanionRewards`, `companionLocks`, `setBackground`,
   `confirmDiscard`) in addition to menu code; `AppDelegate`'s `onFocusRecorded` closure calls
