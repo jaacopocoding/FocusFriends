@@ -253,6 +253,9 @@ Sul Mac le preferenze stanno in `UserDefaults`. Su Windows stanno in un oggetto 
 - I timer di serie non si salvano: **focus 30 e 50**, **pausa 5 e 10**.
 - `musicFolder` non si porta da un sistema all'altro.
 - `migratedFromBonsy` esiste solo sul Mac e non serve su Windows.
+- Se il file non è un oggetto JSON (rovinato, vuoto) si parte dai predefiniti e il primo salvataggio lo sostituisce: sono solo
+  preferenze. Le chiavi che l'app non conosce restano nel file.
+- `ambientVolume` e `musicVolume` fuori dal range 0–1 si riportano dentro (7 → 1, −1 → 0); un numero non finito vale 0,25.
 
 ## 7. Le frasi
 

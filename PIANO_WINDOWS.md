@@ -84,9 +84,11 @@ clic nelle zone trasparenti (Electron lo ha pronto, Tauri no) si è passati a El
       lettura, copia di sicurezza giornaliera, file del focus in corso), ricavati dal codice Swift.
 - [x] Raccogliere i file di esempio in `tests/fixtures/` (18 cartelle: sessioni v0, v1, v2, v3, rovinate, più nuove, focus in corso, profilo,
       giardino, preferenze) **e i risultati attesi dal Mac** in `tests/fixtures/attesi/` (`tests/genera-attesi.sh`, sempre uguali a parità di codice).
-- [ ] Preparare l'ambiente (Node 24 e npm ci sono già sul Mac; **mancano** Electron e gli altri pacchetti, e la macchina virtuale con Windows). Progetto vuoto (processo principale, ponte,
-      interfaccia) che si apre sul Mac e su Windows, con la sicurezza di Electron già impostata.
-- [ ] Decidere nome del pacchetto e identificatore (`com.jacopo.focusfriends`) e dove va la cartella dati.
+- [~] Preparare l'ambiente: **fatto sul Mac** (Node 24, TypeScript 7.0.2, Electron 44.9.0, esbuild; progetto che si apre con `npm start`, sicurezza
+      di Electron già impostata: `contextIsolation`, `sandbox`, niente Node nella pagina, protocollo `ff://` al posto di `file://`). **Manca la macchina virtuale con Windows**
+      (e la prova lì).
+- [x] Nome del pacchetto (`focusfriends-windows`) e cartella dati: `%APPDATA%\FocusFriends` su Windows; **sul Mac, quando si prova, una cartella di prova a parte** (mai quella dell'app per Mac).
+      Identificatore dell'app (`com.jacopo.focusfriends`) da fissare con electron-builder (M10).
 
 **Fatto quando:** una finestra vuota di Electron si apre sul Mac e su Windows, e `FORMATI.md` descrive tutto quello che il
 codice Swift fa con i file.
@@ -95,7 +97,7 @@ codice Swift fa con i file.
 
 Prima si prova la cosa più incerta: una finestra trasparente, sempre in primo piano, che lascia passare i clic dove è vuota.
 
-- [ ] **Prova a confronto**, con Pianty fermo e un fumetto finto:
+- [~] **Prova a confronto**, con Pianty fermo e un fumetto finto:
   - A: una finestra piccola per il compagno, mossa dal processo principale a 30 volte al secondo (come sul Mac), con
     fumetto e orologio in finestre che la seguono;
   - B: **una sola finestra trasparente grande quanto l'area di lavoro**, in cui il compagno, il fumetto e l'orologio sono
@@ -106,14 +108,24 @@ Prima si prova la cosa più incerta: una finestra trasparente, sempre in primo p
 - [ ] Misure per scegliere: processore a riposo (meno del 2%), memoria con tutti i processi di Electron sommati (obiettivo sotto i 250 MB), clic che passano davvero nelle zone vuote, trascinamento
       fluido, comportamento con la barra delle applicazioni in basso, a lato, in alto e nascosta, con 100%, 150% e 200% di
       scala, con due schermi, e quando un'altra app va a schermo intero.
-- [ ] Mettere il compagno **sopra la barra delle applicazioni** (area di lavoro, non lo schermo intero), con i piedi sulla
+- [x] Mettere il compagno **sopra la barra delle applicazioni** (area di lavoro, non lo schermo intero), con i piedi sulla
       linea di terra (`groundFraction` di ogni personaggio).
-- [ ] Carico dei quattro personaggi da `data/pets.json` (tutti i campi di `Pet.swift`: immagini, misure, ombra, fotogrammi).
-- [ ] **Camminata** (`Walker`): passi, soste, specchio quando va a sinistra, rimbalzo ai bordi, mangia, dorme con gli
+- [x] Carico dei quattro personaggi da `data/pets.json` (tutti i campi di `Pet.swift`: immagini, misure, ombra, fotogrammi).
+- [x] **Camminata** (`Walker`): passi, soste, specchio quando va a sinistra, rimbalzo ai bordi, mangia, dorme con gli
       «Zzz», saltelli; 30 volte al secondo mentre si muove, una al secondo quando è fermo o nascosto.
-- [ ] **Trascinamento** e disegno «sollevato» con il tremolio.
-- [ ] Area di notifica: icona del compagno, Nascondi/Mostra, Esci. Scelta del compagno (solo quelli sbloccati, vedi M8).
-- [ ] Preferenze di base in `impostazioni.json` (compagno, movimento acceso/spento).
+- [x] **Trascinamento** e disegno «sollevato» con il tremolio.
+- [x] Area di notifica: icona del compagno, Nascondi/Mostra, Esci. Scelta del compagno (solo quelli sbloccati, vedi M8).
+- [x] Preferenze di base in `impostazioni.json` (compagno, movimento acceso/spento).
+
+**Stato (sul Mac):** scelta provata la **B** (una sola finestra trasparente grande quanto l'area di lavoro): il compagno cammina, si
+solleva col mouse, parla, cambia con il menu dell'area di notifica; la pagina accende i clic solo sopra un pixel del disegno
+(provato con eventi simulati, non ancora con il sistema vero). Misure sul Mac (Electron 44): processore a riposo sotto l'1% in
+tutto, **memoria 460 MB sommando i quattro processi** (browser 208, GPU 103, pagina 107, utilità 43), cioè **sopra l'obiettivo di
+250 MB**: da rimisurare su Windows e, se serve, ridurre (finestra per compagno più piccola, processo GPU spento, `--js-flags`).
+Dati dei compagni **generati da `Pet.swift`** (`tools/genera-pets.sh` → `windows/data/pets.json`), con prova che gli stadi ricavati
+in TypeScript sono uguali a quelli di Swift. Mancano, e vanno provati su Windows: clic che passano davvero, barra delle applicazioni
+nei quattro lati e nascosta, 150% e 200%, due schermi (con B ci vuole **una finestra per schermo** e il passaggio del compagno
+dall'una all'altra), app a schermo intero. Se B non regge, il piano di riserva è A.
 
 **Fatto quando:** i quattro compagni camminano sopra la barra delle applicazioni su Windows 10 e 11, senza rubare clic e
 senza consumare processore da fermi. La scelta A/B è scritta nel piano.
@@ -122,25 +134,28 @@ senza consumare processore da fermi. La scelta A/B è scritta nel piano.
 
 Solo logica, senza interfaccia. Ogni punto porta con sé le sue prove.
 
-- [ ] **Registro** (`SessionLog`): lettura e scrittura atomica di `sessioni.json` v3; migrazione da v0/v1/v2 con copia
+- [x] **Registro** (`SessionLog`): lettura e scrittura atomica di `sessioni.json` v3; migrazione da v0/v1/v2 con copia
       intatta in `backup/`; file più nuovo in sola lettura; file illeggibile mai sovrascritto; recupero delle sessioni
       leggibili e copia `sessioni.corrotto-…`; copia di sicurezza giornaliera (ultime 7); avvisi una volta sola.
-- [ ] **Focus in corso** (`in-corso.json`): scrittura ogni 30 secondi, recupero dopo una chiusura improvvisa (escludendo
+- [x] **Focus in corso** (`in-corso.json`): scrittura ogni 30 secondi, recupero dopo una chiusura improvvisa (escludendo
       il tempo da fermo), pausa registrata.
-- [ ] Pulizia e unione delle materie, note di una riga (80 caratteri) e note del focus (40 da 160), ora «sull'orologio»
+- [x] Pulizia e unione delle materie, note di una riga (80 caratteri) e note del focus (40 da 160), ora «sull'orologio»
       (`localStart`) per i raggruppamenti.
-- [ ] **Statistiche** (`StudyStats`): periodi (giorno, settimana da lunedì, mese), riepiloghi con barre e materie,
+- [x] **Statistiche** (`StudyStats`): periodi (giorno, settimana da lunedì, mese), riepiloghi con barre e materie,
       **serie di giorni con un giorno di ghiaccio** (`StudyStreak`, una volta ogni 7 giorni), frasi «quando rendi meglio»,
       incoraggiamenti, durata e testi in italiano, esportazione CSV (apice davanti ai campi che iniziano con `= + - @`,
       tab e ritorno a capo).
-- [ ] **Profilo** (nome, introduzione vista, compagni sbloccati, primo compagno), titoli personalizzati.
-- [ ] **Sblocco dei compagni** (`CompanionRewards`: 0, 20, 50, 100 «focus pieni» da 50 minuti), chi usava già l'app li ha tutti.
-- [ ] **Timer personalizzati** (`CustomTimers`: 1–180 minuti di focus, 1–60 di pausa, fino a 6 per tipo) e la matematica del
+- [x] **Profilo** (nome, introduzione vista, compagni sbloccati, primo compagno), titoli personalizzati.
+- [x] **Sblocco dei compagni** (`CompanionRewards`: 0, 20, 50, 100 «focus pieni» da 50 minuti), chi usava già l'app li ha tutti.
+- [x] **Timer personalizzati** (`CustomTimers`: 1–180 minuti di focus, 1–60 di pausa, fino a 6 per tipo) e la matematica del
       quadrante (`TimerDialMath`).
-- [ ] **Ciclo della pausa lunga** (`BreakCycle`: quattro focus, 15 minuti, si azzera dopo 2 ore).
-- [ ] **Frasi**: file incluso, file dell'utente che ha la precedenza, mazzo mischiato senza ripetizioni, quattro
+- [x] **Ciclo della pausa lunga** (`BreakCycle`: quattro focus, 15 minuti, si azzera dopo 2 ore).
+- [x] **Frasi**: file incluso, file dell'utente che ha la precedenza, mazzo mischiato senza ripetizioni, quattro
       frequenze (`Chattiness`), frase di riserva.
-- [ ] Porting delle prove (332 meno quelle del giardino) e **prove di contratto** Swift contro TypeScript sugli stessi file.
+- [~] Porting delle prove (332 meno quelle del giardino) e **prove di contratto** Swift contro TypeScript sugli stessi file.
+      Fatto: 109 prove in `windows/test/` (con `npm test` o `node --test test/*.test.ts`, senza installare niente) e le prove di
+      contratto sulle 14 cartelle di esempio senza giardino, tutte uguali a quelle del Mac. Mancano il controllo dei tipi
+      con `tsc` (serve installare TypeScript) e quello che va con i suoni (brani, suoni ambiente, M5).
 
 **Fatto quando:** le prove di contratto danno gli stessi numeri del Mac su tutti i file di esempio e sui tuoi dati veri
 (copiati in una cartella di prova, mai quelli veri).

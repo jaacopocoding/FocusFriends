@@ -1,0 +1,514 @@
+{
+  "comment" : "Generato da tools/genera-pets.sh a partire da Sources/FocusFriends/Pet.swift: non si modifica a mano.",
+  "pets" : [
+    {
+      "eatFrames" : [
+
+      ],
+      "eatsWhenFocusCompletes" : false,
+      "facesRight" : true,
+      "fallbackQuote" : "Un passo alla volta: anch'io ho cominciato da un seme.",
+      "finalStage" : 4,
+      "focusGrowthFeetFraction" : 0.017600000000000001,
+      "focusGrowthImages" : [
+
+      ],
+      "focusGrowthStages" : [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "framesPerStage" : 7,
+      "greeting" : "Ciao! Sono Pianty. Cresciamo insieme, con calma.",
+      "groundFraction" : 0.017600000000000001,
+      "growsWithTimer" : true,
+      "iconCrop" : null,
+      "iconFocus" : 0.5,
+      "iconImage" : "pianty/stage5_1.png",
+      "id" : "pianty",
+      "images" : [
+        "pianty/stage1_1.png",
+        "pianty/stage1_2.png",
+        "pianty/stage1_3.png",
+        "pianty/stage1_4.png",
+        "pianty/stage1_5.png",
+        "pianty/stage1_6.png",
+        "pianty/stage1_7.png",
+        "pianty/stage2_1.png",
+        "pianty/stage2_2.png",
+        "pianty/stage2_3.png",
+        "pianty/stage2_4.png",
+        "pianty/stage2_5.png",
+        "pianty/stage2_6.png",
+        "pianty/stage2_7.png",
+        "pianty/stage3_1.png",
+        "pianty/stage3_2.png",
+        "pianty/stage3_3.png",
+        "pianty/stage3_4.png",
+        "pianty/stage3_5.png",
+        "pianty/stage3_6.png",
+        "pianty/stage3_7.png",
+        "pianty/stage4_1.png",
+        "pianty/stage4_2.png",
+        "pianty/stage4_3.png",
+        "pianty/stage4_4.png",
+        "pianty/stage4_5.png",
+        "pianty/stage4_6.png",
+        "pianty/stage4_7.png",
+        "pianty/stage5_1.png",
+        "pianty/stage5_2.png",
+        "pianty/stage5_3.png",
+        "pianty/stage5_4.png",
+        "pianty/stage5_5.png",
+        "pianty/stage5_6.png",
+        "pianty/stage5_7.png"
+      ],
+      "name" : "Pianty",
+      "picked" : {
+        "grab" : {
+          "x" : 0.32000000000000001,
+          "y" : 0.46000000000000002
+        },
+        "image" : "pianty/picked.png",
+        "size" : {
+          "height" : 150,
+          "width" : 132
+        }
+      },
+      "popcornFrames" : [
+
+      ],
+      "popcornInterval" : 0.16,
+      "quotesFile" : "frasi_pianty.txt",
+      "restImageIndex" : 28,
+      "restStage" : 0,
+      "shadowWidthFraction" : 0.59999999999999998,
+      "size" : {
+        "height" : 141,
+        "width" : 84
+      },
+      "sleepFrames" : [
+
+      ],
+      "sleepIntroFrame" : null,
+      "stageCount" : 5,
+      "stages" : [
+        0,
+        0,
+        1,
+        1,
+        2,
+        2,
+        3,
+        3,
+        4,
+        4,
+        4
+      ],
+      "stepInterval" : 0.066666666666666666,
+      "talkFrame" : null,
+      "walkFrames" : [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "walks" : true
+    },
+    {
+      "eatFrames" : [
+        5,
+        6,
+        7,
+        8,
+        9,
+        8,
+        7,
+        6
+      ],
+      "eatsWhenFocusCompletes" : true,
+      "facesRight" : true,
+      "fallbackQuote" : "Un passo alla volta: io arrivo ovunque trotterellando.",
+      "finalStage" : 0,
+      "focusGrowthFeetFraction" : 0.129,
+      "focusGrowthImages" : [
+        "garden/growth_porcellino_1.png",
+        "garden/growth_porcellino_2.png",
+        "garden/growth_porcellino_3.png",
+        "garden/growth_porcellino_4.png",
+        "garden/growth_porcellino_5.png"
+      ],
+      "focusGrowthStages" : [
+        0,
+        0,
+        1,
+        1,
+        2,
+        2,
+        3,
+        3,
+        4,
+        4,
+        4
+      ],
+      "framesPerStage" : null,
+      "greeting" : "Ciao! Sono il porcellino. Facciamo due passi?",
+      "groundFraction" : 0.129,
+      "growsWithTimer" : false,
+      "iconCrop" : {
+        "height" : 0.41999999999999998,
+        "width" : 0.52000000000000002,
+        "x" : 0.38,
+        "y" : 0.28000000000000003
+      },
+      "iconFocus" : 0.59999999999999998,
+      "iconImage" : "porcellino/frame1.png",
+      "id" : "porcellino",
+      "images" : [
+        "porcellino/frame1.png",
+        "porcellino/frame2.png",
+        "porcellino/frame3.png",
+        "porcellino/frame4.png",
+        "porcellino/frame5.png",
+        "porcellino/frame6.png",
+        "porcellino/frame7.png",
+        "porcellino/frame8.png",
+        "porcellino/frame9.png",
+        "porcellino/frame10.png",
+        "porcellino/frame11.png",
+        "porcellino/frame12.png",
+        "porcellino/frame13.png",
+        "porcellino/frame14.png",
+        "porcellino/frame15.png",
+        "porcellino/frame16.png",
+        "porcellino/frame17.png",
+        "porcellino/frame18.png",
+        "porcellino/frame19.png"
+      ],
+      "name" : "Porcellino",
+      "picked" : {
+        "grab" : {
+          "x" : 0.29999999999999999,
+          "y" : 0.59999999999999998
+        },
+        "image" : "porcellino/picked.png",
+        "size" : {
+          "height" : 120,
+          "width" : 130
+        }
+      },
+      "popcornFrames" : [
+        14,
+        15,
+        16,
+        17,
+        18
+      ],
+      "popcornInterval" : 0.16,
+      "quotesFile" : "frasi_porcellino.txt",
+      "restImageIndex" : 0,
+      "restStage" : 0,
+      "shadowWidthFraction" : 0.69999999999999996,
+      "size" : {
+        "height" : 121,
+        "width" : 118
+      },
+      "sleepFrames" : [
+        11,
+        12,
+        11,
+        12,
+        11,
+        12,
+        13,
+        12
+      ],
+      "sleepIntroFrame" : 10,
+      "stageCount" : 1,
+      "stages" : [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "stepInterval" : 0.20000000000000001,
+      "talkFrame" : 4,
+      "walkFrames" : [
+        1,
+        2,
+        3,
+        2
+      ],
+      "walks" : true
+    },
+    {
+      "eatFrames" : [
+
+      ],
+      "eatsWhenFocusCompletes" : false,
+      "facesRight" : true,
+      "fallbackQuote" : "Un passo alla volta, e ogni tanto una svolazzata.",
+      "finalStage" : 0,
+      "focusGrowthFeetFraction" : 0.017600000000000001,
+      "focusGrowthImages" : [
+        "garden/garden_ciccio_1.png",
+        "garden/garden_ciccio_2.png",
+        "garden/garden_ciccio_3.png",
+        "garden/garden_ciccio_4.png",
+        "garden/garden_ciccio_5.png"
+      ],
+      "focusGrowthStages" : [
+        0,
+        0,
+        1,
+        1,
+        2,
+        2,
+        3,
+        3,
+        4,
+        4,
+        4
+      ],
+      "framesPerStage" : null,
+      "greeting" : "Ciao! Sono Ciccio. Facciamo due passi?",
+      "groundFraction" : 0.1009,
+      "growsWithTimer" : false,
+      "iconCrop" : {
+        "height" : 0.34399999999999997,
+        "width" : 0.50800000000000001,
+        "x" : 0.45200000000000001,
+        "y" : 0.42999999999999999
+      },
+      "iconFocus" : 0.71999999999999997,
+      "iconImage" : "ciccio/frame1.png",
+      "id" : "ciccio",
+      "images" : [
+        "ciccio/frame1.png",
+        "ciccio/frame2.png",
+        "ciccio/frame3.png",
+        "ciccio/frame4.png",
+        "ciccio/frame5.png",
+        "ciccio/frame6.png",
+        "ciccio/frame7.png",
+        "ciccio/frame8.png",
+        "ciccio/frame9.png",
+        "ciccio/frame10.png",
+        "ciccio/frame11.png",
+        "ciccio/frame12.png",
+        "ciccio/frame13.png"
+      ],
+      "name" : "Ciccio",
+      "picked" : {
+        "grab" : {
+          "x" : 0.34000000000000002,
+          "y" : 0.55000000000000004
+        },
+        "image" : "ciccio/picked.png",
+        "size" : {
+          "height" : 144,
+          "width" : 196
+        }
+      },
+      "popcornFrames" : [
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ],
+      "popcornInterval" : 0.066666666666666666,
+      "quotesFile" : "frasi_ciccio.txt",
+      "restImageIndex" : 0,
+      "restStage" : 0,
+      "shadowWidthFraction" : 0.45000000000000001,
+      "size" : {
+        "height" : 118,
+        "width" : 112
+      },
+      "sleepFrames" : [
+
+      ],
+      "sleepIntroFrame" : null,
+      "stageCount" : 1,
+      "stages" : [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "stepInterval" : 0.10000000000000001,
+      "talkFrame" : null,
+      "walkFrames" : [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "walks" : true
+    },
+    {
+      "eatFrames" : [
+        7,
+        8,
+        9,
+        10,
+        11,
+        10,
+        9,
+        8
+      ],
+      "eatsWhenFocusCompletes" : false,
+      "facesRight" : true,
+      "fallbackQuote" : "Un passo alla volta, con calma: i gatti arrivano sempre dove devono.",
+      "finalStage" : 0,
+      "focusGrowthFeetFraction" : 0.017600000000000001,
+      "focusGrowthImages" : [
+
+      ],
+      "focusGrowthStages" : [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "framesPerStage" : null,
+      "greeting" : "Ciao! Sono il gattino. Facciamo due passi?",
+      "groundFraction" : 0.094899999999999998,
+      "growsWithTimer" : false,
+      "iconCrop" : {
+        "height" : 0.499,
+        "width" : 0.40100000000000002,
+        "x" : 0.57699999999999996,
+        "y" : 0.439
+      },
+      "iconFocus" : 0.5,
+      "iconImage" : "gattino/frame1.png",
+      "id" : "gattino",
+      "images" : [
+        "gattino/frame1.png",
+        "gattino/frame2.png",
+        "gattino/frame3.png",
+        "gattino/frame4.png",
+        "gattino/frame5.png",
+        "gattino/frame6.png",
+        "gattino/frame7.png",
+        "gattino/frame8.png",
+        "gattino/frame9.png",
+        "gattino/frame10.png",
+        "gattino/frame11.png",
+        "gattino/frame12.png",
+        "gattino/frame13.png",
+        "gattino/frame14.png",
+        "gattino/frame15.png",
+        "gattino/frame16.png",
+        "gattino/frame17.png",
+        "gattino/frame18.png",
+        "gattino/frame19.png",
+        "gattino/frame20.png",
+        "gattino/frame21.png",
+        "gattino/frame22.png",
+        "gattino/frame23.png"
+      ],
+      "name" : "Gattino",
+      "picked" : {
+        "grab" : {
+          "x" : 0.35999999999999999,
+          "y" : 0.45000000000000001
+        },
+        "image" : "gattino/picked.png",
+        "size" : {
+          "height" : 126,
+          "width" : 150
+        }
+      },
+      "popcornFrames" : [
+        18,
+        19,
+        20,
+        21,
+        20,
+        19
+      ],
+      "popcornInterval" : 0.29999999999999999,
+      "quotesFile" : "frasi_gattino.txt",
+      "restImageIndex" : 0,
+      "restStage" : 0,
+      "shadowWidthFraction" : 0.59999999999999998,
+      "size" : {
+        "height" : 110,
+        "width" : 144
+      },
+      "sleepFrames" : [
+        12,
+        13,
+        12,
+        14,
+        13,
+        15,
+        17,
+        16
+      ],
+      "sleepIntroFrame" : 13,
+      "stageCount" : 1,
+      "stages" : [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "stepInterval" : 0.14999999999999999,
+      "talkFrame" : null,
+      "walkFrames" : [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "walks" : true
+    }
+  ]
+}
