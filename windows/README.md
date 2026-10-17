@@ -18,6 +18,8 @@ npm run check   # controllo dei tipi
 npm start       # compila e apre il compagno (Esci: dall'icona nell'area di notifica)
 ```
 
+**Per fare l'installer** vedi [`RILASCIO.md`](RILASCIO.md): `npm run pacchetto` (e, per la release, il tag `windows-v…` che fa partire la macchina Windows di GitHub).
+
 Sul Mac `npm start` mostra il compagno sullo schermo e lavora in una **cartella di dati di prova**
 (`~/Library/Application Support/focusfriends-windows/dati-di-prova`): **non tocca mai i dati dell'app per Mac**. Con
 `FF_DATA_DIR=/un/percorso` si sceglie un'altra cartella. Su Windows i dati stanno in `%APPDATA%\FocusFriends`.
@@ -46,3 +48,14 @@ windows/
 
 Le immagini, le frasi e i brani sono quelli di `../assets/`, in comune con l'app per Mac. Le prove di confronto usano
 gli esempi di `../tests/fixtures/`.
+
+## Installare (quando ci sarà la release)
+
+1. Scarica dalla pagina delle [Releases](https://github.com/jaacopocoding/FocusFriends/releases) l'installer giusto: `…-x64-Setup.exe` per i computer
+   Intel e AMD, `…-arm64-Setup.exe` per quelli ARM (per esempio Surface Pro e i portatili Copilot+).
+2. Lancialo: si installa per te, senza permessi di amministratore, e si apre. Il programma non è ancora firmato: la prima volta Windows può mostrare
+   «Windows ha protetto il PC» → *Ulteriori informazioni* → *Esegui comunque*.
+3. Il compagno compare in basso a destra, l'icona è nell'area di notifica (clic = la scheda, tasto destro = il menu).
+
+I dati stanno in `%APPDATA%\FocusFriends` e restano anche se togli l'app. Per controllare il file scaricato:
+`Get-FileHash .\FocusFriends-Windows-<versione>-x64-Setup.exe -Algorithm SHA256` (il valore giusto è nelle note della release).

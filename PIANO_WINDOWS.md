@@ -340,13 +340,23 @@ fa con `defaults write`); sblocca tutto senza toccare il profilo. Provato dal vi
 
 ### M10 — Installazione e distribuzione (3–4 giorni)
 
-- [ ] Programma di installazione (NSIS, con electron-builder), icona, versione.
-- [ ] **Firma del codice**: senza, Windows mostra l'avviso SmartScreen. Scelta da fare (certificato a pagamento, o servizio
+- [x] Programma di installazione (NSIS, con electron-builder), icona, versione.
+- [~] **Firma del codice**: senza, Windows mostra l'avviso SmartScreen. Scelta da fare (certificato a pagamento, o servizio
       di firma, o niente e una nota nel README come per il Mac).
-- [ ] **CI su GitHub** (macchina Windows): compila, lancia le prove e produce l'installer a ogni push. (È anche il
+- [x] **CI su GitHub** (macchina Windows): compila, lancia le prove e produce l'installer a ogni push. (È anche il
       punto F-07 della revisione dell'architettura, fatto per tutti e due i sistemi.)
-- [ ] Sezione Windows nel README, note di rilascio, tag e release con l'installer e il suo SHA-256.
-- [ ] Come si aggiorna (a mano, scaricando dalla pagina delle release; aggiornamenti automatici con electron-updater solo dopo, se serve).
+- [~] Sezione Windows nel README, note di rilascio, tag e release con l'installer e il suo SHA-256.
+- [x] Come si aggiorna (a mano, scaricando dalla pagina delle release; aggiornamenti automatici con electron-updater solo dopo, se serve).
+
+**Stato:** installer NSIS per l'utente (electron-builder 26, `windows/electron-builder.yml`): un `…-x64-Setup.exe` e un `…-arm64-Setup.exe`
+(circa 134 MB l'uno: Electron e 25 MB di immagini, frasi e brani, preparati da `tools/prepara-risorse.mjs` senza i fogli originali), per l'utente,
+senza amministratore, **che non cancella i dati** se si toglie l'app. Provato sul Mac: pacchetto non compresso e installer x64 si fanno; l'app
+**gira da un archivio asar** (pagina, ponte, suono e brani letti da lì). Versione `0.9.0` (da confermare alla release). La **CI** è scritta
+(`.github/workflows/windows.yml`: tipi, prove e compilazione a ogni modifica; con un tag `windows-v…` anche i due installer, lo SHA-256 e una *bozza* di
+release; `mac.yml` lancia le prove di Swift: punto F-07 della revisione) ma non è mai girata: parte al primo push. Cosa resta: **la scelta sulla firma**
+(vedi `windows/RILASCIO.md`: niente, SignPath Foundation gratis per i progetti liberi, Trusted Signing, o un certificato) e provare l'installer su
+Windows. Dopo la firma si potranno aggiungere gli aggiornamenti automatici (electron-updater).
+
 
 ### M11 — Parità e prove su Windows (4–5 giorni)
 

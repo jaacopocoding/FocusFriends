@@ -89,6 +89,9 @@ compagni sbloccati ci vivono, e se li tocchi parlano.
    Per controllare che lo zip scaricato sia quello pubblicato, il checksum SHA-256 di ogni versione è nelle note
    della release (`shasum -a 256 FocusFriends-<versione>-macOS.zip`).
 
+**Windows.** La versione per Windows (Electron, nella cartella [`windows/`](windows/)) è in preparazione e non è ancora pubblicata:
+lo stato e il piano sono in [`PIANO_WINDOWS.md`](PIANO_WINDOWS.md), i formati dei dati (uguali per i due sistemi) in [`FORMATI.md`](FORMATI.md).
+
 Non ha icona nel Dock: la trovi nella barra dei menu e con il tasto destro sul personaggio. I dati (sessioni,
 nome) restano sul tuo Mac, in `~/Library/Application Support/FocusFriends/`: nessuna rete, nessun invio.
 

@@ -1,0 +1,24 @@
+# La versione per Mac: a ogni modifica lancia le prove (tests/run.sh) e compila l'app. (Punto F-07 della revisione dell'architettura.)
+name: Mac
+
+on:
+  push:
+    branches: [main]
+    paths: ["Sources/**", "tests/**", "build.sh", "assets/**", ".github/workflows/mac.yml"]
+  pull_request:
+    paths: ["Sources/**", "tests/**", "build.sh", "assets/**", ".github/workflows/mac.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prove:
+    name: Prove e compilazione
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prove (tests/run.sh)
+        run: tests/run.sh
+      - name: Compilazione (build.sh)
+        run: ./build.sh

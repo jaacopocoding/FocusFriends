@@ -1,0 +1,92 @@
+# La versione per Windows: a ogni modifica controlla i tipi, lancia le prove e compila; con un tag «windows-v…» prepara anche gli
+# installer (x64 e ARM) con il loro SHA-256 e li mette in una release. Niente viene pubblicato se non sei tu a mettere il tag.
+name: Windows
+
+on:
+  push:
+    branches: [main]
+    tags: ["windows-v*"]
+    paths: ["windows/**", "assets/**", "tests/fixtures/**", "FORMATI.md", ".github/workflows/windows.yml"]
+  pull_request:
+    paths: ["windows/**", "assets/**", "tests/fixtures/**", "FORMATI.md", ".github/workflows/windows.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prove:
+    name: Tipi, prove e compilazione
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: windows
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: windows/package-lock.json
+      - run: npm ci
+      - run: npm run check
+      - run: npm test
+      - run: npm run build
+
+  installer:
+    name: Installer ${{ matrix.arch }}
+    needs: prove
+    if: startsWith(github.ref, 'refs/tags/windows-v') || github.event_name == 'workflow_dispatch'
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        arch: [x64, arm64]
+    defaults:
+      run:
+        working-directory: windows
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: windows/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      - run: npm run risorse
+      - run: npx electron-builder --win nsis --${{ matrix.arch }} --publish never
+      - name: SHA-256
+        shell: bash
+        run: |
+          cd release
+          for f in FocusFriends-Windows-*-Setup.exe; do sha256sum "$f" > "$f.sha256"; cat "$f.sha256"; done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installer-${{ matrix.arch }}
+          path: |
+            windows/release/FocusFriends-Windows-*-Setup.exe
+            windows/release/FocusFriends-Windows-*-Setup.exe.sha256
+          if-no-files-found: error
+
+  release:
+    name: Release
+    needs: installer
+    if: startsWith(github.ref, 'refs/tags/windows-v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: installer
+          merge-multiple: true
+      - name: Riepilogo dei checksum
+        run: cat installer/*.sha256 | tee SHA256SUMS.txt
+      - name: Release (bozza)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}" --draft \
+            --title "FocusFriends per Windows ${GITHUB_REF_NAME#windows-v}" \
+            --notes "Installer per Windows (x64 e ARM). Controlla il checksum SHA-256 con SHA256SUMS.txt. Le note vanno completate prima di pubblicare." \
+            installer/*.exe SHA256SUMS.txt

@@ -1,0 +1,38 @@
+# L'installer per Windows (NSIS, per l'utente: niente permessi di amministratore). Le risorse (immagini, frasi, musica, suono) si
+# preparano prima con `node tools/prepara-risorse.mjs` (lo fa `npm run pacchetto`).
+appId: com.jacopo.focusfriends
+productName: FocusFriends
+copyright: Copyright © 2026 jaacopocoding
+directories:
+  output: release
+  buildResources: installer
+files:
+  - dist/**/*
+  - package.json
+  - "!**/*.map"
+extraResources:
+  - from: build/assets
+    to: assets
+  - from: build/resources
+    to: resources
+asar: true
+compression: maximum
+npmRebuild: false
+win:
+  icon: installer/icon.png
+  target:
+    - target: nsis
+      arch: [x64, arm64]
+  artifactName: FocusFriends-Windows-${version}-${arch}-Setup.${ext}
+nsis:
+  oneClick: true
+  perMachine: false
+  # Un installer per ogni tipo di computer (non uno solo con dentro tutti e due: pesa il doppio).
+  buildUniversalInstaller: false
+  # Togliere l'app non toglie i dati di studio: stanno in %APPDATA%\FocusFriends e sono dell'utente.
+  deleteAppDataOnUninstall: false
+  runAfterFinish: true
+  createDesktopShortcut: false
+  createStartMenuShortcut: true
+  shortcutName: FocusFriends
+  language: "1040"
