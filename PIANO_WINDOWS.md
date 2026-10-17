@@ -307,14 +307,36 @@ fa con `defaults write`); sblocca tutto senza toccare il profilo. Provato dal vi
 
 ### M9 — Sistema e rifiniture (3–5 giorni)
 
-- [ ] **Una sola copia dell'app aperta** (`requestSingleInstanceLock`): un doppio avvio non deve mai toccare i dati due volte.
-- [ ] Avvio al login (`setLoginItemSettings`) con la voce nel menu.
-- [ ] Più schermi, scala del 100%–200%, barra delle applicazioni in qualunque lato, tema scuro di Windows (le schede sono sempre chiare).
-- [ ] Problemi con i dati detti dal compagno (file illeggibile, scrittura fallita), una volta sola.
-- [ ] Chiusura pulita: un focus in corso si registra come interrotto, come sul Mac.
-- [ ] Prestazioni: a riposo sotto il 2% di processore e sotto i 250 MB di memoria (tutti i processi di Electron sommati: è
+- [x] **Una sola copia dell'app aperta** (`requestSingleInstanceLock`): un doppio avvio non deve mai toccare i dati due volte.
+- [x] Avvio al login (`setLoginItemSettings`) con la voce nel menu.
+- [x] Più schermi, scala del 100%–200%, barra delle applicazioni in qualunque lato, tema scuro di Windows (le schede sono sempre chiare).
+- [x] Problemi con i dati detti dal compagno (file illeggibile, scrittura fallita), una volta sola.
+- [x] Chiusura pulita: un focus in corso si registra come interrotto, come sul Mac.
+- [~] Prestazioni: a riposo sotto il 2% di processore e sotto i 250 MB di memoria (tutti i processi di Electron sommati: è
       la parte più pesante rispetto al Mac).
-- [ ] Arresti inattesi: un file di registro dell'app (senza dati personali) per capire cosa è successo.
+- [x] Arresti inattesi: un file di registro dell'app (senza dati personali) per capire cosa è successo.
+
+**Stato (sul Mac):**
+- **Una sola copia** (`requestSingleInstanceLock`): la seconda esce in un secondo e la prima mostra il compagno e lo scrive nel registro.
+- **Registro dell'app** (`core/diagnostics.ts`, `registro-app.log` nella cartella dei dati, due file da 200 KB al massimo): avvio con le versioni,
+  chiusura, eccezioni non gestite, promesse respinte, processi caduti, schermi aggiunti e tolti. Niente nomi, materie o note, e il nome
+  dell'utente nei percorsi diventa «~». Se la pagina del compagno cade si ricarica (non più di tre volte in dieci minuti).
+- **Avvio al login:** voce nel menu, attiva solo nell'app installata (da sviluppo registrerebbe Electron).
+- **Problemi con i dati** detti dal compagno una volta sola (sessioni illeggibili o rovinate, profilo, impostazioni): provato con un file senza permessi.
+- **Chiusura pulita:** all'uscita, e anche quando Windows chiude la sessione (`session-end`), un focus in corso si registra come interrotto
+  (provato: 65 secondi salvati, segno «in corso» tolto).
+- **Più schermi:** una sola finestra trasparente che sta sull'area di lavoro dello schermo del compagno e **si sposta con lui**: trascinandolo
+  oltre il bordo la finestra segue il cursore sull'altro schermo (si controlla ogni 50 ms), dal menu c'è «Schermo» per sceglierlo, e se lo
+  schermo sparisce torna sul principale. La geometria (`core/displays.ts`) è provata con schermi inventati; lo spostamento della
+  finestra con due schermi finti. Una sola finestra invece di una per schermo costa meno memoria. **Da provare su Windows:** che il
+  trascinamento continui quando la finestra si sposta sotto il cursore, e la scala diversa tra due monitor.
+- **Barra delle applicazioni** in basso, in alto, a destra o a sinistra: la scheda si apre dal lato giusto dell'icona (provato con i quattro lati).
+- **Tema scuro di Windows:** le schede dichiarano `color-scheme: light`, quindi campi e barre di scorrimento restano chiari.
+- **Prestazioni (misure sul Mac, solo indicative):** a riposo il processore sta sotto l'1% in tutto; la memoria è circa **590 MB** sommando i
+  quattro processi. L'opzione `in-process-gpu` toglie il processo della GPU e porta la somma a **circa 480 MB** con lo stesso processore, ma
+  fa dipendere l'app da un componente instabile: da misurare su Windows (dove un Electron semplice sta intorno ai 250 MB) prima di
+  deciderla. Spegnere l'accelerazione costa più processore e non toglie il processo su Mac.
+
 
 ### M10 — Installazione e distribuzione (3–4 giorni)
 

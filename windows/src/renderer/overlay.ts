@@ -414,12 +414,14 @@ function onMouseDown(event: MouseEvent): void {
     startX: event.clientX, startY: event.clientY, offsetX: event.clientX - left, offsetY: event.clientY - top,
     picked: false, restWidth: view.size.width, restHeight: view.size.height,
   };
+  api.setDragging(true);
 }
 
 function onMouseUp(event: MouseEvent): void {
   if (!view || !drag) return;
   if (drag.picked) endPick();
   drag = null;
+  api.setDragging(false);
   // Finito il trascinamento, di nuovo: i clic passano dove il compagno non c'è.
   setInteractive(isOverSomething(event));
 }
@@ -450,6 +452,32 @@ function endPick(): void {
   view.setBoxSize({ width: drag.restWidth, height: drag.restHeight });
   view.setPosition(anchorX - drag.restWidth / 2, anchorBottom - drag.restHeight);
   clock.snap(clock.isShown);
+}
+
+// ---- più schermi
+
+/** L'angolo dell'area di lavoro in cui sta la finestra, in coordinate dello schermo (cambia quando passa da uno schermo all'altro). */
+let stageOrigin: { x: number; y: number } | null = null;
+
+/**
+ * La finestra è passata su un altro schermo (il compagno trascinato oltre il bordo, o scelto dal menu). Trascinandolo il compagno resta
+ * dov'è sullo schermo; scelto dal menu riparte da terra. La scena cambia misura: `onResize` la rimette a posto.
+ */
+function onStageMoved(next: { x: number; y: number; width: number; height: number; keepPosition: boolean }): void {
+  const previous = stageOrigin;
+  stageOrigin = { x: next.x, y: next.y };
+  if (!view || previous === null || (previous.x === next.x && previous.y === next.y)) return;
+  if (next.keepPosition) {
+    // Il compagno resta dov'è sullo schermo (se quel punto è fuori dal nuovo schermo, viene portato dentro).
+    const { left, top } = view.position, size = view.size;
+    const moved = { left: previous.x + left - next.x, top: previous.y + top - next.y };
+    view.setPosition(Math.min(Math.max(moved.left, 0), Math.max(next.width - size.width, 0)), Math.min(Math.max(moved.top, 0), Math.max(next.height - size.height, 0)));
+  } else {
+    // (con le misure del messaggio: la finestra può non aver ancora cambiato misura)
+    view.setPosition(next.width - view.size.width - START_MARGIN, next.height - view.size.height + view.feetHeight);
+    shiftedUp = 0;
+  }
+  raise = null;
 }
 
 // ---- «Cosa studi adesso?» e benvenuto
@@ -556,6 +584,7 @@ async function start(): Promise<void> {
   api.onAskSubject((minutes) => { void askFocus(minutes); });
   api.onShowIntro(showIntro);
   api.onAskName(() => { void askName(); });
+  api.onStageMoved(onStageMoved);
   api.onCardReopen(() => card.reopen());
 
   document.addEventListener("mousemove", onMouseMove);
@@ -584,6 +613,7 @@ async function start(): Promise<void> {
       restImage: (() => restImageIndex(view.pet)) as () => number,
       askFocus: ((minutes: number) => { void askFocus(minutes); }) as () => void,
       showIntro: (() => showIntro()) as () => void,
+      stageOrigin: (() => stageOrigin) as () => unknown,
       askName: (() => { void askName(); }) as () => void,
       askReflection: ((session: object) => reflection.ask(session as never)) as () => void,
       modalOpen: (() => modals.isOpen) as () => boolean,

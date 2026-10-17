@@ -3,6 +3,7 @@
 // riceve i clic (un clic fuori la chiude) e la tastiera (Esc la chiude).
 
 import type { CardData } from "../../core/card.ts";
+import { cardPlacement } from "../../core/displays.ts";
 import type { Rating } from "../../core/log.ts";
 import { PETS, petInfo } from "../../core/pets.ts";
 import type { PetData } from "../../core/pets.ts";
@@ -180,9 +181,10 @@ export class MenuCard {
     const width = root.offsetWidth, height = root.offsetHeight;
     let left: number, bottom: number;
     if (this.anchor) {
-      left = this.anchor.x + this.anchor.width / 2 - width / 2;
-      // L'icona sta nella barra delle applicazioni: sotto l'area di lavoro (la scheda sta sopra di lei) o sopra (sta sotto).
-      bottom = this.anchor.y + this.anchor.height / 2 > scene.height / 2 ? scene.height - 6 : this.anchor.y + this.anchor.height + 6 + height;
+      // L'icona sta nella barra delle applicazioni (sotto, sopra, a destra o a sinistra dell'area di lavoro): la scheda le sta accanto.
+      const placed = cardPlacement(this.anchor, scene, { width, height });
+      left = placed.left;
+      bottom = placed.top + height;
     } else {
       const pet = this.host.petBox();
       left = this.onLeft ? pet.left - width - GAP_FROM_PET : pet.left + pet.width + GAP_FROM_PET;

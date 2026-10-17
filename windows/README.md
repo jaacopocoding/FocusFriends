@@ -4,7 +4,7 @@ La versione per Windows di FocusFriends, scritta con **Electron** (TypeScript, H
 in [`../PIANO_WINDOWS.md`](../PIANO_WINDOWS.md) e i formati dei dati, comuni con l'app per Mac, in
 [`../FORMATI.md`](../FORMATI.md).
 
-**Stato:** M2, M3, M4, M5, M6, M7 e M8 finite sul Mac (la logica pura in `src/core/`, il timer, la scheda di carta, il menu completo, i suoni, le schede «Cosa studi adesso?», «Com'è andata?» e di benvenuto, e le statistiche) e M1 avviata: il
+**Stato:** M2, M3, M4, M5, M6, M7, M8 e M9 finite sul Mac (la logica pura in `src/core/`, il timer, la scheda di carta, il menu completo, i suoni, le schede «Cosa studi adesso?», «Com'è andata?» e di benvenuto, e le statistiche) e M1 avviata: il
 compagno si vede, cammina, si solleva, parla, ha l'orologio sotto di sé e il «+5 minuti» a fine focus. Clic sull'icona nell'area di
 notifica = la scheda; tasto destro = il menu. Manca la prova su Windows.
 

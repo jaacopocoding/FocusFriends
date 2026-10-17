@@ -13,6 +13,7 @@ import { AMBIENT_TITLES, AMBIENT_SOUNDS, CHATTINESS, CHATTINESS_TITLES, FOCUSES_
 import type { Settings } from "../core/settings.ts";
 import { musicLabel } from "../core/card.ts";
 import type { CardService } from "./card.ts";
+import type { LoginItem } from "./login.ts";
 import type { TimerService } from "./timer.ts";
 
 export interface TrayDeps {
@@ -25,6 +26,10 @@ export interface TrayDeps {
   isVisible(): boolean;
   setVisible(visible: boolean): void;
   speak(): void;
+  loginItem: LoginItem;
+  /** Gli schermi (se ce n'è più di uno compare la voce «Schermo»). */
+  screens(): Array<{ id: number; label: string; current: boolean }>;
+  moveToScreen(id: number): void;
   /** «Il tuo nome…». */
   askName(): void;
   /** «Focus N min»: prima si chiede la materia («Cosa studi adesso?»), poi parte. */
@@ -113,6 +118,18 @@ export function createTray(deps: TrayDeps): { refresh(): void; popUp(): void; bo
       label: `Volume ${Math.round(step * 100)}%`, type: "radio" as const, checked: nearestStep(current) === step, click: () => set(step),
     }));
 
+  /** Con più schermi, su quale sta il compagno. */
+  const screenMenu = (): MenuItemConstructorOptions[] => {
+    const screens = deps.screens();
+    if (screens.length < 2) return [];
+    return [{
+      label: "Schermo",
+      submenu: screens.map((screen): MenuItemConstructorOptions => ({
+        label: screen.label, type: "radio", checked: screen.current, click: () => deps.moveToScreen(screen.id),
+      })),
+    }];
+  };
+
   const build = (): Menu => {
     const pet = petInfo(settings.pet);
     const timer = deps.timer().snapshot();
@@ -170,12 +187,17 @@ export function createTray(deps: TrayDeps): { refresh(): void; popUp(): void; bo
           { label: "Fermo", type: "radio", checked: !settings.movement, click: () => { settings.movement = false; } },
         ],
       },
+      ...screenMenu(),
       { type: "separator" },
       { label: "Il tuo nome…", click: () => deps.askName() },
       { label: "Chiedi com'è andata", type: "checkbox", checked: settings.askHowItWent, click: (item) => { settings.askHowItWent = item.checked; } },
       {
         label: `Pausa lunga dopo ${FOCUSES_PER_CYCLE} focus`, type: "checkbox", checked: settings.longBreakEnabled,
         click: (item) => { settings.longBreakEnabled = item.checked; },
+      },
+      {
+        label: deps.loginItem.available ? "Avvia al login" : "Avvia al login (solo nell'app installata)", type: "checkbox",
+        checked: deps.loginItem.enabled(), enabled: deps.loginItem.available, click: (item) => deps.loginItem.set(item.checked),
       },
       { label: "Modifica le frasi…", click: () => { void openPhrasesFile(deps); } },
       { type: "separator" },

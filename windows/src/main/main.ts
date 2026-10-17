@@ -2,28 +2,51 @@
 
 import { app, BrowserWindow, ipcMain, screen } from "electron";
 import { mkdirSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
 import { join } from "node:path";
 import { CHANNEL } from "../shared/api.ts";
 import type { CardCommand, CardOpenRequest, SettingsSnapshot } from "../shared/api.ts";
 import { PhraseDeck, loadPhrases } from "../core/phrases.ts";
+import { AppLog } from "../core/diagnostics.ts";
 import { PET_IDS, petInfo } from "../core/pets.ts";
 import { Profile } from "../core/profile.ts";
 import type { TimerKind } from "../core/rules.ts";
 import { Settings } from "../core/settings.ts";
 import { createCardService } from "./card.ts";
+import { loginItem } from "./login.ts";
 import { createMusicService } from "./music.ts";
+import { createStage } from "./stage.ts";
+import type { Stage } from "./stage.ts";
 import { createStatsController } from "./statsWindow.ts";
 import type { StatsController } from "./statsWindow.ts";
 import { assetsDirectory, dataDirectory, rendererDirectory, resourcesDirectory } from "./paths.ts";
-import { createOverlay, fitToWorkArea, primaryDisplay } from "./overlay.ts";
+import { createOverlay, primaryDisplay } from "./overlay.ts";
 import { handleScheme, registerScheme } from "./protocol.ts";
 import { startTimer } from "./timer.ts";
 import type { TimerService } from "./timer.ts";
 import { createTray } from "./tray.ts";
 
+// Prove di memoria e processore: con FF_SWITCHES (un elenco JSON di opzioni di Chromium) e FF_NO_GPU si provano alternative. Solo da sviluppo.
+if (process.env["FF_SELFTEST"] !== undefined) {
+  for (const option of JSON.parse(process.env["FF_SWITCHES"] ?? "[]") as string[]) {
+    const [name, value] = option.split("=");
+    app.commandLine.appendSwitch(name!, value);
+  }
+  if (process.env["FF_NO_GPU"] === "1") app.disableHardwareAcceleration();
+}
+
 registerScheme();
 
 let visible = true;
+
+// Una sola copia dell'app: un doppio avvio non deve mai toccare i dati due volte (è già successo sul Mac, per un errore di una prova).
+const gotLock = process.env["FF_NO_LOCK"] === "1" || app.requestSingleInstanceLock();
+if (!gotLock) app.quit();
+
+/** Il registro dell'app (senza dati personali) per capire cosa è successo dopo un arresto inatteso. */
+let appLog: AppLog | null = null;
+process.on("uncaughtException", (error) => { appLog?.error("eccezione non gestita", error); });
+process.on("unhandledRejection", (reason) => { appLog?.error("promessa respinta e non gestita", reason); });
 
 function snapshot(settings: Settings): SettingsSnapshot {
   return {
@@ -36,9 +59,14 @@ function snapshot(settings: Settings): SettingsSnapshot {
 async function start(): Promise<void> {
   let statsRef: StatsController | null = null;
   app.dock?.hide();
+  app.setAppUserModelId("com.jacopo.focusfriends");
   const assets = assetsDirectory(app);
   const data = dataDirectory(app);
   mkdirSync(data, { recursive: true });
+  const log = new AppLog({ directory: data, home: homedir() });
+  appLog = log;
+  log.info(`avvio ${app.getVersion()} (${process.platform} ${process.arch}, Electron ${process.versions.electron})`);
+  app.on("child-process-gone", (_event, details) => log.warn(`processo ${details.type} finito: ${details.reason} (codice ${details.exitCode})`));
   const settings = new Settings(data);
   const music = createMusicService({ assets, folder: () => settings.musicFolder });
   handleScheme({ assets, renderer: rendererDirectory(app), resources: resourcesDirectory(app), musicFile: music.file });
@@ -52,6 +80,16 @@ async function start(): Promise<void> {
   const profile = new Profile(data, { developer: () => settings.developerMode });
   const decks = new Map<string, PhraseDeck>();
   const win = createOverlay(primaryDisplay(), app.getAppPath());
+  // Se la pagina cade la si ricarica (non più di tre volte in dieci minuti), così il compagno torna.
+  const reloads: number[] = [];
+  win.webContents.on("render-process-gone", (_event, details) => {
+    log.warn(`la pagina del compagno è caduta: ${details.reason}`);
+    const now = Date.now();
+    while (reloads.length > 0 && now - reloads[0]! > 600_000) reloads.shift();
+    if (details.reason === "clean-exit" || reloads.length >= 3 || win.isDestroyed()) return;
+    reloads.push(now);
+    win.webContents.reload();
+  });
 
   // Finché la pagina non è pronta i messaggi si tengono da parte (e partono nell'ordine in cui sono nati).
   let pageReady = false;
@@ -66,9 +104,12 @@ async function start(): Promise<void> {
   });
   const say = (text: string): void => send(CHANNEL.timerEvent, { type: "say", text });
 
+  const stage = createStage(win, send);
+  ipcMain.on(CHANNEL.dragging, (_event, on: unknown) => stage.setDragging(on === true));
   settings.addObserver(() => send(CHANNEL.settingsChanged, snapshot(settings)));
   // I problemi con il profilo li dice il compagno.
   profile.onProblem = say;
+  settings.onProblem = say;
   profile.addObserver(() => statsRef?.refreshTitle());
   // Chi usava già l'app li tiene tutti; per gli altri si guadagnano (silenziosamente: al massimo sono già meritati).
   profile.keepAllCompanions(PET_IDS);
@@ -110,10 +151,12 @@ async function start(): Promise<void> {
     stats: () => stats.show("day"),
   });
 
-  /** Un clic sull'icona (o una scelta del menu) che apre la scheda: le coordinate sono quelle della finestra (l'area di lavoro). */
+  /** Un clic sull'icona (o una scelta del menu) che apre la scheda: le coordinate sono quelle della finestra (l'area di lavoro dello schermo del compagno). */
   const openCard = (request: Omit<CardOpenRequest, "anchor"> & { bounds?: { x: number; y: number; width: number; height: number } }): void => {
-    const area = primaryDisplay().workArea;
-    const anchor = request.bounds
+    const area = stage.current.workArea;
+    // Se l'icona sta su un altro schermo, la scheda si apre di fianco al compagno.
+    const sameScreen = request.bounds !== undefined && stage.displayOf(request.bounds)?.id === stage.current.id;
+    const anchor = request.bounds && sameScreen
       ? { x: request.bounds.x - area.x, y: request.bounds.y - area.y, width: request.bounds.width, height: request.bounds.height }
       : null;
     send(CHANNEL.cardToggle, { anchor, toggle: request.toggle, ...(request.page ? { page: request.page } : {}) } satisfies CardOpenRequest);
@@ -124,6 +167,9 @@ async function start(): Promise<void> {
     speak: () => send(CHANNEL.speakNow),
     askFocus: (minutes) => send(CHANNEL.askSubject, minutes),
     askName: () => send(CHANNEL.askName),
+    loginItem: loginItem(app),
+    screens: () => stage.displays().map((d, i) => ({ id: d.id, label: `Schermo ${i + 1}${d.primary ? " (principale)" : ""}`, current: d.id === stage.current.id })),
+    moveToScreen: (id) => stage.moveTo(id, false),
     toggleCard: (bounds) => openCard({ toggle: true, bounds }),
     openTimers: () => openCard({ toggle: false, page: "timers" }),
     showStats: () => stats.show("day"),
@@ -152,7 +198,21 @@ async function start(): Promise<void> {
     hadKeyboard = keyboard;
   });
   ipcMain.on(CHANNEL.timerExtend, () => service.run(() => service.engine.extendFocus()));
-  app.on("before-quit", () => service.shutdown());
+  // Chiusura pulita: un focus in corso si registra come interrotto, anche se è Windows che chiude la sessione.
+  let closing = false;
+  const shutdown = (reason: string): void => {
+    if (closing) return;
+    closing = true;
+    log.info(`chiusura (${reason})`);
+    service.shutdown();
+  };
+  app.on("before-quit", () => shutdown("uscita"));
+  win.on("session-end", () => shutdown("fine della sessione di Windows"));
+  // Una seconda copia dell'app non parte: quella che c'è mostra il compagno.
+  app.on("second-instance", () => {
+    log.info("seconda copia dell'app: si mostra il compagno");
+    if (!visible) setVisible(true);
+  });
 
   // Fine di un focus o di una pausa: il compagno compare anche se l'avevi nascosto.
   service.engine.onEvent((event) => {
@@ -166,13 +226,14 @@ async function start(): Promise<void> {
   });
   ipcMain.handle(CHANNEL.getTimerState, () => service.snapshot());
 
-  // L'area di lavoro cambia (barra delle applicazioni spostata, risoluzione, scala): la finestra la segue.
-  const refit = (): void => { if (!win.isDestroyed()) fitToWorkArea(win, primaryDisplay()); };
-  screen.on("display-metrics-changed", refit);
-  screen.on("display-added", refit);
-  screen.on("display-removed", refit);
+  // L'area di lavoro cambia (barra delle applicazioni spostata, risoluzione, scala, uno schermo tolto o aggiunto): la finestra la segue.
+  screen.on("display-metrics-changed", () => stage.refit());
+  screen.on("display-added", () => { log.info("schermo aggiunto"); stage.refit(); });
+  screen.on("display-removed", () => { log.info("schermo tolto"); stage.refit(); });
+  // Appena la pagina è pronta sa dov'è la finestra.
+  ipcMain.once(CHANNEL.rendererReady, () => stage.refit());
 
-  if (process.env["FF_SELFTEST"] !== undefined) runSelfTest(win, interactions, settings, () => service, card, stats);
+  if (process.env["FF_SELFTEST"] !== undefined) runSelfTest(win, interactions, settings, () => service, card, stats, stage);
 }
 
 /**
@@ -182,7 +243,7 @@ async function start(): Promise<void> {
  * - FF_SELFTEST_FILE=percorso.cjs: un copione che riceve gli strumenti (finestra, attese, schermate, misure, eventi del mouse).
  * FF_SELFTEST_OUT è la cartella dove scrivere.
  */
-function runSelfTest(win: BrowserWindow, interactions: string[], settings: Settings, timer: () => TimerService, card: ReturnType<typeof createCardService>, stats: StatsController): void {
+function runSelfTest(win: BrowserWindow, interactions: string[], settings: Settings, timer: () => TimerService, card: ReturnType<typeof createCardService>, stats: StatsController, stage: Stage): void {
   const out = process.env["FF_SELFTEST_OUT"] ?? join(app.getPath("temp"), "ff-selftest");
   mkdirSync(out, { recursive: true });
   // I messaggi della pagina (e i suoi errori) escono sul terminale.
@@ -196,6 +257,7 @@ function runSelfTest(win: BrowserWindow, interactions: string[], settings: Setti
     timer,
     card,
     stats,
+    stage,
     sleep: (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)),
     js: (code: string) => win.webContents.executeJavaScript(code) as Promise<unknown>,
     async shot(name: string) {
@@ -239,5 +301,5 @@ function runSelfTest(win: BrowserWindow, interactions: string[], settings: Setti
   });
 }
 
-void app.whenReady().then(start);
+if (gotLock) void app.whenReady().then(start);
 app.on("window-all-closed", () => app.quit());

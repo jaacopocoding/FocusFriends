@@ -22,6 +22,7 @@ FocusFriends/
 ├── profilo.json               nome, introduzione vista, compagni sbloccati
 ├── giardino.json              il giardino (oggetti, copie, posizioni) — seconda uscita su Windows
 ├── impostazioni.json          le preferenze (solo Windows; sul Mac stanno in UserDefaults)
+├── registro-app.log           (solo Windows) cosa ha fatto l'app: avvio, chiusura, errori; senza dati personali; l'altro è registro-app.1.log
 ├── frasi_<personaggio>.txt    le frasi dell'utente (facoltative)
 ├── sessioni.corrotto-<epoch>.json   un file di sessioni messo da parte perché rovinato
 ├── profilo.corrotto-<epoch>.json    idem per il profilo

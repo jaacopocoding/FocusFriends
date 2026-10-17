@@ -1,6 +1,8 @@
 /* La scheda di carta: stessi colori e stesso modo di fare di quella del Mac (PaperUI.swift). Sempre chiara, anche col tema scuro. */
 
 :root {
+  /* Le schede sono sempre chiare, anche con il tema scuro di Windows: anche i campi di testo e le barre di scorrimento. */
+  color-scheme: light;
   --paper: rgb(255, 246, 222);
   --paper-light: rgb(255, 253, 240);
   --edge: rgba(140, 102, 64, 0.45);

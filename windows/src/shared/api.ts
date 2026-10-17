@@ -92,6 +92,10 @@ export interface FocusFriendsApi {
   setInputMode(mode: { interactive: boolean; keyboard: boolean }): void;
   /** Il processo principale chiede di scegliere la materia prima di avviare un focus (dal menu dell'area di notifica). */
   onAskSubject(callback: (minutes: number) => void): void;
+  /** La finestra si è spostata su un altro schermo (o ha cambiato misura): l'angolo dell'area di lavoro, in punti. */
+  onStageMoved(callback: (stage: { x: number; y: number; width: number; height: number; keepPosition: boolean }) => void): void;
+  /** Si comincia o si finisce di trascinare il compagno: il processo principale segue il cursore da uno schermo all'altro. */
+  setDragging(dragging: boolean): void;
   /** «Il tuo nome…», dal menu dell'area di notifica. */
   onAskName(callback: () => void): void;
   /** La prima volta: la scheda di benvenuto (nome e compagno). */
@@ -126,6 +130,8 @@ export const CHANNEL = {
   askSubject: "focus:ask-subject",
   showIntro: "intro:show",
   askName: "name:ask",
+  stageMoved: "stage:moved",
+  dragging: "stage:dragging",
   cardToggle: "card:toggle",
   cardReopen: "card:reopen",
   rendererReady: "renderer:ready",
