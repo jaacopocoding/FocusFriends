@@ -4,8 +4,9 @@ La versione per Windows di FocusFriends, scritta con **Electron** (TypeScript, H
 in [`../PIANO_WINDOWS.md`](../PIANO_WINDOWS.md) e i formati dei dati, comuni con l'app per Mac, in
 [`../FORMATI.md`](../FORMATI.md).
 
-**Stato:** M2 finita (logica pura, `src/core/`) e M1 avviata: il compagno si vede, cammina, si solleva e parla sopra l'area di lavoro.
-Manca la prova su Windows.
+**Stato:** M2 e M3 finite sul Mac (logica pura in `src/core/`, timer compreso) e M1 avviata: il compagno si vede, cammina, si solleva, parla,
+ha l'orologio sotto di sé e il «+5 minuti» a fine focus. Il timer si comanda dal menu **Pomofocus** dell'area di notifica (la scheda
+arriva con M4). Manca la prova su Windows.
 
 **Per provarlo** serve Node 24 o più nuovo:
 

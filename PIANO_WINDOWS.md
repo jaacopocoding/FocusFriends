@@ -162,21 +162,30 @@ Solo logica, senza interfaccia. Ogni punto porta con sé le sue prove.
 
 ### M3 — Il timer (5–7 giorni)
 
-- [ ] Il motore gira **nel processo principale** (o in una finestra sempre visibile): Chromium rallenta i timer delle
+- [x] Il motore gira **nel processo principale** (o in una finestra sempre visibile): Chromium rallenta i timer delle
       pagine nascoste, e il timer non deve fermarsi quando le schede si chiudono.
-- [ ] Motore (`Pomodoro`): fine fissata sull'orologio (non sul conteggio), **pausa che sposta la fine**, finestra di 10
+- [x] Motore (`Pomodoro`): fine fissata sull'orologio (non sul conteggio), **pausa che sposta la fine**, finestra di 10
       secondi con «+5 minuti», minuti in più prima della scadenza e durante la pausa, «Termina e salva», «Elimina questo
       focus», focus interrotto che si registra comunque.
-- [ ] **Sleep del computer**: un salto di più di 10 secondi durante un focus conta come tempo da fermo (stessa regola del Mac).
-- [ ] Ciclo dei quattro focus e pausa lunga.
-- [ ] Suono di fine focus.
-- [ ] **Orologio** sotto il compagno (case scuro, schermo, cifre a sette segmenti): visibile nei primi 2 minuti, negli
+- [x] **Sleep del computer**: un salto di più di 10 secondi durante un focus conta come tempo da fermo (stessa regola del Mac).
+- [x] Ciclo dei quattro focus e pausa lunga.
+- [x] Suono di fine focus.
+- [x] **Orologio** sotto il compagno (case scuro, schermo, cifre a sette segmenti): visibile nei primi 2 minuti, negli
       ultimi 5 e al passaggio del mouse, con la tendina di apertura.
-- [ ] «+5 minuti» accanto al compagno per 10 secondi (barra che si svuota).
-- [ ] **Crescita durante il focus**: Pianty cresce a cinque stadi, Ciccio nel nido, il Porcellino con la carota (che
+- [x] «+5 minuti» accanto al compagno per 10 secondi (barra che si svuota).
+- [x] **Crescita durante il focus**: Pianty cresce a cinque stadi, Ciccio nel nido, il Porcellino con la carota (che
       mangia a fine focus), il Gattino cammina. Dopo un «+5» resta all'ultimo stadio.
-- [ ] Il compagno mangia a fine focus, frase di fine focus e frase di pausa finita. **Senza giardino**: la frase non parla di punti.
-- [ ] Frequenza delle frasi più rara durante il focus.
+- [x] Il compagno mangia a fine focus, frase di fine focus e frase di pausa finita. **Senza giardino**: la frase non parla di punti.
+- [x] Frequenza delle frasi più rara durante il focus.
+
+**Stato (sul Mac):** il motore è in `core/pomodoro.ts` (24 prove, in `test/timer.test.ts`) e gira **nel processo principale**
+(`main/timer.ts`, un battito ogni 0,2 s); la pagina riceve com'è il timer una volta al secondo o subito se succede qualcosa. Provati
+davvero, con le quattro immagini che ne escono: avvio, orologio sotto il compagno che si apre come una tendina, compagno che si
+alza per fargli posto e poi si riabbassa, crescita (Ciccio nel nido, il porcellino con la carota), «+5 minuti» a fine focus (la
+barretta si svuota, il tocco prolunga e il focus si registra completo), fine del focus con il porcellino che mangia, pausa, registro
+con materia e personaggio. I comandi per ora stanno nel menu dell'area di notifica (**Pomofocus**); la scheda arriva con M4. Il
+suono è `resources/fine-focus.wav` (**da ascoltare**). Da provare su Windows: il suono, il computer che va in sleep durante un focus
+(la regola dei 10 secondi è provata con il tempo simulato) e le misure di processore e memoria con il timer acceso.
 
 **Fatto quando:** un focus da 25 minuti si può avviare, mettere in pausa, prolungare, interrompere e chiudere con il computer
 messo in sleep, e la sessione registrata è identica a quella che farebbe il Mac.

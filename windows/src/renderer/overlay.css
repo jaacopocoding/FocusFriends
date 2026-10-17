@@ -58,3 +58,96 @@ html, body {
   text-align: center;
   font: 14px "Marker Felt", "MarkerFelt-Wide", "Kalam", "Segoe Print", cursive;
 }
+
+.extend {
+  position: absolute;
+  left: 0;
+  top: 0;
+  box-sizing: border-box;
+  width: 206px;
+  height: 60px;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease, visibility 0s linear 0.15s;
+  pointer-events: none;
+  cursor: pointer;
+  will-change: transform;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.25));
+  font-family: system-ui, "Segoe UI", sans-serif;
+}
+
+.extend.visible {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.15s ease;
+  pointer-events: auto;
+}
+
+/* La carta vera e propria è un po' più piccola della scatola (3 px di margine), come sul Mac. */
+.extend::before {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border-radius: 18px;
+  background: rgb(255, 246, 222);
+  border: 1.5px solid rgba(140, 102, 64, 0.45);
+  box-sizing: border-box;
+}
+
+.extend:hover::before {
+  background: rgb(255, 237, 204);
+}
+
+.extend .badge {
+  position: absolute;
+  left: 13px;
+  top: 10px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgb(217, 120, 56);
+  color: white;
+  text-align: center;
+  line-height: 36px;
+  font: 18px/36px "Marker Felt", "MarkerFelt-Wide", "Kalam", "Segoe Print", cursive;
+}
+
+.extend .line1 {
+  position: absolute;
+  left: 59px;
+  top: 10px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: rgb(41, 26, 15);
+  white-space: nowrap;
+}
+
+.extend .line2 {
+  position: absolute;
+  left: 59px;
+  top: 28px;
+  font-size: 11.5px;
+  color: rgb(102, 77, 51);
+  white-space: nowrap;
+}
+
+.extend .track {
+  position: absolute;
+  left: 17px;
+  right: 17px;
+  top: 50px;
+  height: 3px;
+  border-radius: 1.5px;
+  background: rgba(140, 102, 64, 0.13);
+}
+
+.extend .fill {
+  height: 100%;
+  width: 100%;
+  border-radius: 1.5px;
+  background: rgb(217, 120, 56);
+}
+
+#stage canvas.clock {
+  pointer-events: none;
+}

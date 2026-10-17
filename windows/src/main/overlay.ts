@@ -20,6 +20,8 @@ export function createOverlay(display: Display, appPath: string): BrowserWindow 
       contextIsolation: true, sandbox: true, nodeIntegration: false,
       // I timer e le animazioni non devono rallentare quando la finestra non è in primo piano.
       backgroundThrottling: false,
+      // I suoni (fine focus, sottofondo) partono anche senza che l'utente tocchi la pagina.
+      autoplayPolicy: "no-user-gesture-required",
     },
   });
   window.setAlwaysOnTop(true, "screen-saver");

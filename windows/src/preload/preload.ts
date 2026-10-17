@@ -2,6 +2,7 @@
 
 import { contextBridge, ipcRenderer } from "electron";
 import { CHANNEL } from "../shared/api.ts";
+import type { PomodoroEvent, PomodoroSnapshot } from "../core/pomodoro.ts";
 import type { FocusFriendsApi, SettingsSnapshot } from "../shared/api.ts";
 
 const api: FocusFriendsApi = {
@@ -14,6 +15,18 @@ const api: FocusFriendsApi = {
   onVisibilityChanged: (callback) => {
     ipcRenderer.on(CHANNEL.visibilityChanged, (_event, visible: boolean) => callback(visible));
   },
+  getTimerState: () => ipcRenderer.invoke(CHANNEL.getTimerState) as Promise<PomodoroSnapshot>,
+  onTimerState: (callback) => {
+    ipcRenderer.on(CHANNEL.timerState, (_event, state: PomodoroSnapshot) => callback(state));
+  },
+  onTimerEvent: (callback) => {
+    ipcRenderer.on(CHANNEL.timerEvent, (_event, event: PomodoroEvent) => callback(event));
+  },
+  extendFocus: () => ipcRenderer.send(CHANNEL.timerExtend),
+  onSpeakNow: (callback) => {
+    ipcRenderer.on(CHANNEL.speakNow, () => callback());
+  },
+  ready: () => ipcRenderer.send(CHANNEL.rendererReady),
   selfTest: process.env["FF_SELFTEST"] !== undefined,
 };
 

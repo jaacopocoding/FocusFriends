@@ -8,9 +8,11 @@ import type { SettingsSnapshot } from "../shared/api.ts";
 import { PhraseDeck, loadPhrases } from "../core/phrases.ts";
 import { petInfo } from "../core/pets.ts";
 import { Settings } from "../core/settings.ts";
-import { assetsDirectory, dataDirectory, rendererDirectory } from "./paths.ts";
+import { assetsDirectory, dataDirectory, rendererDirectory, resourcesDirectory } from "./paths.ts";
 import { createOverlay, fitToWorkArea, primaryDisplay } from "./overlay.ts";
 import { handleScheme, registerScheme } from "./protocol.ts";
+import { startTimer } from "./timer.ts";
+import type { TimerService } from "./timer.ts";
 import { createTray } from "./tray.ts";
 
 registerScheme();
@@ -27,15 +29,26 @@ async function start(): Promise<void> {
   const assets = assetsDirectory(app);
   const data = dataDirectory(app);
   mkdirSync(data, { recursive: true });
-  handleScheme({ assets, renderer: rendererDirectory(app) });
+  handleScheme({ assets, renderer: rendererDirectory(app), resources: resourcesDirectory(app) });
 
   const settings = new Settings(data);
   const decks = new Map<string, PhraseDeck>();
   const win = createOverlay(primaryDisplay(), app.getAppPath());
   overlay = win;
 
-  const broadcast = (): void => win.webContents.send(CHANNEL.settingsChanged, snapshot(settings));
-  settings.addObserver(broadcast);
+  // Finché la pagina non è pronta i messaggi si tengono da parte (e partono nell'ordine in cui sono nati).
+  let pageReady = false;
+  const waiting: Array<[string, unknown]> = [];
+  const send = (channel: string, payload?: unknown): void => {
+    if (win.isDestroyed()) return;
+    if (!pageReady) waiting.push([channel, payload]); else win.webContents.send(channel, payload);
+  };
+  ipcMain.on(CHANNEL.rendererReady, () => {
+    pageReady = true;
+    for (const [channel, payload] of waiting.splice(0)) win.webContents.send(channel, payload);
+  });
+
+  settings.addObserver(() => send(CHANNEL.settingsChanged, snapshot(settings)));
 
   ipcMain.handle(CHANNEL.getSettings, () => snapshot(settings));
   const interactions: string[] = [];
@@ -53,7 +66,19 @@ async function start(): Promise<void> {
     return deck.draw(phrases) ?? petInfo(id).fallbackQuote;
   });
 
-  const tray = createTray(assets, {
+  // Il timer e il menu dell'area di notifica si conoscono a vicenda: il primo nasce prima, il secondo gli si aggancia.
+  let tray: ReturnType<typeof createTray> | null = null;
+  const service: TimerService = startTimer({ directory: data, settings, send, onChange: () => tray?.refresh() });
+  tray = createTray(assets, {
+    timer: () => service.snapshot(),
+    timers: (kind) => settings.allTimers(kind),
+    startFocus: (minutes) => service.run(() => service.engine.startFocus(minutes)),
+    startBreak: (minutes) => service.run(() => service.engine.startBreak(minutes)),
+    togglePause: () => service.run(() => service.engine.toggleFocusPause()),
+    addMinutes: () => service.run(() => service.engine.addMinutes()),
+    stopTimer: () => service.run(() => service.engine.stop()),
+    discardFocus: () => service.run(() => service.engine.discardFocus()),
+    speak: () => send(CHANNEL.speakNow),
     isVisible: () => visible,
     toggleVisible: () => setVisible(!visible),
     currentPet: () => settings.pet,
@@ -62,13 +87,19 @@ async function start(): Promise<void> {
     setMovement: (on) => { settings.movement = on; },
     quit: () => app.quit(),
   });
-  settings.addObserver(() => tray.refresh());
+  const menu = tray;
+  settings.addObserver(() => menu.refresh());
+  // Fine di un focus o di una pausa: il compagno compare anche se l'avevi nascosto.
+  service.engine.onEvent((event) => { if (event.type === "sound" && !visible) setVisible(true); });
+  ipcMain.handle(CHANNEL.getTimerState, () => service.snapshot());
+  ipcMain.on(CHANNEL.timerExtend, () => service.run(() => service.engine.extendFocus()));
+  app.on("before-quit", () => service.shutdown());
 
   const setVisible = (on: boolean): void => {
     visible = on;
     if (on) win.showInactive(); else win.hide();
-    win.webContents.send(CHANNEL.visibilityChanged, on);
-    tray.refresh();
+    send(CHANNEL.visibilityChanged, on);
+    menu.refresh();
   };
 
   // L'area di lavoro cambia (barra delle applicazioni spostata, risoluzione, scala): la finestra la segue.
@@ -77,7 +108,7 @@ async function start(): Promise<void> {
   screen.on("display-added", refit);
   screen.on("display-removed", refit);
 
-  if (process.env["FF_SELFTEST"] !== undefined) runSelfTest(win, interactions, settings);
+  if (process.env["FF_SELFTEST"] !== undefined) runSelfTest(win, interactions, settings, () => service);
 }
 
 /**
@@ -87,7 +118,7 @@ async function start(): Promise<void> {
  * - FF_SELFTEST_FILE=percorso.cjs: un copione che riceve gli strumenti (finestra, attese, schermate, misure, eventi del mouse).
  * FF_SELFTEST_OUT è la cartella dove scrivere.
  */
-function runSelfTest(win: BrowserWindow, interactions: string[], settings: Settings): void {
+function runSelfTest(win: BrowserWindow, interactions: string[], settings: Settings, timer: () => TimerService): void {
   const out = process.env["FF_SELFTEST_OUT"] ?? join(app.getPath("temp"), "ff-selftest");
   mkdirSync(out, { recursive: true });
   // I messaggi della pagina (e i suoi errori) escono sul terminale.
@@ -98,6 +129,7 @@ function runSelfTest(win: BrowserWindow, interactions: string[], settings: Setti
     win,
     interactions,
     settings,
+    timer,
     sleep: (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)),
     js: (code: string) => win.webContents.executeJavaScript(code) as Promise<unknown>,
     async shot(name: string) {

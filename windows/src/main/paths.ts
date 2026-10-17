@@ -24,3 +24,8 @@ export function assetsDirectory(app: App): string {
 export function rendererDirectory(app: App): string {
   return join(app.getAppPath(), "dist", "renderer");
 }
+
+/** Le risorse solo di Windows (per esempio il suono di fine focus). */
+export function resourcesDirectory(app: App): string {
+  return app.isPackaged ? join(process.resourcesPath, "resources") : join(app.getAppPath(), "resources");
+}

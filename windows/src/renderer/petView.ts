@@ -2,6 +2,7 @@
 // va a sinistra, la dissolvenza tra due stadi, gli «Zzz» e il disegno «sollevato» che trema. È il PetView di
 // PetWindow.swift. Il canvas si sposta con una trasformazione (non si ridisegna per camminare).
 
+import { restImageIndex } from "../core/pets.ts";
 import type { PetData, Size } from "../core/pets.ts";
 
 /** Sotto questa opacità (su 255) un pixel non conta come disegno: per la cima del disegno e per i clic. */
@@ -143,6 +144,25 @@ export class PetView {
   // ---- stadio, posa, specchio, sonno, sollevamento
 
   get hasFocusGrowthImages(): boolean { return this.growthCount > 0; }
+
+  /** La larghezza della più larga delle immagini di crescita, alla scala del personaggio. */
+  get focusGrowthWidth(): number {
+    const reference = this.images[0];
+    if (this.growthCount === 0 || !reference) return 0;
+    const scale = this.imageRect(this.pet.size).width / reference.width;
+    return Math.max(...this.images.slice(this.growthBase, this.growthBase + this.growthCount).map((image) => image.width * scale));
+  }
+
+  /** Durante un focus (per chi ha le immagini di crescita): mostra lo stadio dato (0…n-1), con dissolvenza. */
+  showFocusGrowth(growthStage: number): void {
+    if (this.growthCount === 0) return;
+    this.setStage(this.growthBase + Math.min(Math.max(growthStage, 0), this.growthCount - 1), true);
+  }
+
+  /** Torna all'immagine di sempre (finito, o interrotto, il focus). */
+  endFocusGrowth(): void {
+    this.setStage(restImageIndex(this.pet), true);
+  }
 
   setStage(next: number, animated: boolean, now = performance.now()): void {
     if (this.images.length === 0) return;
