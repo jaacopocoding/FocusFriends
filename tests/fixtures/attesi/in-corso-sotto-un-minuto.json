@@ -1,0 +1,21 @@
+{
+  "adesso" : "2026-10-14T20:00 Europe/Rome",
+  "cartella" : "in-corso-sotto-un-minuto",
+  "fileDopo" : [
+    "sessioni.json"
+  ],
+  "registro" : {
+    "avvisi" : [
+
+    ],
+    "conOraLocale" : 0,
+    "inCorsoRimasto" : false,
+    "materie" : [
+
+    ],
+    "numero" : 0,
+    "recuperata" : null,
+    "secondiTotali" : 0,
+    "solaLettura" : false
+  }
+}

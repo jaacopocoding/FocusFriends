@@ -1,0 +1,189 @@
+{
+  "adesso" : "2026-10-14T20:00 Europe/Rome",
+  "cartella" : "v3-serie-lunga",
+  "fileDopo" : [
+    "sessioni.json"
+  ],
+  "registro" : {
+    "avvisi" : [
+
+    ],
+    "conOraLocale" : 15,
+    "materie" : [
+      "Matematica"
+    ],
+    "numero" : 15,
+    "ordineId" : [
+      "0001",
+      "0002",
+      "0003",
+      "0004",
+      "0005",
+      "0006",
+      "0007",
+      "0008",
+      "0009",
+      "0010",
+      "0011",
+      "0012",
+      "0013",
+      "0014",
+      "0015"
+    ],
+    "secondiTotali" : 54000,
+    "solaLettura" : false
+  },
+  "statistiche" : {
+    "csv" : "inizio,inizio_locale,minuti,minuti_previsti,completa,materia,personaggio,com_e_andata,nota,note_del_focus\n2026-09-30T07:00:00Z,2026-09-30T09:00,60,60,si,\"Matematica\",pianty,,\"\",\"\"\n2026-10-01T07:00:00Z,2026-10-01T09:00,60,60,si,\"Matematica\",pianty,,\"\",\"\"\n2026-10-02T07:00:00Z,2026-10-02T09:00,60,60,si,\"Matematica\",pianty,,\"\",\"\"\n2026-10-03T07:00:00Z,2026-10-03T09:00,60,60,si,\"Matematica\",pianty,,\"\",\"\"\n2026-10-04T07:00:00Z,2026-10-04T09:00,60,60,si,\"Matematica\",pianty,,\"\",\"\"\n2026-10-05T07:00:00Z,2026-10-05T09:00,60,60,si,\"Matematica\",pianty,,\"\",\"\"\n2026-10-06T07:00:00Z,2026-10-06T09:00,60,60,si,\"Matematica\",pianty,,\"\",\"\"\n2026-10-07T07:00:00Z,2026-10-07T09:00,60,60,si,\"Matematica\",pianty,,\"\",\"\"\n2026-10-08T07:00:00Z,2026-10-08T09:00,60,60,si,\"Matematica\",pianty,,\"\",\"\"\n2026-10-09T07:00:00Z,2026-10-09T09:00,60,60,si,\"Matematica\",pianty,,\"\",\"\"\n2026-10-10T07:00:00Z,2026-10-10T09:00,60,60,si,\"Matematica\",pianty,,\"\",\"\"\n2026-10-11T07:00:00Z,2026-10-11T09:00,60,60,si,\"Matematica\",pianty,,\"\",\"\"\n2026-10-12T07:00:00Z,2026-10-12T09:00,60,60,si,\"Matematica\",pianty,,\"\",\"\"\n2026-10-13T07:00:00Z,2026-10-13T09:00,60,60,si,\"Matematica\",pianty,,\"\",\"\"\n2026-10-14T07:00:00Z,2026-10-14T09:00,60,60,si,\"Matematica\",pianty,,\"\",\"\"\n",
+    "frasi" : [
+
+    ],
+    "giorno" : {
+      "barre" : [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        3600,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "completati" : 1,
+      "focus" : 1,
+      "interrotti" : 0,
+      "perMateria" : [
+        {
+          "materia" : "Matematica",
+          "secondi" : 3600
+        }
+      ],
+      "secondiTotali" : 3600,
+      "voti" : {
+        "good" : 0,
+        "poor" : 0,
+        "soso" : 0
+      }
+    },
+    "mese" : {
+      "barre" : [
+        3600,
+        3600,
+        3600,
+        3600,
+        3600,
+        3600,
+        3600,
+        3600,
+        3600,
+        3600,
+        3600,
+        3600,
+        3600,
+        3600,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "completati" : 14,
+      "focus" : 14,
+      "interrotti" : 0,
+      "perMateria" : [
+        {
+          "materia" : "Matematica",
+          "secondi" : 50400
+        }
+      ],
+      "secondiTotali" : 50400,
+      "voti" : {
+        "good" : 0,
+        "poor" : 0,
+        "soso" : 0
+      }
+    },
+    "punti" : {
+      "guadagnati" : 21,
+      "minutiPesati" : 1290,
+      "valoreMinutoOggi" : 2,
+      "verso il prossimo" : 0.5
+    },
+    "serie" : {
+      "ghiacciata" : false,
+      "giorni" : 15,
+      "hoStudiatoOggi" : true,
+      "perGiorno" : {
+        "2026-09-30" : 1,
+        "2026-10-01" : 2,
+        "2026-10-02" : 3,
+        "2026-10-03" : 4,
+        "2026-10-04" : 5,
+        "2026-10-05" : 6,
+        "2026-10-06" : 7,
+        "2026-10-07" : 8,
+        "2026-10-08" : 9,
+        "2026-10-09" : 10,
+        "2026-10-10" : 11,
+        "2026-10-11" : 12,
+        "2026-10-12" : 13,
+        "2026-10-13" : 14,
+        "2026-10-14" : 15
+      }
+    },
+    "settimana" : {
+      "barre" : [
+        3600,
+        3600,
+        3600,
+        0,
+        0,
+        0,
+        0
+      ],
+      "completati" : 3,
+      "focus" : 3,
+      "interrotti" : 0,
+      "perMateria" : [
+        {
+          "materia" : "Matematica",
+          "secondi" : 10800
+        }
+      ],
+      "secondiTotali" : 10800,
+      "voti" : {
+        "good" : 0,
+        "poor" : 0,
+        "soso" : 0
+      }
+    }
+  }
+}

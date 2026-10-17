@@ -1,0 +1,20 @@
+{
+  "ambientSound" : "rain",
+  "ambientVolume" : 0.4,
+  "askHowItWent" : true,
+  "customTimers.focus" : [
+    40,
+    90
+  ],
+  "customTimers.rest" : [
+    15
+  ],
+  "developerMode" : false,
+  "longBreakEnabled" : true,
+  "movement" : false,
+  "musicFolder" : "C:\\Musica\\Studio",
+  "musicSource" : "folder",
+  "musicVolume" : 0.3,
+  "pet" : "gattino",
+  "phraseFrequency" : "rarely"
+}

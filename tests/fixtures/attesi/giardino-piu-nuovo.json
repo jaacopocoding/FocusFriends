@@ -1,0 +1,29 @@
+{
+  "adesso" : "2026-10-14T20:00 Europe/Rome",
+  "cartella" : "giardino-piu-nuovo",
+  "fileDopo" : [
+    "giardino.json"
+  ],
+  "giardino" : {
+    "avvisi" : [
+      "Il giardino è di una versione più nuova di questa app: lo leggo ma non lo modifico."
+    ],
+    "compagni" : {
+
+    },
+    "copie" : [
+
+    ],
+    "oggettiUsabili" : [
+      "margherite",
+      "trifoglio",
+      "erba-alta",
+      "mughetti",
+      "rosaio"
+    ],
+    "sbloccatiConPunti" : [
+      "rosaio"
+    ],
+    "speso" : 8
+  }
+}

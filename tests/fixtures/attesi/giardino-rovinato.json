@@ -1,0 +1,28 @@
+{
+  "adesso" : "2026-10-14T20:00 Europe/Rome",
+  "cartella" : "giardino-rovinato",
+  "fileDopo" : [
+    "giardino.corrotto-<epoch>.json"
+  ],
+  "giardino" : {
+    "avvisi" : [
+      "Il file del giardino era rovinato: l'ho messo da parte come giardino.corrotto-<epoch>.json."
+    ],
+    "compagni" : {
+
+    },
+    "copie" : [
+
+    ],
+    "oggettiUsabili" : [
+      "margherite",
+      "trifoglio",
+      "erba-alta",
+      "mughetti"
+    ],
+    "sbloccatiConPunti" : [
+
+    ],
+    "speso" : 0
+  }
+}

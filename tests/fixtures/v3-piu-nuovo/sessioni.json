@@ -1,0 +1,26 @@
+{
+  "campoDelFuturo" : {
+    "x" : 1
+  },
+  "sessions" : [
+    {
+      "completed" : true,
+      "id" : "00000000-0000-4000-8000-000000000001",
+      "localStart" : "2026-10-12T09:00",
+      "plannedMinutes" : 50,
+      "seconds" : 3000,
+      "start" : "2026-10-12T07:00:00Z",
+      "subject" : "Anatomia"
+    },
+    {
+      "completed" : false,
+      "id" : "00000000-0000-4000-8000-000000000003",
+      "localStart" : "2026-10-14T09:00",
+      "plannedMinutes" : 25,
+      "seconds" : 1500,
+      "start" : "2026-10-14T07:00:00Z",
+      "subject" : "Fisiologia"
+    }
+  ],
+  "version" : 99
+}

@@ -1,0 +1,15 @@
+{
+  "ambientVolume" : 7,
+  "customTimers.focus" : [
+    0,
+    30,
+    500,
+    45,
+    45
+  ],
+  "customTimers.rest" : "no",
+  "movement" : "si",
+  "musicVolume" : "alto",
+  "pet" : "drago",
+  "phraseFrequency" : "spesso"
+}

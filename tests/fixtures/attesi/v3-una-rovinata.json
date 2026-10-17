@@ -1,0 +1,174 @@
+{
+  "adesso" : "2026-10-14T20:00 Europe/Rome",
+  "cartella" : "v3-una-rovinata",
+  "fileDopo" : [
+    "backup/sessioni-2026-10-14.json",
+    "sessioni.corrotto-<epoch>.json",
+    "sessioni.json"
+  ],
+  "registro" : {
+    "avvisi" : [
+      "1 sessioni non erano leggibili: le altre sono a posto, e il file com'era è in sessioni.corrotto-<epoch>.json."
+    ],
+    "conOraLocale" : 2,
+    "materie" : [
+      "Anatomia",
+      "Fisiologia"
+    ],
+    "numero" : 2,
+    "ordineId" : [
+      "0001",
+      "0003"
+    ],
+    "secondiTotali" : 4500,
+    "solaLettura" : false
+  },
+  "statistiche" : {
+    "csv" : "inizio,inizio_locale,minuti,minuti_previsti,completa,materia,personaggio,com_e_andata,nota,note_del_focus\n2026-10-12T07:00:00Z,2026-10-12T09:00,50,50,si,\"Anatomia\",,,\"\",\"\"\n2026-10-14T07:00:00Z,2026-10-14T09:00,25,25,no,\"Fisiologia\",,,\"\",\"\"\n",
+    "frasi" : [
+
+    ],
+    "giorno" : {
+      "barre" : [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1500,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "completati" : 0,
+      "focus" : 1,
+      "interrotti" : 1,
+      "perMateria" : [
+        {
+          "materia" : "Fisiologia",
+          "secondi" : 1500
+        }
+      ],
+      "secondiTotali" : 1500,
+      "voti" : {
+        "good" : 0,
+        "poor" : 0,
+        "soso" : 0
+      }
+    },
+    "mese" : {
+      "barre" : [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        3000,
+        0,
+        1500,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "completati" : 1,
+      "focus" : 2,
+      "interrotti" : 1,
+      "perMateria" : [
+        {
+          "materia" : "Anatomia",
+          "secondi" : 3000
+        },
+        {
+          "materia" : "Fisiologia",
+          "secondi" : 1500
+        }
+      ],
+      "secondiTotali" : 4500,
+      "voti" : {
+        "good" : 0,
+        "poor" : 0,
+        "soso" : 0
+      }
+    },
+    "punti" : {
+      "guadagnati" : 1,
+      "minutiPesati" : 75,
+      "valoreMinutoOggi" : 1,
+      "verso il prossimo" : 0.25
+    },
+    "serie" : {
+      "ghiacciata" : false,
+      "giorni" : 2,
+      "hoStudiatoOggi" : true,
+      "perGiorno" : {
+        "2026-10-12" : 1,
+        "2026-10-14" : 2
+      }
+    },
+    "settimana" : {
+      "barre" : [
+        3000,
+        0,
+        1500,
+        0,
+        0,
+        0,
+        0
+      ],
+      "completati" : 1,
+      "focus" : 2,
+      "interrotti" : 1,
+      "perMateria" : [
+        {
+          "materia" : "Anatomia",
+          "secondi" : 3000
+        },
+        {
+          "materia" : "Fisiologia",
+          "secondi" : 1500
+        }
+      ],
+      "secondiTotali" : 4500,
+      "voti" : {
+        "good" : 0,
+        "poor" : 0,
+        "soso" : 0
+      }
+    }
+  }
+}

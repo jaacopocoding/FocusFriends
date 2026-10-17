@@ -1,0 +1,25 @@
+{
+  "adesso" : "2026-10-14T20:00 Europe/Rome",
+  "cartella" : "profilo-solo-nome",
+  "fileDopo" : [
+    "profilo.json"
+  ],
+  "profilo" : {
+    "avvisi" : [
+
+    ],
+    "compagniUsabili" : {
+      "ciccio" : true,
+      "gattino" : true,
+      "pianty" : true,
+      "porcellino" : true
+    },
+    "introduzioneVista" : false,
+    "nome" : "Anna Maria Luisa Giovann",
+    "primoCompagno" : null,
+    "sbloccati" : null,
+    "sbloccatiDopoKeepAll" : null,
+    "titoloGiardino" : "Il giardino di Anna Maria Luisa Giovann",
+    "titoloStatistiche" : "Le statistiche di Anna Maria Luisa Giovann"
+  }
+}

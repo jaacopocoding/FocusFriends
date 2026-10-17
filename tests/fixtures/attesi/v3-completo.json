@@ -1,0 +1,285 @@
+{
+  "adesso" : "2026-10-14T20:00 Europe/Rome",
+  "cartella" : "v3-completo",
+  "fileDopo" : [
+    "backup/sessioni-2026-10-14.json",
+    "giardino.json",
+    "profilo.json",
+    "sessioni.json"
+  ],
+  "giardino" : {
+    "avvisi" : [
+
+    ],
+    "compagni" : {
+      "gattino" : {
+        "x" : 0.55000000000000004,
+        "y" : 0.94999999999999996
+      }
+    },
+    "copie" : [
+      {
+        "oggetto" : "margherite",
+        "x" : 0.40999999999999998,
+        "y" : 0.71999999999999997
+      },
+      {
+        "oggetto" : "lavanda",
+        "x" : 0.20000000000000001,
+        "y" : 0.65000000000000002
+      },
+      {
+        "oggetto" : "panchina",
+        "x" : 0.96999999999999997,
+        "y" : 0.56000000000000005
+      }
+    ],
+    "oggettiUsabili" : [
+      "margherite",
+      "trifoglio",
+      "erba-alta",
+      "mughetti",
+      "tulipani",
+      "lavanda"
+    ],
+    "saldo" : 7,
+    "sbloccatiConPunti" : [
+      "lavanda",
+      "tulipani"
+    ],
+    "speso" : 5
+  },
+  "profilo" : {
+    "avvisi" : [
+
+    ],
+    "compagniMeritati" : [
+      "pianty"
+    ],
+    "compagniUsabili" : {
+      "ciccio" : false,
+      "gattino" : false,
+      "pianty" : true,
+      "porcellino" : true
+    },
+    "focusPieni" : 12,
+    "introduzioneVista" : true,
+    "nome" : "Giulia",
+    "primoCompagno" : "pianty",
+    "sbloccati" : [
+      "pianty",
+      "porcellino"
+    ],
+    "sbloccatiDopoKeepAll" : [
+      "pianty",
+      "porcellino"
+    ],
+    "titoloGiardino" : "Il giardino di Giulia",
+    "titoloStatistiche" : "Le statistiche di Giulia"
+  },
+  "registro" : {
+    "avvisi" : [
+
+    ],
+    "conOraLocale" : 15,
+    "materie" : [
+      "Anatomia",
+      "Chimica",
+      "Fisica",
+      "Fisiologia"
+    ],
+    "numero" : 15,
+    "ordineId" : [
+      "0001",
+      "0002",
+      "0003",
+      "0004",
+      "0005",
+      "0006",
+      "0007",
+      "0008",
+      "0009",
+      "0010",
+      "0011",
+      "0012",
+      "0013",
+      "0014",
+      "0015"
+    ],
+    "secondiTotali" : 38100,
+    "solaLettura" : false
+  },
+  "statistiche" : {
+    "csv" : "inizio,inizio_locale,minuti,minuti_previsti,completa,materia,personaggio,com_e_andata,nota,note_del_focus\n2026-10-01T07:00:00Z,2026-10-01T09:00,50,50,si,\"Anatomia\",pianty,good,\"cap. 1\",\"\"\n2026-10-01T09:00:00Z,2026-10-01T11:00,25,50,no,\"Anatomia\",pianty,,\"\",\"\"\n2026-10-02T07:30:00Z,2026-10-02T09:30,50,50,si,\"Fisiologia\",porcellino,soso,\"cap. 4\",\"\"\n2026-10-02T13:00:00Z,2026-10-02T15:00,50,50,si,\"Anatomia\",porcellino,good,\"\",\"\"\n2026-10-03T08:00:00Z,2026-10-03T10:00,30,30,si,\"Chimica\",ciccio,good,\"\",\"\"\n2026-10-04T06:30:00Z,2026-10-04T08:30,50,50,si,\"Chimica\",ciccio,poor,\"stanco\",\"rivedere l'esercizio 4 | chiedere al prof\"\n2026-10-06T07:00:00Z,2026-10-06T09:00,50,50,si,\"Fisica\",gattino,good,\"\",\"\"\n2026-10-06T14:00:00Z,2026-10-06T16:00,45,45,no,\"Fisica\",gattino,,\"\",\"\"\n2026-10-07T08:00:00Z,2026-10-07T10:00,50,50,si,\"Fisica\",gattino,soso,\"\",\"\"\n2026-10-10T07:00:00Z,2026-10-10T09:00,50,50,si,\"\",pianty,,\"\",\"\"\n2026-10-11T07:00:00Z,2026-10-11T09:00,50,50,si,\"Anatomia\",pianty,good,\"\",\"\"\n2026-10-12T12:00:00Z,2026-10-12T14:00,25,25,si,\"Fisiologia\",porcellino,good,\"esercizi\",\"\"\n2026-10-13T07:00:00Z,2026-10-13T09:00,50,50,si,\"Anatomia\",pianty,good,\"\",\"\"\n2026-10-13T09:00:00Z,2026-10-13T11:00,10,25,no,\"Anatomia\",pianty,,\"\",\"\"\n2026-10-14T07:00:00Z,2026-10-14T09:00,50,50,si,\"Chimica\",ciccio,good,\"\",\"\"\n",
+    "frasi" : [
+      "Con Anatomia vai bene: 4 focus su 4 sono andati bene."
+    ],
+    "giorno" : {
+      "barre" : [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        3000,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "completati" : 1,
+      "focus" : 1,
+      "interrotti" : 0,
+      "perMateria" : [
+        {
+          "materia" : "Chimica",
+          "secondi" : 3000
+        }
+      ],
+      "secondiTotali" : 3000,
+      "voti" : {
+        "good" : 1,
+        "poor" : 0,
+        "soso" : 0
+      }
+    },
+    "mese" : {
+      "barre" : [
+        4500,
+        6000,
+        1800,
+        3000,
+        0,
+        5700,
+        3000,
+        0,
+        0,
+        3000,
+        3000,
+        1500,
+        3600,
+        3000,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "completati" : 12,
+      "focus" : 15,
+      "interrotti" : 3,
+      "perMateria" : [
+        {
+          "materia" : "Anatomia",
+          "secondi" : 14100
+        },
+        {
+          "materia" : "Fisica",
+          "secondi" : 8700
+        },
+        {
+          "materia" : "Chimica",
+          "secondi" : 7800
+        },
+        {
+          "materia" : "Fisiologia",
+          "secondi" : 4500
+        },
+        {
+          "materia" : "Senza materia",
+          "secondi" : 3000
+        }
+      ],
+      "secondiTotali" : 38100,
+      "voti" : {
+        "good" : 8,
+        "poor" : 1,
+        "soso" : 2
+      }
+    },
+    "punti" : {
+      "guadagnati" : 12,
+      "minutiPesati" : 725,
+      "valoreMinutoOggi" : 1.25,
+      "verso il prossimo" : 0.083000000000000004
+    },
+    "serie" : {
+      "ghiacciata" : false,
+      "giorni" : 5,
+      "hoStudiatoOggi" : true,
+      "perGiorno" : {
+        "2026-10-01" : 1,
+        "2026-10-02" : 2,
+        "2026-10-03" : 3,
+        "2026-10-04" : 4,
+        "2026-10-06" : 5,
+        "2026-10-07" : 6,
+        "2026-10-10" : 1,
+        "2026-10-11" : 2,
+        "2026-10-12" : 3,
+        "2026-10-13" : 4,
+        "2026-10-14" : 5
+      }
+    },
+    "settimana" : {
+      "barre" : [
+        1500,
+        3600,
+        3000,
+        0,
+        0,
+        0,
+        0
+      ],
+      "completati" : 3,
+      "focus" : 4,
+      "interrotti" : 1,
+      "perMateria" : [
+        {
+          "materia" : "Anatomia",
+          "secondi" : 3600
+        },
+        {
+          "materia" : "Chimica",
+          "secondi" : 3000
+        },
+        {
+          "materia" : "Fisiologia",
+          "secondi" : 1500
+        }
+      ],
+      "secondiTotali" : 8100,
+      "voti" : {
+        "good" : 3,
+        "poor" : 0,
+        "soso" : 0
+      }
+    }
+  }
+}

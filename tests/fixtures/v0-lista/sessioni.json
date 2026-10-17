@@ -1,0 +1,18 @@
+[
+  {
+    "completed" : true,
+    "id" : "00000000-0000-4000-8000-000000000001",
+    "plannedMinutes" : 50,
+    "seconds" : 3000,
+    "start" : "2026-10-12T07:00:00Z",
+    "subject" : "Anatomia"
+  },
+  {
+    "completed" : false,
+    "id" : "00000000-0000-4000-8000-000000000002",
+    "plannedMinutes" : 25,
+    "seconds" : 1500,
+    "start" : "2026-10-13T08:00:00Z",
+    "subject" : "Fisiologia"
+  }
+]

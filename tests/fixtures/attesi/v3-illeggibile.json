@@ -1,0 +1,22 @@
+{
+  "adesso" : "2026-10-14T20:00 Europe/Rome",
+  "cartella" : "v3-illeggibile",
+  "fileDopo" : [
+    "sessioni.corrotto-<epoch>.json"
+  ],
+  "registro" : {
+    "avvisi" : [
+      "Il file delle sessioni era rovinato: l'ho messo da parte come sessioni.corrotto-<epoch>.json e riparto da zero."
+    ],
+    "conOraLocale" : 0,
+    "materie" : [
+
+    ],
+    "numero" : 0,
+    "ordineId" : [
+
+    ],
+    "secondiTotali" : 0,
+    "solaLettura" : false
+  }
+}

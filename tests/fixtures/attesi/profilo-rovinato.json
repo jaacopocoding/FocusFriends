@@ -1,0 +1,25 @@
+{
+  "adesso" : "2026-10-14T20:00 Europe/Rome",
+  "cartella" : "profilo-rovinato",
+  "fileDopo" : [
+    "profilo.corrotto-<epoch>.json"
+  ],
+  "profilo" : {
+    "avvisi" : [
+      "Il file del profilo era rovinato: l'ho messo da parte come profilo.corrotto-<epoch>.json."
+    ],
+    "compagniUsabili" : {
+      "ciccio" : true,
+      "gattino" : true,
+      "pianty" : true,
+      "porcellino" : true
+    },
+    "introduzioneVista" : false,
+    "nome" : null,
+    "primoCompagno" : null,
+    "sbloccati" : null,
+    "sbloccatiDopoKeepAll" : null,
+    "titoloGiardino" : "Il mio giardino",
+    "titoloStatistiche" : "Statistiche e riepilogo"
+  }
+}

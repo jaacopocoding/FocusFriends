@@ -1,0 +1,30 @@
+{
+  "adesso" : "2026-10-14T20:00 Europe/Rome",
+  "cartella" : "profilo-vecchio",
+  "fileDopo" : [
+    "profilo.json"
+  ],
+  "profilo" : {
+    "avvisi" : [
+
+    ],
+    "compagniUsabili" : {
+      "ciccio" : true,
+      "gattino" : true,
+      "pianty" : true,
+      "porcellino" : true
+    },
+    "introduzioneVista" : true,
+    "nome" : "Marco",
+    "primoCompagno" : null,
+    "sbloccati" : null,
+    "sbloccatiDopoKeepAll" : [
+      "ciccio",
+      "gattino",
+      "pianty",
+      "porcellino"
+    ],
+    "titoloGiardino" : "Il giardino di Marco",
+    "titoloStatistiche" : "Le statistiche di Marco"
+  }
+}

@@ -1,0 +1,171 @@
+{
+  "adesso" : "2026-10-14T20:00 Europe/Rome",
+  "cartella" : "in-corso-fermo",
+  "fileDopo" : [
+    "backup/sessioni-2026-10-14.json",
+    "sessioni.json"
+  ],
+  "registro" : {
+    "avvisi" : [
+
+    ],
+    "conOraLocale" : 1,
+    "inCorsoRimasto" : false,
+    "materie" : [
+      "Chimica"
+    ],
+    "numero" : 1,
+    "recuperata" : {
+      "completa" : false,
+      "inizioLocale" : "2026-10-14T09:00",
+      "materia" : "Chimica",
+      "minutiPrevisti" : 25,
+      "note" : [
+
+      ],
+      "personaggio" : "ciccio",
+      "secondi" : 1380
+    },
+    "secondiTotali" : 1380,
+    "solaLettura" : false
+  },
+  "statistiche" : {
+    "csv" : "inizio,inizio_locale,minuti,minuti_previsti,completa,materia,personaggio,com_e_andata,nota,note_del_focus\n2026-10-14T07:00:00Z,2026-10-14T09:00,23,25,no,\"Chimica\",ciccio,,\"\",\"\"\n",
+    "frasi" : [
+
+    ],
+    "giorno" : {
+      "barre" : [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1380,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "completati" : 0,
+      "focus" : 1,
+      "interrotti" : 1,
+      "perMateria" : [
+        {
+          "materia" : "Chimica",
+          "secondi" : 1380
+        }
+      ],
+      "secondiTotali" : 1380,
+      "voti" : {
+        "good" : 0,
+        "poor" : 0,
+        "soso" : 0
+      }
+    },
+    "mese" : {
+      "barre" : [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1380,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "completati" : 0,
+      "focus" : 1,
+      "interrotti" : 1,
+      "perMateria" : [
+        {
+          "materia" : "Chimica",
+          "secondi" : 1380
+        }
+      ],
+      "secondiTotali" : 1380,
+      "voti" : {
+        "good" : 0,
+        "poor" : 0,
+        "soso" : 0
+      }
+    },
+    "punti" : {
+      "guadagnati" : 0,
+      "minutiPesati" : 23,
+      "valoreMinutoOggi" : 1,
+      "verso il prossimo" : 0.38300000000000001
+    },
+    "serie" : {
+      "ghiacciata" : false,
+      "giorni" : 1,
+      "hoStudiatoOggi" : true,
+      "perGiorno" : {
+        "2026-10-14" : 1
+      }
+    },
+    "settimana" : {
+      "barre" : [
+        0,
+        0,
+        1380,
+        0,
+        0,
+        0,
+        0
+      ],
+      "completati" : 0,
+      "focus" : 1,
+      "interrotti" : 1,
+      "perMateria" : [
+        {
+          "materia" : "Chimica",
+          "secondi" : 1380
+        }
+      ],
+      "secondiTotali" : 1380,
+      "voti" : {
+        "good" : 0,
+        "poor" : 0,
+        "soso" : 0
+      }
+    }
+  }
+}
