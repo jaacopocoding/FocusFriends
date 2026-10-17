@@ -151,3 +151,316 @@ html, body {
 #stage canvas.clock {
   pointer-events: none;
 }
+
+/* ---- finestre di dialogo: «Cosa studi adesso?», benvenuto, «Com'è andata?» */
+
+.modal-backdrop {
+  pointer-events: auto;
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: rgba(60, 40, 20, 0.12);
+}
+
+.modal,
+.reflection {
+  box-sizing: border-box;
+  background: var(--paper);
+  border: 1.5px solid var(--edge);
+  border-radius: 20px;
+  color: var(--ink);
+  font: 13px/1.25 var(--ui);
+  opacity: 0;
+  transition: opacity 0.18s ease;
+  user-select: none;
+  -webkit-user-select: none;
+  filter: drop-shadow(0 4px 10px rgba(60, 40, 20, 0.25));
+}
+
+.modal {
+  pointer-events: auto;
+  position: fixed;
+  left: 50%;
+  top: calc(50% + var(--offset, 0px));
+  transform: translate(-50%, -50%);
+  z-index: 21;
+}
+
+.reflection {
+  pointer-events: auto;
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 15;
+  width: 400px;
+  padding: 22px 28px 18px;
+}
+
+.modal.visible,
+.reflection.visible {
+  opacity: 1;
+}
+
+.modal :where(button),
+.reflection :where(button) {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  text-align: inherit;
+}
+
+.modal button:focus-visible,
+.reflection button:focus-visible,
+.modal input:focus-visible,
+.reflection input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.dialog {
+  width: 400px;
+  box-sizing: border-box;
+  padding: 22px 28px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dialog.wide {
+  width: 466px;
+  padding-top: 24px;
+}
+
+.dialog-title-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: -4px;
+}
+
+.dialog-title-row .back {
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-light);
+}
+
+.dialog-title-row .back:hover {
+  color: var(--ink);
+}
+
+.dialog-title {
+  font: 26px/32px var(--marker);
+}
+
+.dialog.wide .dialog-title {
+  font-size: 24px;
+  margin-bottom: 6px;
+}
+
+.dialog-title.small {
+  font-size: 24px;
+  line-height: 30px;
+}
+
+.dialog-subtitle {
+  margin-top: -8px;
+  margin-bottom: 6px;
+  font-size: 13px;
+  color: var(--ink-light);
+}
+
+.dialog-question {
+  margin-top: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-light);
+}
+
+.dialog-hint,
+.dialog-last {
+  font-size: 12px;
+  color: var(--ink-light);
+}
+
+.dialog-last {
+  max-width: 344px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.text-field {
+  box-sizing: border-box;
+  width: 100%;
+  height: 34px;
+  padding: 0 11px;
+  border: 1px solid rgba(140, 102, 64, 0.55);
+  border-radius: 8px;
+  background: rgb(255, 253, 245);
+  color: var(--ink);
+  font: 15px var(--ui);
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.text-field::placeholder {
+  color: rgba(102, 77, 51, 0.6);
+}
+
+.dialog-buttons {
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 18px;
+}
+
+.text-button {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-light);
+}
+
+.text-button:hover {
+  color: var(--ink);
+  text-decoration: underline;
+}
+
+.pill-action {
+  min-width: 130px;
+  height: 36px;
+  border-radius: 18px;
+  background: var(--accent);
+  color: white;
+  text-align: center !important;
+  font: 17px var(--marker);
+}
+
+.pill-action:hover {
+  filter: brightness(1.05);
+}
+
+.pill-action:active {
+  background: var(--accent-pressed);
+}
+
+.pill-action.big {
+  min-width: 150px;
+  height: 38px;
+}
+
+.chip-row {
+  display: flex;
+  gap: 8px;
+}
+
+.subject-chip {
+  height: 26px;
+  min-width: 44px;
+  max-width: 200px;
+  box-sizing: border-box;
+  padding: 0 12px;
+  border-radius: 13px;
+  border: 1px solid color-mix(in srgb, var(--subject) 70%, transparent);
+  background: color-mix(in srgb, var(--subject) 18%, transparent);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center !important;
+}
+
+.subject-chip:hover,
+.subject-chip:active {
+  background: rgba(217, 120, 56, 0.35);
+}
+
+.companion-picker {
+  display: flex;
+  gap: 14px;
+}
+
+.companion-choice {
+  width: 92px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink-light);
+}
+
+.choice-image {
+  display: block;
+  box-sizing: border-box;
+  border-radius: 50%;
+  background-color: var(--paper-light);
+  background-repeat: no-repeat;
+  border: 1.5px solid var(--edge);
+}
+
+.companion-choice.selected .choice-image {
+  border: 3.5px solid var(--accent);
+}
+
+.companion-choice.selected {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.reflection-faces {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin: 2px 0 8px;
+}
+
+.reflection .face-button {
+  width: 96px;
+  height: 84px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--ink-light);
+  text-align: center !important;
+}
+
+.reflection .face-button:hover {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.reflection .face-button .face {
+  transition: transform 0.1s;
+}
+
+.reflection .face-button:hover .face {
+  transform: scale(1.1);
+}
+
+.reflection .dialog-subtitle {
+  margin-top: 2px;
+  margin-bottom: 8px;
+  max-width: 344px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reflection .dialog-buttons {
+  margin-top: 14px;
+}
+
+.modal .text-field:focus-visible,
+.reflection .text-field:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}

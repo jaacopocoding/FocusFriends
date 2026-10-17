@@ -36,6 +36,8 @@ export interface CardHost {
   urlOf(path: string): string;
   /** La scheda si apre o si chiude (la pagina deve smettere o riprendere di decidere da sola quando lasciar passare i clic). */
   onOpenChange(open: boolean): void;
+  /** Un focus da N minuti: prima si chiede la materia («Cosa studi adesso?»). */
+  askFocus(minutes: number): void;
 }
 
 const defaultPage = (phase: PomodoroSnapshot["phase"]): Page => (phase === "focus" ? "focus" : phase === "rest" ? "rest" : "main");
@@ -128,6 +130,12 @@ export class MenuCard {
   }
 
   // ---- comandi e dati
+
+  /** Avvia un focus: chiude la scheda e chiede la materia. */
+  private askFocus(minutes: number): void {
+    this.close();
+    this.host.askFocus(minutes);
+  }
 
   private command(command: CardCommand, close = false): void {
     this.api.cardCommand(command);
@@ -366,14 +374,14 @@ export class MenuCard {
   }
 
   private durations(data: CardData): HTMLElement {
-    const items: Array<{ number: string; caption: string; primary: boolean; label: string; run: CardCommand }> = [
-      { number: "30", caption: "minuti", primary: false, label: "Focus di 30 minuti", run: { name: "startFocus", minutes: 30 } },
-      { number: "50", caption: "minuti", primary: true, label: "Focus di 50 minuti", run: { name: "startFocus", minutes: 50 } },
-      { number: String(this.breakMinutes(data)), caption: "pausa", primary: false, label: `Pausa di ${this.breakMinutes(data)} minuti`, run: { name: "startBreak", minutes: this.breakMinutes(data) } },
+    const items: Array<{ number: string; caption: string; primary: boolean; label: string; run: () => void }> = [
+      { number: "30", caption: "minuti", primary: false, label: "Focus di 30 minuti", run: () => this.askFocus(30) },
+      { number: "50", caption: "minuti", primary: true, label: "Focus di 50 minuti", run: () => this.askFocus(50) },
+      { number: String(this.breakMinutes(data)), caption: "pausa", primary: false, label: `Pausa di ${this.breakMinutes(data)} minuti`, run: () => this.command({ name: "startBreak", minutes: this.breakMinutes(data) }, true) },
     ];
     const row = h("div", { class: "durations" });
     for (const item of items) {
-      row.append(button(`duration${item.primary ? " primary" : ""}`, item.label, () => this.command(item.run, true),
+      row.append(button(`duration${item.primary ? " primary" : ""}`, item.label, item.run,
         h("span", { class: "duration-number" }, item.number), h("span", { class: "duration-caption" }, item.caption)));
     }
     return h("div", { class: "durations-block" }, row,
@@ -439,7 +447,7 @@ export class MenuCard {
     body.append(h("div", { class: "dial-link", id: "dial-link" }));
     body.append(h("div", { class: "chips", id: "dial-chips" }));
     const start = button("start", kind === "focus" ? "Avvia il focus" : "Avvia la pausa", () => {
-      this.command(kind === "focus" ? { name: "startFocus", minutes: this.dialMinutes } : { name: "startBreak", minutes: this.dialMinutes }, true);
+      if (kind === "focus") this.askFocus(this.dialMinutes); else this.command({ name: "startBreak", minutes: this.dialMinutes }, true);
     }, icon("play", 14), kind === "focus" ? "Avvia il focus" : "Avvia la pausa");
     body.append(start);
     if (timer.phase !== null) {
@@ -576,7 +584,7 @@ export class MenuCard {
 
     // Un altro focus
     const again = last?.minutes ?? 50;
-    body.append(sticker("accent big", `Nuovo focus · ${again} min`, () => this.command({ name: "startFocus", minutes: again }, true), `Nuovo focus · ${again} min`));
+    body.append(sticker("accent big", `Nuovo focus · ${again} min`, () => this.askFocus(again), `Nuovo focus · ${again} min`));
 
     // Com'è andata?
     if (data.hasLastSession) {

@@ -25,6 +25,8 @@ export interface TrayDeps {
   isVisible(): boolean;
   setVisible(visible: boolean): void;
   speak(): void;
+  /** «Focus N min»: prima si chiede la materia («Cosa studi adesso?»), poi parte. */
+  askFocus(minutes: number): void;
   /** Un clic sull'icona: apre o chiude la scheda sotto (sopra) di lei. */
   toggleCard(bounds: Rectangle): void;
   /** «Personalizza…»: la scheda aperta sulla pagina dei timer. */
@@ -70,7 +72,7 @@ export function createTray(deps: TrayDeps): { refresh(): void; popUp(): void; bo
     const timer = deps.timer().snapshot();
     const running = timer.phase !== null;
     const items: MenuItemConstructorOptions[] = [
-      ...settings.allTimers("focus").map((m): MenuItemConstructorOptions => ({ label: `Focus ${m} min`, click: () => card.command({ name: "startFocus", minutes: m }) })),
+      ...settings.allTimers("focus").map((m): MenuItemConstructorOptions => ({ label: `Focus ${m} min`, click: () => deps.askFocus(m) })),
       { type: "separator" },
       ...settings.allTimers("rest").map((m): MenuItemConstructorOptions => ({
         label: `Pausa ${m} min`, type: "checkbox", checked: timer.breakMinutes === m, click: () => card.command({ name: "startBreak", minutes: m }),

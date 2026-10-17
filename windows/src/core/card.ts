@@ -43,6 +43,9 @@ export interface CardData {
   /** Il voto dell'ultimo focus finito, se già dato. */
   lastRating: Rating | null;
   hasLastSession: boolean;
+  /** Le materie usate di recente (fino a sei), per «Cosa studi adesso?», e l'ultima nota scritta. */
+  recentSubjects: string[];
+  lastNote: { subject: string | null; note: string } | null;
 }
 
 export interface CardInput {
@@ -66,6 +69,8 @@ export interface CardInput {
   musicFolder: string | null;
   musicVolume: number;
   lastSessionId: string | null;
+  recentSubjects: string[];
+  lastNote: { subject?: string; note: string } | null;
 }
 
 /** Per ogni compagno bloccato, la frase che dice quanto manca («si sblocca a 20 focus: ne hai 12»). */
@@ -114,5 +119,7 @@ export function buildCardData(input: CardInput): CardData {
     backgroundVolume: background === "music" ? input.musicVolume : input.ambientVolume,
     lastRating: last?.rating ?? null,
     hasLastSession: last !== undefined,
+    recentSubjects: input.recentSubjects,
+    lastNote: input.lastNote === null ? null : { subject: input.lastNote.subject ?? null, note: input.lastNote.note },
   };
 }

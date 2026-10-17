@@ -3,6 +3,7 @@
 
 import { PETS, finalStage, focusGrowthStage, growsWithTimer, petInfo, restImageIndex, stageForProgress } from "../core/pets.ts";
 import type { PetData } from "../core/pets.ts";
+import { reflectionReply } from "../core/reflection.ts";
 import { clockWanted } from "../core/pomodoro.ts";
 import type { PomodoroEvent, PomodoroSnapshot } from "../core/pomodoro.ts";
 import { chattinessInterval } from "../core/rules.ts";
@@ -12,6 +13,10 @@ import type { FocusFriendsApi, SettingsSnapshot } from "../shared/api.ts";
 import { AmbientPlayer } from "./audio/ambient.ts";
 import { MusicPlayer } from "./audio/music.ts";
 import { MenuCard } from "./card/card.ts";
+import { openIntroCard } from "./dialogs/introCard.ts";
+import { ModalHost } from "./dialogs/modal.ts";
+import { ReflectionCard } from "./dialogs/reflectionCard.ts";
+import { openSubjectPrompt } from "./dialogs/subjectPrompt.ts";
 import { ClockView, CLOCK_SIZE } from "./clockView.ts";
 import { ExtendPrompt, PROMPT_SIZE } from "./extendPrompt.ts";
 import { PetView } from "./petView.ts";
@@ -43,6 +48,8 @@ let walker: Walker;
 let clock: ClockView;
 let prompt: ExtendPrompt;
 let card: MenuCard;
+let modals: ModalHost;
+let reflection: ReflectionCard;
 let ambient: AmbientPlayer;
 let music: MusicPlayer;
 let visible = true;
@@ -289,13 +296,17 @@ function onTimerEvent(event: PomodoroEvent): void {
       walker.eatNow({ now: performance.now(), pet: view.pet, visible, dragging: drag !== null }, view.hasFocusGrowthImages);
       break;
     case "graceBegan": prompt.show(event.seconds, performance.now()); break;
-    case "graceEnded": prompt.hide(); break;
+    case "graceEnded": prompt.hide(); refreshHover(); break;
     case "focusActive":
       // Il suono ambiente e la musica accompagnano il focus (non la pausa, né il focus fermo).
       ambient.setFocusActive(event.active);
       music.setFocusActive(event.active);
       break;
-    case "focusRecorded": case "reset": break;
+    case "focusRecorded":
+      // A fine focus: «com'è andata?» (se non l'hai spenta dal menu). Sparisce da sola quando il timer riparte o si ferma.
+      if (settings.askHowItWent) reflection.ask(event.session);
+      break;
+    case "reset": reflection.dismiss(); break;
   }
 }
 
@@ -329,12 +340,26 @@ function tick(): void {
 
 // ---- il mouse: clic che passano, trascinamento
 
+/** Cosa serve alla finestra adesso: tutti i clic (una scheda o una finestra di dialogo è aperta) e/o la tastiera (si sta scrivendo). */
+const needs = { card: false, modal: false, keyboard: false };
+function syncInput(): void {
+  api.setInputMode({ interactive: needs.card || needs.modal || interactive, keyboard: needs.card || needs.modal || needs.keyboard });
+}
+
+/** I clic passano alle altre finestre, tranne dove c'è qualcosa di nostro (un pixel del compagno, il «+5 minuti», «Com'è andata?»). */
 function setInteractive(on: boolean): void {
-  // Con la scheda aperta tutta la finestra riceve i clic: lo decide il processo principale.
-  if (card?.isOpen) return;
+  if (needs.card || needs.modal) return;
   if (on === interactive) return;
   interactive = on;
-  api.setInteractive(on);
+  syncInput();
+}
+
+/** Qualcosa è sparito (una scheda, il «+5 minuti»): se il mouse non è più sopra niente di nostro, i clic tornano a passare. */
+function refreshHover(): void {
+  if (needs.card || needs.modal) return;
+  const m = lastMouse;
+  if (!m || !view || !visible) { setInteractive(false); return; }
+  setInteractive(view.hitTest(m.x - view.position.left, m.y - view.position.top) || prompt.contains(m.x, m.y) || reflection.contains(m.x, m.y));
 }
 
 function localPoint(event: MouseEvent): { x: number; y: number } {
@@ -346,7 +371,7 @@ function localPoint(event: MouseEvent): { x: number; y: number } {
 function isOverSomething(event: MouseEvent): boolean {
   if (!visible) return false;
   const point = localPoint(event);
-  return view.hitTest(point.x, point.y) || prompt.contains(event.clientX, event.clientY);
+  return view.hitTest(point.x, point.y) || prompt.contains(event.clientX, event.clientY) || reflection.contains(event.clientX, event.clientY);
 }
 
 function clampPosition(left: number, top: number): { left: number; top: number } {
@@ -360,7 +385,7 @@ function clampPosition(left: number, top: number): { left: number; top: number }
 function onMouseMove(event: MouseEvent): void {
   if (!view) return;
   lastMouse = { x: event.clientX, y: event.clientY };
-  if (card.isOpen) return;
+  if (card.isOpen || modals.isOpen) return;
   if (drag) {
     const moved = Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY);
     if (view.hasPickedImage) {
@@ -379,7 +404,7 @@ function onMouseMove(event: MouseEvent): void {
 }
 
 function onMouseDown(event: MouseEvent): void {
-  if (!view || event.button !== 0 || drag || card.isOpen) return;
+  if (!view || event.button !== 0 || drag || card.isOpen || modals.isOpen) return;
   const point = localPoint(event);
   if (!visible || !view.hitTest(point.x, point.y)) return;
   raise = null;
@@ -426,6 +451,32 @@ function endPick(): void {
   clock.snap(clock.isShown);
 }
 
+// ---- «Cosa studi adesso?» e benvenuto
+
+/** Prima di avviare un focus si chiede la materia (e si ricorda l'ultima nota). */
+async function askFocus(minutes: number): Promise<void> {
+  const data = await api.getCardData();
+  openSubjectPrompt(modals, {
+    minutes, recent: data.recentSubjects, lastNote: data.lastNote,
+    onChoice: (choice) => {
+      if (choice.kind === "start") api.cardCommand({ name: "startFocus", minutes, subject: choice.subject });
+      else if (choice.kind === "back") card.reopen();
+    },
+  });
+}
+
+/** La prima volta: come ti chiami e chi ti fa compagnia. Mentre c'è la scheda, niente frase a sorpresa. */
+function showIntro(): void {
+  speaker.stop();
+  openIntroCard(modals, {
+    currentPetId: settings.pet, urlOf,
+    onDone: (name, petId) => {
+      api.cardCommand({ name: "finishIntro", userName: name, petId });
+      speaker.reschedule();
+    },
+  });
+}
+
 // ---- avvio
 
 async function loadPaper(): Promise<ImageBitmap | null> {
@@ -446,10 +497,19 @@ async function start(): Promise<void> {
   stage.append(clock.canvas);
   prompt = new ExtendPrompt(stage);
   prompt.onClick = () => api.extendFocus();
+  modals = new ModalHost(stage, (open) => { needs.modal = open; syncInput(); if (!open) refreshHover(); });
+  reflection = new ReflectionCard({
+    container: stage, petBox: () => ({ ...view.position, ...view.size }), scene: sceneSize,
+    onKeyboard: (needed) => { needs.keyboard = needed; syncInput(); },
+    onClosed: refreshHover,
+    onSave: (sessionId, rating, note) => api.cardCommand({ name: "saveReflection", sessionId, rating, note }),
+    onRated: (rating) => speaker.say(reflectionReply(rating)),
+  });
   card = new MenuCard({
     api, container: stage, timer: () => timerState, scene: sceneSize, urlOf,
     petBox: () => ({ ...view.position, ...view.size }),
-    onOpenChange: (open) => { interactive = open; api.cardOpened(open); },
+    onOpenChange: (open) => { needs.card = open; syncInput(); if (!open) refreshHover(); },
+    askFocus: (minutes) => { void askFocus(minutes); },
   });
   card.currentPetId = settings.pet;
   await loadPet(settings.pet);
@@ -486,6 +546,8 @@ async function start(): Promise<void> {
   api.onTimerEvent(onTimerEvent);
   api.onSpeakNow(() => { void speaker.sayRandom(); });
   api.onCardToggle((request) => card.toggle(request));
+  api.onAskSubject((minutes) => { void askFocus(minutes); });
+  api.onShowIntro(showIntro);
   api.onCardReopen(() => card.reopen());
 
   document.addEventListener("mousemove", onMouseMove);
@@ -495,7 +557,7 @@ async function start(): Promise<void> {
   // Tasto destro sul compagno: la scheda, di fianco a lui.
   document.addEventListener("contextmenu", (event) => {
     event.preventDefault();
-    if (!view || card.isOpen || !visible) return;
+    if (!view || card.isOpen || modals.isOpen || !visible) return;
     const point = localPoint(event);
     if (view.hitTest(point.x, point.y)) card.toggle({ anchor: null, toggle: true });
   });
@@ -512,6 +574,11 @@ async function start(): Promise<void> {
       })) as () => unknown,
       hit: ((x: number, y: number) => view.hitTest(x - view.position.left, y - view.position.top)) as () => boolean,
       restImage: (() => restImageIndex(view.pet)) as () => number,
+      askFocus: ((minutes: number) => { void askFocus(minutes); }) as () => void,
+      showIntro: (() => showIntro()) as () => void,
+      askReflection: ((session: object) => reflection.ask(session as never)) as () => void,
+      modalOpen: (() => modals.isOpen) as () => boolean,
+      reflectionOpen: (() => reflection.isShowing) as () => boolean,
       openCard: ((page?: "timers") => card.toggle({ anchor: null, toggle: false, ...(page ? { page } : {}) })) as () => void,
       closeCard: (() => card.close()) as () => void,
       cardOpen: (() => card.isOpen) as () => boolean,

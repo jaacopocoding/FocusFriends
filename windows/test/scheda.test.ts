@@ -18,7 +18,7 @@ function input(overrides: Partial<CardInput> = {}): CardInput {
     timers: { focus: [30, 50], rest: [5, 10], customFocus: [], customRest: [] },
     chattiness: "sometimes", movementOn: true, askOn: true,
     ambient: "none", ambientVolume: 0.25, music: "off", musicFolder: null, musicVolume: 0.3,
-    lastSessionId: null,
+    lastSessionId: null, recentSubjects: [], lastNote: null,
     ...overrides,
   };
 }

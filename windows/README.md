@@ -4,10 +4,9 @@ La versione per Windows di FocusFriends, scritta con **Electron** (TypeScript, H
 in [`../PIANO_WINDOWS.md`](../PIANO_WINDOWS.md) e i formati dei dati, comuni con l'app per Mac, in
 [`../FORMATI.md`](../FORMATI.md).
 
-**Stato:** M2, M3, M4 e M5 finite sul Mac (la logica pura in `src/core/`, il timer, la scheda di carta, il menu completo e i suoni) e M1 avviata: il
+**Stato:** M2, M3, M4, M5 e M6 finite sul Mac (la logica pura in `src/core/`, il timer, la scheda di carta, il menu completo, i suoni e le schede «Cosa studi adesso?», «Com'è andata?» e di benvenuto) e M1 avviata: il
 compagno si vede, cammina, si solleva, parla, ha l'orologio sotto di sé e il «+5 minuti» a fine focus. Clic sull'icona nell'area di
-notifica = la scheda; tasto destro = il menu. Manca la prova su Windows, e mancano le schede «Cosa studi adesso?» e
-«Com'è andata?» (M6), le statistiche (M7) e il nome (M8).
+notifica = la scheda; tasto destro = il menu. Manca la prova su Windows, e mancano le statistiche (M7) e il nome da cambiare (M8).
 
 **Per provarlo** serve Node 24 o più nuovo:
 

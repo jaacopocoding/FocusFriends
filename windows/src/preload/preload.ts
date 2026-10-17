@@ -12,7 +12,6 @@ const api: FocusFriendsApi = {
   onSettingsChanged: (callback) => {
     ipcRenderer.on(CHANNEL.settingsChanged, (_event, settings: SettingsSnapshot) => callback(settings));
   },
-  setInteractive: (interactive) => ipcRenderer.send(CHANNEL.setInteractive, interactive),
   nextPhrase: (petId) => ipcRenderer.invoke(CHANNEL.nextPhrase, petId) as Promise<string>,
   onVisibilityChanged: (callback) => {
     ipcRenderer.on(CHANNEL.visibilityChanged, (_event, visible: boolean) => callback(visible));
@@ -29,7 +28,13 @@ const api: FocusFriendsApi = {
   getCardData: () => ipcRenderer.invoke(CHANNEL.cardData) as Promise<CardData>,
   cardCommand: (command) => ipcRenderer.send(CHANNEL.cardCommand, command),
   addCustomTimer: (kind, minutes) => ipcRenderer.invoke(CHANNEL.cardAddTimer, kind, minutes) as Promise<AddTimerResult>,
-  cardOpened: (open) => ipcRenderer.send(CHANNEL.cardOpened, open),
+  setInputMode: (mode) => ipcRenderer.send(CHANNEL.inputMode, mode),
+  onAskSubject: (callback) => {
+    ipcRenderer.on(CHANNEL.askSubject, (_event, minutes: number) => callback(minutes));
+  },
+  onShowIntro: (callback) => {
+    ipcRenderer.on(CHANNEL.showIntro, () => callback());
+  },
   onCardToggle: (callback) => {
     ipcRenderer.on(CHANNEL.cardToggle, (_event, request: CardOpenRequest) => callback(request));
   },

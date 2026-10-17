@@ -25,7 +25,7 @@ let visible = true;
 
 function snapshot(settings: Settings): SettingsSnapshot {
   return {
-    pet: settings.pet, movement: settings.movement, phraseFrequency: settings.phraseFrequency,
+    pet: settings.pet, movement: settings.movement, phraseFrequency: settings.phraseFrequency, askHowItWent: settings.askHowItWent,
     ambientSound: settings.ambientSound, ambientVolume: settings.ambientVolume,
     musicSource: settings.musicSource, musicFolder: settings.musicFolder, musicVolume: settings.musicVolume,
   };
@@ -71,11 +71,6 @@ async function start(): Promise<void> {
 
   ipcMain.handle(CHANNEL.getSettings, () => snapshot(settings));
   const interactions: string[] = [];
-  ipcMain.on(CHANNEL.setInteractive, (_event, interactive: unknown) => {
-    if (typeof interactive !== "boolean" || win.isDestroyed()) return;
-    win.setIgnoreMouseEvents(!interactive, { forward: true });
-    interactions.push(interactive ? "clic-acceso" : "clic-spento");
-  });
   ipcMain.handle(CHANNEL.nextPhrase, (_event, petId: unknown) => {
     const id = typeof petId === "string" ? petId : settings.pet;
     // Il file si rilegge a ogni frase: le modifiche valgono subito.
@@ -118,6 +113,7 @@ async function start(): Promise<void> {
   tray = createTray({
     assets, data, settings, profile, card, timer: () => service, isVisible: () => visible, setVisible,
     speak: () => send(CHANNEL.speakNow),
+    askFocus: (minutes) => send(CHANNEL.askSubject, minutes),
     toggleCard: (bounds) => openCard({ toggle: true, bounds }),
     openTimers: () => openCard({ toggle: false, page: "timers" }),
     showStats: () => say("Le statistiche ci saranno in una prossima versione."),
@@ -130,12 +126,20 @@ async function start(): Promise<void> {
   ipcMain.handle(CHANNEL.cardData, () => card.data());
   ipcMain.on(CHANNEL.cardCommand, (_event, command: CardCommand) => card.command(command));
   ipcMain.handle(CHANNEL.cardAddTimer, (_event, kind: TimerKind, minutes: number) => card.addTimer(kind, minutes));
-  // Finché la scheda è aperta la finestra riceve i clic e la tastiera; chiusa, torna a lasciar passare tutto.
-  ipcMain.on(CHANNEL.cardOpened, (_event, open: unknown) => {
-    if (typeof open !== "boolean" || win.isDestroyed()) return;
-    win.setFocusable(open);
-    win.setIgnoreMouseEvents(!open, { forward: true });
-    if (open) win.focus(); else win.blur();
+  // La finestra riceve tutti i clic finché c'è una scheda o una finestra di dialogo aperta, e la tastiera finché si scrive:
+  // altrimenti lascia passare i clic e non prende mai il fuoco.
+  let wasInteractive = false, hadKeyboard = false;
+  ipcMain.on(CHANNEL.inputMode, (_event, mode: { interactive?: unknown; keyboard?: unknown }) => {
+    if (win.isDestroyed()) return;
+    const interactive = mode.interactive === true, keyboard = mode.keyboard === true;
+    win.setIgnoreMouseEvents(!interactive, { forward: true });
+    if (keyboard !== hadKeyboard) {
+      win.setFocusable(keyboard);
+      if (keyboard) win.focus(); else win.blur();
+    }
+    if (interactive !== wasInteractive) interactions.push(interactive ? "clic-acceso" : "clic-spento");
+    wasInteractive = interactive;
+    hadKeyboard = keyboard;
   });
   ipcMain.on(CHANNEL.timerExtend, () => service.run(() => service.engine.extendFocus()));
   app.on("before-quit", () => service.shutdown());
@@ -146,6 +150,10 @@ async function start(): Promise<void> {
     if (event.type === "focusRecorded") card.evaluateCompanionRewards(true);
   });
   card.evaluateCompanionRewards(false);
+  // La prima volta (anche per chi la usava già): come ti chiami e chi ti fa compagnia.
+  ipcMain.once(CHANNEL.rendererReady, () => {
+    if (!profile.introSeen) setTimeout(() => send(CHANNEL.showIntro), 800);
+  });
   ipcMain.handle(CHANNEL.getTimerState, () => service.snapshot());
 
   // L'area di lavoro cambia (barra delle applicazioni spostata, risoluzione, scala): la finestra la segue.

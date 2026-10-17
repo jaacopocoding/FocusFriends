@@ -13,15 +13,9 @@ import { focuses, earned, order } from "../core/rewards.ts";
 import type { Settings } from "../core/settings.ts";
 import { CHATTINESS } from "../core/rules.ts";
 import { PET_IDS } from "../core/pets.ts";
+import { reflectionReply, saveReflection } from "../core/reflection.ts";
 import type { CardCommand } from "../shared/api.ts";
 import type { TimerService } from "./timer.ts";
-
-/** Una parolina del compagno per ogni risposta a «Com'è andata?». */
-const REPLIES = {
-  good: ["Che bello! Segnato nel diario.", "Così si fa! Ne sono contento.", "Bene! Ora una pausa vera."],
-  soso: ["Capita. L'importante è esserci stati.", "Va bene così: un passo alla volta.", "Segnato. Ci riproviamo dopo la pausa."],
-  poor: ["Capita a tutti. Una pausa vera e poi si riparte.", "Nessun problema: oggi la testa era altrove.", "Grazie di averlo detto. Riposati un po'."],
-} as const;
 
 export interface CardServiceOptions {
   settings: Settings;
@@ -116,6 +110,7 @@ export function createCardService(options: CardServiceOptions): CardService {
         ambient: settings.ambientSound, ambientVolume: settings.ambientVolume,
         music: settings.musicSource, musicFolder: settings.musicFolder, musicVolume: settings.musicVolume,
         lastSessionId: engine.snapshot().lastFocus?.sessionId ?? null,
+        recentSubjects: timer().log.recentSubjects(), lastNote: timer().log.lastNote(),
       });
     },
 
@@ -156,7 +151,7 @@ export function createCardService(options: CardServiceOptions): CardService {
       switch (command.name) {
         case "startFocus":
           showPetIfHidden();
-          run(() => timer().engine.startFocus(command.minutes, null));
+          run(() => timer().engine.startFocus(command.minutes, command.subject));
           break;
         case "startBreak":
           showPetIfHidden();
@@ -213,10 +208,22 @@ export function createCardService(options: CardServiceOptions): CardService {
         case "rateLast": {
           const id = timer().engine.snapshot().lastFocus?.sessionId;
           if (!id) break;
-          const note = timer().log.sessions.find((s) => s.id === id)?.note ?? null;
+          const note = timer().log.sessions.find((x) => x.id === id)?.note ?? null;
           timer().log.setReflection(id, command.rating, note);
-          const variants = REPLIES[command.rating];
-          options.say(variants[Math.floor(Math.random() * variants.length)] ?? "Segnato!");
+          options.say(reflectionReply(command.rating));
+          break;
+        }
+        case "saveReflection": saveReflection(timer().log, command.sessionId, command.rating, command.note); break;
+        case "finishIntro": {
+          // La prima volta: come ti chiami e chi ti fa compagnia. «Salta» vale «nessun nome» e il compagno che c'era.
+          profile.setName(command.userName);
+          profile.markIntroSeen();
+          profile.chooseFirstCompanion(command.petId);
+          if (command.petId !== settings.pet) {
+            settings.pet = command.petId;
+            showPetIfHidden();
+          }
+          options.say(petInfo(command.petId).greeting);
           break;
         }
       }

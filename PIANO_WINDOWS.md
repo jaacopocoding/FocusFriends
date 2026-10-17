@@ -250,10 +250,20 @@ pioggia per un'ora senza scatti, il cambio di cuffie o altoparlanti, e «Scegli 
 
 ### M6 — Le schede collegate (3–4 giorni)
 
-- [ ] **«Cosa studi adesso?»**: testo libero, fino a 6 materie recenti, «nessuna materia», indietro, ultima nota.
-- [ ] **«Com'è andata?»**: tre facce e una riga facoltativa; non prende la tastiera; sparisce da sola; salvando solo la nota
+- [x] **«Cosa studi adesso?»**: testo libero, fino a 6 materie recenti, «nessuna materia», indietro, ultima nota.
+- [x] **«Com'è andata?»**: tre facce e una riga facoltativa; non prende la tastiera; sparisce da sola; salvando solo la nota
       non cancella il voto già dato.
-- [ ] **Introduzione**: nome e primo compagno (quattro bottoni).
+- [x] **Introduzione**: nome e primo compagno (quattro bottoni).
+
+**Stato (sul Mac):** le tre schede sono **finestre di dialogo dentro la finestra trasparente** (`renderer/dialogs/`): «Cosa studi adesso?» e il
+benvenuto sono al centro e prendono tutti i clic e la tastiera (Esc le chiude, un clic fuori no, come sul Mac); «Com'è andata?» sta
+accanto al compagno e **non prende la tastiera finché non ci clicchi nel campo**. Tutti i focus passano da «Cosa studi adesso?» (dalla
+scheda, dal quadrante, da «Nuovo focus» e dal menu dell'area di notifica). Il colore di ogni materia è lo stesso del Mac (stesso calcolo a
+64 bit, provato con valori misurati con Swift). Provato: primo avvio (nome pulito, primo compagno, `profilo.json` con `unlocked`), materia
+scritta con Invio, materia recente, «Senza materia», freccia indietro, Esc; un focus finito davvero fa comparire «Com'è andata?», un
+voto con la nota si salva, con la sola nota il voto già dato resta, «Salta» non scrive niente, un nuovo focus la fa sparire, e i clic
+tornano a passare subito dopo. **Da provare su Windows:** la tastiera che passa al campo di «Com'è andata?» senza togliere il fuoco
+all'applicazione in cui stavi scrivendo finché non ci clicchi, e il fuoco che torna a quell'applicazione quando la scheda si chiude.
 
 **Fatto quando:** il primo avvio, un focus completo e un focus interrotto danno gli stessi dati che darebbe il Mac.
 

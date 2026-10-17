@@ -10,6 +10,7 @@ export interface SettingsSnapshot {
   pet: string;
   movement: boolean;
   phraseFrequency: Chattiness;
+  askHowItWent: boolean;
   ambientSound: AmbientSound;
   ambientVolume: number;
   musicSource: MusicSource;
@@ -36,7 +37,7 @@ export interface CardOpenRequest {
 
 /** Quello che si può fare dalla scheda (le stesse azioni del menu). */
 export type CardCommand =
-  | { name: "startFocus"; minutes: number }
+  | { name: "startFocus"; minutes: number; subject: string | null }
   | { name: "startBreak"; minutes: number }
   | { name: "stopTimer" }
   | { name: "addMinutes" }
@@ -59,14 +60,14 @@ export type CardCommand =
   | { name: "removeTimer"; kind: TimerKind; minutes: number }
   | { name: "moreSettings" }
   | { name: "rateLast"; rating: Rating }
+  | { name: "saveReflection"; sessionId: string; rating: Rating | null; note: string | null }
+  | { name: "finishIntro"; userName: string | null; petId: string }
   | { name: "quit" };
 
 /** Cosa mette a disposizione il ponte (`preload`) alla pagina, come `window.focusfriends`. */
 export interface FocusFriendsApi {
   getSettings(): Promise<SettingsSnapshot>;
   onSettingsChanged(callback: (settings: SettingsSnapshot) => void): void;
-  /** Dice al processo principale se la finestra deve ricevere i clic (sopra il compagno) o lasciarli passare. */
-  setInteractive(interactive: boolean): void;
   /** La prossima frase del mazzo del compagno. */
   nextPhrase(petId: string): Promise<string>;
   onVisibilityChanged(callback: (visible: boolean) => void): void;
@@ -83,8 +84,15 @@ export interface FocusFriendsApi {
   getCardData(): Promise<CardData>;
   cardCommand(command: CardCommand): void;
   addCustomTimer(kind: TimerKind, minutes: number): Promise<AddTimerResult>;
-  /** La scheda si apre o si chiude: finché è aperta la finestra riceve i clic e la tastiera. */
-  cardOpened(open: boolean): void;
+  /**
+   * Cosa serve alla finestra: ricevere tutti i clic (una scheda o una finestra di dialogo è aperta) e/o la tastiera (si sta
+   * scrivendo). Altrimenti lascia passare i clic alle altre applicazioni e non prende il fuoco.
+   */
+  setInputMode(mode: { interactive: boolean; keyboard: boolean }): void;
+  /** Il processo principale chiede di scegliere la materia prima di avviare un focus (dal menu dell'area di notifica). */
+  onAskSubject(callback: (minutes: number) => void): void;
+  /** La prima volta: la scheda di benvenuto (nome e compagno). */
+  onShowIntro(callback: () => void): void;
   /** Un clic sull'icona nell'area di notifica: apre o chiude la scheda. */
   onCardToggle(callback: (request: CardOpenRequest) => void): void;
   /** Tornare indietro da un'altra finestra (o da un annullamento): la scheda si riapre dov'era. */
@@ -100,7 +108,6 @@ export interface FocusFriendsApi {
 export const CHANNEL = {
   getSettings: "settings:get",
   settingsChanged: "settings:changed",
-  setInteractive: "overlay:set-interactive",
   nextPhrase: "phrase:next",
   visibilityChanged: "overlay:visibility",
   getTimerState: "timer:get-state",
@@ -112,7 +119,9 @@ export const CHANNEL = {
   cardData: "card:data",
   cardCommand: "card:command",
   cardAddTimer: "card:add-timer",
-  cardOpened: "card:opened",
+  inputMode: "overlay:input-mode",
+  askSubject: "focus:ask-subject",
+  showIntro: "intro:show",
   cardToggle: "card:toggle",
   cardReopen: "card:reopen",
   rendererReady: "renderer:ready",
