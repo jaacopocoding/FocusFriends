@@ -269,13 +269,24 @@ all'applicazione in cui stavi scrivendo finché non ci clicchi, e il fuoco che t
 
 ### M7 — Le statistiche (6–8 giorni)
 
-- [ ] Finestra con le schede **Oggi / Settimana / Mese**, frecce tra i periodi, pulsante «‹ Menu».
-- [ ] Riepilogo: totale in grande, focus completi e interrotti, barre sottili, barra a segmenti con le materie e la legenda,
+- [x] Finestra con le schede **Oggi / Settimana / Mese**, frecce tra i periodi, pulsante «‹ Menu».
+- [x] Riepilogo: totale in grande, focus completi e interrotti, barre sottili, barra a segmenti con le materie e la legenda,
       serie (con il fiocco), come è andata, frasi su quando rendi meglio.
-- [ ] **Tendina «Mostra le sessioni»**: striscia del giorno, righe con ora, materia, nota, faccia e durata; per settimana e
+- [x] **Tendina «Mostra le sessioni»**: striscia del giorno, righe con ora, materia, nota, faccia e durata; per settimana e
       mese le sessioni sotto il giorno; la pagina scorre.
-- [ ] **Modifica di una sessione** (materia, «applica a tutte», nota, voto, note del focus) ed eliminazione.
-- [ ] **Esporta CSV** (finestra di salvataggio) e **Cancella tutto…** (con conferma).
+- [x] **Modifica di una sessione** (materia, «applica a tutte», nota, voto, note del focus) ed eliminazione.
+- [x] **Esporta CSV** (finestra di salvataggio) e **Cancella tutto…** (con conferma).
+
+**Stato (sul Mac):** una **finestra vera** (con la barra del titolo, «Le statistiche di …», 560 × 660) che si crea alla prima richiesta e si
+distrugge alla chiusura, così non tiene memoria quando non serve; l'apre la scheda (riquadri di oggi e «Statistiche») o il menu
+dell'area di notifica. I numeri li ricava la pagina dalle sessioni con le stesse funzioni di `core/` provate contro il Mac; i testi
+(titoli dei periodi in italiano, righe sotto il numero, legenda, diario, striscia delle ore) sono funzioni pure provate in
+`core/dashboard.ts` (stesse date di Swift, controllate una per una). Si aggiorna da sola se il registro cambia. Provato con dati
+d'esempio: Oggi / Settimana / Mese, frecce, il diario (striscia dei giorni, sessioni sotto il giorno per settimana e mese), la modifica
+di una sessione con «cambia la materia in tutte» (rinomina e unisce), voto, nota e note del focus, elimina, esporta CSV (23 righe, con
+l'intestazione giusta), «‹ Menu» che chiude e riapre la scheda, «Cancella tutto…» (conferma di sistema, poi sessioni e profilo a zero).
+Senza giardino: il testo della conferma non lo nomina. **Da provare su Windows:** le finestre di sistema (salvataggio del CSV e
+conferma) e come sta la finestra con la scala 150% e 200%.
 
 **Fatto quando:** sugli stessi dati i numeri e i testi delle statistiche sono uguali a quelli del Mac.
 

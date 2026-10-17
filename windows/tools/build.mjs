@@ -24,6 +24,15 @@ await build({
   platform: "browser", format: "iife", target: "chrome140",
 });
 
+await build({
+  ...common, entryPoints: [src("preload", "preloadStats.ts")], outfile: out("preload", "preload-stats.cjs"),
+  platform: "node", format: "cjs", target: "node22", external: ["electron"],
+});
+await build({
+  ...common, entryPoints: [src("renderer", "stats", "stats.ts")], outfile: out("renderer", "stats.js"),
+  platform: "browser", format: "iife", target: "chrome140",
+});
+
 // Il generatore dei rumori: gira nel thread audio, in un file a parte.
 await build({
   ...common, entryPoints: [src("renderer", "audio", "noiseWorklet.ts")], outfile: out("renderer", "noise-worklet.js"),
@@ -32,5 +41,7 @@ await build({
 
 mkdirSync(out("renderer"), { recursive: true });
 copyFileSync(src("renderer", "index.html"), out("renderer", "index.html"));
+copyFileSync(src("renderer", "stats", "stats.html"), out("renderer", "stats.html"));
 // Un solo foglio di stile per la pagina: quello della scena e quello della scheda.
 writeFileSync(out("renderer", "overlay.css"), ["overlay.css", join("card", "card.css")].map((f) => readFileSync(src("renderer", f), "utf8")).join("\n"));
+writeFileSync(out("renderer", "stats.css"), ["card/card.css", "stats/stats.css"].map((f) => readFileSync(src("renderer", f), "utf8")).join("\n"));

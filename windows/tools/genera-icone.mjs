@@ -11,7 +11,7 @@ const icons = {
   chat: "message-circle", rain: "cloud-rain", brown: "audio-waveform", wind: "wind", mute: "volume-x", music: "music",
   walk: "footprints", smile: "smile", eye: "eye", eyeOff: "eye-off", leaf: "leaf", chart: "chart-column", back: "chevron-left",
   lock: "lock", play: "play", checkCircle: "circle-check", trash: "trash-2", stop: "square", skip: "skip-forward", plus: "plus",
-  more: "ellipsis",
+  more: "ellipsis", flame: "flame", snowflake: "snowflake", forward: "chevron-right", up: "chevron-up", down: "chevron-down",
 };
 
 const entries = Object.entries(icons).map(([name, file]) => {

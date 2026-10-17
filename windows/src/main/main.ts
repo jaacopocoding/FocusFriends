@@ -12,6 +12,8 @@ import type { TimerKind } from "../core/rules.ts";
 import { Settings } from "../core/settings.ts";
 import { createCardService } from "./card.ts";
 import { createMusicService } from "./music.ts";
+import { createStatsController } from "./statsWindow.ts";
+import type { StatsController } from "./statsWindow.ts";
 import { assetsDirectory, dataDirectory, rendererDirectory, resourcesDirectory } from "./paths.ts";
 import { createOverlay, fitToWorkArea, primaryDisplay } from "./overlay.ts";
 import { handleScheme, registerScheme } from "./protocol.ts";
@@ -32,6 +34,7 @@ function snapshot(settings: Settings): SettingsSnapshot {
 }
 
 async function start(): Promise<void> {
+  let statsRef: StatsController | null = null;
   app.dock?.hide();
   const assets = assetsDirectory(app);
   const data = dataDirectory(app);
@@ -66,6 +69,7 @@ async function start(): Promise<void> {
   settings.addObserver(() => send(CHANNEL.settingsChanged, snapshot(settings)));
   // I problemi con il profilo li dice il compagno.
   profile.onProblem = say;
+  profile.addObserver(() => statsRef?.refreshTitle());
   // Chi usava già l'app li tiene tutti; per gli altri si guadagnano (silenziosamente: al massimo sono già meritati).
   profile.keepAllCompanions(PET_IDS);
 
@@ -91,6 +95,11 @@ async function start(): Promise<void> {
     tray?.refresh();
   };
 
+  const stats: StatsController = statsRef = createStatsController({
+    appPath: app.getAppPath(), log: () => service.log, profile,
+    onBack: () => send(CHANNEL.cardReopen),
+    onDeleteAll: () => undefined,
+  });
   const card = createCardService({
     settings, profile, window: win, timer: () => service,
     isVisible: () => visible, setVisible, say,
@@ -98,7 +107,7 @@ async function start(): Promise<void> {
     reopenCard: () => send(CHANNEL.cardReopen),
     moreSettings: () => tray?.popUp(),
     quit: () => app.quit(),
-    stats: () => say("Le statistiche ci saranno in una prossima versione."),
+    stats: () => stats.show("day"),
   });
 
   /** Un clic sull'icona (o una scelta del menu) che apre la scheda: le coordinate sono quelle della finestra (l'area di lavoro). */
@@ -116,7 +125,7 @@ async function start(): Promise<void> {
     askFocus: (minutes) => send(CHANNEL.askSubject, minutes),
     toggleCard: (bounds) => openCard({ toggle: true, bounds }),
     openTimers: () => openCard({ toggle: false, page: "timers" }),
-    showStats: () => say("Le statistiche ci saranno in una prossima versione."),
+    showStats: () => stats.show("day"),
     quit: () => app.quit(),
   });
   const menu = tray;
@@ -162,7 +171,7 @@ async function start(): Promise<void> {
   screen.on("display-added", refit);
   screen.on("display-removed", refit);
 
-  if (process.env["FF_SELFTEST"] !== undefined) runSelfTest(win, interactions, settings, () => service, card);
+  if (process.env["FF_SELFTEST"] !== undefined) runSelfTest(win, interactions, settings, () => service, card, stats);
 }
 
 /**
@@ -172,7 +181,7 @@ async function start(): Promise<void> {
  * - FF_SELFTEST_FILE=percorso.cjs: un copione che riceve gli strumenti (finestra, attese, schermate, misure, eventi del mouse).
  * FF_SELFTEST_OUT è la cartella dove scrivere.
  */
-function runSelfTest(win: BrowserWindow, interactions: string[], settings: Settings, timer: () => TimerService, card: ReturnType<typeof createCardService>): void {
+function runSelfTest(win: BrowserWindow, interactions: string[], settings: Settings, timer: () => TimerService, card: ReturnType<typeof createCardService>, stats: StatsController): void {
   const out = process.env["FF_SELFTEST_OUT"] ?? join(app.getPath("temp"), "ff-selftest");
   mkdirSync(out, { recursive: true });
   // I messaggi della pagina (e i suoi errori) escono sul terminale.
@@ -185,6 +194,7 @@ function runSelfTest(win: BrowserWindow, interactions: string[], settings: Setti
     settings,
     timer,
     card,
+    stats,
     sleep: (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)),
     js: (code: string) => win.webContents.executeJavaScript(code) as Promise<unknown>,
     async shot(name: string) {
