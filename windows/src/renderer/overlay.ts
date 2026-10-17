@@ -15,6 +15,7 @@ import { MusicPlayer } from "./audio/music.ts";
 import { MenuCard } from "./card/card.ts";
 import { openIntroCard } from "./dialogs/introCard.ts";
 import { ModalHost } from "./dialogs/modal.ts";
+import { openNameDialog } from "./dialogs/nameDialog.ts";
 import { ReflectionCard } from "./dialogs/reflectionCard.ts";
 import { openSubjectPrompt } from "./dialogs/subjectPrompt.ts";
 import { ClockView, CLOCK_SIZE } from "./clockView.ts";
@@ -477,6 +478,12 @@ function showIntro(): void {
   });
 }
 
+/** «Il tuo nome…»: dal menu dell'area di notifica. */
+async function askName(): Promise<void> {
+  const data = await api.getCardData();
+  openNameDialog(modals, { current: data.userName, onSave: (name) => api.cardCommand({ name: "setName", userName: name }) });
+}
+
 // ---- avvio
 
 async function loadPaper(): Promise<ImageBitmap | null> {
@@ -548,6 +555,7 @@ async function start(): Promise<void> {
   api.onCardToggle((request) => card.toggle(request));
   api.onAskSubject((minutes) => { void askFocus(minutes); });
   api.onShowIntro(showIntro);
+  api.onAskName(() => { void askName(); });
   api.onCardReopen(() => card.reopen());
 
   document.addEventListener("mousemove", onMouseMove);
@@ -576,6 +584,7 @@ async function start(): Promise<void> {
       restImage: (() => restImageIndex(view.pet)) as () => number,
       askFocus: ((minutes: number) => { void askFocus(minutes); }) as () => void,
       showIntro: (() => showIntro()) as () => void,
+      askName: (() => { void askName(); }) as () => void,
       askReflection: ((session: object) => reflection.ask(session as never)) as () => void,
       modalOpen: (() => modals.isOpen) as () => boolean,
       reflectionOpen: (() => reflection.isShowing) as () => boolean,

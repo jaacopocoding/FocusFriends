@@ -61,6 +61,7 @@ export type CardCommand =
   | { name: "moreSettings" }
   | { name: "rateLast"; rating: Rating }
   | { name: "saveReflection"; sessionId: string; rating: Rating | null; note: string | null }
+  | { name: "setName"; userName: string | null }
   | { name: "finishIntro"; userName: string | null; petId: string }
   | { name: "quit" };
 
@@ -91,6 +92,8 @@ export interface FocusFriendsApi {
   setInputMode(mode: { interactive: boolean; keyboard: boolean }): void;
   /** Il processo principale chiede di scegliere la materia prima di avviare un focus (dal menu dell'area di notifica). */
   onAskSubject(callback: (minutes: number) => void): void;
+  /** «Il tuo nome…», dal menu dell'area di notifica. */
+  onAskName(callback: () => void): void;
   /** La prima volta: la scheda di benvenuto (nome e compagno). */
   onShowIntro(callback: () => void): void;
   /** Un clic sull'icona nell'area di notifica: apre o chiude la scheda. */
@@ -122,6 +125,7 @@ export const CHANNEL = {
   inputMode: "overlay:input-mode",
   askSubject: "focus:ask-subject",
   showIntro: "intro:show",
+  askName: "name:ask",
   cardToggle: "card:toggle",
   cardReopen: "card:reopen",
   rendererReady: "renderer:ready",

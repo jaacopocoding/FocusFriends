@@ -4,9 +4,9 @@ La versione per Windows di FocusFriends, scritta con **Electron** (TypeScript, H
 in [`../PIANO_WINDOWS.md`](../PIANO_WINDOWS.md) e i formati dei dati, comuni con l'app per Mac, in
 [`../FORMATI.md`](../FORMATI.md).
 
-**Stato:** M2, M3, M4, M5, M6 e M7 finite sul Mac (la logica pura in `src/core/`, il timer, la scheda di carta, il menu completo, i suoni, le schede «Cosa studi adesso?», «Com'è andata?» e di benvenuto, e le statistiche) e M1 avviata: il
+**Stato:** M2, M3, M4, M5, M6, M7 e M8 finite sul Mac (la logica pura in `src/core/`, il timer, la scheda di carta, il menu completo, i suoni, le schede «Cosa studi adesso?», «Com'è andata?» e di benvenuto, e le statistiche) e M1 avviata: il
 compagno si vede, cammina, si solleva, parla, ha l'orologio sotto di sé e il «+5 minuti» a fine focus. Clic sull'icona nell'area di
-notifica = la scheda; tasto destro = il menu. Manca la prova su Windows e il nome da cambiare (M8).
+notifica = la scheda; tasto destro = il menu. Manca la prova su Windows.
 
 **Per provarlo** serve Node 24 o più nuovo:
 
@@ -21,6 +21,9 @@ npm start       # compila e apre il compagno (Esci: dall'icona nell'area di noti
 Sul Mac `npm start` mostra il compagno sullo schermo e lavora in una **cartella di dati di prova**
 (`~/Library/Application Support/focusfriends-windows/dati-di-prova`): **non tocca mai i dati dell'app per Mac**. Con
 `FF_DATA_DIR=/un/percorso` si sceglie un'altra cartella. Su Windows i dati stanno in `%APPDATA%\FocusFriends`.
+
+**Modalità sviluppatore** (tutti i compagni sbloccati, senza toccare il profilo): scrivi `"developerMode": true` in `impostazioni.json`
+(`%APPDATA%\FocusFriends\` su Windows) e riapri l'app.
 
 Le prove includono il **contratto con la versione per Mac**: da ogni cartella di `../tests/fixtures/` il codice deve ricavare
 lo stesso risultato dei file `../tests/fixtures/attesi/`, generati dall'app per Mac (`../tests/genera-attesi.sh`). I dati dei

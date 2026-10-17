@@ -292,9 +292,18 @@ conferma) e come sta la finestra con la scala 150% e 200%.
 
 ### M8 — Sblocchi e nome (2–3 giorni)
 
-- [ ] Annuncio dello sblocco a fine focus, scelta del primo compagno, compagni bloccati che non si possono scegliere.
-- [ ] Il nome nei titoli («Le statistiche di …»), «Il tuo nome…».
-- [ ] Modalità sviluppatore (`developerMode` nelle impostazioni) che sblocca tutto.
+- [x] Annuncio dello sblocco a fine focus, scelta del primo compagno, compagni bloccati che non si possono scegliere.
+- [x] Il nome nei titoli («Le statistiche di …»), «Il tuo nome…».
+- [x] Modalità sviluppatore (`developerMode` nelle impostazioni) che sblocca tutto.
+
+**Stato (sul Mac):** la regola degli sblocchi è in `core/unlocks.ts` (6 prove con il profilo vero: 20 focus pieni per il secondo, 50 per il
+terzo, 100 per il quarto, l'ordine che dipende dal primo scelto, più sblocchi insieme, e niente di registrato in modalità sviluppatore).
+A fine focus i compagni guadagnati si sbloccano e il compagno lo dice nove secondi dopo la frase di fine focus; quelli ancora bloccati
+si vedono con il lucchetto e la frase su quanto manca, e non si possono scegliere né dalla scheda né dal menu. «Il tuo nome…» (menu
+dell'area di notifica) apre una finestra di dialogo: il nome si pulisce, vuoto lo toglie, e cambia il saluto della scheda e il titolo
+della finestra delle statistiche. Modalità sviluppatore: si accende scrivendo `"developerMode": true` in `impostazioni.json` (sul Mac si
+fa con `defaults write`); sblocca tutto senza toccare il profilo. Provato dal vivo con un profilo che ha scelto Pianty per primo.
+
 
 ### M9 — Sistema e rifiniture (3–5 giorni)
 

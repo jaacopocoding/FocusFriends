@@ -25,6 +25,8 @@ export interface TrayDeps {
   isVisible(): boolean;
   setVisible(visible: boolean): void;
   speak(): void;
+  /** «Il tuo nome…». */
+  askName(): void;
   /** «Focus N min»: prima si chiede la materia («Cosa studi adesso?»), poi parte. */
   askFocus(minutes: number): void;
   /** Un clic sull'icona: apre o chiude la scheda sotto (sopra) di lei. */
@@ -169,6 +171,7 @@ export function createTray(deps: TrayDeps): { refresh(): void; popUp(): void; bo
         ],
       },
       { type: "separator" },
+      { label: "Il tuo nome…", click: () => deps.askName() },
       { label: "Chiedi com'è andata", type: "checkbox", checked: settings.askHowItWent, click: (item) => { settings.askHowItWent = item.checked; } },
       {
         label: `Pausa lunga dopo ${FOCUSES_PER_CYCLE} focus`, type: "checkbox", checked: settings.longBreakEnabled,

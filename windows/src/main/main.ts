@@ -123,6 +123,7 @@ async function start(): Promise<void> {
     assets, data, settings, profile, card, timer: () => service, isVisible: () => visible, setVisible,
     speak: () => send(CHANNEL.speakNow),
     askFocus: (minutes) => send(CHANNEL.askSubject, minutes),
+    askName: () => send(CHANNEL.askName),
     toggleCard: (bounds) => openCard({ toggle: true, bounds }),
     openTimers: () => openCard({ toggle: false, page: "timers" }),
     showStats: () => stats.show("day"),

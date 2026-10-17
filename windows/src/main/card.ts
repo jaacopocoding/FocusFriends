@@ -9,7 +9,7 @@ import { ambientOfChoice, nextAmbient } from "../core/rules.ts";
 import type { AddTimerResult, TimerKind } from "../core/rules.ts";
 import { petInfo } from "../core/pets.ts";
 import type { Profile } from "../core/profile.ts";
-import { focuses, earned, order } from "../core/rewards.ts";
+import { evaluateUnlocks, unlockMessage } from "../core/unlocks.ts";
 import type { Settings } from "../core/settings.ts";
 import { CHATTINESS } from "../core/rules.ts";
 import { PET_IDS } from "../core/pets.ts";
@@ -129,21 +129,10 @@ export function createCardService(options: CardServiceOptions): CardService {
     },
 
     evaluateCompanionRewards(announce) {
-      // In modalità sviluppatore è tutto già aperto: niente sblocchi da annunciare (e niente da registrare).
-      const current = profile.unlocked;
-      if (settings.developerMode || current === null) return;
-      const total = focuses(timer().log.sessions.reduce((sum, s) => sum + s.seconds, 0));
-      const got = earned(profile.firstCompanion, PET_IDS, total);
-      const fresh = order(profile.firstCompanion, PET_IDS).filter((id) => got.has(id) && !current.has(id));
-      if (fresh.length === 0) return;
-      profile.unlock(fresh);
-      if (!announce) return;
-      const names = fresh.map((id) => petInfo(id).name);
-      const text = names.length === 1
-        ? `Hai sbloccato ${names[0]}! Lo trovi nel menu, tra i compagni.`
-        : `Hai sbloccato ${names.join(" e ")}! Li trovi nel menu, tra i compagni.`;
+      const fresh = evaluateUnlocks(profile, timer().log.sessions, PET_IDS, settings.developerMode);
+      if (fresh.length === 0 || !announce) return;
       // Dopo la frase di fine focus, che altrimenti la coprirebbe.
-      setTimeout(() => options.say(text), 9000);
+      setTimeout(() => options.say(unlockMessage(fresh)), 9000);
     },
 
     command(command) {
@@ -214,6 +203,7 @@ export function createCardService(options: CardServiceOptions): CardService {
           break;
         }
         case "saveReflection": saveReflection(timer().log, command.sessionId, command.rating, command.note); break;
+        case "setName": profile.setName(command.userName); break;
         case "finishIntro": {
           // La prima volta: come ti chiami e chi ti fa compagnia. «Salta» vale «nessun nome» e il compagno che c'era.
           profile.setName(command.userName);

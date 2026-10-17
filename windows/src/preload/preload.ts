@@ -32,6 +32,9 @@ const api: FocusFriendsApi = {
   onAskSubject: (callback) => {
     ipcRenderer.on(CHANNEL.askSubject, (_event, minutes: number) => callback(minutes));
   },
+  onAskName: (callback) => {
+    ipcRenderer.on(CHANNEL.askName, () => callback());
+  },
   onShowIntro: (callback) => {
     ipcRenderer.on(CHANNEL.showIntro, () => callback());
   },
