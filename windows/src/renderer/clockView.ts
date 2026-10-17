@@ -2,10 +2,10 @@
 // la stessa del fumetto (TimerView in TimerBubble.swift). Si apre dall'alto come una tendina.
 
 import type { Size } from "../core/pets.ts";
+import { markerFamily } from "./fonts.ts";
 
 export const CLOCK_SIZE: Size = { width: 132, height: 76 };
 const DURATION_MS = 350;
-const FONT_FAMILY = '"Marker Felt", "MarkerFelt-Wide", "Kalam", "Segoe Print", cursive';
 const DIGIT_COLOR = "rgb(33, 31, 26)";
 const SHADOW_COLOR = "rgba(89, 71, 38, 0.28)";
 
@@ -176,7 +176,7 @@ export class ClockView {
     c.save();
     c.translate(screen.x + 6, screen.y + screen.height - 12);
     c.scale(1, -1);
-    c.font = `8.5px ${FONT_FAMILY}`;
+    c.font = `8.5px ${markerFamily()}`;
     c.fillStyle = "rgba(33, 31, 26, 0.8)";
     c.textBaseline = "alphabetic";
     c.fillText(this.label, 0, 8);

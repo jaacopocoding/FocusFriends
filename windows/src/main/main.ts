@@ -4,10 +4,13 @@ import { app, BrowserWindow, ipcMain, screen } from "electron";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { CHANNEL } from "../shared/api.ts";
-import type { SettingsSnapshot } from "../shared/api.ts";
+import type { CardCommand, CardOpenRequest, SettingsSnapshot } from "../shared/api.ts";
 import { PhraseDeck, loadPhrases } from "../core/phrases.ts";
-import { petInfo } from "../core/pets.ts";
+import { PET_IDS, petInfo } from "../core/pets.ts";
+import { Profile } from "../core/profile.ts";
+import type { TimerKind } from "../core/rules.ts";
 import { Settings } from "../core/settings.ts";
+import { createCardService } from "./card.ts";
 import { assetsDirectory, dataDirectory, rendererDirectory, resourcesDirectory } from "./paths.ts";
 import { createOverlay, fitToWorkArea, primaryDisplay } from "./overlay.ts";
 import { handleScheme, registerScheme } from "./protocol.ts";
@@ -17,7 +20,6 @@ import { createTray } from "./tray.ts";
 
 registerScheme();
 
-let overlay: BrowserWindow | null = null;
 let visible = true;
 
 function snapshot(settings: Settings): SettingsSnapshot {
@@ -32,9 +34,9 @@ async function start(): Promise<void> {
   handleScheme({ assets, renderer: rendererDirectory(app), resources: resourcesDirectory(app) });
 
   const settings = new Settings(data);
+  const profile = new Profile(data, { developer: () => settings.developerMode });
   const decks = new Map<string, PhraseDeck>();
   const win = createOverlay(primaryDisplay(), app.getAppPath());
-  overlay = win;
 
   // Finché la pagina non è pronta i messaggi si tengono da parte (e partono nell'ordine in cui sono nati).
   let pageReady = false;
@@ -47,8 +49,13 @@ async function start(): Promise<void> {
     pageReady = true;
     for (const [channel, payload] of waiting.splice(0)) win.webContents.send(channel, payload);
   });
+  const say = (text: string): void => send(CHANNEL.timerEvent, { type: "say", text });
 
   settings.addObserver(() => send(CHANNEL.settingsChanged, snapshot(settings)));
+  // I problemi con il profilo li dice il compagno.
+  profile.onProblem = say;
+  // Chi usava già l'app li tiene tutti; per gli altri si guadagnano (silenziosamente: al massimo sono già meritati).
+  profile.keepAllCompanions(PET_IDS);
 
   ipcMain.handle(CHANNEL.getSettings, () => snapshot(settings));
   const interactions: string[] = [];
@@ -66,41 +73,67 @@ async function start(): Promise<void> {
     return deck.draw(phrases) ?? petInfo(id).fallbackQuote;
   });
 
-  // Il timer e il menu dell'area di notifica si conoscono a vicenda: il primo nasce prima, il secondo gli si aggancia.
+  // Il timer, il menu dell'area di notifica e la scheda si conoscono a vicenda: nascono uno dopo l'altro e si agganciano.
   let tray: ReturnType<typeof createTray> | null = null;
   const service: TimerService = startTimer({ directory: data, settings, send, onChange: () => tray?.refresh() });
-  tray = createTray(assets, {
-    timer: () => service.snapshot(),
-    timers: (kind) => settings.allTimers(kind),
-    startFocus: (minutes) => service.run(() => service.engine.startFocus(minutes)),
-    startBreak: (minutes) => service.run(() => service.engine.startBreak(minutes)),
-    togglePause: () => service.run(() => service.engine.toggleFocusPause()),
-    addMinutes: () => service.run(() => service.engine.addMinutes()),
-    stopTimer: () => service.run(() => service.engine.stop()),
-    discardFocus: () => service.run(() => service.engine.discardFocus()),
-    speak: () => send(CHANNEL.speakNow),
-    isVisible: () => visible,
-    toggleVisible: () => setVisible(!visible),
-    currentPet: () => settings.pet,
-    choosePet: (id) => { settings.pet = id; },
-    isMovementOn: () => settings.movement,
-    setMovement: (on) => { settings.movement = on; },
-    quit: () => app.quit(),
-  });
-  const menu = tray;
-  settings.addObserver(() => menu.refresh());
-  // Fine di un focus o di una pausa: il compagno compare anche se l'avevi nascosto.
-  service.engine.onEvent((event) => { if (event.type === "sound" && !visible) setVisible(true); });
-  ipcMain.handle(CHANNEL.getTimerState, () => service.snapshot());
-  ipcMain.on(CHANNEL.timerExtend, () => service.run(() => service.engine.extendFocus()));
-  app.on("before-quit", () => service.shutdown());
 
   const setVisible = (on: boolean): void => {
     visible = on;
     if (on) win.showInactive(); else win.hide();
     send(CHANNEL.visibilityChanged, on);
-    menu.refresh();
+    tray?.refresh();
   };
+
+  const card = createCardService({
+    settings, profile, window: win, timer: () => service,
+    isVisible: () => visible, setVisible, say,
+    speakNow: () => send(CHANNEL.speakNow),
+    reopenCard: () => send(CHANNEL.cardReopen),
+    moreSettings: () => tray?.popUp(),
+    quit: () => app.quit(),
+    stats: () => say("Le statistiche ci saranno in una prossima versione."),
+  });
+
+  /** Un clic sull'icona (o una scelta del menu) che apre la scheda: le coordinate sono quelle della finestra (l'area di lavoro). */
+  const openCard = (request: Omit<CardOpenRequest, "anchor"> & { bounds?: { x: number; y: number; width: number; height: number } }): void => {
+    const area = primaryDisplay().workArea;
+    const anchor = request.bounds
+      ? { x: request.bounds.x - area.x, y: request.bounds.y - area.y, width: request.bounds.width, height: request.bounds.height }
+      : null;
+    send(CHANNEL.cardToggle, { anchor, toggle: request.toggle, ...(request.page ? { page: request.page } : {}) } satisfies CardOpenRequest);
+  };
+
+  tray = createTray({
+    assets, data, settings, profile, card, timer: () => service, isVisible: () => visible, setVisible,
+    speak: () => send(CHANNEL.speakNow),
+    toggleCard: (bounds) => openCard({ toggle: true, bounds }),
+    openTimers: () => openCard({ toggle: false, page: "timers" }),
+    showStats: () => say("Le statistiche ci saranno in una prossima versione."),
+    quit: () => app.quit(),
+  });
+  const menu = tray;
+  settings.addObserver(() => menu.refresh());
+
+  ipcMain.handle(CHANNEL.cardData, () => card.data());
+  ipcMain.on(CHANNEL.cardCommand, (_event, command: CardCommand) => card.command(command));
+  ipcMain.handle(CHANNEL.cardAddTimer, (_event, kind: TimerKind, minutes: number) => card.addTimer(kind, minutes));
+  // Finché la scheda è aperta la finestra riceve i clic e la tastiera; chiusa, torna a lasciar passare tutto.
+  ipcMain.on(CHANNEL.cardOpened, (_event, open: unknown) => {
+    if (typeof open !== "boolean" || win.isDestroyed()) return;
+    win.setFocusable(open);
+    win.setIgnoreMouseEvents(!open, { forward: true });
+    if (open) win.focus(); else win.blur();
+  });
+  ipcMain.on(CHANNEL.timerExtend, () => service.run(() => service.engine.extendFocus()));
+  app.on("before-quit", () => service.shutdown());
+
+  // Fine di un focus o di una pausa: il compagno compare anche se l'avevi nascosto.
+  service.engine.onEvent((event) => {
+    if (event.type === "sound" && !visible) setVisible(true);
+    if (event.type === "focusRecorded") card.evaluateCompanionRewards(true);
+  });
+  card.evaluateCompanionRewards(false);
+  ipcMain.handle(CHANNEL.getTimerState, () => service.snapshot());
 
   // L'area di lavoro cambia (barra delle applicazioni spostata, risoluzione, scala): la finestra la segue.
   const refit = (): void => { if (!win.isDestroyed()) fitToWorkArea(win, primaryDisplay()); };
@@ -108,7 +141,7 @@ async function start(): Promise<void> {
   screen.on("display-added", refit);
   screen.on("display-removed", refit);
 
-  if (process.env["FF_SELFTEST"] !== undefined) runSelfTest(win, interactions, settings, () => service);
+  if (process.env["FF_SELFTEST"] !== undefined) runSelfTest(win, interactions, settings, () => service, card);
 }
 
 /**
@@ -118,7 +151,7 @@ async function start(): Promise<void> {
  * - FF_SELFTEST_FILE=percorso.cjs: un copione che riceve gli strumenti (finestra, attese, schermate, misure, eventi del mouse).
  * FF_SELFTEST_OUT è la cartella dove scrivere.
  */
-function runSelfTest(win: BrowserWindow, interactions: string[], settings: Settings, timer: () => TimerService): void {
+function runSelfTest(win: BrowserWindow, interactions: string[], settings: Settings, timer: () => TimerService, card: ReturnType<typeof createCardService>): void {
   const out = process.env["FF_SELFTEST_OUT"] ?? join(app.getPath("temp"), "ff-selftest");
   mkdirSync(out, { recursive: true });
   // I messaggi della pagina (e i suoi errori) escono sul terminale.
@@ -130,6 +163,7 @@ function runSelfTest(win: BrowserWindow, interactions: string[], settings: Setti
     interactions,
     settings,
     timer,
+    card,
     sleep: (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)),
     js: (code: string) => win.webContents.executeJavaScript(code) as Promise<unknown>,
     async shot(name: string) {
@@ -143,8 +177,12 @@ function runSelfTest(win: BrowserWindow, interactions: string[], settings: Setti
       writeFileSync(join(out, `${name}.json`), JSON.stringify({ metrics }, null, 2));
     },
     /** Un evento del mouse arriva alla pagina come se l'utente lo avesse fatto (senza passare dal sistema). */
-    mouse(type: "mouseMove" | "mouseDown" | "mouseUp", x: number, y: number) {
-      win.webContents.sendInputEvent({ type, x, y, button: "left", clickCount: 1 });
+    mouse(type: "mouseMove" | "mouseDown" | "mouseUp", x: number, y: number, button: "left" | "right" = "left") {
+      win.webContents.sendInputEvent({ type, x, y, button, clickCount: 1 });
+    },
+    key(keyCode: string) {
+      win.webContents.sendInputEvent({ type: "keyDown", keyCode });
+      win.webContents.sendInputEvent({ type: "keyUp", keyCode });
     },
     quit: () => app.quit(),
   };

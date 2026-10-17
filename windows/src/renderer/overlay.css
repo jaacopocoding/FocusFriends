@@ -44,7 +44,7 @@ html, body {
   left: 17.5%;
   width: 65%;
   text-align: center;
-  font: 14px "Marker Felt", "MarkerFelt-Wide", "Kalam", "Segoe Print", cursive;
+  font: 14px var(--marker);
   color: rgb(36, 23, 13);
   transform: translateY(-50%);
 }
@@ -56,7 +56,7 @@ html, body {
   visibility: hidden;
   display: inline-block;
   text-align: center;
-  font: 14px "Marker Felt", "MarkerFelt-Wide", "Kalam", "Segoe Print", cursive;
+  font: 14px var(--marker);
 }
 
 .extend {
@@ -109,7 +109,7 @@ html, body {
   color: white;
   text-align: center;
   line-height: 36px;
-  font: 18px/36px "Marker Felt", "MarkerFelt-Wide", "Kalam", "Segoe Print", cursive;
+  font: 18px/36px var(--marker);
 }
 
 .extend .line1 {

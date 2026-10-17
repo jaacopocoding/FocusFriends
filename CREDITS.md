@@ -23,3 +23,9 @@ e ridistribuire senza condizioni e senza obbligo di citare l'autore. Li citiamo 
 
 I personaggi (Pianty, Porcellino, Ciccio), le piantine, il fumetto e il logo sono illustrazioni create per questo
 progetto.
+
+## Icone (versione per Windows)
+
+Le piccole icone della scheda (al posto dei simboli di sistema del Mac) vengono da **Lucide** (<https://lucide.dev>), licenza ISC:
+Copyright (c) per Lucide Contributors, e (c) 2013-2022 Cole Bemis per le parti derivate da Feather (MIT). Si rifanno con
+`windows/tools/genera-icone.mjs`.

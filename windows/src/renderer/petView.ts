@@ -4,13 +4,13 @@
 
 import { restImageIndex } from "../core/pets.ts";
 import type { PetData, Size } from "../core/pets.ts";
+import { markerFamily } from "./fonts.ts";
 
 /** Sotto questa opacità (su 255) un pixel non conta come disegno: per la cima del disegno e per i clic. */
 const OPAQUE = 25;
 const FADE_SECONDS = 0.8;
 /** Spazio vuoto sotto i piedi del disegno, in punti. */
 const BOTTOM_MARGIN = 3;
-const FONT_FAMILY = '"Marker Felt", "MarkerFelt-Wide", "Kalam", "Segoe Print", cursive';
 
 interface LoadedImage {
   bitmap: ImageBitmap;
@@ -371,7 +371,7 @@ export class PetView {
       const p = phase / 2.8;
       context.globalAlpha = Math.sin(p * Math.PI);
       context.fillStyle = "rgb(92, 77, 61)";
-      context.font = `bold ${letter.size}px ${FONT_FAMILY}`;
+      context.font = `bold ${letter.size}px ${markerFamily()}`;
       context.textBaseline = "alphabetic";
       context.fillText(letter.text, headX + direction * letter.dx, height - (baseY + p * 14));
     });

@@ -1,30 +1,35 @@
-// L'icona nell'area di notifica e il suo menu: mostra/nascondi, scelta del compagno, movimento, esci.
+// L'icona nell'area di notifica e il suo menu completo (quello che sul Mac è il menu della barra): clic sull'icona = la scheda,
+// tasto destro = questo menu.
 
-import { Menu, Tray, nativeImage } from "electron";
-import type { MenuItemConstructorOptions, NativeImage } from "electron";
+import { Menu, Tray, nativeImage, shell } from "electron";
+import type { MenuItemConstructorOptions, NativeImage, Rectangle } from "electron";
+import { copyFileSync, existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { PETS, petInfo } from "../core/pets.ts";
 import type { PetData } from "../core/pets.ts";
-import type { PomodoroSnapshot } from "../core/pomodoro.ts";
-import type { TimerKind } from "../core/rules.ts";
+import { phrasesFileName } from "../core/phrases.ts";
+import type { Profile } from "../core/profile.ts";
+import { AMBIENT_TITLES, AMBIENT_SOUNDS, CHATTINESS, CHATTINESS_TITLES, FOCUSES_PER_CYCLE, VOLUME_STEPS, nearestStep } from "../core/rules.ts";
+import type { Settings } from "../core/settings.ts";
+import { musicLabel } from "../core/card.ts";
+import type { CardService } from "./card.ts";
+import type { TimerService } from "./timer.ts";
 
-export interface TrayActions {
-  timer(): PomodoroSnapshot;
-  /** I timer di serie e quelli personalizzati, in ordine crescente. */
-  timers(kind: TimerKind): number[];
-  startFocus(minutes: number): void;
-  startBreak(minutes: number): void;
-  togglePause(): void;
-  addMinutes(): void;
-  stopTimer(): void;
-  discardFocus(): void;
-  speak(): void;
+export interface TrayDeps {
+  assets: string;
+  data: string;
+  settings: Settings;
+  profile: Profile;
+  card: CardService;
+  timer: () => TimerService;
   isVisible(): boolean;
-  toggleVisible(): void;
-  currentPet(): string;
-  choosePet(id: string): void;
-  isMovementOn(): boolean;
-  setMovement(on: boolean): void;
+  setVisible(visible: boolean): void;
+  speak(): void;
+  /** Un clic sull'icona: apre o chiude la scheda sotto (sopra) di lei. */
+  toggleCard(bounds: Rectangle): void;
+  /** «Personalizza…»: la scheda aperta sulla pagina dei timer. */
+  openTimers(): void;
+  showStats(): void;
   quit(): void;
 }
 
@@ -44,50 +49,154 @@ export function iconFor(pet: PetData, assets: string): NativeImage {
   return cropped.resize(size.width >= size.height ? { width: 32 } : { height: 32 });
 }
 
-export function createTray(assets: string, actions: TrayActions): { refresh(): void; destroy(): void } {
-  const tray = new Tray(iconFor(petInfo(actions.currentPet()), assets));
-  tray.setToolTip("FocusFriends");
+/** «Modifica le frasi…»: parte dal file incluso (se non c'è già il tuo) e lo apre nell'editor. */
+async function openPhrasesFile(deps: TrayDeps): Promise<void> {
+  const name = phrasesFileName(deps.settings.pet);
+  const file = join(deps.data, name);
+  if (!existsSync(file)) {
+    const bundled = join(deps.assets, name);
+    mkdirSync(deps.data, { recursive: true });
+    if (existsSync(bundled)) copyFileSync(bundled, file);
+  }
+  if (existsSync(file)) await shell.openPath(file);
+}
 
-  const refresh = (): void => {
-    const pet = petInfo(actions.currentPet());
-    const timer = actions.timer();
+export function createTray(deps: TrayDeps): { refresh(): void; popUp(): void; bounds(): Rectangle; destroy(): void } {
+  const { settings, profile, card } = deps;
+  const tray = new Tray(iconFor(petInfo(settings.pet), deps.assets));
+  let menu: Menu;
+
+  const timerItems = (): MenuItemConstructorOptions[] => {
+    const timer = deps.timer().snapshot();
     const running = timer.phase !== null;
-    const pomofocus: MenuItemConstructorOptions[] = [
-      ...actions.timers("focus").map((m) => ({ label: `Focus ${m} min`, click: () => actions.startFocus(m) })),
-      { type: "separator" as const },
-      ...actions.timers("rest").map((m) => ({
-        label: `Pausa ${m} min`, type: "checkbox" as const, checked: timer.breakMinutes === m, click: () => actions.startBreak(m),
+    const items: MenuItemConstructorOptions[] = [
+      ...settings.allTimers("focus").map((m): MenuItemConstructorOptions => ({ label: `Focus ${m} min`, click: () => card.command({ name: "startFocus", minutes: m }) })),
+      { type: "separator" },
+      ...settings.allTimers("rest").map((m): MenuItemConstructorOptions => ({
+        label: `Pausa ${m} min`, type: "checkbox", checked: timer.breakMinutes === m, click: () => card.command({ name: "startBreak", minutes: m }),
       })),
+      { type: "separator" },
+      { label: "Personalizza…", click: () => deps.openTimers() },
     ];
-    if (running) {
-      pomofocus.push({ type: "separator" });
-      if (timer.phase === "focus") {
-        pomofocus.push({ label: timer.isPaused ? "Riprendi" : "Ferma", click: () => actions.togglePause() });
-      }
-      pomofocus.push({ label: "Altri 5 minuti", click: () => actions.addMinutes() });
-      pomofocus.push({ label: timer.phase === "focus" ? "Termina e salva" : "Salta la pausa", click: () => actions.stopTimer() });
-      if (timer.phase === "focus") pomofocus.push({ label: "Elimina questo focus", click: () => actions.discardFocus() });
+    const custom: Array<["focus" | "rest", number]> = [
+      ...settings.customTimers("focus").map((m): ["focus", number] => ["focus", m]),
+      ...settings.customTimers("rest").map((m): ["rest", number] => ["rest", m]),
+    ];
+    if (custom.length > 0) {
+      items.push({
+        label: "Rimuovi un timer personalizzato",
+        submenu: custom.map(([kind, m]) => ({
+          label: `${kind === "focus" ? "Focus" : "Pausa"} ${m} min`, click: () => card.command({ name: "removeTimer", kind, minutes: m }),
+        })),
+      });
     }
-    tray.setImage(iconFor(pet, assets));
-    tray.setToolTip(running ? `FocusFriends — ${timer.label.toLowerCase()} ${timer.remainingText}` : "FocusFriends");
-    tray.setContextMenu(Menu.buildFromTemplate([
-      { label: `Fai parlare ${pet.name}`, click: () => actions.speak() },
+    items.push({ type: "separator" });
+    if (running && timer.phase === "focus") {
+      items.push({ label: timer.isPaused ? "Riprendi" : "Ferma", click: () => card.command({ name: "togglePause" }) });
+      items.push({ label: "Altri 5 minuti", click: () => card.command({ name: "addMinutes" }) });
+      items.push({ label: "Elimina questo focus", click: () => card.command({ name: "discardFocus" }) });
+    } else if (running) {
+      items.push({ label: "Altri 5 minuti", click: () => card.command({ name: "addMinutes" }) });
+    }
+    items.push({
+      label: running ? `Ferma timer (${timer.remainingText})` : "Ferma timer", enabled: running, click: () => card.command({ name: "stopTimer" }),
+    });
+    return items;
+  };
+
+  const volumeItems = (current: number, set: (value: number) => void): MenuItemConstructorOptions[] =>
+    VOLUME_STEPS.map((step) => ({
+      label: `Volume ${Math.round(step * 100)}%`, type: "radio" as const, checked: nearestStep(current) === step, click: () => set(step),
+    }));
+
+  const build = (): Menu => {
+    const pet = petInfo(settings.pet);
+    const timer = deps.timer().snapshot();
+    const visible = deps.isVisible();
+    return Menu.buildFromTemplate([
+      { label: `Fai parlare ${pet.name}`, click: () => deps.speak() },
       { type: "separator" },
-      { label: "Pomofocus", submenu: pomofocus },
-      { type: "separator" },
-      { label: actions.isVisible() ? `Nascondi ${pet.name}` : `Mostra ${pet.name}`, click: () => actions.toggleVisible() },
+      { label: timer.phase === null ? "Pomofocus" : `Pomofocus · ${timer.remainingText}`, submenu: timerItems() },
+      { label: `${profile.statsTitle}…`, click: () => deps.showStats() },
       {
-        label: "Personaggio",
-        submenu: PETS.map((p) => ({
-          label: p.name, type: "radio" as const, checked: p.id === pet.id, click: () => actions.choosePet(p.id),
+        label: "Suono ambiente",
+        submenu: [
+          ...AMBIENT_SOUNDS.map((sound): MenuItemConstructorOptions => ({
+            label: AMBIENT_TITLES[sound], type: "radio", checked: settings.ambientSound === sound, click: () => card.setAmbient(sound),
+          })),
+          { type: "separator" },
+          ...volumeItems(settings.ambientVolume, (value) => { settings.ambientVolume = value; }),
+        ],
+      },
+      {
+        label: "Musica",
+        submenu: [
+          { label: "Nessuna", type: "radio", checked: settings.musicSource === "off", click: () => { void card.selectMusic("off"); } },
+          { label: "Brani inclusi", type: "radio", checked: settings.musicSource === "bundled", click: () => { void card.selectMusic("bundled"); } },
+          {
+            label: musicLabel("folder", settings.musicFolder).replace("Cartella:", "La mia cartella:"), type: "radio",
+            checked: settings.musicSource === "folder", click: () => { void card.selectMusic("folder"); },
+          },
+          { label: "Scegli la cartella…", click: () => { void card.chooseMusicFolder(); } },
+          { type: "separator" },
+          ...volumeItems(settings.musicVolume, (value) => { settings.musicVolume = value; }),
+        ],
+      },
+      {
+        label: `Frequenza delle frasi · ${CHATTINESS_TITLES[settings.phraseFrequency]}`,
+        submenu: CHATTINESS.map((level): MenuItemConstructorOptions => ({
+          label: CHATTINESS_TITLES[level], type: "radio", checked: settings.phraseFrequency === level, click: () => { settings.phraseFrequency = level; },
         })),
       },
-      { label: "In movimento", type: "checkbox", checked: actions.isMovementOn(), click: (item) => actions.setMovement(item.checked) },
+      {
+        label: `Personaggio · ${pet.name}`,
+        submenu: PETS.map((p): MenuItemConstructorOptions => {
+          const unlocked = profile.isCompanionUnlocked(p.id);
+          return {
+            label: p.name, type: "radio", checked: p.id === pet.id, enabled: unlocked,
+            click: () => card.command({ name: "selectPet", id: p.id }),
+          };
+        }),
+      },
+      {
+        label: pet.walks ? `Movimento · ${settings.movement ? "In movimento" : "Fermo"}` : "Movimento",
+        enabled: pet.walks,
+        submenu: [
+          { label: "In movimento", type: "radio", checked: settings.movement, click: () => { settings.movement = true; } },
+          { label: "Fermo", type: "radio", checked: !settings.movement, click: () => { settings.movement = false; } },
+        ],
+      },
       { type: "separator" },
-      { label: "Esci da FocusFriends", click: () => actions.quit() },
-    ]));
+      { label: "Chiedi com'è andata", type: "checkbox", checked: settings.askHowItWent, click: (item) => { settings.askHowItWent = item.checked; } },
+      {
+        label: `Pausa lunga dopo ${FOCUSES_PER_CYCLE} focus`, type: "checkbox", checked: settings.longBreakEnabled,
+        click: (item) => { settings.longBreakEnabled = item.checked; },
+      },
+      { label: "Modifica le frasi…", click: () => { void openPhrasesFile(deps); } },
+      { type: "separator" },
+      { label: visible ? `Nascondi ${pet.name}` : `Mostra ${pet.name}`, click: () => deps.setVisible(!visible) },
+      { label: "Esci da FocusFriends", click: () => deps.quit() },
+    ]);
+  };
+
+  /** Icona e suggerimento (a ogni cambio); il menu si compone solo quando si apre. */
+  let lastLook = "";
+  const refresh = (): void => {
+    const pet = petInfo(settings.pet);
+    const timer = deps.timer().snapshot();
+    const tooltip = timer.phase !== null ? `FocusFriends — ${timer.label.toLowerCase()} ${timer.remainingText}` : "FocusFriends";
+    const look = `${pet.id}|${tooltip}`;
+    if (look === lastLook) return;
+    if (!lastLook.startsWith(`${pet.id}|`)) tray.setImage(iconFor(pet, deps.assets));
+    lastLook = look;
+    tray.setToolTip(tooltip);
+  };
+  const popUp = (): void => {
+    menu = build();
+    tray.popUpContextMenu(menu);
   };
   refresh();
-  tray.on("click", () => actions.toggleVisible());
-  return { refresh, destroy: () => tray.destroy() };
+  tray.on("click", (_event, bounds) => deps.toggleCard(bounds));
+  tray.on("right-click", popUp);
+  return { refresh, popUp, bounds: () => tray.getBounds(), destroy: () => tray.destroy() };
 }

@@ -2,8 +2,10 @@
 
 import { contextBridge, ipcRenderer } from "electron";
 import { CHANNEL } from "../shared/api.ts";
+import type { CardData } from "../core/card.ts";
 import type { PomodoroEvent, PomodoroSnapshot } from "../core/pomodoro.ts";
-import type { FocusFriendsApi, SettingsSnapshot } from "../shared/api.ts";
+import type { AddTimerResult } from "../core/rules.ts";
+import type { CardOpenRequest, FocusFriendsApi, SettingsSnapshot } from "../shared/api.ts";
 
 const api: FocusFriendsApi = {
   getSettings: () => ipcRenderer.invoke(CHANNEL.getSettings) as Promise<SettingsSnapshot>,
@@ -23,6 +25,16 @@ const api: FocusFriendsApi = {
     ipcRenderer.on(CHANNEL.timerEvent, (_event, event: PomodoroEvent) => callback(event));
   },
   extendFocus: () => ipcRenderer.send(CHANNEL.timerExtend),
+  getCardData: () => ipcRenderer.invoke(CHANNEL.cardData) as Promise<CardData>,
+  cardCommand: (command) => ipcRenderer.send(CHANNEL.cardCommand, command),
+  addCustomTimer: (kind, minutes) => ipcRenderer.invoke(CHANNEL.cardAddTimer, kind, minutes) as Promise<AddTimerResult>,
+  cardOpened: (open) => ipcRenderer.send(CHANNEL.cardOpened, open),
+  onCardToggle: (callback) => {
+    ipcRenderer.on(CHANNEL.cardToggle, (_event, request: CardOpenRequest) => callback(request));
+  },
+  onCardReopen: (callback) => {
+    ipcRenderer.on(CHANNEL.cardReopen, () => callback());
+  },
   onSpeakNow: (callback) => {
     ipcRenderer.on(CHANNEL.speakNow, () => callback());
   },

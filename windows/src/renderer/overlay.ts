@@ -9,6 +9,7 @@ import { chattinessInterval } from "../core/rules.ts";
 import { Walker } from "../core/walker.ts";
 import type { WalkerAction } from "../core/walker.ts";
 import type { FocusFriendsApi, SettingsSnapshot } from "../shared/api.ts";
+import { MenuCard } from "./card/card.ts";
 import { ClockView, CLOCK_SIZE } from "./clockView.ts";
 import { ExtendPrompt, PROMPT_SIZE } from "./extendPrompt.ts";
 import { PetView } from "./petView.ts";
@@ -39,6 +40,7 @@ let view: PetView;
 let walker: Walker;
 let clock: ClockView;
 let prompt: ExtendPrompt;
+let card: MenuCard;
 let visible = true;
 let interactive = false;
 let timerState: PomodoroSnapshot | null = null;
@@ -103,6 +105,7 @@ async function loadPet(id: string): Promise<void> {
     previous.canvas.remove();
   }
   view = next;
+  if (card) card.currentPetId = id;
   showingFocusGrowth = false;
   stage.insertBefore(view.canvas, stage.firstChild);
   if (anchor) view.setPosition(anchor.x - pet.size.width / 2, anchor.bottom - pet.size.height);
@@ -267,6 +270,7 @@ function onTimerState(next: PomodoroSnapshot): void {
   }
   updateStage();
   updateClock(performance.now());
+  card.onTimerState(next);
 }
 
 function onTimerEvent(event: PomodoroEvent): void {
@@ -306,6 +310,7 @@ function tick(): void {
     x: view.position.left, width: view.size.width, screenMinX: 0, screenMaxX: scene.width,
   }), pet, now);
   speaker.follow(now);
+  if (card.isOpen) card.reposition();
   updateClock(now);
   updatePrompt(now);
   if (visible && view.needsRender(now)) view.render(now);
@@ -316,6 +321,8 @@ function tick(): void {
 // ---- il mouse: clic che passano, trascinamento
 
 function setInteractive(on: boolean): void {
+  // Con la scheda aperta tutta la finestra riceve i clic: lo decide il processo principale.
+  if (card?.isOpen) return;
   if (on === interactive) return;
   interactive = on;
   api.setInteractive(on);
@@ -344,6 +351,7 @@ function clampPosition(left: number, top: number): { left: number; top: number }
 function onMouseMove(event: MouseEvent): void {
   if (!view) return;
   lastMouse = { x: event.clientX, y: event.clientY };
+  if (card.isOpen) return;
   if (drag) {
     const moved = Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY);
     if (view.hasPickedImage) {
@@ -362,7 +370,7 @@ function onMouseMove(event: MouseEvent): void {
 }
 
 function onMouseDown(event: MouseEvent): void {
-  if (!view || event.button !== 0 || drag) return;
+  if (!view || event.button !== 0 || drag || card.isOpen) return;
   const point = localPoint(event);
   if (!visible || !view.hitTest(point.x, point.y)) return;
   raise = null;
@@ -429,12 +437,20 @@ async function start(): Promise<void> {
   stage.append(clock.canvas);
   prompt = new ExtendPrompt(stage);
   prompt.onClick = () => api.extendFocus();
+  card = new MenuCard({
+    api, container: stage, timer: () => timerState, scene: sceneSize, urlOf,
+    petBox: () => ({ ...view.position, ...view.size }),
+    onOpenChange: (open) => { interactive = open; api.cardOpened(open); },
+  });
+  card.currentPetId = settings.pet;
   await loadPet(settings.pet);
 
   api.onSettingsChanged((next) => {
     const previous = settings;
     settings = next;
     if (next.pet !== previous.pet) void loadPet(next.pet);
+    card.currentPetId = next.pet;
+    if (card.isOpen) card.scheduleRefresh();
     if (next.phraseFrequency !== previous.phraseFrequency) {
       if (next.phraseFrequency === "never") speaker.dismissNow();
       speaker.reschedule();
@@ -449,12 +465,20 @@ async function start(): Promise<void> {
   api.onTimerState(onTimerState);
   api.onTimerEvent(onTimerEvent);
   api.onSpeakNow(() => { void speaker.sayRandom(); });
+  api.onCardToggle((request) => card.toggle(request));
+  api.onCardReopen(() => card.reopen());
 
   document.addEventListener("mousemove", onMouseMove);
   document.addEventListener("mousedown", onMouseDown);
   window.addEventListener("mouseup", onMouseUp);
   document.documentElement.addEventListener("mouseleave", () => { lastMouse = null; });
-  document.addEventListener("contextmenu", (event) => event.preventDefault());
+  // Tasto destro sul compagno: la scheda, di fianco a lui.
+  document.addEventListener("contextmenu", (event) => {
+    event.preventDefault();
+    if (!view || card.isOpen || !visible) return;
+    const point = localPoint(event);
+    if (view.hitTest(point.x, point.y)) card.toggle({ anchor: null, toggle: true });
+  });
   window.addEventListener("resize", onResize);
 
   if (api.selfTest) {
@@ -468,6 +492,9 @@ async function start(): Promise<void> {
       })) as () => unknown,
       hit: ((x: number, y: number) => view.hitTest(x - view.position.left, y - view.position.top)) as () => boolean,
       restImage: (() => restImageIndex(view.pet)) as () => number,
+      openCard: ((page?: "timers") => card.toggle({ anchor: null, toggle: false, ...(page ? { page } : {}) })) as () => void,
+      closeCard: (() => card.close()) as () => void,
+      cardOpen: (() => card.isOpen) as () => boolean,
     };
   }
   speaker.start();

@@ -25,8 +25,47 @@ export const AMBIENT_TITLES: Record<AmbientSound, string> = {
   none: "Nessuno", rain: "Pioggia", brown: "Rumore marrone", wind: "Vento",
 };
 
+/** Il suono dopo questo, in giro: Nessuno → Pioggia → Rumore marrone → Vento → Nessuno. */
+export function nextAmbient(sound: AmbientSound): AmbientSound {
+  const index = AMBIENT_SOUNDS.indexOf(sound);
+  return AMBIENT_SOUNDS[(index + 1) % AMBIENT_SOUNDS.length] ?? "none";
+}
+
 export const MUSIC_SOURCES = ["off", "bundled", "folder"] as const;
 export type MusicSource = (typeof MUSIC_SOURCES)[number];
+
+/** I livelli di volume offerti dai menu. */
+export const VOLUME_STEPS: readonly number[] = [0.10, 0.25, 0.40, 0.60];
+
+/** Il volume del livello più vicino (per il segno di spunta nel menu). */
+export function nearestStep(volume: number): number {
+  let best = VOLUME_STEPS[0] ?? AMBIENT_DEFAULT_VOLUME;
+  for (const step of VOLUME_STEPS) if (Math.abs(step - volume) < Math.abs(best - volume)) best = step;
+  return best;
+}
+
+// ---- il sottofondo del focus: uno solo alla volta (un suono, o la musica)
+
+export const BACKGROUND_CHOICES = ["none", "rain", "wind", "brown", "music"] as const;
+export type BackgroundChoice = (typeof BACKGROUND_CHOICES)[number];
+export const BACKGROUND_TITLES: Record<BackgroundChoice, string> = {
+  none: "Nessuno", rain: "Pioggia", wind: "Vento", brown: "Marrone", music: "Musica",
+};
+
+/** Quale scelta corrisponde a quello che è acceso adesso (il suono vince, ma i due non sono mai accesi insieme). */
+export function backgroundCurrent(ambient: AmbientSound, music: MusicSource): BackgroundChoice {
+  switch (ambient) {
+    case "rain": return "rain";
+    case "wind": return "wind";
+    case "brown": return "brown";
+    case "none": return music === "off" ? "none" : "music";
+  }
+}
+
+/** Il suono ambiente di questa scelta (null se è la musica). */
+export function ambientOfChoice(choice: BackgroundChoice): AmbientSound | null {
+  return choice === "music" ? null : choice;
+}
 
 export const AMBIENT_DEFAULT_VOLUME = 0.25;
 /** Più basso del normale: la musica deve restare un sottofondo. */

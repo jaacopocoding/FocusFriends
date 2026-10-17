@@ -76,7 +76,7 @@ clic nelle zone trasparenti (Electron lo ha pronto, Tauri no) si è passati a El
 
 ### M0 — Fondamenta (2–3 giorni)
 
-- [ ] Scegliere il font libero (OFL) più vicino a Marker Felt (candidati: Kalam, Patrick Hand, Itim) e il set di icone
+- [~] Scegliere il font libero (OFL) più vicino a Marker Felt (candidati: Kalam, Patrick Hand, Itim) e il set di icone
       libero (candidato: Lucide) al posto delle icone di sistema. Prova affiancata alle schermate del Mac.
 - [x] Suono di fine focus (al posto di «Glass»): generato da zero, quindi senza licenze (`windows/resources/fine-focus.wav`,
       due rintocchi di campana, 2,2 secondi). **Da ascoltare e approvare.**
@@ -194,20 +194,32 @@ messo in sleep, e la sessione registrata è identica a quella che farebbe il Mac
 
 La scheda di carta si apre dall'icona nell'area di notifica (sotto l'icona) o dal compagno (di fianco, e lo segue).
 
-- [ ] Struttura a pagine e fotografia dello stato (`MenuCardState`), con aggiornamento leggero ogni secondo
+- [x] Struttura a pagine e fotografia dello stato (`MenuCardState`), con aggiornamento leggero ogni secondo
       (`MenuCardLiveState`) e ricostruzione solo quando cambia fase o pausa.
-- [ ] **Pagina principale**: compagno nel cerchio (un tocco e parla), saluto con il nome, riga dei compagni con i
+- [x] **Pagina principale**: compagno nel cerchio (un tocco e parla), saluto con il nome, riga dei compagni con i
       lucchetti e la frase di quanto manca, durate 30/50/pausa e «Altri timer…», tre riquadri di oggi (minuti, focus,
       serie con il fiocco se ghiacciata), impostazioni rapide, «Esci».
-- [ ] **Pagina del quadrante** («Gira il timer»): pomodoro da trascinare, rotella un minuto alla volta, salvare e
+- [x] **Pagina del quadrante** («Gira il timer»): pomodoro da trascinare, rotella un minuto alla volta, salvare e
       togliere i timer personali.
-- [ ] **Pagina del focus**: materia, orari, compagno, puntini «Focus N di 4», pomodoro con l'arco di avanzamento, +5,
+- [x] **Pagina del focus**: materia, orari, compagno, puntini «Focus N di 4», pomodoro con l'arco di avanzamento, +5,
       Ferma/Riprendi, «Termina e salva» da fermo, sottofondo con volume, **foglietto per le note**, elimina, ritorno al menu.
-- [ ] **Pagina della pausa** (variante verde): tempo, +5, Salta, «Nuovo focus · N min», le tre facce per l'ultimo focus.
-- [ ] Posizione e chiusura: clic fuori, Esc, segue il compagno e passa dall'altro lato ai bordi.
-- [ ] Il **menu completo** dall'area di notifica (tasto destro): sottomenu Pomofocus e timer personalizzati, frequenza
+- [x] **Pagina della pausa** (variante verde): tempo, +5, Salta, «Nuovo focus · N min», le tre facce per l'ultimo focus.
+- [x] Posizione e chiusura: clic fuori, Esc, segue il compagno e passa dall'altro lato ai bordi.
+- [x] Il **menu completo** dall'area di notifica (tasto destro): sottomenu Pomofocus e timer personalizzati, frequenza
       delle frasi, movimento, nome, «Chiedi com'è andata», pausa lunga, frasi, avvio al login, esci.
-- [ ] Tutto accessibile da tastiera, con etichette per i lettori di schermo.
+- [x] Tutto accessibile da tastiera, con etichette per i lettori di schermo.
+
+**Stato (sul Mac):** la scheda sta **dentro la finestra trasparente** (niente finestra in più: meno memoria): mentre è aperta la finestra
+riceve i clic e la tastiera, un clic fuori o Esc la chiudono, e se sta accanto al compagno lo segue e passa dall'altro lato ai bordi.
+Si apre con un clic sull'icona (sopra o sotto di lei, secondo dove sta la barra) o con il tasto destro sul compagno; il tasto destro
+sull'icona dà il **menu completo** (Pomofocus con i timer personali, Suono ambiente, Musica, Frequenza delle frasi, Personaggio,
+Movimento, «Chiedi com'è andata», Pausa lunga, «Modifica le frasi…», Mostra/Nascondi, Esci). Le quattro pagine ci sono (scheda,
+«Gira il timer», focus, pausa) con le stesse parole e gli stessi disegni del Mac, fatti in SVG; i pulsanti sono veri (tastiera e
+lettori di schermo), il quadrante si gira anche con la rotella e le frecce. **Niente Svelte**: la scheda si ricostruisce a ogni
+cambio come sul Mac, e bastano TypeScript e il DOM. Icone: **Lucide** (ISC, in `tools/genera-icone.mjs`). Le icone di sistema, il
+carattere e la musica che suona davvero arrivano con M0 (font) e M5 (suoni). Il pulsante «Giardino» non c'è (seconda uscita) e
+«Statistiche» dice che arriva (M7). **Da provare su Windows:** passaggio del focus tra le finestre quando la scheda si apre e si
+chiude, e la posizione rispetto all'icona con la barra in basso, a lato e in alto.
 
 **Fatto quando:** da sola la scheda permette di fare un giro completo (scegliere materia, focus, note, pausa, voto).
 

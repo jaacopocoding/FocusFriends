@@ -1,7 +1,7 @@
 // Compila il processo principale, il ponte e la pagina in `dist/` (esbuild). `node tools/build.mjs`, o `--watch` non c'è ancora.
 
 import { build } from "esbuild";
-import { copyFileSync, mkdirSync } from "node:fs";
+import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -25,4 +25,6 @@ await build({
 });
 
 mkdirSync(out("renderer"), { recursive: true });
-for (const file of ["index.html", "overlay.css"]) copyFileSync(src("renderer", file), out("renderer", file));
+copyFileSync(src("renderer", "index.html"), out("renderer", "index.html"));
+// Un solo foglio di stile per la pagina: quello della scena e quello della scheda.
+writeFileSync(out("renderer", "overlay.css"), ["overlay.css", join("card", "card.css")].map((f) => readFileSync(src("renderer", f), "utf8")).join("\n"));
