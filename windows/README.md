@@ -4,9 +4,9 @@ La versione per Windows di FocusFriends, scritta con **Electron** (TypeScript, H
 in [`../PIANO_WINDOWS.md`](../PIANO_WINDOWS.md) e i formati dei dati, comuni con l'app per Mac, in
 [`../FORMATI.md`](../FORMATI.md).
 
-**Stato:** M2, M3 e M4 finite sul Mac (la logica pura in `src/core/`, il timer, la scheda di carta e il menu completo) e M1 avviata: il
+**Stato:** M2, M3, M4 e M5 finite sul Mac (la logica pura in `src/core/`, il timer, la scheda di carta, il menu completo e i suoni) e M1 avviata: il
 compagno si vede, cammina, si solleva, parla, ha l'orologio sotto di sé e il «+5 minuti» a fine focus. Clic sull'icona nell'area di
-notifica = la scheda; tasto destro = il menu. Manca la prova su Windows, e mancano i suoni (M5), le schede «Cosa studi adesso?» e
+notifica = la scheda; tasto destro = il menu. Manca la prova su Windows, e mancano le schede «Cosa studi adesso?» e
 «Com'è andata?» (M6), le statistiche (M7) e il nome (M8).
 
 **Per provarlo** serve Node 24 o più nuovo:
@@ -25,7 +25,8 @@ Sul Mac `npm start` mostra il compagno sullo schermo e lavora in una **cartella 
 
 Le prove includono il **contratto con la versione per Mac**: da ogni cartella di `../tests/fixtures/` il codice deve ricavare
 lo stesso risultato dei file `../tests/fixtures/attesi/`, generati dall'app per Mac (`../tests/genera-attesi.sh`). I dati dei
-compagni (`data/pets.json`) si rifanno con `../tools/genera-pets.sh`.
+compagni (`data/pets.json`) si rifanno con `../tools/genera-pets.sh`, e le misure dei rumori (`../tests/fixtures/rumore.json`) con
+`../tests/genera-rumore.sh`.
 
 ## Com'è organizzata (quando ci sarà)
 

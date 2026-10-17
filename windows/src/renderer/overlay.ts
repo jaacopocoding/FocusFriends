@@ -9,6 +9,8 @@ import { chattinessInterval } from "../core/rules.ts";
 import { Walker } from "../core/walker.ts";
 import type { WalkerAction } from "../core/walker.ts";
 import type { FocusFriendsApi, SettingsSnapshot } from "../shared/api.ts";
+import { AmbientPlayer } from "./audio/ambient.ts";
+import { MusicPlayer } from "./audio/music.ts";
 import { MenuCard } from "./card/card.ts";
 import { ClockView, CLOCK_SIZE } from "./clockView.ts";
 import { ExtendPrompt, PROMPT_SIZE } from "./extendPrompt.ts";
@@ -41,6 +43,8 @@ let walker: Walker;
 let clock: ClockView;
 let prompt: ExtendPrompt;
 let card: MenuCard;
+let ambient: AmbientPlayer;
+let music: MusicPlayer;
 let visible = true;
 let interactive = false;
 let timerState: PomodoroSnapshot | null = null;
@@ -286,7 +290,12 @@ function onTimerEvent(event: PomodoroEvent): void {
       break;
     case "graceBegan": prompt.show(event.seconds, performance.now()); break;
     case "graceEnded": prompt.hide(); break;
-    case "focusActive": case "focusRecorded": case "reset": break;
+    case "focusActive":
+      // Il suono ambiente e la musica accompagnano il focus (non la pausa, né il focus fermo).
+      ambient.setFocusActive(event.active);
+      music.setFocusActive(event.active);
+      break;
+    case "focusRecorded": case "reset": break;
   }
 }
 
@@ -444,6 +453,11 @@ async function start(): Promise<void> {
   });
   card.currentPetId = settings.pet;
   await loadPet(settings.pet);
+  ambient = new AmbientPlayer({
+    workletUrl: "ff://app/noise-worklet.js", sound: settings.ambientSound, volume: settings.ambientVolume, analyser: api.selfTest,
+    onStartFailure: () => speaker.say("Non riesco ad avviare l'audio: il suono ambiente non si sente."),
+  });
+  music = new MusicPlayer({ api, source: settings.musicSource, volume: settings.musicVolume });
 
   api.onSettingsChanged((next) => {
     const previous = settings;
@@ -451,6 +465,12 @@ async function start(): Promise<void> {
     if (next.pet !== previous.pet) void loadPet(next.pet);
     card.currentPetId = next.pet;
     if (card.isOpen) card.scheduleRefresh();
+    // Un solo sottofondo alla volta: lo decide il processo principale; qui si segue (con qualche secondo di anteprima fuori dal focus).
+    if (next.ambientSound !== previous.ambientSound) ambient.setSound(next.ambientSound, true);
+    if (next.ambientVolume !== previous.ambientVolume) ambient.setVolume(next.ambientVolume, true);
+    if (next.musicSource !== previous.musicSource) music.setSource(next.musicSource, true);
+    else if (next.musicFolder !== previous.musicFolder) music.folderChanged();
+    if (next.musicVolume !== previous.musicVolume) music.setVolume(next.musicVolume, true);
     if (next.phraseFrequency !== previous.phraseFrequency) {
       if (next.phraseFrequency === "never") speaker.dismissNow();
       speaker.reschedule();
@@ -495,6 +515,12 @@ async function start(): Promise<void> {
       openCard: ((page?: "timers") => card.toggle({ anchor: null, toggle: false, ...(page ? { page } : {}) })) as () => void,
       closeCard: (() => card.close()) as () => void,
       cardOpen: (() => card.isOpen) as () => boolean,
+      breakAudio: (() => { (ambient as unknown as { options: { workletUrl: string } }).options.workletUrl = "ff://app/non-esiste.js"; }) as () => void,
+      skipMusic: (() => music.seekNearEnd()) as () => void,
+      audio: (() => ({
+        ambient: { state: ambient.state, level: ambient.level(), sound: ambient.sound, volume: ambient.volume, focusActive: ambient.focusActive },
+        music: { playing: music.playing, title: music.currentTitle, source: music.source, volume: music.volume },
+      })) as () => unknown,
     };
   }
   speaker.start();

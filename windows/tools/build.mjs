@@ -24,6 +24,12 @@ await build({
   platform: "browser", format: "iife", target: "chrome140",
 });
 
+// Il generatore dei rumori: gira nel thread audio, in un file a parte.
+await build({
+  ...common, entryPoints: [src("renderer", "audio", "noiseWorklet.ts")], outfile: out("renderer", "noise-worklet.js"),
+  platform: "browser", format: "iife", target: "chrome140",
+});
+
 mkdirSync(out("renderer"), { recursive: true });
 copyFileSync(src("renderer", "index.html"), out("renderer", "index.html"));
 // Un solo foglio di stile per la pagina: quello della scena e quello della scheda.

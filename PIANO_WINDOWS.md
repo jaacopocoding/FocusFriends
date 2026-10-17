@@ -225,15 +225,26 @@ chiude, e la posizione rispetto all'icona con la barra in basso, a lato e in alt
 
 ### M5 — I suoni (4–6 giorni)
 
-- [ ] **Rumori sintetizzati** (pioggia, rumore marrone, vento) in un `AudioWorklet`, con le stesse regole del Mac
+- [x] **Rumori sintetizzati** (pioggia, rumore marrone, vento) in un `AudioWorklet`, con le stesse regole del Mac
       (dissolvenze di 2 secondi, anteprima breve alla scelta, volumi 10/25/40/60%).
-- [ ] **Musica**: 5 brani inclusi (verificare che il formato si senta su Windows; altrimenti convertirli), cartella
+- [x] **Musica**: 5 brani inclusi (verificare che il formato si senta su Windows; altrimenti convertirli), cartella
       dell'utente (finestra di scelta, ricerca nelle sottocartelle, elenco in cache), coda mischiata che non riparte dal
       brano appena suonato.
-- [ ] L'audio vive nella finestra sempre aperta, con `backgroundThrottling` spento: una finestra nascosta verrebbe rallentata e il suono scatterebbe.
-- [ ] Solo durante un focus attivo (non in pausa); **un solo sottofondo alla volta**.
-- [ ] Controlli sulla pagina del focus e sulla scheda.
-- [ ] Se l'audio non parte, lo dice il compagno.
+- [x] L'audio vive nella finestra sempre aperta, con `backgroundThrottling` spento: una finestra nascosta verrebbe rallentata e il suono scatterebbe.
+- [x] Solo durante un focus attivo (non in pausa); **un solo sottofondo alla volta**.
+- [x] Controlli sulla pagina del focus e sulla scheda.
+- [x] Se l'audio non parte, lo dice il compagno.
+
+**Stato (sul Mac):** i rumori sono la classe `NoiseSynth` di Swift portata passo per passo in `core/noise.ts` e girano in un `AudioWorklet`
+(a 44100 Hz, come sul Mac); la prova di contratto confronta quello che esce con le misure fatte dall'app per Mac
+(`tests/genera-rumore.sh` → `tests/fixtures/rumore.json`: pioggia e marrone uguali all'1%, il vento al 3% perché sul Mac la fase
+dell'oscillatore si somma in Float32 e si scosta col tempo). Provato davvero: anteprima di tre secondi fuori dal focus, suono durante
+il focus, spento (e motore fermo) quando il focus si ferma e riacceso quando riprende, vento e marrone, musica dei brani inclusi e di una
+cartella (anche nelle sottocartelle), brano successivo a fine brano, cartella che non c'è (silenzio), audio che non parte (lo dice il
+compagno) e audio che continua con il compagno nascosto. Misure sul Mac con la pioggia e un focus: **processore circa 1,2% in tutto**
+(obiettivo sotto il 5%); la memoria sale ancora a circa 530 MB sommando i processi (il processo dell'audio ne aggiunge una cinquantina),
+quindi resta il punto da ridurre in M9. **Da provare su Windows:** che gli m4a si sentano (Chromium li legge, ma va verificato), la
+pioggia per un'ora senza scatti, il cambio di cuffie o altoparlanti, e «Scegli la cartella…» con la finestra di Windows.
 
 **Fatto quando:** la pioggia suona senza scatti per un'ora con il processore sotto il 5%, e passa a musica e viceversa senza buchi.
 

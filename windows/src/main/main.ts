@@ -11,6 +11,7 @@ import { Profile } from "../core/profile.ts";
 import type { TimerKind } from "../core/rules.ts";
 import { Settings } from "../core/settings.ts";
 import { createCardService } from "./card.ts";
+import { createMusicService } from "./music.ts";
 import { assetsDirectory, dataDirectory, rendererDirectory, resourcesDirectory } from "./paths.ts";
 import { createOverlay, fitToWorkArea, primaryDisplay } from "./overlay.ts";
 import { handleScheme, registerScheme } from "./protocol.ts";
@@ -23,7 +24,11 @@ registerScheme();
 let visible = true;
 
 function snapshot(settings: Settings): SettingsSnapshot {
-  return { pet: settings.pet, movement: settings.movement, phraseFrequency: settings.phraseFrequency };
+  return {
+    pet: settings.pet, movement: settings.movement, phraseFrequency: settings.phraseFrequency,
+    ambientSound: settings.ambientSound, ambientVolume: settings.ambientVolume,
+    musicSource: settings.musicSource, musicFolder: settings.musicFolder, musicVolume: settings.musicVolume,
+  };
 }
 
 async function start(): Promise<void> {
@@ -31,9 +36,16 @@ async function start(): Promise<void> {
   const assets = assetsDirectory(app);
   const data = dataDirectory(app);
   mkdirSync(data, { recursive: true });
-  handleScheme({ assets, renderer: rendererDirectory(app), resources: resourcesDirectory(app) });
-
   const settings = new Settings(data);
+  const music = createMusicService({ assets, folder: () => settings.musicFolder });
+  handleScheme({ assets, renderer: rendererDirectory(app), resources: resourcesDirectory(app), musicFile: music.file });
+  music.prepareFolder();
+  let lastFolder = settings.musicFolder;
+  settings.addObserver(() => {
+    if (settings.musicFolder === lastFolder) return;
+    lastFolder = settings.musicFolder;
+    music.prepareFolder();
+  });
   const profile = new Profile(data, { developer: () => settings.developerMode });
   const decks = new Map<string, PhraseDeck>();
   const win = createOverlay(primaryDisplay(), app.getAppPath());
@@ -114,6 +126,7 @@ async function start(): Promise<void> {
   const menu = tray;
   settings.addObserver(() => menu.refresh());
 
+  ipcMain.handle(CHANNEL.musicTracks, (_event, source: unknown) => music.list(source === "bundled" || source === "folder" ? source : "off"));
   ipcMain.handle(CHANNEL.cardData, () => card.data());
   ipcMain.on(CHANNEL.cardCommand, (_event, command: CardCommand) => card.command(command));
   ipcMain.handle(CHANNEL.cardAddTimer, (_event, kind: TimerKind, minutes: number) => card.addTimer(kind, minutes));

@@ -3,14 +3,25 @@
 import type { CardData } from "../core/card.ts";
 import type { Rating } from "../core/log.ts";
 import type { PomodoroEvent, PomodoroSnapshot } from "../core/pomodoro.ts";
-import type { AddTimerResult, BackgroundChoice, Chattiness, TimerKind } from "../core/rules.ts";
+import type { AddTimerResult, AmbientSound, BackgroundChoice, Chattiness, MusicSource, TimerKind } from "../core/rules.ts";
 
 /** Le preferenze che l'interfaccia deve conoscere. */
 export interface SettingsSnapshot {
   pet: string;
   movement: boolean;
   phraseFrequency: Chattiness;
+  ambientSound: AmbientSound;
+  ambientVolume: number;
+  musicSource: MusicSource;
+  /** La cartella della musica dell'utente (serve solo per accorgersi che è cambiata). */
+  musicFolder: string | null;
+  musicVolume: number;
 }
+
+/** Un brano dell'elenco: il numero serve per chiederne il file. */
+export interface MusicTrack { id: number; title: string }
+/** L'elenco dei brani di una sorgente; `version` cambia a ogni elenco nuovo. */
+export interface MusicList { version: number; tracks: MusicTrack[] }
 
 /** Dove aprire la scheda: sotto/sopra un rettangolo (l'icona nell'area di notifica, nelle coordinate della finestra), o di fianco al compagno. */
 export type CardAnchor = { x: number; y: number; width: number; height: number } | null;
@@ -66,6 +77,8 @@ export interface FocusFriendsApi {
   onTimerEvent(callback: (event: PomodoroEvent) => void): void;
   /** Il pulsante «+5 minuti» che compare a fine focus. */
   extendFocus(): void;
+  /** I brani della sorgente scelta (inclusi o della cartella); i file si leggono da `ff://app/music/<versione>/<numero>`. */
+  musicTracks(source: MusicSource): Promise<MusicList>;
   /** I dati della scheda (statistiche di oggi, timer salvati, impostazioni rapide, compagni bloccati). */
   getCardData(): Promise<CardData>;
   cardCommand(command: CardCommand): void;
@@ -95,6 +108,7 @@ export const CHANNEL = {
   timerEvent: "timer:event",
   timerExtend: "timer:extend",
   speakNow: "speech:now",
+  musicTracks: "music:tracks",
   cardData: "card:data",
   cardCommand: "card:command",
   cardAddTimer: "card:add-timer",
