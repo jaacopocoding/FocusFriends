@@ -51,6 +51,9 @@ const api: FocusFriendsApi = {
   onSpeakNow: (callback) => {
     ipcRenderer.on(CHANNEL.speakNow, () => callback());
   },
+  onSystemResumed: (callback) => {
+    ipcRenderer.on(CHANNEL.systemResumed, () => callback());
+  },
   ready: () => ipcRenderer.send(CHANNEL.rendererReady),
   selfTest: process.env["FF_SELFTEST"] !== undefined,
 };

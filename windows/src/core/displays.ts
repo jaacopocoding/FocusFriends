@@ -12,6 +12,30 @@ export interface DisplayInfo {
   primary: boolean;
 }
 
+/** Da che parte sta la barra delle applicazioni, ricavato da quanto l'area di lavoro è più piccola dello schermo. */
+export type TaskbarSide = "in basso" | "in alto" | "a sinistra" | "a destra" | "nascosta";
+
+export function taskbarSide(bounds: Rect, workArea: Rect): { side: TaskbarSide; size: number } {
+  const gaps: Array<[TaskbarSide, number]> = [
+    ["in alto", workArea.y - bounds.y],
+    ["a sinistra", workArea.x - bounds.x],
+    ["in basso", bounds.y + bounds.height - (workArea.y + workArea.height)],
+    ["a destra", bounds.x + bounds.width - (workArea.x + workArea.width)],
+  ];
+  let best: [TaskbarSide, number] = ["nascosta", 0];
+  for (const gap of gaps) if (gap[1] > best[1]) best = gap;
+  return best[1] < 1 ? { side: "nascosta", size: 0 } : { side: best[0], size: best[1] };
+}
+
+/** Una riga per il registro dell'app: misure, scala e barra di uno schermo (serve a capire una prova su un altro computer). */
+export function describeDisplay(display: DisplayInfo & { scaleFactor: number }): string {
+  const { bounds, workArea } = display;
+  const bar = taskbarSide(bounds, workArea);
+  const barText = bar.side === "nascosta" ? "barra nascosta o assente" : `barra ${bar.side} (${bar.size})`;
+  return `schermo ${display.id}${display.primary ? " principale" : ""}: ${bounds.width}x${bounds.height} a ${Math.round(display.scaleFactor * 100)}%` +
+    ` in (${bounds.x},${bounds.y}), area di lavoro ${workArea.width}x${workArea.height}, ${barText}`;
+}
+
 const contains = (rect: Rect, x: number, y: number): boolean => x >= rect.x && x < rect.x + rect.width && y >= rect.y && y < rect.y + rect.height;
 
 /** Quanto un punto dista da un rettangolo (0 se è dentro). */

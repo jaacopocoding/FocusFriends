@@ -362,11 +362,34 @@ Windows. Dopo la firma si potranno aggiungere gli aggiornamenti automatici (elec
 
 Lista di controllo, funzione per funzione, contro l'app per Mac:
 
-- [ ] Ogni voce di `README.md` («Cosa fa») e di `ARCHITECTURE.md` §3 ha il suo equivalente o una nota su perché no.
-- [ ] Windows 10 e 11, x64 e ARM, 100% / 150% / 200%, uno e due schermi, barra delle applicazioni ovunque.
-- [ ] Sleep e risveglio, chiusura del coperchio, cambio di fuso orario, ora legale.
-- [ ] App a schermo intero (il compagno non deve restare sopra a un gioco o a un video), cambio di desktop virtuale.
-- [ ] Una giornata intera d'uso vero, e i dati riletti dall'app per Mac.
+- [x] Ogni voce di `README.md` («Cosa fa») e di `ARCHITECTURE.md` §3 ha il suo equivalente o una nota su perché no: **`windows/PARITA.md`**.
+- [ ] Windows 10 e 11, x64 e ARM, 100% / 150% / 200%, uno e due schermi, barra delle applicazioni ovunque. *(Solo su Windows: `windows/PROVE_SU_WINDOWS.md` §A–C.)*
+- [~] Sleep e risveglio, chiusura del coperchio, cambio di fuso orario, ora legale. *(Fatto quello che si prova dal Mac; lo sleep vero è in §D.)*
+- [ ] App a schermo intero, cambio di desktop virtuale. *(Decisione rimandata alla prova su Windows: §E. Il Mac lascia il compagno sopra le app a schermo
+      intero; qui è lo stesso, e il desktop virtuale è un limite di Windows.)*
+- [~] Una giornata intera d'uso vero, e i dati riletti dall'app per Mac. *(I dati riletti dal Mac: fatto, con file scritti dal codice per Windows.
+      La giornata vera: §J.)*
+
+**Stato (sul Mac):**
+- **Confronto funzione per funzione** (`PARITA.md`): ogni riga dice cosa fa il Mac, cosa fa Windows e come l'ho verificato (prova automatica, prova dal vivo,
+  solo nel codice, o solo su Windows). Le differenze volute o imposte da Windows sono in fondo (§10).
+- **Contratto al contrario** (`test/ritorno.test.ts`): i file scritti dal codice per Windows (una migrazione da v2, sessioni con accenti, emoji, virgolette e
+  formule da foglio di calcolo, voto e note, una materia rinominata, una tolta, un focus in corso con pausa e uno fermo, un profilo con nome da accorciare e
+  sblocchi) li legge **il codice Swift del Mac** (lo stesso generatore degli attesi) e ne ricava risultati identici. Controllato anche che la prova fallisca se
+  un file cambia (mutazione).
+- **Un errore trovato e corretto**: il fuso orario del computer si leggeva una volta sola, all'avvio. Con l'app aperta, un viaggio o un cambio di fuso
+  avrebbero lasciato l'orologio di prima (le nuove sessioni al giorno sbagliato, «Oggi» sbagliato) fino al riavvio. Ora si rilegge ogni cinque secondi e subito
+  dopo uno sleep (`core/time.ts`). Prove in `test/fusi.test.ts`: cambio d'ora di ottobre (giorno da 25 ore, 02:30 due volte) e di marzo (giorno da 23 ore),
+  serie di giorni e settimane attraverso il cambio, Sydney, Lord Howe (mezz'ora), India e Nepal, Kiritimati e Pago Pago, e il cambio di fuso durante l'esecuzione.
+- **Sleep e risveglio** (`powerMonitor`): al risveglio e allo sblocco dello schermo si rilegge il fuso, la finestra si riadatta agli schermi (può essere
+  cambiato qualcosa) e **suono e musica ripartono se il sistema li aveva fermati**; lo stesso se l'uscita audio cambia mentre suonano. Provato dal vivo con sleep
+  e risveglio simulati: pioggia che riparte, musica che riparte, nulla che parte fuori dal focus o a focus fermo.
+- **Registro dell'app più utile per le prove**: ora scrive la versione di Windows e, per ogni schermo, misure, scala, area di lavoro e il lato della barra
+  delle applicazioni (all'avvio, a ogni cambio, al risveglio). Una prova su un altro computer si capisce dal file.
+- **Prove su Windows pronte** (`PROVE_SU_WINDOWS.md`): dieci gruppi di passi con cosa deve succedere e cosa mandare.
+- **Non fatto di proposito**: nascondere il compagno davanti alle app a schermo intero e seguire il cambio di desktop virtuale. Su Windows servono chiamate di
+  sistema che Electron non offre; farle alla cieca (pacchetti nativi, o PowerShell da un'app non firmata, che può far arrivare un antivirus) rischia più di
+  quanto vale. Le due strade sono scritte in `PROVE_SU_WINDOWS.md` §E, da scegliere dopo aver visto cosa succede davvero.
 
 **Fine della prima uscita:** versione 1 per Windows, **senza giardino**. Durante la prima uscita il pulsante «Giardino» non
 c'è nella scheda e nel menu.
@@ -391,7 +414,7 @@ Si fa dopo, perché riusa tutto il resto (schede, finestre, immagini, dati) e no
 | Rischio | Quando lo vediamo | Cosa faremo |
 |---|---|---|
 | La finestra trasparente intercetta i clic o consuma troppo | M1, prima di tutto il resto | Cambiare strategia (una finestra piccola per compagno) o i limiti di aggiornamento |
-| App a schermo intero (giochi, video): il compagno resta sopra, o sparisce | M1 e M11 | Nascondersi quando c'è un'app a schermo intero |
+| App a schermo intero (giochi, video): il compagno resta sopra, o sparisce | M1 e M11 | Come il Mac per ora (resta sopra, si nasconde a mano); se alla prova su Windows dà fastidio, nasconderlo con una chiamata di sistema (vedi `windows/PROVE_SU_WINDOWS.md` §E) |
 | Barra delle applicazioni nascosta o a lato | M1 | Calcolare l'area di lavoro a ogni cambio |
 | Scala dello schermo diversa tra due monitor | M1 e M11 | Una finestra per schermo, o passare ai pixel fisici |
 | Memoria alta (Electron) | M1 e M9 | Una sola finestra trasparente, schede create solo quando servono, meno processi |

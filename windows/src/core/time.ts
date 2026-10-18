@@ -12,22 +12,56 @@ export const HOUR_MS = 3_600_000;
 
 const formatters = new Map<string, Intl.DateTimeFormat>();
 
+function build(zone: string | undefined): Intl.DateTimeFormat {
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: zone, hourCycle: "h23", year: "numeric", month: "numeric", day: "numeric",
+    hour: "numeric", minute: "numeric", second: "numeric",
+  });
+}
+
 function formatter(zone: string | undefined): Intl.DateTimeFormat {
   const key = zone ?? "";
   let found = formatters.get(key);
   if (!found) {
-    found = new Intl.DateTimeFormat("en-US", {
-      timeZone: zone, hourCycle: "h23", year: "numeric", month: "numeric", day: "numeric",
-      hour: "numeric", minute: "numeric", second: "numeric",
-    });
+    found = build(zone);
     formatters.set(key, found);
   }
   return found;
 }
 
+// Il fuso del computer può cambiare mentre l'app è aperta (un viaggio, l'ora legale che cambia, un cambio a mano): un
+// `Intl.DateTimeFormat` senza fuso lo legge una volta sola, quando nasce. Per questo il fuso del computer si rilegge ogni
+// pochi secondi e il formattatore si tiene per nome (e si rilegge subito dopo uno sleep: vedi `refreshSystemZone`).
+const SYSTEM_ZONE_TTL_MS = 5000;
+let systemZoneName = "";
+let systemZoneCheckedAt = 0;
+
+/** Il nome del fuso del computer adesso (riletto al massimo ogni 5 secondi). */
+export function systemZone(now: number = Date.now()): string {
+  if (systemZoneName === "" || now - systemZoneCheckedAt >= SYSTEM_ZONE_TTL_MS || now < systemZoneCheckedAt) {
+    systemZoneName = new Intl.DateTimeFormat().resolvedOptions().timeZone;
+    systemZoneCheckedAt = now;
+  }
+  return systemZoneName;
+}
+
+/** Dopo uno sleep o un cambio d'ora: la prossima volta il fuso del computer si rilegge. */
+export function refreshSystemZone(): void {
+  systemZoneName = "";
+}
+
+function systemFormatter(): Intl.DateTimeFormat {
+  const name = systemZone();
+  try {
+    return formatter(name);
+  } catch {
+    return build(undefined);           // un nome che il motore non conosce: meglio il fuso che sceglie lui (senza tenerlo da parte)
+  }
+}
+
 /** L'istante (millisecondi dal 1970, UTC) letto sull'orologio del fuso dato (nessun fuso = quello del computer). */
 export function wallOf(instantMs: number, zone?: string): Wall {
-  const parts = formatter(zone).formatToParts(new Date(instantMs));
+  const parts = (zone === undefined ? systemFormatter() : formatter(zone)).formatToParts(new Date(instantMs));
   const get = (type: string): number => Number(parts.find((p) => p.type === type)?.value);
   const fraction = ((instantMs % 1000) + 1000) % 1000;
   return Date.UTC(get("year"), get("month") - 1, get("day"), get("hour"), get("minute"), get("second")) + fraction;

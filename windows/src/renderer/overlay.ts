@@ -553,6 +553,8 @@ async function start(): Promise<void> {
     onStartFailure: () => speaker.say("Non riesco ad avviare l'audio: il suono ambiente non si sente."),
   });
   music = new MusicPlayer({ api, source: settings.musicSource, volume: settings.musicVolume });
+  // Sleep, risveglio: il sistema può aver fermato il suono da solo.
+  api.onSystemResumed(() => { ambient.recover(); music.recover(); });
 
   api.onSettingsChanged((next) => {
     const previous = settings;
@@ -623,6 +625,7 @@ async function start(): Promise<void> {
       cardOpen: (() => card.isOpen) as () => boolean,
       breakAudio: (() => { (ambient as unknown as { options: { workletUrl: string } }).options.workletUrl = "ff://app/non-esiste.js"; }) as () => void,
       skipMusic: (() => music.seekNearEnd()) as () => void,
+      interruptAudio: (() => { ambient.interruptForTest(); music.interruptForTest(); }) as () => void,
       audio: (() => ({
         ambient: { state: ambient.state, level: ambient.level(), sound: ambient.sound, volume: ambient.volume, focusActive: ambient.focusActive },
         music: { playing: music.playing, title: music.currentTitle, source: music.source, volume: music.volume },

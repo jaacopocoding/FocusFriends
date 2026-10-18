@@ -2,7 +2,7 @@
 
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { cardPlacement, currentOrPrimary, displayAt, displayToFollow, relativeTo } from "../src/core/displays.ts";
+import { cardPlacement, currentOrPrimary, describeDisplay, displayAt, displayToFollow, relativeTo, taskbarSide } from "../src/core/displays.ts";
 import type { DisplayInfo } from "../src/core/displays.ts";
 
 // Due schermi affiancati: il principale 1920×1080 con la barra in basso (40), il secondo 2560×1440 a destra, più in alto.
@@ -58,5 +58,30 @@ describe("Posizione della scheda rispetto all'icona", () => {
   });
   it("un'icona dentro l'area di lavoro: la scheda le sta sopra", () => {
     assert.deepEqual(cardPlacement({ x: 900, y: 900, width: 24, height: 24 }, scene, card), { left: 762, top: 374 });
+  });
+});
+
+describe("Barra delle applicazioni e riga del registro", () => {
+  const bounds = { x: 0, y: 0, width: 1920, height: 1080 };
+  it("da che parte sta la barra", () => {
+    assert.deepEqual(taskbarSide(bounds, { x: 0, y: 0, width: 1920, height: 1040 }), { side: "in basso", size: 40 });
+    assert.deepEqual(taskbarSide(bounds, { x: 0, y: 48, width: 1920, height: 1032 }), { side: "in alto", size: 48 });
+    assert.deepEqual(taskbarSide(bounds, { x: 62, y: 0, width: 1858, height: 1080 }), { side: "a sinistra", size: 62 });
+    assert.deepEqual(taskbarSide(bounds, { x: 0, y: 0, width: 1858, height: 1080 }), { side: "a destra", size: 62 });
+    assert.deepEqual(taskbarSide(bounds, bounds), { side: "nascosta", size: 0 });
+  });
+  it("vale anche per uno schermo con l'origine altrove", () => {
+    const left = { x: -2560, y: -200, width: 2560, height: 1440 };
+    assert.deepEqual(taskbarSide(left, { x: -2560, y: -200, width: 2560, height: 1400 }), { side: "in basso", size: 40 });
+  });
+  it("la riga per il registro", () => {
+    assert.equal(
+      describeDisplay({ ...primary, scaleFactor: 1.5 }),
+      "schermo 1 principale: 1920x1080 a 150% in (0,0), area di lavoro 1920x1040, barra in basso (40)",
+    );
+    assert.equal(
+      describeDisplay({ ...second, scaleFactor: 1.25 }),
+      "schermo 2: 2560x1440 a 125% in (1920,-360), area di lavoro 2560x1400, barra in basso (40)",
+    );
   });
 });

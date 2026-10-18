@@ -59,6 +59,19 @@ export class MusicPlayer {
     if (preview && !this.focusActive && this.source !== "off") this.apply(true);
   }
 
+  /** Dopo uno sleep o un cambio di uscita audio il brano può essersi fermato da solo: se doveva suonare, riparte. */
+  recover(): void {
+    if (!musicWanted(this.source, this.focusActive, this.previewTimer !== undefined)) return;
+    const audio = this.audio;
+    if (audio && !audio.paused) return;
+    if (audio && !audio.ended) {
+      audio.play().catch(() => { this.stopNow(); this.apply(false); });
+      return;
+    }
+    this.stopNow();
+    this.apply(false);
+  }
+
   // ---- riproduzione
 
   private apply(previewing: boolean): void {
@@ -134,6 +147,11 @@ export class MusicPlayer {
   }
 
   get playing(): boolean { return this.audio !== null && !this.audio.paused; }
+
+  /** Solo nelle prove: come se il sistema fermasse il brano. */
+  interruptForTest(): void {
+    this.audio?.pause();
+  }
 
   /** Solo nelle prove: porta il brano a un secondo dalla fine, per vedere che parta il prossimo. */
   seekNearEnd(): void {

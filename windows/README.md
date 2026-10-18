@@ -4,7 +4,7 @@ La versione per Windows di FocusFriends, scritta con **Electron** (TypeScript, H
 in [`../PIANO_WINDOWS.md`](../PIANO_WINDOWS.md) e i formati dei dati, comuni con l'app per Mac, in
 [`../FORMATI.md`](../FORMATI.md).
 
-**Stato:** M2, M3, M4, M5, M6, M7, M8 e M9 finite sul Mac (la logica pura in `src/core/`, il timer, la scheda di carta, il menu completo, i suoni, le schede «Cosa studi adesso?», «Com'è andata?» e di benvenuto, e le statistiche) e M1 avviata: il
+**Stato:** da M1 a M10 finite sul Mac, M11 (parità e prove) fatta per la parte che si prova dal Mac; per il resto vedi [`PARITA.md`](PARITA.md) e [`PROVE_SU_WINDOWS.md`](PROVE_SU_WINDOWS.md). In dettaglio: M2, M3, M4, M5, M6, M7, M8 e M9 finite sul Mac (la logica pura in `src/core/`, il timer, la scheda di carta, il menu completo, i suoni, le schede «Cosa studi adesso?», «Com'è andata?» e di benvenuto, e le statistiche) e M1 avviata: il
 compagno si vede, cammina, si solleva, parla, ha l'orologio sotto di sé e il «+5 minuti» a fine focus. Clic sull'icona nell'area di
 notifica = la scheda; tasto destro = il menu. Manca la prova su Windows.
 
@@ -28,7 +28,8 @@ Sul Mac `npm start` mostra il compagno sullo schermo e lavora in una **cartella 
 (`%APPDATA%\FocusFriends\` su Windows) e riapri l'app.
 
 Le prove includono il **contratto con la versione per Mac**: da ogni cartella di `../tests/fixtures/` il codice deve ricavare
-lo stesso risultato dei file `../tests/fixtures/attesi/`, generati dall'app per Mac (`../tests/genera-attesi.sh`). I dati dei
+lo stesso risultato dei file `../tests/fixtures/attesi/`, generati dall'app per Mac (`../tests/genera-attesi.sh`), e **il contrario**
+(`test/ritorno.test.ts`, solo su un Mac con `swiftc`): i file scritti da questo codice li legge il codice Swift dell'app per Mac con gli stessi risultati. I dati dei
 compagni (`data/pets.json`) si rifanno con `../tools/genera-pets.sh`, e le misure dei rumori (`../tests/fixtures/rumore.json`) con
 `../tests/genera-rumore.sh`.
 

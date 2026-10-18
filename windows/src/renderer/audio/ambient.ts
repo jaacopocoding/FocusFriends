@@ -120,13 +120,30 @@ export class AmbientPlayer {
       }
       this.context = context;
       this.node = node;
+      // Se il sistema ferma il motore mentre il suono doveva esserci (cambio di uscita audio), lo si riaccende.
+      context.addEventListener("statechange", () => { if (context.state === "suspended") this.recover(); });
       return true;
     } catch {
       return false;
     }
   }
 
+  /**
+   * Dopo uno sleep, o se cambia l'uscita audio (cuffie scollegate), Windows può fermare il motore da solo: se il suono doveva
+   * esserci, lo si riaccende.
+   */
+  recover(): void {
+    if (this.targetGain === 0 || !this.context || this.context.state === "running") return;
+    // Il rumore riprende dallo stato in cui era (il volume sta nel motore): basta riaccenderlo.
+    void this.start().then((ok) => { if (!ok) this.options.onStartFailure(); });
+  }
+
   // ---- per le prove
+
+  /** Come se il sistema fermasse il motore (per provare `recover`). */
+  interruptForTest(): void {
+    void this.context?.suspend();
+  }
 
   /** Il livello (rms) di quello che esce adesso; solo con `analyser`. */
   level(): number {

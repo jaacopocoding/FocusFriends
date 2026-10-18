@@ -106,6 +106,8 @@ export interface FocusFriendsApi {
   onCardReopen(callback: () => void): void;
   /** «Fai parlare»: dall'area di notifica. */
   onSpeakNow(callback: () => void): void;
+  /** Il computer si è risvegliato da uno sleep (o lo schermo è stato sbloccato): l'audio può essersi fermato da solo. */
+  onSystemResumed(callback: () => void): void;
   /** La pagina è pronta a ricevere messaggi (prima di questo momento il processo principale li tiene da parte). */
   ready(): void;
   /** Solo nelle prove automatiche: la pagina espone dei comandi in `window.__ff`. */
@@ -134,5 +136,6 @@ export const CHANNEL = {
   dragging: "stage:dragging",
   cardToggle: "card:toggle",
   cardReopen: "card:reopen",
+  systemResumed: "system:resumed",
   rendererReady: "renderer:ready",
 } as const;

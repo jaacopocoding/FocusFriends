@@ -1,12 +1,13 @@
 # La versione per Mac: a ogni modifica lancia le prove (tests/run.sh) e compila l'app. (Punto F-07 della revisione dell'architettura.)
+# Il secondo lavoro tiene d'accordo le due versioni: il codice per Windows deve leggere i file del Mac e il Mac quelli scritti da lui.
 name: Mac
 
 on:
   push:
     branches: [main]
-    paths: ["Sources/**", "tests/**", "build.sh", "assets/**", ".github/workflows/mac.yml"]
+    paths: ["Sources/**", "tests/**", "build.sh", "assets/**", "windows/src/core/**", "windows/test/**", "FORMATI.md", ".github/workflows/mac.yml"]
   pull_request:
-    paths: ["Sources/**", "tests/**", "build.sh", "assets/**", ".github/workflows/mac.yml"]
+    paths: ["Sources/**", "tests/**", "build.sh", "assets/**", "windows/src/core/**", "windows/test/**", "FORMATI.md", ".github/workflows/mac.yml"]
   workflow_dispatch:
 
 permissions:
@@ -22,3 +23,16 @@ jobs:
         run: tests/run.sh
       - name: Compilazione (build.sh)
         run: ./build.sh
+
+  contratto:
+    name: Contratto con la versione per Windows
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      # Le prove della logica non hanno bisogno di pacchetti; quella «al contrario» compila il generatore Swift e lo usa.
+      - name: Prove della logica per Windows, con il contratto in tutti e due i versi
+        run: node --test test/*.test.ts
+        working-directory: windows

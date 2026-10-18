@@ -1,6 +1,6 @@
 // Il processo principale: la finestra trasparente, l'area di notifica, i file.
 
-import { app, BrowserWindow, ipcMain, screen } from "electron";
+import { app, BrowserWindow, ipcMain, powerMonitor, screen } from "electron";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -8,10 +8,12 @@ import { CHANNEL } from "../shared/api.ts";
 import type { CardCommand, CardOpenRequest, SettingsSnapshot } from "../shared/api.ts";
 import { PhraseDeck, loadPhrases } from "../core/phrases.ts";
 import { AppLog } from "../core/diagnostics.ts";
+import { describeDisplay } from "../core/displays.ts";
 import { PET_IDS, petInfo } from "../core/pets.ts";
 import { Profile } from "../core/profile.ts";
 import type { TimerKind } from "../core/rules.ts";
 import { Settings } from "../core/settings.ts";
+import { refreshSystemZone } from "../core/time.ts";
 import { createCardService } from "./card.ts";
 import { loginItem } from "./login.ts";
 import { createMusicService } from "./music.ts";
@@ -65,7 +67,7 @@ async function start(): Promise<void> {
   mkdirSync(data, { recursive: true });
   const log = new AppLog({ directory: data, home: homedir() });
   appLog = log;
-  log.info(`avvio ${app.getVersion()} (${process.platform} ${process.arch}, Electron ${process.versions.electron})`);
+  log.info(`avvio ${app.getVersion()} (${process.platform} ${process.getSystemVersion()} ${process.arch}, Electron ${process.versions.electron})`);
   app.on("child-process-gone", (_event, details) => log.warn(`processo ${details.type} finito: ${details.reason} (codice ${details.exitCode})`));
   const settings = new Settings(data);
   const music = createMusicService({ assets, folder: () => settings.musicFolder });
@@ -227,11 +229,33 @@ async function start(): Promise<void> {
   ipcMain.handle(CHANNEL.getTimerState, () => service.snapshot());
 
   // L'area di lavoro cambia (barra delle applicazioni spostata, risoluzione, scala, uno schermo tolto o aggiunto): la finestra la segue.
-  screen.on("display-metrics-changed", () => stage.refit());
-  screen.on("display-added", () => { log.info("schermo aggiunto"); stage.refit(); });
-  screen.on("display-removed", () => { log.info("schermo tolto"); stage.refit(); });
+  // (Misure, scala e lato della barra finiscono nel registro dell'app: una prova su un altro computer si capisce da lì.)
+  const logDisplays = (reason: string): void => {
+    const primaryId = screen.getPrimaryDisplay().id;
+    for (const d of screen.getAllDisplays()) {
+      log.info(`${reason}: ${describeDisplay({ id: d.id, primary: d.id === primaryId, bounds: d.bounds, workArea: d.workArea, scaleFactor: d.scaleFactor })}`);
+    }
+  };
+  logDisplays("schermi all'avvio");
+  screen.on("display-metrics-changed", () => { logDisplays("schermo cambiato"); stage.refit(); });
+  screen.on("display-added", () => { log.info("schermo aggiunto"); logDisplays("schermi ora"); stage.refit(); });
+  screen.on("display-removed", () => { log.info("schermo tolto"); logDisplays("schermi ora"); stage.refit(); });
   // Appena la pagina è pronta sa dov'è la finestra.
   ipcMain.once(CHANNEL.rendererReady, () => stage.refit());
+
+  // Sleep e risveglio (anche col coperchio chiuso). Il timer non ha bisogno di niente: un salto di più di 10 secondi lo conta già
+  // come tempo da fermo. Al risveglio, però, possono essere cambiati il fuso orario (un viaggio), gli schermi (un monitor
+  // scollegato nel frattempo) e l'uscita audio, che a volte si ferma da sola.
+  powerMonitor.on("suspend", () => log.info("il computer va in sleep"));
+  const awake = (what: string): void => {
+    log.info(`${what}: si rileggono fuso e schermi, l'audio riparte se serve`);
+    refreshSystemZone();
+    logDisplays("schermi al risveglio");
+    stage.refit();
+    send(CHANNEL.systemResumed);
+  };
+  powerMonitor.on("resume", () => awake("il computer si risveglia"));
+  powerMonitor.on("unlock-screen", () => awake("lo schermo è sbloccato"));
 
   if (process.env["FF_SELFTEST"] !== undefined) runSelfTest(win, interactions, settings, () => service, card, stats, stage);
 }
@@ -278,6 +302,8 @@ function runSelfTest(win: BrowserWindow, interactions: string[], settings: Setti
       win.webContents.sendInputEvent({ type: "keyDown", keyCode });
       win.webContents.sendInputEvent({ type: "keyUp", keyCode });
     },
+    /** Sleep e risveglio simulati: gli stessi messaggi che manda Windows. */
+    power: (event: "suspend" | "resume" | "lock-screen" | "unlock-screen") => { powerMonitor.emit(event); },
     quit: () => app.quit(),
   };
 
