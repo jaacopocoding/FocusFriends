@@ -76,6 +76,10 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: windows/NOTE_DI_RILASCIO.md
+          sparse-checkout-cone-mode: false
       - uses: actions/download-artifact@v4
         with:
           path: installer
@@ -88,5 +92,5 @@ jobs:
         run: |
           gh release create "${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}" --draft \
             --title "FocusFriends per Windows ${GITHUB_REF_NAME#windows-v}" \
-            --notes "Installer per Windows (x64 e ARM). Controlla il checksum SHA-256 con SHA256SUMS.txt. Le note vanno completate prima di pubblicare." \
+            --notes-file windows/NOTE_DI_RILASCIO.md \
             installer/*.exe SHA256SUMS.txt

@@ -89,8 +89,11 @@ compagni sbloccati ci vivono, e se li tocchi parlano.
    Per controllare che lo zip scaricato sia quello pubblicato, il checksum SHA-256 di ogni versione è nelle note
    della release (`shasum -a 256 FocusFriends-<versione>-macOS.zip`).
 
-**Windows.** La versione per Windows (Electron, nella cartella [`windows/`](windows/)) è in preparazione e non è ancora pubblicata:
-lo stato e il piano sono in [`PIANO_WINDOWS.md`](PIANO_WINDOWS.md), i formati dei dati (uguali per i due sistemi) in [`FORMATI.md`](FORMATI.md).
+**Windows.** C'è anche una versione per Windows 10 e 11 (Electron, nella cartella [`windows/`](windows/)): dalla pagina delle Releases scarica
+`FocusFriends-Windows-<versione>-x64-Setup.exe` (o `…-arm64-Setup.exe` per i computer ARM) e lancialo; non è firmato, quindi la prima volta
+Windows può mostrare «Windows ha protetto il PC» (*Ulteriori informazioni* → *Esegui comunque*). Ha tutto tranne il giardino, che arriva con la
+prossima uscita. I dati (uguali per i due sistemi, vedi [`FORMATI.md`](FORMATI.md)) stanno in `%APPDATA%\FocusFriends`. Il piano e lo stato sono in
+[`PIANO_WINDOWS.md`](PIANO_WINDOWS.md), il confronto con questa app in [`windows/PARITA.md`](windows/PARITA.md).
 
 Non ha icona nel Dock: la trovi nella barra dei menu e con il tasto destro sul personaggio. I dati (sessioni,
 nome) restano sul tuo Mac, in `~/Library/Application Support/FocusFriends/`: nessuna rete, nessun invio.

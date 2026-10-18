@@ -76,8 +76,10 @@ clic nelle zone trasparenti (Electron lo ha pronto, Tauri no) si è passati a El
 
 ### M0 — Fondamenta (2–3 giorni)
 
-- [~] Scegliere il font libero (OFL) più vicino a Marker Felt (candidati: Kalam, Patrick Hand, Itim) e il set di icone
+- [x] Scegliere il font libero (OFL) più vicino a Marker Felt (candidati: Kalam, Patrick Hand, Itim) e il set di icone
       libero (candidato: Lucide) al posto delle icone di sistema. Prova affiancata alle schermate del Mac.
+      **Scelto Itim** (peso e larghezza più vicini; Patrick Hand è troppo sottile, Kalam troppo inclinato), incluso in `windows/resources/fonts/` con la sua
+      licenza OFL e citato in `CREDITS.md`. Cambiarlo è un file e una riga (`--marker` in `card.css`).
 - [x] Suono di fine focus (al posto di «Glass»): generato da zero, quindi senza licenze (`windows/resources/fine-focus.wav`,
       due rintocchi di campana, 2,2 secondi). **Da ascoltare e approvare.**
 - [x] Scrivere `FORMATI.md`: i tre file dei dati e le regole di lettura (versioni, file rovinato, file più nuovo in sola
@@ -393,6 +395,10 @@ Lista di controllo, funzione per funzione, contro l'app per Mac:
 
 **Fine della prima uscita:** versione 1 per Windows, **senza giardino**. Durante la prima uscita il pulsante «Giardino» non
 c'è nella scheda e nel menu.
+
+**Stato della prima uscita (18 ottobre 2026):** il lavoro che si fa dal Mac è finito. Versione `1.0.0`, installer x64 e ARM, note di rilascio
+(`windows/NOTE_DI_RILASCIO.md`), carattere incluso, crediti, README. **Non è ancora stata provata su una macchina Windows vera** (`windows/PROVE_SU_WINDOWS.md`)
+e non è ancora stata pubblicata: mancano il push, il tag `windows-v1.0.0` (la CI prepara gli installer e una bozza di release) e la scelta sulla firma.
 
 ## Seconda uscita: il giardino (8–12 giorni)
 

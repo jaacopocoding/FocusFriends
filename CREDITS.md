@@ -24,6 +24,12 @@ e ridistribuire senza condizioni e senza obbligo di citare l'autore. Li citiamo 
 I personaggi (Pianty, Porcellino, Ciccio), le piantine, il fumetto e il logo sono illustrazioni create per questo
 progetto.
 
+## Carattere (versione per Windows)
+
+Il carattere «a pennarello» di fumetti e titoli nella versione per Windows (al posto di Marker Felt, che c'è solo sul Mac) è **Itim**, di Cadson Demak e
+Pablo Impallari, con la licenza **SIL Open Font License 1.1** (il testo è in `windows/resources/fonts/Itim-OFL.txt` e nell'installer). Si può usare,
+copiare e ridistribuire con l'app.
+
 ## Icone (versione per Windows)
 
 Le piccole icone della scheda (al posto dei simboli di sistema del Mac) vengono da **Lucide** (<https://lucide.dev>), licenza ISC:

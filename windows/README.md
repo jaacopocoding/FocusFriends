@@ -1,12 +1,13 @@
 # FocusFriends per Windows
 
-La versione per Windows di FocusFriends, scritta con **Electron** (TypeScript, HTML e CSS). È in costruzione: il piano è
+La versione per Windows di FocusFriends, scritta con **Electron** (TypeScript, HTML e CSS). La prima uscita (senza il giardino) è pronta: il piano è
 in [`../PIANO_WINDOWS.md`](../PIANO_WINDOWS.md) e i formati dei dati, comuni con l'app per Mac, in
 [`../FORMATI.md`](../FORMATI.md).
 
-**Stato:** da M1 a M10 finite sul Mac, M11 (parità e prove) fatta per la parte che si prova dal Mac; per il resto vedi [`PARITA.md`](PARITA.md) e [`PROVE_SU_WINDOWS.md`](PROVE_SU_WINDOWS.md). In dettaglio: M2, M3, M4, M5, M6, M7, M8 e M9 finite sul Mac (la logica pura in `src/core/`, il timer, la scheda di carta, il menu completo, i suoni, le schede «Cosa studi adesso?», «Com'è andata?» e di benvenuto, e le statistiche) e M1 avviata: il
-compagno si vede, cammina, si solleva, parla, ha l'orologio sotto di sé e il «+5 minuti» a fine focus. Clic sull'icona nell'area di
-notifica = la scheda; tasto destro = il menu. Manca la prova su Windows.
+**Stato:** la **prima uscita** (versione 1.0, senza il giardino) è finita e provata sul Mac, con prove automatiche e prove dal vivo con eventi simulati;
+il confronto con l'app per Mac, funzione per funzione, è in [`PARITA.md`](PARITA.md) e quello che resta da provare **su una macchina Windows vera**
+(clic che passano, barra delle applicazioni, scale, due schermi, sleep, suoni) in [`PROVE_SU_WINDOWS.md`](PROVE_SU_WINDOWS.md). Il giardino è la seconda uscita.
+Clic sull'icona nell'area di notifica = la scheda; tasto destro = il menu.
 
 **Per provarlo** serve Node 24 o più nuovo:
 
@@ -33,24 +34,27 @@ lo stesso risultato dei file `../tests/fixtures/attesi/`, generati dall'app per 
 compagni (`data/pets.json`) si rifanno con `../tools/genera-pets.sh`, e le misure dei rumori (`../tests/fixtures/rumore.json`) con
 `../tests/genera-rumore.sh`.
 
-## Com'è organizzata (quando ci sarà)
+## Com'è organizzata
 
 ```
 windows/
 ├── src/
-│   ├── core/        la logica pura (registro, statistiche, regole): senza Electron, si prova con Node
-│   ├── main/        il processo principale: finestre, area di notifica, file, avvio al login
-│   │   └── platform/    quello che tocca Windows
+│   ├── core/        la logica pura (registro, statistiche, regole, timer, suoni): senza Electron, si prova con Node
+│   ├── main/        il processo principale: finestre, area di notifica, file, avvio al login, timer
 │   ├── preload/     il ponte sicuro tra le due parti
-│   └── renderer/    l'interfaccia
-├── resources/       risorse solo di Windows (per esempio il suono di fine focus)
+│   ├── renderer/    l'interfaccia (il compagno, le schede, le statistiche, i suoni)
+│   └── shared/      il contratto tra processo principale e interfaccia
+├── resources/       risorse solo di Windows: il suono di fine focus e il carattere (Itim, licenza OFL)
+├── data/            i dati dei compagni (generati da Pet.swift)
+├── test/            le prove (`npm test`), anche il contratto con l'app per Mac, nei due versi
+├── tools/           compilazione, icone, preparazione delle risorse per l'installer
 └── package.json
 ```
 
 Le immagini, le frasi e i brani sono quelli di `../assets/`, in comune con l'app per Mac. Le prove di confronto usano
 gli esempi di `../tests/fixtures/`.
 
-## Installare (quando ci sarà la release)
+## Installare
 
 1. Scarica dalla pagina delle [Releases](https://github.com/jaacopocoding/FocusFriends/releases) l'installer giusto: `…-x64-Setup.exe` per i computer
    Intel e AMD, `…-arm64-Setup.exe` per quelli ARM (per esempio Surface Pro e i portatili Copilot+).
