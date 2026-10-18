@@ -76,10 +76,11 @@ clic nelle zone trasparenti (Electron lo ha pronto, Tauri no) si è passati a El
 
 ### M0 — Fondamenta (2–3 giorni)
 
-- [x] Scegliere il font libero (OFL) più vicino a Marker Felt (candidati: Kalam, Patrick Hand, Itim) e il set di icone
+- [x] Scegliere il font libero più vicino a Marker Felt (candidati: Kalam, Patrick Hand, Itim, poi altri 40) e il set di icone
       libero (candidato: Lucide) al posto delle icone di sistema. Prova affiancata alle schermate del Mac.
-      **Scelto Itim** (peso e larghezza più vicini; Patrick Hand è troppo sottile, Kalam troppo inclinato), incluso in `windows/resources/fonts/` con la sua
-      licenza OFL e citato in `CREDITS.md`. Cambiarlo è un file e una riga (`--marker` in `card.css`).
+      **Scelto Chewy** (18 ottobre 2026): provati 44 caratteri liberi contro il vero Marker Felt Wide del Mac (forma delle lettere, peso del tratto, larghezza e
+      altezza delle maiuscole a parità di altezza delle minuscole) e poi nell'app; Chewy è il più vicino (Londrina Solid e Boogaloo i successivi). Itim, scelto
+      prima a occhio, era 18° e troppo largo. Licenza Apache 2.0, in `windows/resources/fonts/` e in `CREDITS.md`. Cambiarlo è un file e una riga (`--marker` in `card.css`).
 - [x] Suono di fine focus (al posto di «Glass»): generato da zero, quindi senza licenze (`windows/resources/fine-focus.wav`,
       due rintocchi di campana, 2,2 secondi). **Da ascoltare e approvare.**
 - [x] Scrivere `FORMATI.md`: i tre file dei dati e le regole di lettura (versioni, file rovinato, file più nuovo in sola

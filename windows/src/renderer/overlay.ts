@@ -525,7 +525,7 @@ async function loadPaper(): Promise<ImageBitmap | null> {
 
 async function start(): Promise<void> {
   // Il carattere dei fumetti e dei titoli si carica prima di disegnare il primo testo sul canvas (altrimenti la prima frase uscirebbe con un altro).
-  await document.fonts.load('20px "Itim"').catch(() => undefined);
+  await document.fonts.load('20px "Chewy"').catch(() => undefined);
   settings = await api.getSettings();
   timerState = await api.getTimerState();
   timerAt = performance.now();

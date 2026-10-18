@@ -77,7 +77,7 @@ e **come è stato verificato**. Il giardino non c'è nella prima uscita (vedi `P
 | Menu classico: Nascondi/Mostra, Fai parlare, Pomofocus, Statistiche, Il tuo nome, Chiedi com'è andata, Pausa lunga, Frequenza, Personaggio, Movimento, Avvia al login, Modifica le frasi, Esci | Tutte le voci, più **Schermo** (con più schermi) e i sottomenu di suono e musica | C (l'elenco); **W** (come si apre) |
 | Tutto leggibile ai lettori di schermo | Pulsanti veri con etichette; tastiera completa | C; con un lettore vero (Narrator): **W** |
 | Icona del compagno (la testa) | Stessa testa, 32 px | C; **W** |
-| Aspetto «carta»; carattere Marker Felt | Stesso disegno in SVG; **carattere libero al posto di Marker Felt** (da scegliere), icone Lucide al posto di SF Symbols | ≠ la scelta del carattere è in sospeso |
+| Aspetto «carta»; carattere Marker Felt (Wide) | Stesso disegno in SVG; **Chewy al posto di Marker Felt** (il più vicino tra 44 caratteri liberi, misurato contro l'originale), icone Lucide al posto di SF Symbols | ≠ voluta: le lettere non sono identiche |
 
 ## 6. Suoni
 

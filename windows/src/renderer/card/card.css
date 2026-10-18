@@ -1,12 +1,13 @@
 /* La scheda di carta: stessi colori e stesso modo di fare di quella del Mac (PaperUI.swift). Sempre chiara, anche col tema scuro. */
 
-/* Il carattere «pennarello» (al posto di Marker Felt, che c'è solo sul Mac): Itim, licenza SIL OFL 1.1 (resources/fonts/Itim-OFL.txt). */
+/* Il carattere «pennarello» (al posto di Marker Felt, che c'è solo sul Mac): Chewy, licenza Apache 2.0 (resources/fonts/Chewy-Apache-2.0.txt).
+   Ha un peso solo, già pesante come Marker Felt Wide: l'intervallo di pesi evita che il grassetto lo ingrossi ancora. */
 @font-face {
-  font-family: "Itim";
+  font-family: "Chewy";
   font-style: normal;
-  font-weight: 400;
+  font-weight: 100 900;
   font-display: block;
-  src: url("ff://app/resources/fonts/itim-latin-400.woff2") format("woff2");
+  src: url("ff://app/resources/fonts/chewy-latin-400.woff2") format("woff2");
 }
 
 :root {
@@ -24,7 +25,7 @@
   --danger: rgb(176, 70, 52);
   --danger-fill: rgb(255, 230, 222);
   --danger-edge: rgb(214, 150, 130);
-  --marker: "Itim", "Segoe Print", cursive;
+  --marker: "Chewy", "Segoe Print", cursive;
   --ui: system-ui, "Segoe UI", sans-serif;
 }
 

@@ -26,9 +26,9 @@ progetto.
 
 ## Carattere (versione per Windows)
 
-Il carattere «a pennarello» di fumetti e titoli nella versione per Windows (al posto di Marker Felt, che c'è solo sul Mac) è **Itim**, di Cadson Demak e
-Pablo Impallari, con la licenza **SIL Open Font License 1.1** (il testo è in `windows/resources/fonts/Itim-OFL.txt` e nell'installer). Si può usare,
-copiare e ridistribuire con l'app.
+Il carattere «a pennarello» di fumetti e titoli nella versione per Windows (al posto di Marker Felt, che c'è solo sul Mac) è **Chewy**, Copyright (c) 2010
+Font Diner, Inc DBA Sideshow, con la licenza **Apache 2.0** (il testo è in `windows/resources/fonts/Chewy-Apache-2.0.txt` e nell'installer). Si può usare,
+copiare e ridistribuire con l'app. L'abbiamo scelto tra 44 caratteri liberi perché, misurato contro Marker Felt Wide, è il più vicino per peso e larghezza.
 
 ## Icone (versione per Windows)
 

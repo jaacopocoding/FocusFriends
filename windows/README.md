@@ -44,7 +44,7 @@ windows/
 │   ├── preload/     il ponte sicuro tra le due parti
 │   ├── renderer/    l'interfaccia (il compagno, le schede, le statistiche, i suoni)
 │   └── shared/      il contratto tra processo principale e interfaccia
-├── resources/       risorse solo di Windows: il suono di fine focus e il carattere (Itim, licenza OFL)
+├── resources/       risorse solo di Windows: il suono di fine focus e il carattere (Chewy, licenza Apache 2.0)
 ├── data/            i dati dei compagni (generati da Pet.swift)
 ├── test/            le prove (`npm test`), anche il contratto con l'app per Mac, nei due versi
 ├── tools/           compilazione, icone, preparazione delle risorse per l'installer
