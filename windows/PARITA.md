@@ -112,7 +112,7 @@ e **come è stato verificato**. Il giardino non c'è nella prima uscita (vedi `P
 | Esci: l'app chiude e registra il focus come interrotto | Uguale; anche alla chiusura della sessione di Windows (`session-end`) | S |
 | Problemi con i dati detti dal compagno una volta sola | Uguale | P S |
 | Registro degli arresti inattesi | `registro-app.log` (200 KB ×2): versioni, schermi (misure, scala, lato della barra), sleep e risveglio, eccezioni, processi caduti; niente dati personali | P S |
-| App nativa, leggera | **Molto più pesante (Electron)**: 590 MB sul Mac sommando i processi, obiettivo 250 MB, da misurare su Windows | ≠ **W** |
+| App nativa, leggera | **Più pesante (Electron)**. **Misurato su Windows (18 ottobre 2026): circa 200 MB e 0 % di processore** (obiettivo 250 MB; sul Mac, con gli stessi processi, 590 MB). Da rimisurare con un focus e la pioggia accesi | ≠ misurato |
 | `Info.plist`, firma ad-hoc | Installer NSIS per l'utente, x64 e ARM; **non firmato** (avviso SmartScreen) | ≠ vedi `RILASCIO.md` |
 
 ## 9. Fuso orario, ora legale, sleep

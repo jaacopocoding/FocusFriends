@@ -314,8 +314,8 @@ fa con `defaults write`); sblocca tutto senza toccare il profilo. Provato dal vi
 - [x] Più schermi, scala del 100%–200%, barra delle applicazioni in qualunque lato, tema scuro di Windows (le schede sono sempre chiare).
 - [x] Problemi con i dati detti dal compagno (file illeggibile, scrittura fallita), una volta sola.
 - [x] Chiusura pulita: un focus in corso si registra come interrotto, come sul Mac.
-- [~] Prestazioni: a riposo sotto il 2% di processore e sotto i 250 MB di memoria (tutti i processi di Electron sommati: è
-      la parte più pesante rispetto al Mac).
+- [x] Prestazioni: a riposo sotto il 2% di processore e sotto i 250 MB di memoria (tutti i processi di Electron sommati: è
+      la parte più pesante rispetto al Mac). **Misurato su Windows il 18 ottobre 2026: circa 200 MB e 0 % di processore** (da rimisurare con la pioggia accesa).
 - [x] Arresti inattesi: un file di registro dell'app (senza dati personali) per capire cosa è successo.
 
 **Stato (sul Mac):**
