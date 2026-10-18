@@ -121,7 +121,8 @@ describe("Frequenza delle frasi", () => {
 
 describe("Timer personalizzati", () => {
   it("quelli di serie, quelli aggiunti, i limiti", () => {
-    const s = new Settings(tempDirectory());
+    const dir = tempDirectory();
+    const s = new Settings(dir);
     assert.deepEqual(s.allTimers("focus"), [30, 50]);
     assert.deepEqual(s.allTimers("rest"), [5, 10]);
     assert.deepEqual(s.addCustomTimer(90, "focus"), { result: "added" });
@@ -139,7 +140,7 @@ describe("Timer personalizzati", () => {
     s.removeCustomTimer(90, "focus");
     assert.deepEqual(s.addCustomTimer(45, "focus"), { result: "added" });
     assert.deepEqual(s.allTimers("rest"), [5, 10], "gli altri tipi non cambiano");
-    assert.deepEqual(new Settings(s["file"].replace(/\/impostazioni\.json$/, "")).customTimers("focus"), [40, 41, 42, 43, 44, 45]);
+    assert.deepEqual(new Settings(dir).customTimers("focus"), [40, 41, 42, 43, 44, 45]);
   });
 });
 
