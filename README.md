@@ -553,7 +553,7 @@ tests/                  prove del registro e delle statistiche (./tests/run.sh) 
 .github/workflows/      la verifica automatica su GitHub: le prove e la compilazione del Mac, e quelle di Windows (con gli installer a ogni tag windows-v…)
 FORMATI.md              i formati dei file di dati, uguali per Mac e Windows
 PIANO_WINDOWS.md        il piano, le scelte e lo stato della versione per Windows
-ARCHITECTURE.md        come funziona il codice dell'app per Mac (e ARCHITECTURE_REVIEW.md, la revisione)
+ARCHITECTURE.md        come funziona il codice dell'app per Mac (e ARCHITECTURE_REVIEW.md, la revisione); windows/ARCHITECTURE.md quello della versione per Windows
 windows/                la versione per Windows (Electron + TypeScript): vedi windows/README.md
 ```
 

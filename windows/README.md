@@ -52,6 +52,8 @@ windows/
 └── package.json
 ```
 
+Come funziona il codice (processi, finestra trasparente, timer, dati, suoni, prove, scelte fatte e punti deboli) è in [`ARCHITECTURE.md`](ARCHITECTURE.md).
+
 Le immagini, le frasi e i brani sono quelli di `../assets/`, in comune con l'app per Mac. Le prove di confronto usano
 gli esempi di `../tests/fixtures/`.
 
