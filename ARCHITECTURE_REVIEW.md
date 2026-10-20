@@ -99,3 +99,11 @@ Applied on the working tree at `2043b39` (nothing committed). Baseline before an
 | F-14 | Fixed | `build.sh`: a failed ad-hoc signing now aborts with a message instead of `\|\| true`. `README.md`: tells where each release's SHA-256 is (the release notes already carry it). | The checksum exists in every release's notes; only the README did not say so. Notarisation, hardened runtime and sandboxing were not attempted: they change distribution and the data location and need a human decision. |
 | F-15 | Fixed | `README.md`: click behaviour (right-click / control-click on the pet) in two places; format example `"version": 3`. `Pomodoro.swift`: removed the stale "salvo nei test" comment. | (a), (b), (c) fixed with the code taken as truth. (d) concerns `ARCHITECTURE.md`, which this task forbids editing: **not done**. |
 | F-16 | Needs decision | `Quotes.swift`: `userDirectory` now returns `SessionLog.defaultDirectory`, so the data path is built in one place. | The recommended `AppPaths` type and preferences registry are new abstractions touching many files; left for a decision. |
+
+## Update, 20 October 2026
+
+- **F-07, the CI part, is now done:** `.github/workflows/mac.yml` runs `tests/run.sh` and `build.sh` on a macOS runner for every relevant change
+  (and a second job checks the contract with the Windows port). The unit tests for `Pomodoro` are still not written for the Swift app (they depend on F-06); the
+  Windows port has its own tested timer engine (`windows/src/core/pomodoro.ts`, `windows/test/timer.test.ts`), which was written as a pure module with an injectable clock.
+- F-15(d): `ARCHITECTURE.md` no longer lists the CSV guard characters wrongly, and the `README.md` line now includes tab and carriage return. One leftover: the comment above `SessionCSV.quoted` in `SessionLog.swift` still says only `= + - @` while the code also guards `\t` and `\r` (a comment, no effect on behaviour).
+- The rest of this document describes the state at the time of the review and is left unchanged.

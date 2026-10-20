@@ -30,6 +30,11 @@ Il carattere «a pennarello» di fumetti e titoli nella versione per Windows (al
 Font Diner, Inc DBA Sideshow, con la licenza **Apache 2.0** (il testo è in `windows/resources/fonts/Chewy-Apache-2.0.txt` e nell'installer). Si può usare,
 copiare e ridistribuire con l'app. L'abbiamo scelto tra 44 caratteri liberi perché, misurato contro Marker Felt Wide, è il più vicino per peso e larghezza.
 
+## Electron (versione per Windows)
+
+La versione per Windows è costruita su **Electron** (licenza MIT) e quindi porta con sé Chromium e le sue dipendenze: i testi delle licenze sono inclusi
+nell'installer, accanto al programma (`LICENSE.electron.txt` e `LICENSES.chromium.html`).
+
 ## Icone (versione per Windows)
 
 Le piccole icone della scheda (al posto dei simboli di sistema del Mac) vengono da **Lucide** (<https://lucide.dev>), licenza ISC:

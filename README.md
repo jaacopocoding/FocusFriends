@@ -265,7 +265,7 @@ poca testa nel periodo e, quando ci sono almeno 8 focus valutati, fino a due fra
 giornata, giorno della settimana) o **con cosa** (materia) i focus vanno meglio o peggio, sempre con i
 conteggi («di mattina: 7 focus su 9 sono andati bene»). Un gruppo deve avere almeno 3 focus e distare almeno 20
 punti percentuali dalla media: altrimenti non dice niente, meglio che dire una cosa a caso (`StudyStats.insights`).
-Il CSV ha tre colonne in più (`com_e_andata`, `nota`, `note_del_focus`) e i campi di testo che iniziano con `= + - @` hanno un
+Il CSV ha tre colonne in più (`com_e_andata`, `nota`, `note_del_focus`) e i campi di testo che iniziano con `= + - @`, un tab o un ritorno a capo hanno un
 apice davanti, così un foglio di calcolo non li prende per formule.
 
 Il formato del file passa alla **versione 2** (voto e nota) e poi alla **3** (le note scritte durante il focus):
@@ -547,9 +547,14 @@ assets/
   logo_original.png     il logo: un pomodoro-timer con l'anello che mostra il tempo
   AppIcon.png, AppIcon.icns   icona dell'app, generata da tools/make_icon.py (il logo nella forma delle icone di macOS);
                         la stessa immagine è in docs/images/logo.png, quella che mostra il README
-tools/                  script per ritagli e icona (Python con Pillow e numpy)
+tools/                  script per ritagli e icona (Python con Pillow e numpy) e genera-pets.sh (i dati dei compagni per Windows)
 build.sh                compila e crea build/FocusFriends.app
-tests/                  prove del registro e delle statistiche (./tests/run.sh)
+tests/                  prove del registro e delle statistiche (./tests/run.sh) e i dati di esempio con i risultati attesi (fixtures/) che la versione per Windows deve rispettare
+.github/workflows/      la verifica automatica su GitHub: le prove e la compilazione del Mac, e quelle di Windows (con gli installer a ogni tag windows-v…)
+FORMATI.md              i formati dei file di dati, uguali per Mac e Windows
+PIANO_WINDOWS.md        il piano, le scelte e lo stato della versione per Windows
+ARCHITECTURE.md        come funziona il codice dell'app per Mac (e ARCHITECTURE_REVIEW.md, la revisione)
+windows/                la versione per Windows (Electron + TypeScript): vedi windows/README.md
 ```
 
 ## Aggiungere o cambiare un personaggio

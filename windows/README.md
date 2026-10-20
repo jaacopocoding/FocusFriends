@@ -1,12 +1,13 @@
 # FocusFriends per Windows
 
-La versione per Windows di FocusFriends, scritta con **Electron** (TypeScript, HTML e CSS). La prima uscita (senza il giardino) è pronta: il piano è
+La versione per Windows di FocusFriends, scritta con **Electron** (TypeScript, HTML e CSS). La prima uscita (senza il giardino) è **uscita**: il piano è
 in [`../PIANO_WINDOWS.md`](../PIANO_WINDOWS.md) e i formati dei dati, comuni con l'app per Mac, in
 [`../FORMATI.md`](../FORMATI.md).
 
-**Stato:** la **prima uscita** (versione 1.0, senza il giardino) è finita e provata sul Mac, con prove automatiche e prove dal vivo con eventi simulati;
-il confronto con l'app per Mac, funzione per funzione, è in [`PARITA.md`](PARITA.md) e quello che resta da provare **su una macchina Windows vera**
-(clic che passano, barra delle applicazioni, scale, due schermi, sleep, suoni) in [`PROVE_SU_WINDOWS.md`](PROVE_SU_WINDOWS.md). Il giardino è la seconda uscita.
+**Stato:** la **prima uscita** (versione 1.0.0, senza il giardino) è **pubblicata** dal 18 ottobre 2026:
+[release `windows-v1.0.0`](https://github.com/jaacopocoding/FocusFriends/releases/tag/windows-v1.0.0). È provata sul Mac con prove automatiche e prove dal vivo, sulla
+CI di GitHub (macchina Windows) e, in modo sommario, su un computer Windows vero. Il confronto con l'app per Mac, funzione per funzione, è in [`PARITA.md`](PARITA.md);
+quello che resta da provare su Windows, punto per punto, in [`PROVE_SU_WINDOWS.md`](PROVE_SU_WINDOWS.md). Il giardino è la seconda uscita.
 Clic sull'icona nell'area di notifica = la scheda; tasto destro = il menu.
 
 **Per provarlo** serve Node 24 o più nuovo:

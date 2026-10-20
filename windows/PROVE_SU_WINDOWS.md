@@ -10,7 +10,7 @@ della barra delle applicazioni, sleep e risvegli, errori. Niente nomi né materi
 
 **Come si avvia.** Una delle due:
 
-- **L'installer** (dopo il primo push, dalla pagina delle release): `FocusFriends-Windows-<versione>-x64-Setup.exe`, oppure `…-arm64-Setup.exe` su Windows ARM.
+- **L'installer** (dalla [pagina delle release](https://github.com/jaacopocoding/FocusFriends/releases/tag/windows-v1.0.0)): `FocusFriends-Windows-<versione>-x64-Setup.exe`, oppure `…-arm64-Setup.exe` su Windows ARM.
   Non è firmato: Windows dice «Windows ha protetto il PC». Si va avanti con *Ulteriori informazioni* → *Esegui comunque*.
 - **Dai sorgenti**: installare Node.js 24, copiare la cartella `windows/`, poi nel terminale `npm ci` e `npm start`.
 

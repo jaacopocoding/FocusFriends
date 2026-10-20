@@ -274,3 +274,10 @@ Sul Mac le preferenze stanno in `UserDefaults`. Su Windows stanno in un oggetto 
 **quello che la versione per Mac ne ricava** con un «adesso» fisso (14 ottobre 2026, ore 20:00, fuso `Europe/Rome`): quante
 sessioni, quali file nascono (copie, file messi da parte), quali avvisi, la serie, i punti. Ogni nuova versione dell'app
 deve dare gli stessi risultati. Per rifarli: `tests/genera-attesi.sh`.
+
+La stessa prova vale **nel verso opposto**: `windows/test/ritorno.test.ts` fa scrivere al codice per Windows alcune cartelle di dati (una migrazione da una
+versione vecchia, sessioni con accenti, emoji, virgolette e formule da foglio di calcolo, voti e note, un focus in corso con pausa, un profilo con il
+nome da accorciare) e le fa leggere al codice Swift del Mac con lo stesso generatore (`tests/genera-attesi.sh`): i risultati devono essere uguali. Sul Mac
+gira con `npm test` dentro `windows/` (serve `swiftc`; dove manca si salta) e a ogni modifica sulla CI del Mac. Per i suoni, `tests/fixtures/rumore.json` ha
+le misure della sintesi dei rumori fatta dall'app per Mac (`tests/genera-rumore.sh`).
+

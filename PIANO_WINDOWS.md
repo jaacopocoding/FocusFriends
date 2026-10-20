@@ -87,9 +87,9 @@ clic nelle zone trasparenti (Electron lo ha pronto, Tauri no) si è passati a El
       lettura, copia di sicurezza giornaliera, file del focus in corso), ricavati dal codice Swift.
 - [x] Raccogliere i file di esempio in `tests/fixtures/` (18 cartelle: sessioni v0, v1, v2, v3, rovinate, più nuove, focus in corso, profilo,
       giardino, preferenze) **e i risultati attesi dal Mac** in `tests/fixtures/attesi/` (`tests/genera-attesi.sh`, sempre uguali a parità di codice).
-- [~] Preparare l'ambiente: **fatto sul Mac** (Node 24, TypeScript 7.0.2, Electron 44.9.0, esbuild; progetto che si apre con `npm start`, sicurezza
-      di Electron già impostata: `contextIsolation`, `sandbox`, niente Node nella pagina, protocollo `ff://` al posto di `file://`). **Manca la macchina virtuale con Windows**
-      (e la prova lì).
+- [x] Preparare l'ambiente: **fatto sul Mac** (Node 24, TypeScript 7.0.2, Electron 44.9.0, esbuild; progetto che si apre con `npm start`, sicurezza
+      di Electron già impostata: `contextIsolation`, `sandbox`, niente Node nella pagina, protocollo `ff://` al posto di `file://`). **Prova su Windows fatta** il 18 ottobre 2026 su un computer Windows
+      vero con l'installer della CI: l'app parte e funziona bene, circa 200 MB e 0 % di processore. I controlli uno per uno sono in `windows/PROVE_SU_WINDOWS.md`.
 - [x] Nome del pacchetto (`focusfriends-windows`) e cartella dati: `%APPDATA%\FocusFriends` su Windows; **sul Mac, quando si prova, una cartella di prova a parte** (mai quella dell'app per Mac).
       Identificatore dell'app (`com.jacopo.focusfriends`) da fissare con electron-builder (M10).
 
@@ -108,7 +108,7 @@ Prima si prova la cosa più incerta: una finestra trasparente, sempre in primo p
     a vedere il mouse, riaccende i clic solo quando il cursore è sopra un pixel non trasparente. Se non regge, piano di
     riserva dentro Electron: delimitare la zona cliccabile con la forma della finestra (`setShape`, se la versione la
     permette).
-- [ ] Misure per scegliere: processore a riposo (meno del 2%), memoria con tutti i processi di Electron sommati (obiettivo sotto i 250 MB), clic che passano davvero nelle zone vuote, trascinamento
+- [~] Misure per scegliere (su Windows, 18 ottobre 2026: circa 200 MB e 0 % di processore; il resto è ancora da provare): processore a riposo (meno del 2%), memoria con tutti i processi di Electron sommati (obiettivo sotto i 250 MB), clic che passano davvero nelle zone vuote, trascinamento
       fluido, comportamento con la barra delle applicazioni in basso, a lato, in alto e nascosta, con 100%, 150% e 200% di
       scala, con due schermi, e quando un'altra app va a schermo intero.
 - [x] Mettere il compagno **sopra la barra delle applicazioni** (area di lavoro, non lo schermo intero), con i piedi sulla
@@ -219,7 +219,7 @@ sull'icona dà il **menu completo** (Pomofocus con i timer personali, Suono ambi
 Movimento, «Chiedi com'è andata», Pausa lunga, «Modifica le frasi…», Mostra/Nascondi, Esci). Le quattro pagine ci sono (scheda,
 «Gira il timer», focus, pausa) con le stesse parole e gli stessi disegni del Mac, fatti in SVG; i pulsanti sono veri (tastiera e
 lettori di schermo), il quadrante si gira anche con la rotella e le frecce. **Niente Svelte**: la scheda si ricostruisce a ogni
-cambio come sul Mac, e bastano TypeScript e il DOM. Icone: **Lucide** (ISC, in `tools/genera-icone.mjs`). Le icone di sistema, il
+cambio come sul Mac, e bastano TypeScript e il DOM. Icone: **Lucide** (ISC, in `windows/tools/genera-icone.mjs`). Le icone di sistema, il
 carattere e la musica che suona davvero arrivano con M0 (font) e M5 (suoni). Il pulsante «Giardino» non c'è (seconda uscita) e
 «Statistiche» dice che arriva (M7). **Da provare su Windows:** passaggio del focus tra le finestre quando la scheda si apre e si
 chiude, e la posizione rispetto all'icona con la barra in basso, a lato e in alto.
@@ -352,7 +352,7 @@ fa con `defaults write`); sblocca tutto senza toccare il profilo. Provato dal vi
 - [x] Come si aggiorna (a mano, scaricando dalla pagina delle release; aggiornamenti automatici con electron-updater solo dopo, se serve).
 
 **Stato:** installer NSIS per l'utente (electron-builder 26, `windows/electron-builder.yml`): un `…-x64-Setup.exe` e un `…-arm64-Setup.exe`
-(circa 134 MB l'uno: Electron e 25 MB di immagini, frasi e brani, preparati da `tools/prepara-risorse.mjs` senza i fogli originali), per l'utente,
+(circa 134 MB l'uno: Electron e 25 MB di immagini, frasi e brani, preparati da `windows/tools/prepara-risorse.mjs` senza i fogli originali), per l'utente,
 senza amministratore, **che non cancella i dati** se si toglie l'app. Provato sul Mac: pacchetto non compresso e installer x64 si fanno; l'app
 **gira da un archivio asar** (pagina, ponte, suono e brani letti da lì). Versione `0.9.0` (da confermare alla release). La **CI** è scritta
 (`.github/workflows/windows.yml`: tipi, prove e compilazione a ogni modifica; con un tag `windows-v…` anche i due installer, lo SHA-256 e una *bozza* di
@@ -397,9 +397,13 @@ Lista di controllo, funzione per funzione, contro l'app per Mac:
 **Fine della prima uscita:** versione 1 per Windows, **senza giardino**. Durante la prima uscita il pulsante «Giardino» non
 c'è nella scheda e nel menu.
 
-**Stato della prima uscita (18 ottobre 2026):** il lavoro che si fa dal Mac è finito. Versione `1.0.0`, installer x64 e ARM, note di rilascio
-(`windows/NOTE_DI_RILASCIO.md`), carattere incluso, crediti, README. **Non è ancora stata provata su una macchina Windows vera** (`windows/PROVE_SU_WINDOWS.md`)
-e non è ancora stata pubblicata: mancano il push, il tag `windows-v1.0.0` (la CI prepara gli installer e una bozza di release) e la scelta sulla firma.
+**Stato della prima uscita (aggiornato il 20 ottobre 2026): pubblicata.** Il 18 ottobre è uscita come
+[`windows-v1.0.0`](https://github.com/jaacopocoding/FocusFriends/releases/tag/windows-v1.0.0): installer x64 e ARM con il loro SHA-256, **non firmato**,
+senza giardino (la release non è segnata «Latest», che resta la 0.8.0 per Mac). Verifiche: 247 prove della logica per Windows e 332 di Swift, tutte passate;
+CI verde su macchine Windows e Mac; l'installer aperto e controllato (architettura, versione, risorse, carattere, licenze). Su un computer Windows vero l'ha
+provata l'utente in modo sommario: funziona bene, circa 200 MB e 0 % di processore. **Ancora aperti:** i controlli uno per uno di `windows/PROVE_SU_WINDOWS.md`
+(sleep vero, più schermi, scale, suoni, finestre di sistema), l'approvazione della campana di fine focus, la decisione su schermo intero e desktop virtuali,
+e la firma del codice (SignPath Foundation).
 
 ## Seconda uscita: il giardino (8–12 giorni)
 
@@ -455,10 +459,10 @@ Si fa dopo, perché riusa tutto il resto (schede, finestre, immagini, dati) e no
 Da usare con cautela: sono stime, e gli imprevisti sono quasi tutti in M1, M5 e M9. La prima settimana ne dirà di più di
 qualunque numero scritto qui.
 
-## Cosa mi serve da te per cominciare
+## Cosa serviva da te per cominciare (storico: tutto risolto tranne la firma)
 
-1. **Electron va bene?** L'abbiamo scelto per il passaggio dei clic e per avere un solo linguaggio; Tauri resta l'alternativa.
-2. **Una macchina con Windows** (anche virtuale). Quale?
-3. **Il permesso di installare gli strumenti**, una cosa alla volta.
-4. **Il font**: ti mostro tre candidati accanto a una schermata del Mac e scegli.
-5. **Firma del codice**: decidere più avanti, ma prima di M10.
+1. **Electron va bene?** Sì: scelta la finestra unica trasparente (B) e confermata sul Mac.
+2. **Una macchina con Windows**: c'è (un computer vero, usato per la prima prova).
+3. **Il permesso di installare gli strumenti**: dato («installa le cose che devi installare»).
+4. **Il font**: scelto Chewy, dopo un confronto misurato con Marker Felt (vedi M0).
+5. **Firma del codice**: ancora da decidere (consiglio: partire senza e fare domanda a SignPath Foundation).
