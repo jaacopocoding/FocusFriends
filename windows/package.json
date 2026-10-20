@@ -1,6 +1,6 @@
 {
   "name": "focusfriends-windows",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "FocusFriends per Windows: un compagno sul desktop e un timer per studiare (Electron).",
   "author": "jaacopocoding",

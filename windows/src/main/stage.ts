@@ -6,6 +6,7 @@ import { screen } from "electron";
 import type { BrowserWindow, Display } from "electron";
 import { currentOrPrimary, displayAt, displayToFollow } from "../core/displays.ts";
 import type { DisplayInfo, Rect } from "../core/displays.ts";
+import { testValue } from "../core/environment.ts";
 import { CHANNEL } from "../shared/api.ts";
 
 const FOLLOW_MS = 50;
@@ -28,7 +29,8 @@ function info(display: Display, primaryId: number): DisplayInfo {
 }
 
 export function createStage(win: BrowserWindow, send: (channel: string, payload?: unknown) => void): Stage {
-  const fake = process.env["FF_FAKE_DISPLAYS"] ? (JSON.parse(process.env["FF_FAKE_DISPLAYS"]) as DisplayInfo[]) : null;
+  const fakeDisplays = testValue(process.env, "FF_FAKE_DISPLAYS");
+  const fake = fakeDisplays ? (JSON.parse(fakeDisplays) as DisplayInfo[]) : null;
   const displays = (): DisplayInfo[] => fake ?? screen.getAllDisplays().map((d) => info(d, screen.getPrimaryDisplay().id));
   let current: DisplayInfo = currentOrPrimary(displays(), null) ?? { id: 0, primary: true, bounds: { x: 0, y: 0, width: 1280, height: 720 }, workArea: { x: 0, y: 0, width: 1280, height: 720 } };
   let timer: NodeJS.Timeout | undefined;

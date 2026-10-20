@@ -24,7 +24,7 @@ npm start       # compila e apre il compagno (Esci: dall'icona nell'area di noti
 
 Sul Mac `npm start` mostra il compagno sullo schermo e lavora in una **cartella di dati di prova**
 (`~/Library/Application Support/focusfriends-windows/dati-di-prova`): **non tocca mai i dati dell'app per Mac**. Con
-`FF_DATA_DIR=/un/percorso` si sceglie un'altra cartella. Su Windows i dati stanno in `%APPDATA%\FocusFriends`.
+`FF_DATA_DIR=/un/percorso` si sceglie un'altra cartella (solo dai sorgenti: l'app installata la ignora). Su Windows i dati stanno in `%APPDATA%\FocusFriends`.
 
 **Modalità sviluppatore** (tutti i compagni sbloccati, senza toccare il profilo): scrivi `"developerMode": true` in `impostazioni.json`
 (`%APPDATA%\FocusFriends\` su Windows) e riapri l'app.
@@ -48,6 +48,7 @@ windows/
 ├── resources/       risorse solo di Windows: il suono di fine focus e il carattere (Chewy, licenza Apache 2.0)
 ├── data/            i dati dei compagni (generati da Pet.swift)
 ├── test/            le prove (`npm test`), anche il contratto con l'app per Mac, nei due versi
+│   └── vivo/        i copioni per provare dal vivo l'app vera (`esegui.sh`), con il loro README
 ├── tools/           compilazione, icone, preparazione delle risorse per l'installer
 └── package.json
 ```

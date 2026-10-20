@@ -6,6 +6,7 @@ import { BrowserWindow, dialog, ipcMain } from "electron";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { csv } from "../core/csv.ts";
+import { testValue } from "../core/environment.ts";
 import type { SessionLog } from "../core/log.ts";
 import type { Profile } from "../core/profile.ts";
 import type { PeriodKind } from "../core/stats.ts";
@@ -72,7 +73,7 @@ export function createStatsController(deps: StatsDeps): StatsController {
   ipcMain.on(STATS_CHANNEL.exportCsv, (event) => {
     if (!trusted(event) || !window) return;
     void (async () => {
-      const preset = process.env["FF_SELFTEST_SAVE"];
+      const preset = testValue(process.env, "FF_SELFTEST_SAVE");
       let target: string | undefined = preset;
       if (target === undefined) {
         const result = await dialog.showSaveDialog(window!, { defaultPath: "focusfriends-sessioni.csv", filters: [{ name: "CSV", extensions: ["csv"] }] });
@@ -91,7 +92,7 @@ export function createStatsController(deps: StatsDeps): StatsController {
     if (!trusted(event) || !window) return;
     void (async () => {
       const count = deps.log().sessions.length;
-      const confirmed = process.env["FF_SELFTEST_CONFIRM"] === "1" || (await dialog.showMessageBox(window!, {
+      const confirmed = testValue(process.env, "FF_SELFTEST_CONFIRM") === "1" || (await dialog.showMessageBox(window!, {
         type: "warning", message: "Cancellare tutti i dati?",
         detail: `Verranno cancellate tutte le sessioni di studio (${count}), le copie di sicurezza e il tuo nome. Non si può annullare. Se vuoi tenerle, esportale prima con «Esporta CSV…».`,
         buttons: ["Cancella tutto", "Annulla"], defaultId: 1, cancelId: 1,

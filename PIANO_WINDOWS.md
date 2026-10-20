@@ -405,6 +405,11 @@ provata l'utente in modo sommario: funziona bene, circa 200 MB e 0 % di processo
 (sleep vero, più schermi, scale, suoni, finestre di sistema), l'approvazione della campana di fine focus, la decisione su schermo intero e desktop virtuali,
 e la firma del codice (SignPath Foundation).
 
+**1.0.1 (preparata il 20 ottobre 2026, non ancora pubblicata).** Chiude i punti deboli della revisione scritti in `windows/ARCHITECTURE.md` §10: le finestre non
+navigano più altrove, non ne aprono di nuove e non ottengono permessi (`main/security.ts`); le variabili di prova (`FF_NO_LOCK`, `FF_FAKE_DISPLAYS`, `FF_SELFTEST_SAVE`,
+`FF_SELFTEST_CONFIRM`, `FF_DATA_DIR` nell'app installata) valgono solo con `FF_SELFTEST`; i copioni delle prove dal vivo stanno in `windows/test/vivo/`. 259 prove della logica,
+tutte passate. Nessuna funzione nuova e nessun cambio ai dati.
+
 ## Seconda uscita: il giardino (8–12 giorni)
 
 Si fa dopo, perché riusa tutto il resto (schede, finestre, immagini, dati) e non blocca nessuna delle altre funzioni.

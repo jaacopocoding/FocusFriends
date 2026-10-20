@@ -10,8 +10,8 @@ circa 200 MB e 0 % di processore. **Le sigle W qui sotto non sono state spuntate
 
 | Sigla | Significato |
 |---|---|
-| **P** | Prova automatica (`npm test`, 247 prove): la logica dà gli stessi risultati. Le prove «di contratto» confrontano con i risultati dell'app per Mac sugli stessi file. |
-| **S** | Prova dal vivo sul Mac con l'app vera di Electron: eventi del mouse e tastiera simulati, schermate e misure (`FF_SELFTEST`). |
+| **P** | Prova automatica (`npm test`, 259 prove): la logica dà gli stessi risultati. Le prove «di contratto» confrontano con i risultati dell'app per Mac sugli stessi file. |
+| **S** | Prova dal vivo sul Mac con l'app vera di Electron: eventi del mouse e tastiera simulati, schermate e misure (`FF_SELFTEST`). I copioni sono in `test/vivo/`. |
 | **W** | **Solo su Windows**: non si può provare dal Mac. Il passo da fare è in `PROVE_SU_WINDOWS.md`. |
 | **C** | Scritto nel codice, **senza una prova dedicata**: l'ho letto, non l'ho visto funzionare. |
 | **=** | Uguale al Mac, per costruzione (stessi dati o stesso codice portato passo per passo). |

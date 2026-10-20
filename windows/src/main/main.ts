@@ -1,6 +1,6 @@
 // Il processo principale: la finestra trasparente, l'area di notifica, i file.
 
-import { app, BrowserWindow, ipcMain, powerMonitor, screen } from "electron";
+import { app, BrowserWindow, ipcMain, powerMonitor, screen, session } from "electron";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -9,6 +9,7 @@ import type { CardCommand, CardOpenRequest, SettingsSnapshot } from "../shared/a
 import { PhraseDeck, loadPhrases } from "../core/phrases.ts";
 import { AppLog } from "../core/diagnostics.ts";
 import { describeDisplay } from "../core/displays.ts";
+import { testValue } from "../core/environment.ts";
 import { PET_IDS, petInfo } from "../core/pets.ts";
 import { Profile } from "../core/profile.ts";
 import type { TimerKind } from "../core/rules.ts";
@@ -24,6 +25,7 @@ import type { StatsController } from "./statsWindow.ts";
 import { assetsDirectory, dataDirectory, rendererDirectory, resourcesDirectory } from "./paths.ts";
 import { createOverlay, primaryDisplay } from "./overlay.ts";
 import { handleScheme, registerScheme } from "./protocol.ts";
+import { denyPermissions, lockDownWindows } from "./security.ts";
 import { startTimer } from "./timer.ts";
 import type { TimerService } from "./timer.ts";
 import { createTray } from "./tray.ts";
@@ -42,13 +44,17 @@ registerScheme();
 let visible = true;
 
 // Una sola copia dell'app: un doppio avvio non deve mai toccare i dati due volte (è già successo sul Mac, per un errore di una prova).
-const gotLock = process.env["FF_NO_LOCK"] === "1" || app.requestSingleInstanceLock();
+// (Solo le prove automatiche possono saltare il controllo, per aprire più copie con cartelle di dati diverse.)
+const gotLock = testValue(process.env, "FF_NO_LOCK") === "1" || app.requestSingleInstanceLock();
 if (!gotLock) app.quit();
 
 /** Il registro dell'app (senza dati personali) per capire cosa è successo dopo un arresto inatteso. */
 let appLog: AppLog | null = null;
 process.on("uncaughtException", (error) => { appLog?.error("eccezione non gestita", error); });
 process.on("unhandledRejection", (reason) => { appLog?.error("promessa respinta e non gestita", reason); });
+
+// Nessuna finestra porta fuori dall'app, né apre finestre nuove (i permessi si negano in start()).
+lockDownWindows((message) => appLog?.warn(message));
 
 function snapshot(settings: Settings): SettingsSnapshot {
   return {
@@ -69,6 +75,7 @@ async function start(): Promise<void> {
   appLog = log;
   log.info(`avvio ${app.getVersion()} (${process.platform} ${process.getSystemVersion()} ${process.arch}, Electron ${process.versions.electron})`);
   app.on("child-process-gone", (_event, details) => log.warn(`processo ${details.type} finito: ${details.reason} (codice ${details.exitCode})`));
+  denyPermissions(session.defaultSession, (message) => log.warn(message));
   const settings = new Settings(data);
   const music = createMusicService({ assets, folder: () => settings.musicFolder });
   handleScheme({ assets, renderer: rendererDirectory(app), resources: resourcesDirectory(app), musicFile: music.file });

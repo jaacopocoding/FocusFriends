@@ -13,18 +13,18 @@ strumenti): senza Wine non si mette l'icona dentro il programma, quindi l'instal
 
 ## La versione
 
-La versione sta in `windows/package.json` (`version`; la prima uscita è la `1.0.0`). Prima della release: alzarla, aggiornare `PIANO_WINDOWS.md` e rivedere le
+La versione sta in `windows/package.json` (`version`; la prima uscita è la `1.0.0`, la seconda la `1.0.1`). Prima della release: alzarla, aggiornare `PIANO_WINDOWS.md` e rivedere le
 note (`windows/NOTE_DI_RILASCIO.md`: il testo della release, scritto per chi scarica).
 
 ## La release, con GitHub
 
-1. `git tag windows-v1.0.0 && git push origin windows-v1.0.0` (il tag lo metti tu: senza tag non si pubblica niente).
+1. `git tag windows-v<versione> && git push origin windows-v<versione>` (per esempio `windows-v1.0.1`; il tag lo metti tu: senza tag non si pubblica niente).
 2. Il flusso «Windows» (`.github/workflows/windows.yml`) controlla i tipi, lancia le prove, compila e fa i due installer su una macchina Windows di
    GitHub, calcola lo **SHA-256** di ognuno e crea una **bozza** di release con gli installer e `SHA256SUMS.txt`.
 3. La bozza ha già le note (`NOTE_DI_RILASCIO.md`): rileggile, e pubblica. Chi scarica può controllare il file da PowerShell:
 
    ```powershell
-   Get-FileHash .\FocusFriends-Windows-1.0.0-x64-Setup.exe -Algorithm SHA256
+   Get-FileHash .\FocusFriends-Windows-<versione>-x64-Setup.exe -Algorithm SHA256
    ```
 
 ## Come si aggiorna chi ha già l'app

@@ -3,14 +3,15 @@
 > Purpose: a factual description of how the Windows version works, written so that another reader (human or AI) can judge
 > whether the code is acceptable as written or needs revision. It is the counterpart of `../ARCHITECTURE.md`, which describes
 > the Mac app; features are numbered and named alike where they correspond, and `PARITA.md` compares them one by one.
-> Snapshot described: branch `main` after commit `5e201c1` (the release `windows-v1.0.0`, version `1.0.0`, is at `75d07e9`; the
-> commits after it only change documentation). First release: **everything except the garden** (see `../PIANO_WINDOWS.md`).
+> Snapshot described: version `1.0.1` (the first release, `windows-v1.0.0`, is at `75d07e9`; 1.0.1 adds the lock-down of the
+> windows, the gating of the test-only environment variables and the live-run scripts in `test/vivo/`, see §10). Content: **everything
+> except the garden** (see `../PIANO_WINDOWS.md`).
 > Everything here was read from the files in the repository; statements that could not be fully verified are marked
 > **[uncertain]**. Rationales are labelled **[documented]** (comes from code comments, `PIANO_WINDOWS.md`, `FORMATI.md` or git
 > history) or **[inferred]** (deduced from the code).
 > UI strings and code comments are in Italian (as on the Mac); identifiers are English. UI strings quoted here are glossed.
 > **What was and was not exercised on a real Windows machine:** the code runs on macOS during development (Electron is
-> cross-platform); the Windows CI job runs the type check, the 247 logic tests and the build on a Windows runner, and the author
+> cross-platform); the Windows CI job runs the type check, the 259 logic tests and the build on a Windows runner, and the author
 > installed the released installer on a Windows computer for a brief check (see `PARITA.md`, "Prova su Windows"). The parts that
 > only exist on Windows (real click-through, task-bar sides, scale factors, two monitors, sleep, fullscreen apps, virtual
 > desktops) are listed in `PROVE_SU_WINDOWS.md` and have **not** been verified one by one.
@@ -47,7 +48,7 @@ HTTP client in the code **[inferred]**).
 cd windows
 npm install          # Electron, TypeScript, esbuild, electron-builder (devDependencies)
 npm run check        # tsc --noEmit
-npm test             # 247 tests, no dependencies needed
+npm test             # 259 tests, no dependencies needed
 npm start            # builds dist/ and opens the companion (on macOS: data in a test folder)
 npm run pacchetto    # build + stage resources + electron-builder --win → release/*.exe
 ```
@@ -67,19 +68,20 @@ windows/
 ├── resources/                      fine-focus.wav (the end-of-focus chime, generated from scratch), fonts/ (Chewy + licence)
 ├── installer/icon.png              the installer and program icon
 ├── src/
-│   ├── core/       (26 files)      pure logic, no Electron, no DOM: runs in Node tests, in the main process and in the pages
-│   ├── main/       (11 files)      main process: windows, tray, timer service, files, protocol, dialogs, power events
+│   ├── core/       (28 files)      pure logic, no Electron, no DOM: runs in Node tests, in the main process and in the pages
+│   ├── main/       (12 files)      main process: windows, tray, timer service, files, protocol, dialogs, power events, window lock-down
 │   ├── preload/    (2 files)       the secure bridges (`preload.cjs` for the overlay, `preload-stats.cjs` for the statistics window)
 │   ├── shared/     (2 files)       the typed contract between main and pages (`api.ts`, `statsApi.ts`)
 │   └── renderer/                   the overlay page (companion, bubble, clock, card, dialogs, sounds) and the statistics page
-├── test/           (25 files)      23 test files + 2 helpers (`util.ts`, `atteso.ts`); see §7
+├── test/           (27 files)      25 test files + 2 helpers (`util.ts`, `atteso.ts`); see §7
+│   └── vivo/       (28 files)      scripts for live runs of the real app (`esegui.sh`, `misure.sh`, 25 scenarios and a README); see §5.3
 └── tools/                          build.mjs, genera-icone.mjs, prepara-risorse.mjs
 ```
 
 | Area | Files (lines) |
 |---|---|
-| `core/` | `log.ts` (637), `pomodoro.ts` (457), `stats.ts` (284), `walker.ts` (275), `profile.ts` (221), `settings.ts` (156), `rules.ts` (155), `time.ts` (151), `dashboard.ts` (146), `noise.ts` (146), `card.ts` (125), `pets.ts` (112), `phrases.ts` (92), `text.ts` (84), `displays.ts` (86), `audioPlan.ts` (72), `diagnostics.ts` (69), `points.ts` (57), `music.ts` (55), `files.ts` (53), `tracks.ts` (40), `rewards.ts` (40), `unlocks.ts` (33), `reflection.ts` (30), `csv.ts` (27), `colors.ts` (22) |
-| `main/` | `main.ts` (331), `card.ts` (223), `tray.ts` (229), `statsWindow.ts` (146), `protocol.ts` (69), `music.ts` (69), `stage.ts` (75), `timer.ts` (79), `overlay.ts` (46), `paths.ts` (31), `login.ts` (18) |
+| `core/` | `log.ts` (637), `pomodoro.ts` (457), `stats.ts` (284), `walker.ts` (275), `profile.ts` (221), `settings.ts` (156), `rules.ts` (155), `time.ts` (151), `dashboard.ts` (146), `noise.ts` (146), `card.ts` (125), `pets.ts` (112), `phrases.ts` (92), `text.ts` (84), `displays.ts` (86), `audioPlan.ts` (72), `diagnostics.ts` (69), `points.ts` (57), `urls.ts` (21), `environment.ts` (20), `music.ts` (55), `files.ts` (53), `tracks.ts` (40), `rewards.ts` (40), `unlocks.ts` (33), `reflection.ts` (30), `csv.ts` (27), `colors.ts` (22) |
+| `main/` | `main.ts` (338), `card.ts` (223), `tray.ts` (229), `statsWindow.ts` (147), `protocol.ts` (69), `music.ts` (69), `stage.ts` (77), `timer.ts` (79), `overlay.ts` (46), `security.ts` (39), `paths.ts` (33), `login.ts` (18) |
 | `renderer/` | `overlay.ts` (642, the page controller), `card/card.ts` (615), `petView.ts` (380), `stats/stats.ts` (278), `clockView.ts` (255), `card/widgets.ts` (236), `audio/music.ts` (160), `audio/ambient.ts` (159), `speaker.ts` (156), `dialogs/*` (5 files, ≈ 300), `extendPrompt.ts` (71), `card/dom.ts` (60), `bubble.ts` (51), `audio/noiseWorklet.ts` (40), `avatar.ts` (26), `fonts.ts` (14), CSS and HTML |
 
 Notes:
@@ -120,7 +122,8 @@ Principles (all **[documented]** in `PIANO_WINDOWS.md` unless stated):
 - **Pure logic in `core/`**, shared by the main process, the pages and the tests; the same TypeScript runs in all three.
 - **The pages have no Node and no file access**: `contextIsolation: true`, `sandbox: true`, `nodeIntegration: false`, a CSP of
   `default-src 'none'` with only `ff:` allowed for images, scripts, styles, fonts, media and connections, and a preload that exposes a fixed
-  set of functions (`window.focusfriends`, `window.focusfriendsStats`). Disk access goes through typed messages.
+  set of functions (`window.focusfriends`, `window.focusfriendsStats`). Disk access goes through typed messages. Since 1.0.1 no window can
+  navigate away from `ff://app/`, open a new window or obtain a permission (§3.3).
 - **Data compatibility with the Mac app** is a contract, checked both ways by tests (§7).
 
 ### 3.1 The IPC contract (`shared/api.ts`, `shared/statsApi.ts`)
@@ -151,16 +154,30 @@ stops working; served with `Range` support, 200/206/416) · `/assets/…` (`asse
 `/resources/…` (the Windows-only resources) · everything else from `dist/renderer`. A resolved path that leaves its root gets 403; a missing
 file gets 404 instead of throwing.
 
+### 3.3 Lock-down of the windows (`main/security.ts`, `core/urls.ts`)
+
+Added in 1.0.1. The pages have no links and their CSP closes the network, so none of this should ever trigger; it is the usual Electron
+hardening, in case a page ever received unexpected content:
+
+- `lockDownWindows()` (registered at the top level of `main.ts`, before any window exists) listens to `web-contents-created`, so it covers every
+  window, present and future. For each `webContents`: `will-navigate`, `will-frame-navigate` and `will-redirect` are cancelled unless the target
+  is `ff://app/…` (`isAppUrl`; in development also `devtools:`); `setWindowOpenHandler` always answers `deny`; `will-attach-webview` is cancelled (the app uses no `<webview>`).
+- `denyPermissions()` (called in `start()`, on the default session): `setPermissionRequestHandler` answers `false`, `setPermissionCheckHandler`
+  and `setDevicePermissionHandler` return `false`. The app uses no permission (audio playback is not one).
+- Every refusal goes to the app log as one line (`describeUrl`: scheme and site only, never path or query).
+- Checked live with `test/vivo/sicurezza.cjs`: `window.open` returns `null`, `location.href = "https://…"` leaves the page on `ff://app/index.html`, a
+  `file://` target is refused by Chromium itself, and notifications, location and clipboard permissions come back denied (a microphone request stays unanswered).
+
 ---
 
 ## 4. Features
 
 ### 4.1 App launch and wiring (`main/main.ts`, `start()`)
 
-Order of what `start()` does (the module's top level first registers the scheme and takes the single-instance lock):
+Order of what `start()` does (the module's top level first registers the scheme, takes the single-instance lock and locks down the windows, §3.3):
 
 1. `app.setAppUserModelId("com.jacopo.focusfriends")`; the data folder is created (§4.12); `AppLog` is opened and the first line is written
-   (version, OS version, architecture, Electron version).
+   (version, OS version, architecture, Electron version); the permission handlers are installed (§3.3).
 2. `Settings`, the music service, the protocol handler, `Profile` (with `developer: () => settings.developerMode`).
 3. `createOverlay(primaryDisplay())` → the transparent window (§4.2). A `render-process-gone` handler reloads the page at most three times in ten minutes.
 4. `send()` — a queue that holds messages until the page sends `renderer:ready`.
@@ -203,7 +220,7 @@ needs typing. (How focus returns to the other application on Windows is one of t
   (`FOLLOW_MS`) and moves the window to the display under the cursor (`displayToFollow`); the page keeps the companion where it is on screen
   (`keepPosition`). From the tray, "Schermo" moves the companion to another display and it starts from the ground (`keepPosition: false`).
 - `core/displays.ts` is pure geometry (`displayAt`, `displayToFollow`, `currentOrPrimary`, `relativeTo`, `cardPlacement`, `taskbarSide`, `describeDisplay`), tested with invented displays.
-  With `FF_FAKE_DISPLAYS` (JSON) the stage uses invented displays (tests only).
+  With `FF_FAKE_DISPLAYS` (JSON) the stage uses invented displays (only while `FF_SELFTEST` is set, §5.2).
 
 ### 4.5 The companion on screen (`renderer/petView.ts`, `renderer/overlay.ts`, `core/walker.ts`, `core/pets.ts`)
 
@@ -283,7 +300,7 @@ pet's fallback; a `PhraseDeck` per companion shuffles and never repeats until th
 
 ### 4.12 Data: log, recovery, settings, profile (`core/log.ts`, `settings.ts`, `profile.ts`, `files.ts`, `main/paths.ts`)
 
-- **Folder:** `%APPDATA%\FocusFriends` on Windows; on other systems (development) `<userData>/dati-di-prova` — **never** the Mac app's folder; `FF_DATA_DIR` overrides it.
+- **Folder:** `%APPDATA%\FocusFriends` on Windows; on other systems (development) `<userData>/dati-di-prova` — **never** the Mac app's folder; `FF_DATA_DIR` overrides it, but only when running from the sources or with `FF_SELFTEST` (the installed app ignores it, §5.2).
 - **Files** (formats in `../FORMATI.md`): `sessioni.json` (v3), `in-corso.json`, `profilo.json`, `impostazioni.json`, `frasi_<pet>.txt`, `backup/`, `registro-app.log`.
 - **Writing:** `writeFileAtomic` (temporary file in the same folder + rename), UTF-8, keys sorted, `"key" : value` spacing like the Mac writes (`stringifyJson`).
 - **`SessionLog`:** loads in the constructor with the same rules as Swift: a missing file is empty; unreadable → read-only + message; older versions → intact copy in `backup/sessioni-formato<N>.json` and rewrite as v3; bare list (v0) → copy
@@ -312,7 +329,7 @@ The first companion is free; the others unlock at 20, 50 and 100 "full focuses" 
 ### 4.15 System integration
 
 - **Tray** (`Tray` with the head of the current companion, 32 px), **no taskbar button** (`skipTaskbar`).
-- **Single instance:** `requestSingleInstanceLock()` (bypassed only by `FF_NO_LOCK=1`); a second launch quits and the first shows the companion.
+- **Single instance:** `requestSingleInstanceLock()` (bypassed only by `FF_NO_LOCK=1` together with `FF_SELFTEST`); a second launch quits and the first shows the companion.
 - **Login item:** `setLoginItemSettings({openAtLogin})`, enabled only when `app.isPackaged` (otherwise it would register Electron itself).
 - **Power:** `suspend` (logged), `resume` and `unlock-screen` → `awake()`: refresh the time-zone cache, log the displays, `stage.refit()`, send `system:resumed`. The timer needs nothing (the 10 s gap rule).
 - **Shutdown:** `before-quit` and `session-end` (Windows closing the session) → `service.shutdown()` → a running focus is saved as interrupted.
@@ -329,20 +346,30 @@ The first companion is free; the others unlock at 20, 50 and 100 "full focuses" 
 
 ### 5.2 Environment variables
 
-| Variable | Effect | Gated by `FF_SELFTEST`? |
+Since 1.0.1 the app reads **no** `FF_*` variable in normal use: they take effect only while `FF_SELFTEST` is set (`core/environment.ts`: `testValue()`), with one
+exception that is also safe for development (`dataDirectoryOverride()`). Before 1.0.1 five of them were read unconditionally; the dangerous one was `FF_SELFTEST_CONFIRM=1`,
+which made "Cancella tutto…" skip its confirmation.
+
+| Variable | Effect | When it counts |
 |---|---|---|
-| `FF_DATA_DIR` | use this folder for the data | no |
-| `FF_NO_LOCK=1` | skip the single-instance lock | no |
-| `FF_FAKE_DISPLAYS` | JSON array of invented displays | no |
-| `FF_SELFTEST_SAVE`, `FF_SELFTEST_CONFIRM=1` | pre-answer the CSV save dialog and the "delete all" confirmation | no |
-| `FF_SELFTEST`, `FF_SELFTEST_OUT`, `FF_SELFTEST_FILE`, `FF_SELFTEST_SCRIPT` | enable the self-test harness (§5.3) and `window.__ff` | — |
-| `FF_SWITCHES`, `FF_NO_GPU` | extra Chromium switches / hardware acceleration off (memory experiments) | yes |
+| `FF_DATA_DIR` | use this folder for the data | running from the sources (not packaged), or with `FF_SELFTEST`; the installed app ignores it |
+| `FF_NO_LOCK=1` | skip the single-instance lock | only with `FF_SELFTEST` |
+| `FF_FAKE_DISPLAYS` | JSON array of invented displays | only with `FF_SELFTEST` |
+| `FF_SELFTEST_SAVE`, `FF_SELFTEST_CONFIRM=1` | pre-answer the CSV save dialog and the "delete all" confirmation | only with `FF_SELFTEST` |
+| `FF_SELFTEST`, `FF_SELFTEST_OUT`, `FF_SELFTEST_FILE`, `FF_SELFTEST_SCRIPT` | enable the self-test harness (§5.3) and `window.__ff` | — (`FF_SELFTEST` is the switch; **[uncertain]** it is still honoured by the installed app, because the packaged app is also checked with it; it needs control of the user's environment, i.e. of the account) |
+| `FF_SWITCHES`, `FF_NO_GPU` | extra Chromium switches / hardware acceleration off (memory experiments) | only with `FF_SELFTEST` |
 
 ### 5.3 The self-test harness (`main.ts` `runSelfTest`, `renderer/overlay.ts` `window.__ff`)
 
 With `FF_SELFTEST`, the preload exposes `selfTest: true` and the page defines `window.__ff` (say, state, hit test, open/close the card, audio state, interrupt audio…). `FF_SELFTEST=<seconds list>` takes screenshots and process
 metrics at those moments; `FF_SELFTEST_FILE=<script.cjs>` runs a script that receives tools: the window, `js()` (run code in the page), `shot()`, `metrics()`, `mouse()`/`key()` (simulated input events), the settings, the timer service
-(`run`, `engine`, `log`), the card and statistics controllers, the stage, `power()` (emit `suspend`/`resume`/`lock-screen`/`unlock-screen`) and `quit()`. **The scenario scripts used during development are not in the repository** (§10).
+(`run`, `engine`, `log`), the card and statistics controllers, the stage, `power()` (emit `suspend`/`resume`/`lock-screen`/`unlock-screen`) and `quit()`.
+
+**Live runs (`test/vivo/`, since 1.0.1).** The scenario scripts used during development are in the repository, with a runner: `test/vivo/esegui.sh <script> [seconds]` builds,
+creates a **new** results folder with its own data folder inside it (it never uses real data and never deletes anything: if the folder exists it stops), writes
+`impostazioni.json` / `profilo.json`, opens the real Electron app with `FF_SELFTEST` and `FF_SELFTEST_FILE`, kills it after a time limit (macOS has no `timeout`),
+prints the app's output and shrinks the screenshots. `misure.sh` measures memory and CPU at rest. 25 scenarios cover the timer, the card, the dialogs, sounds, statistics, saving,
+displays, sleep and the packaged app; they **print what they observe** and take screenshots, for a person to judge: they are not assertions. `test/vivo/README.md` lists what each one checks and what it needs.
 
 ---
 
@@ -359,7 +386,7 @@ metrics at those moments; `FF_SELFTEST_FILE=<script.cjs>` runs a script that rec
 
 ## 7. Tests (`test/`, `npm test`)
 
-247 tests in 23 files, no framework, no dependencies. They run unchanged in the main process's code paths because the logic is pure.
+259 tests in 25 files, no framework, no dependencies. They run unchanged in the main process's code paths because the logic is pure.
 
 | File(s) | What they cover |
 |---|---|
@@ -369,10 +396,11 @@ metrics at those moments; `FF_SELFTEST_FILE=<script.cjs>` runs a script that rec
 | `statistiche`, `cruscotto`, `colori`, `testo` | periods, summaries, streak with its frozen day, insights, CSV, the dashboard's Italian texts, subject colours (64-bit hash equal to Swift), text cleaning |
 | `timer`, `camminata`, `personaggi`, `sblocchi`, `riflessione`, `scheda` | the timer engine with a fake clock (pause, grace, "+5", discard, sleep gap, long break), the walker, pet stages (compared with Swift), unlock rules, reflection replies, card data |
 | `musica`, `elencomusica`, `suoni`, `rumore` | music queue and listing, audio plan decisions, the noise synthesiser against measurements from the Mac (rain and brown within 1 %, wind within 3 %: the Mac accumulates the phase in Float32) |
+| `ambiente`, `indirizzi` | the test-variable gating (`FF_*` ignored without `FF_SELFTEST`, `FF_DATA_DIR` ignored in the installed app) and the URL rule of the lock-down (only `ff://app/…`; log lines carry scheme and site only) |
 | `schermi`, `fusi` | display geometry and the task-bar side; time zones: DST days of 23 and 25 hours, a zone changed while running, Sydney, Lord Howe, India/Nepal, the date line |
 
 **Not covered by automated tests:** everything that needs Electron or a real display — the overlay window, click-through, the tray, dialogs, protocol, the real audio output, the pages' DOM code (card, dialogs, speaker, bubble, clock, pet drawing), power events, installers.
-Those were exercised with scripted runs of the real app on macOS (simulated mouse/keyboard events, screenshots, process metrics) that are not stored in the repository.
+Those were exercised with scripted runs of the real app on macOS (simulated mouse/keyboard events, screenshots, process metrics); since 1.0.1 the scripts are in `test/vivo/` (§5.3).
 
 ---
 
@@ -401,12 +429,14 @@ See `PARITA.md` for the row-by-row table. In short: one window instead of severa
 
 ## 10. Review notes
 
+**Closed in 1.0.1** (they were items 2, 3 and 4 of the review of 1.0.0): the windows are locked down against navigation, new windows and permissions (§3.3); the
+test-only environment variables count only with `FF_SELFTEST` (§5.2); the live-run scripts are in `test/vivo/` (§5.3). What remains:
+
 1. **Windows-specific behaviour is only partly verified.** Real click-through, keyboard focus hand-off, task bar at each side, 125–200 % scales, two monitors with different scales, a real sleep/wake, audio device changes, fullscreen apps and virtual desktops were not checked item by item (`PROVE_SU_WINDOWS.md`). A quick manual run measured ≈ 200 MB and ≈ 0 % CPU at rest.
-2. **No navigation hardening.** None of the three `BrowserWindow`s sets `will-navigate`, `setWindowOpenHandler` or a permission handler. The pages have no links and the CSP is `default-src 'none'` (only `ff:`), so the exposure is small, but these three are the usual Electron hardening steps and are missing.
-3. **Test-only environment variables are read in production** (`FF_DATA_DIR`, `FF_NO_LOCK`, `FF_FAKE_DISPLAYS`, `FF_SELFTEST_SAVE`, `FF_SELFTEST_CONFIRM` are not gated by `FF_SELFTEST`). Setting them needs control of the process environment, which already means control of the user's account; still, `FF_SELFTEST_CONFIRM=1` makes "delete all" skip its confirmation.
-4. **The live-run scenario scripts are not in the repository.** The "S" entries in `PARITA.md` (dynamic checks on macOS) cannot be repeated by anyone else from the repo, only the 247 automated tests can.
-5. **Unused code for the next release:** `core/points.ts` (garden points) is imported only by tests; `gardenLine` and `onDeleteAll` are empty hooks. Intended, but dead in 1.0.0.
-6. **Possible hot spots [inferred, not measured]:** the statistics page gets **all sessions** at every log change (a structured clone) and recomputes the summary in the page; `buildCardData` summarises all sessions on every card refresh; `loadPhrases` re-reads the phrase file for each phrase. Fine for thousands of sessions; not tested with tens of thousands.
-7. **One stylesheet pair per page, with `card.css` duplicated** in both bundles (a few tens of KB, no functional effect).
-8. **The single-instance lock** relies on Electron's `requestSingleInstanceLock()`; how it behaves with two different Windows users or after a crash on Windows was not examined **[uncertain]**.
-9. **`erasableSyntaxOnly`** forbids parameter properties and enums: classes in `core/` declare fields explicitly. A newcomer may be surprised; it is required for Node's type stripping in the tests.
+2. **`FF_SELFTEST` is still honoured by the installed app** (it is how the installer's contents are checked). Whoever can set it already controls the user's account; the self-test script is loaded by `require()` from the path given in `FF_SELFTEST_FILE`.
+3. **The live runs are not assertions and have only run on macOS.** They print what they observe; a person reads the output. Some may have gone stale as the UI changed (`scheda-clic.cjs` had not been updated for the "Cosa studi adesso?" step and was fixed in 1.0.1).
+4. **Unused code for the next release:** `core/points.ts` (garden points) is imported only by tests; `gardenLine` and `onDeleteAll` are empty hooks. Intended, but dead in 1.0.x.
+5. **Possible hot spots [inferred, not measured]:** the statistics page gets **all sessions** at every log change (a structured clone) and recomputes the summary in the page; `buildCardData` summarises all sessions on every card refresh; `loadPhrases` re-reads the phrase file for each phrase. Fine for thousands of sessions; not tested with tens of thousands.
+6. **One stylesheet pair per page, with `card.css` duplicated** in both bundles (a few tens of KB, no functional effect).
+7. **The single-instance lock** relies on Electron's `requestSingleInstanceLock()`; how it behaves with two different Windows users or after a crash on Windows was not examined **[uncertain]**.
+8. **`erasableSyntaxOnly`** forbids parameter properties and enums: classes in `core/` declare fields explicitly. A newcomer may be surprised; it is required for Node's type stripping in the tests.
