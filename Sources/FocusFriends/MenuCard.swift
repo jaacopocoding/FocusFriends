@@ -49,6 +49,8 @@ struct MenuCardState {
     var lastFocusSubject: String?
     var lastSessionID: UUID?
     var lastRating: FocusRating?
+    /// Le cose da fare (la pagina «Da fare»).
+    var todo = ToDoCardState()
 }
 
 /// Quello che serve ogni secondo mentre la scheda è aperta: poco, perché il resto (statistiche, serie, compagni)
@@ -88,6 +90,10 @@ struct MenuCardActions {
     var setBackground: (BackgroundChoice) -> Void
     var setBackgroundVolume: (Double) -> Void
     var rateLast: (FocusRating) -> Void
+    var todoAdd: (_ text: String, _ due: String?, _ subject: String?) -> Void
+    var todoToggle: (UUID) -> Void
+    var todoRemove: (UUID) -> Void
+    var todoStartFocus: (UUID) -> Void
 }
 
 /// Un pulsante disegnato a mano (origine in alto): ogni elemento della scheda lo usa con il suo disegno.
@@ -139,7 +145,7 @@ private final class MenuCardView: NSView {
     private let perform: (_ close: Bool, _ action: () -> Void) -> Void
     var onResize: ((CGFloat) -> Void)?
 
-    private enum Page { case main, timers, focus, rest }
+    private enum Page { case main, timers, focus, rest, todo }
     private var page: Page = .main
     /// In cima alla carta: il compagno sbuca dal bordo nella scheda e nel quadrante; le schermate del quaderno no.
     static let pageTop: CGFloat = 2
@@ -159,6 +165,8 @@ private final class MenuCardView: NSView {
     }
     /// Il quadrante dei timer: tiene il suo valore mentre lo si trascina (la pagina intorno si ricostruisce).
     private var dial: TimerDial?
+    /// La pagina «Da fare»: tiene la bozza che si sta scrivendo mentre la scheda si ricostruisce.
+    private var todoPage: ToDoPageView?
     private var dialKind: CustomTimers.Kind = .focus
     private var dialMinutes = 50
     private var timerMessage: String?
@@ -268,8 +276,9 @@ private final class MenuCardView: NSView {
     /// Ricostruisce tutta la scheda dallo stato attuale (dopo un tocco, o quando cambia fase del timer).
     func rebuild() {
         if let field = noteField { draftNote = field.stringValue }
-        for view in subviews where !(page == .timers && view === dial) { view.removeFromSuperview() }
+        for view in subviews where !(page == .timers && view === dial) && !(page == .todo && view === todoPage) { view.removeFromSuperview() }
         if page != .timers { dial = nil }
+        if page != .todo { todoPage = nil }
         statusLabel = nil
         clockLabel = nil
         tomato = nil
@@ -283,6 +292,9 @@ private final class MenuCardView: NSView {
         switch page {
         case .timers:
             buildTimers(s)
+            return
+        case .todo:
+            buildToDo(s)
             return
         case .focus:
             buildFocus(s)
@@ -404,6 +416,9 @@ private final class MenuCardView: NSView {
         }
         y = addOption(symbol: "face.smiling", title: "Chiedi com'è andata", value: nil, toggle: s.askOn, y: y, close: false) {
             self.actions.toggleAsk()
+        }
+        y = addOption(symbol: "checklist", title: "Da fare", value: s.todo.openCount > 0 ? "\(s.todo.openCount)" : nil, toggle: nil, y: y, close: false) {
+            self.page = .todo
         }
         y = addOption(symbol: s.isPetVisible ? "eye.slash" : "eye",
                       title: s.isPetVisible ? "Nascondi \(s.pet.name)" : "Mostra \(s.pet.name)",
@@ -623,6 +638,52 @@ private final class MenuCardView: NSView {
                       font: NSFont.systemFont(ofSize: 12.5, weight: .medium), color: hovered || pressed ? Paper.ink : Paper.inkLight,
                       alignment: alignment)
         }
+    }
+
+    // MARK: - La pagina «Da fare»
+
+    /// La pagina con il campo per aggiungere e la lista: è una vista a parte (ToDoPage.swift), che qui si sistema nella carta.
+    private func buildToDo(_ s: MenuCardState) {
+        let view: ToDoPageView
+        if let existing = todoPage {
+            view = existing
+        } else {
+            view = ToDoPageView(width: Self.width, state: s.todo, actions: ToDoPageActions(
+                back: { [weak self] in
+                    self?.page = .main
+                    self?.rebuild()
+                },
+                add: { [weak self] text, due, subject in
+                    self?.actions.todoAdd(text, due, subject)
+                    self?.rebuild()
+                },
+                toggle: { [weak self] id in
+                    self?.actions.todoToggle(id)
+                    self?.rebuild()
+                },
+                remove: { [weak self] id in
+                    self?.actions.todoRemove(id)
+                    self?.rebuild()
+                },
+                startFocus: { [weak self] id in
+                    self?.perform(true) { self?.actions.todoStartFocus(id) }
+                }))
+            view.onHeight = { [weak self] height in self?.fit(toDoHeight: height) }
+            todoPage = view
+        }
+        view.frame.origin = NSPoint(x: 0, y: Self.overflow)
+        addSubview(view)
+        view.update(s.todo)
+        fit(toDoHeight: view.height)
+    }
+
+    private func fit(toDoHeight height: CGFloat) {
+        guard page == .todo else { return }
+        let total = Self.overflow + height
+        guard abs(frame.height - total) > 0.5 else { return }
+        setFrameSize(NSSize(width: Self.width, height: total))
+        needsDisplay = true
+        onResize?(total)
     }
 
     // MARK: - La pagina dei timer

@@ -500,8 +500,9 @@ final class MenuController: NSObject, NSMenuDelegate {
         beginFocus(minutes: sender.tag)
     }
 
-    private func beginFocus(minutes: Int) {
-        subjectPrompt.ask(minutes: minutes, recent: SessionLog.shared.recentSubjects(),
+    /// `subject`: la materia già scritta nella scheda (quando si parte da una cosa da fare).
+    private func beginFocus(minutes: Int, subject prefilled: String? = nil) {
+        subjectPrompt.ask(minutes: minutes, recent: SessionLog.shared.recentSubjects(), prefill: prefilled,
                           lastNote: SessionLog.shared.lastNote(), near: window) { [weak self] choice in
             guard let self else { return }
             switch choice {
@@ -555,6 +556,10 @@ final class MenuController: NSObject, NSMenuDelegate {
         let streak = StudyStreak.analyze(sessions: SessionLog.shared.sessions, now: now, calendar: calendar)
         let background = BackgroundChoice.current(ambient: AmbientPlayer.shared.sound, music: MusicPlayer.shared.source)
         let lastSession = pomodoro.lastFocus?.sessionID.flatMap { id in SessionLog.shared.sessions.first { $0.id == id } }
+        let todayDay = ToDoDay.string(for: now, calendar: ToDoDay.calendar())
+        let todo = ToDoCardState(sections: ToDoList.shared.sections(today: todayDay), done: ToDoList.shared.doneItems,
+                                 openCount: ToDoList.shared.openCount, urgentCount: ToDoList.shared.urgentCount(today: todayDay),
+                                 today: todayDay, recentSubjects: SessionLog.shared.recentSubjects())
         return MenuCardState(
             pet: window.pet, allPets: Pet.all, userName: Profile.shared.name, isPetVisible: window.isVisible,
             phase: pomodoro.phase, subject: pomodoro.subject, remaining: pomodoro.remainingText,
@@ -571,7 +576,7 @@ final class MenuController: NSObject, NSMenuDelegate {
             notes: pomodoro.notes, background: background, backgroundVolume: background == .music
                 ? MusicPlayer.shared.volume : AmbientPlayer.shared.volume,
             lastFocusMinutes: pomodoro.lastFocus?.minutes, lastFocusSubject: pomodoro.lastFocus?.subject,
-            lastSessionID: lastSession?.id, lastRating: lastSession?.rating
+            lastSessionID: lastSession?.id, lastRating: lastSession?.rating, todo: todo
         )
     }
 
@@ -626,6 +631,13 @@ final class MenuController: NSObject, NSMenuDelegate {
                 let note = SessionLog.shared.sessions.first { $0.id == id }?.note
                 SessionLog.shared.setReflection(id: id, rating: rating, note: note)
                 self.speaker.say(ReflectionCard.reply(for: rating))
+            },
+            todoAdd: { text, due, subject in ToDoList.shared.add(text: text, due: due, subject: subject) },
+            todoToggle: { ToDoList.shared.toggleDone(id: $0) },
+            todoRemove: { ToDoList.shared.remove(id: $0) },
+            todoStartFocus: { [weak self] id in
+                guard let self, let item = ToDoList.shared.items.first(where: { $0.id == id }) else { return }
+                self.beginFocus(minutes: self.pomodoro.focusMinutes > 0 ? self.pomodoro.focusMinutes : 50, subject: item.subject)
             }
         )
     }

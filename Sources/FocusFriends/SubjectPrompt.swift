@@ -19,7 +19,7 @@ final class SubjectPrompt: NSObject {
 
     var isShowing: Bool { panel != nil }
 
-    func ask(minutes: Int, recent: [String], lastNote: (subject: String?, note: String)? = nil, near petWindow: NSWindow?,
+    func ask(minutes: Int, recent: [String], prefill: String? = nil, lastNote: (subject: String?, note: String)? = nil, near petWindow: NSWindow?,
              completion: @escaping (Choice) -> Void) {
         // Se è già aperta: la porto davanti e basta.
         if let panel {
@@ -43,6 +43,7 @@ final class SubjectPrompt: NSObject {
 
         let field = NSTextField()
         field.placeholderString = "La materia, per esempio Anatomia"
+        if let prefill { field.stringValue = prefill }
         field.font = NSFont.systemFont(ofSize: 15)
         field.bezelStyle = .roundedBezel
         field.controlSize = .large

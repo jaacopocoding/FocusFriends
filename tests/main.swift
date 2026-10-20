@@ -907,5 +907,128 @@ garden.reset()
 check(garden.placements.isEmpty && garden.unlocked.isEmpty && garden.spent == 0 && garden.companionSpots.isEmpty
       && !FileManager.default.fileExists(atPath: gardenDir.appendingPathComponent("giardino.json").path), "«Cancella tutto» ricomincia")
 
+// ---------------------------------------------------------------- da fare
+section("Da fare: giorni e testi")
+check(ToDoDay.isValid("2026-10-23") && ToDoDay.isValid("2028-02-29"), "giorni che esistono")
+check(!ToDoDay.isValid("2026-02-30") && !ToDoDay.isValid("2026-13-01") && !ToDoDay.isValid("2027-02-29"), "giorni che non esistono")
+check(!ToDoDay.isValid("26-10-23") && !ToDoDay.isValid("2026-1-3") && !ToDoDay.isValid("2026/10/23") && !ToDoDay.isValid("") && !ToDoDay.isValid("abcd-ef-gh"),
+      "il formato è solo AAAA-MM-GG")
+check(ToDoDay.days(from: "2026-10-20", to: "2026-10-23") == 3 && ToDoDay.days(from: "2026-10-20", to: "2026-10-19") == -1, "giorni tra due date")
+check(ToDoDay.days(from: "2026-12-30", to: "2027-01-02") == 3 && ToDoDay.days(from: "2028-02-28", to: "2028-03-01") == 2, "a cavallo di anno e febbraio bisestile")
+check(ToDoDay.days(from: "2026-10-20", to: "boh") == nil, "una data non valida non ha distanza")
+check(ToDoDay.adding(days: 7, to: "2026-10-20") == "2026-10-27" && ToDoDay.adding(days: 12, to: "2026-12-25") == "2027-01-06", "somma di giorni")
+check(ToDoDay.string(for: date(2026, 10, 20, 23, 30), calendar: cal) == "2026-10-20", "il giorno sull'orologio del computer, non in UTC")
+let todoToday = "2026-10-20"          // un martedì
+check(ToDoDay.label(due: "2026-10-19", today: todoToday) == "ieri" && ToDoDay.label(due: todoToday, today: todoToday) == "oggi"
+      && ToDoDay.label(due: "2026-10-21", today: todoToday) == "domani", "ieri, oggi, domani")
+check(ToDoDay.label(due: "2026-10-23", today: todoToday) == "ven 23" && ToDoDay.label(due: "2026-10-26", today: todoToday) == "lun 26", "entro la settimana: giorno e numero")
+check(ToDoDay.label(due: "2026-10-27", today: todoToday) == "27 ott" && ToDoDay.label(due: "2026-10-18", today: todoToday) == "18 ott", "oltre la settimana, o scaduta da più di un giorno")
+check(ToDoDay.label(due: "2027-01-05", today: todoToday) == "5 gen 2027", "un altro anno si scrive")
+check(ToDoText.clean("  comprare   il libro \t\n di anatomia ") == "comprare il libro di anatomia", "il testo si pulisce")
+check(ToDoText.clean("   ") == nil && ToDoText.clean(nil) == nil, "testo vuoto = niente")
+check(ToDoText.clean(String(repeating: "è", count: 300))?.count == ToDoText.maxLength, "testo accorciato a \(ToDoText.maxLength)")
+
+section("Da fare: la lista")
+let todoDir = tempDirectory()
+var todoClock = date(2026, 10, 20, 9, 0)
+let todo = ToDoList(directory: todoDir, now: { todoClock })
+check(todo.items.isEmpty && todo.openCount == 0 && !FileManager.default.fileExists(atPath: todoDir.appendingPathComponent("dafare.json").path),
+      "all'inizio è vuota e non scrive niente")
+check(todo.add(text: "   ") == .empty && todo.items.isEmpty, "una voce vuota non si aggiunge")
+guard case .added(let todoFirst) = todo.add(text: "  Esercizi di analisi  4–6 ", due: "2026-10-21", subject: " Analisi ") else { fatalError("add") }
+check(todoFirst.text == "Esercizi di analisi 4–6" && todoFirst.due == "2026-10-21" && todoFirst.subject == "Analisi" && !todoFirst.isDone, "voce con scadenza e materia, pulite")
+guard case .added(let todoSecond) = todo.add(text: "Cercare un libro per Storia", due: "2026-02-30", subject: "   ") else { fatalError("add") }
+check(todoSecond.due == nil && todoSecond.subject == nil, "scadenza che non esiste e materia vuota: tolte")
+todoClock += 60
+_ = todo.add(text: "Consegnare il modulo", due: "2026-10-19")
+todoClock += 60
+_ = todo.add(text: "Riassunto del capitolo 7", due: "2026-10-20", subject: "Anatomia")
+todoClock += 60
+_ = todo.add(text: "Relazione di laboratorio", due: "2026-10-26", subject: "Fisica")
+todoClock += 60
+_ = todo.add(text: "Prenotare l'esame", due: "2026-10-20", subject: "Fisiologia")
+check(todo.openCount == 6, "sei voci da fare")
+let todoGroups = todo.sections(today: todoToday)
+check(todoGroups.map(\.group) == [.overdue, .today, .upcoming, .noDate], "i gruppi, nell'ordine: scadute, oggi, prossime, senza data")
+check(todoGroups[0].items.map(\.text) == ["Consegnare il modulo"], "scadute")
+check(todoGroups[1].items.map(\.text) == ["Riassunto del capitolo 7", "Prenotare l'esame"], "oggi: la più vecchia per prima")
+check(todoGroups[2].items.map(\.text) == ["Esercizi di analisi 4–6", "Relazione di laboratorio"], "prossime: la scadenza più vicina per prima")
+check(todoGroups[3].items.map(\.text) == ["Cercare un libro per Storia"], "senza data")
+check(todo.urgentCount(today: todoToday) == 3, "urgenti: scadute e di oggi")
+check(todo.nextDue()?.text == "Consegnare il modulo", "la scadenza più vicina (anche scaduta)")
+check(todo.sections(today: "2026-10-25").first?.group == .overdue && todo.urgentCount(today: "2026-10-25") == 4, "con un altro giorno cambia tutto")
+
+let todoReloaded = ToDoList(directory: todoDir, now: { todoClock })
+check(todoReloaded.items == todo.items, "riaprendo la lista, le voci sono quelle")
+let todoText = (try? String(contentsOf: todoDir.appendingPathComponent("dafare.json"), encoding: .utf8)) ?? ""
+check(todoText.contains("\"version\" : 1") && todoText.contains("\"due\" : \"2026-10-21\"") && todoText.contains("\"createdAt\" : \"2026-10-20T07:00:00Z\""),
+      "il file: versione, scadenza «AAAA-MM-GG», date ISO 8601")
+check(!todoText.contains("\"doneAt\""), "senza «fatta» il campo non c'è")
+
+todo.toggleDone(id: todoFirst.id)
+check(todo.openCount == 5 && todo.doneItems.map(\.id) == [todoFirst.id] && todo.sections(today: todoToday).flatMap(\.items).allSatisfy { $0.id != todoFirst.id },
+      "una voce fatta esce dalla lista e va tra le fatte")
+check(ToDoList(directory: todoDir, now: { todoClock }).doneItems.first?.doneAt == todoClock, "«fatta» si salva, con l'ora")
+todo.toggleDone(id: todoFirst.id)
+check(todo.openCount == 6 && todo.doneItems.isEmpty, "si può rimettere da fare")
+todo.remove(id: todoSecond.id)
+check(todo.openCount == 5 && todo.items.allSatisfy { $0.id != todoSecond.id }, "si toglie una voce")
+todo.remove(id: UUID())
+check(todo.openCount == 5, "togliere una voce che non c'è non fa niente")
+
+// le voci fatte spariscono dopo una settimana
+todo.toggleDone(id: todoFirst.id)
+todoClock += 6 * 86_400
+check(ToDoList(directory: todoDir, now: { todoClock }).doneItems.count == 1, "dopo 6 giorni la voce fatta c'è ancora")
+todoClock += 2 * 86_400
+let todoPurged = ToDoList(directory: todoDir, now: { todoClock })
+check(todoPurged.doneItems.isEmpty && todoPurged.openCount == 4, "dopo 8 giorni la voce fatta è sparita, le altre no")
+
+// il limite
+let todoFullDir = tempDirectory()
+let todoFull = ToDoList(directory: todoFullDir)
+for i in 0..<ToDoList.maxItems { _ = todoFull.add(text: "voce \(i)") }
+check(todoFull.add(text: "una di troppo") == .full && todoFull.items.count == ToDoList.maxItems, "al massimo \(ToDoList.maxItems) voci")
+
+// file di altre versioni e rovinati
+let todoDirtyDir = tempDirectory()
+let todoDirty = """
+{
+  "version" : 1,
+  "items" : [
+    { "id" : "00000000-0000-4000-8000-000000000001", "text" : "  vuota   da pulire ", "due" : "2026-02-31", "subject" : "  ", "createdAt" : "2026-10-14T07:00:00Z" },
+    { "id" : "00000000-0000-4000-8000-000000000002", "text" : "   ", "createdAt" : "2026-10-14T07:00:00Z" },
+    { "id" : "00000000-0000-4000-8000-000000000003", "text" : "ok", "due" : "2026-10-30", "subject" : "Fisica", "createdAt" : "2026-10-14T07:00:00Z", "doneAt" : "2026-10-15T07:00:00Z" }
+  ]
+}
+"""
+try? todoDirty.write(to: todoDirtyDir.appendingPathComponent("dafare.json"), atomically: true, encoding: .utf8)
+let todoCleaned = ToDoList(directory: todoDirtyDir, now: { date(2026, 10, 20, 9, 0) })
+check(todoCleaned.items.count == 2 && todoCleaned.items[0].text == "vuota da pulire" && todoCleaned.items[0].due == nil && todoCleaned.items[0].subject == nil,
+      "letta da file: testo pulito, scadenza inesistente tolta, voce vuota scartata")
+check(todoCleaned.items[1].isDone && todoCleaned.items[1].due == "2026-10-30", "letta da file: voce fatta e scadenza buona restano")
+
+let todoNewerDir = tempDirectory()
+try? "{ \"version\": 9, \"items\": [ { \"id\": \"00000000-0000-4000-8000-000000000001\", \"text\": \"dal futuro\", \"createdAt\": \"2026-10-14T07:00:00Z\" } ] }"
+    .write(to: todoNewerDir.appendingPathComponent("dafare.json"), atomically: true, encoding: .utf8)
+var todoNewerProblems: [String] = []
+let todoNewer = ToDoList(directory: todoNewerDir)
+todoNewer.onProblem = { todoNewerProblems.append($0) }
+_ = todoNewer.add(text: "non deve scrivere")
+check(todoNewer.isReadOnly && todoNewer.items.count == 2 && todoNewerProblems.count == 1, "file più nuovo: si legge, non si riscrive, un avviso")
+check(((try? String(contentsOf: todoNewerDir.appendingPathComponent("dafare.json"), encoding: .utf8)) ?? "").contains("dal futuro")
+      && !((try? String(contentsOf: todoNewerDir.appendingPathComponent("dafare.json"), encoding: .utf8)) ?? "").contains("non deve scrivere"), "il file più nuovo è intatto")
+
+let todoBrokenDir = tempDirectory()
+try? "questo non è json".write(to: todoBrokenDir.appendingPathComponent("dafare.json"), atomically: true, encoding: .utf8)
+var todoBrokenProblems: [String] = []
+let todoBroken = ToDoList(directory: todoBrokenDir)
+todoBroken.onProblem = { todoBrokenProblems.append($0) }
+check(todoBroken.items.isEmpty && todoBrokenProblems.count == 1 && !FileManager.default.fileExists(atPath: todoBrokenDir.appendingPathComponent("dafare.json").path)
+      && ((try? FileManager.default.contentsOfDirectory(atPath: todoBrokenDir.path)) ?? []).contains { $0.hasPrefix("dafare.corrotto-") },
+      "file rovinato: messo da parte e si riparte da vuoto, con un avviso")
+_ = todoBroken.add(text: "di nuovo")
+check(ToDoList(directory: todoBrokenDir).items.count == 1, "dopo un file rovinato si scrive di nuovo")
+
 print("\n\(checks) controlli, \(failures) falliti")
 exit(failures == 0 ? 0 : 1)
