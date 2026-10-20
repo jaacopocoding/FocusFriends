@@ -151,6 +151,27 @@ per tipo) e uno tuo si può *rimuovere*. *Avvia* parte con i minuti scelti; la p
 | Modifica le frasi… | Apre il file delle frasi del personaggio attivo |
 | Esci da FocusFriends | Chiude l'app |
 
+## Da fare
+
+Nella scheda del menu c'è la riga **Da fare** (a destra, quante cose restano). Apre una pagina per segnarsi le cose da ricordare:
+
+- **Si aggiunge** scrivendo nel campo in alto e premendo Invio (o «+»). Mentre scrivi compaiono, facoltative, la **scadenza**
+  (*Oggi*, *Domani*, *Fra una settimana*, oppure *Scegli…* con un calendario) e la **materia** (quelle usate di recente).
+  La scadenza è un giorno, senza ora.
+- **La lista** è divisa in *Scadute*, *Oggi*, *Prossime* e *Senza data*; accanto a ogni voce c'è la scadenza («ieri», «oggi»,
+  «domani», «ven 23», «26 ott»).
+- **Il cerchio** segna una voce come fatta: va in fondo, tra le *Fatte*, e dopo una settimana sparisce. Toccandolo di nuovo torna da fare.
+- **Sotto il mouse** compaiono ▶ *Inizia un focus* (apre «Cosa studi adesso?» con la materia già scritta) e × *Togli*.
+- **Il compagno** ogni tanto ricorda le scadenze di oggi, o di domani («Domani scade «Esercizi di analisi». Un focus adesso?»):
+  al posto di una frase a caso, al massimo una volta ogni tre ore, mai durante un focus e mai con *Frasi: Mai*.
+
+Le voci stanno in `dafare.json`, accanto a `sessioni.json` (il formato è in [`FORMATI.md`](FORMATI.md) §9); *Cancella tutto…* delle
+statistiche non le tocca. Per ora «Da fare» c'è solo nell'app per Mac.
+
+<p align="center">
+  <img src="docs/images/da-fare.png" width="640" alt="La pagina Da fare: la lista con una voce sotto il mouse, e una voce nuova con la scadenza e la materia">
+</p>
+
 ## Pomofocus
 
 Dal menu *Pomofocus* scegli un focus di 30 o 50 minuti: sotto il personaggio compare un mini orologio
@@ -519,6 +540,8 @@ Sources/FocusFriends/
   MusicPlayer.swift     la riproduzione dei brani del focus
   SessionLog.swift      registro delle sessioni di studio e statistiche (solo Foundation, con prove)
   Profile.swift         il nome (solo Foundation, con prove) e i titoli personalizzati
+  ToDo.swift            le cose da fare (dafare.json), i gruppi per scadenza e la frase del compagno (solo Foundation, con prove)
+  ToDoPage.swift        la pagina «Da fare» della scheda
   IntroCard.swift       la scheda di introduzione: nome e compagno
   SubjectPrompt.swift   la scheda "Cosa studi adesso?"
   ReflectionCard.swift  la scheda "Com'è andata?" a fine focus

@@ -5,7 +5,7 @@ scrive una nuova versione dell'app deve leggere e scrivere questi file nello ste
 le prove di confronto (`tests/fixtures/`) hanno un punto fermo.
 
 Fonte: il codice Swift della versione per Mac (`SessionLog.swift`, `Profile.swift`, `Garden.swift`, `AmbientSound.swift`,
-`MusicLibrary.swift`, `Chattiness.swift`, `CustomTimers.swift`). Dove questo documento e il codice non sono d'accordo,
+`MusicLibrary.swift`, `Chattiness.swift`, `CustomTimers.swift`, `ToDo.swift`). Dove questo documento e il codice non sono d'accordo,
 vale il codice, e va corretto il documento.
 
 ## 1. Dove stanno
@@ -22,11 +22,13 @@ FocusFriends/
 ├── profilo.json               nome, introduzione vista, compagni sbloccati
 ├── giardino.json              il giardino (oggetti, copie, posizioni) — seconda uscita su Windows
 ├── impostazioni.json          le preferenze (solo Windows; sul Mac stanno in UserDefaults)
+├── dafare.json                le cose da fare (per ora solo Mac)
 ├── registro-app.log           (solo Windows) cosa ha fatto l'app: avvio, chiusura, errori; senza dati personali; l'altro è registro-app.1.log
 ├── frasi_<personaggio>.txt    le frasi dell'utente (facoltative)
 ├── sessioni.corrotto-<epoch>.json   un file di sessioni messo da parte perché rovinato
 ├── profilo.corrotto-<epoch>.json    idem per il profilo
 ├── giardino.corrotto-<epoch>.json   idem per il giardino
+├── dafare.corrotto-<epoch>.json     idem per le cose da fare
 └── backup/
     ├── sessioni-AAAA-MM-GG.json     una copia al giorno (le ultime 7)
     └── sessioni-formato<N>.json     la copia intatta di un file di una versione precedente (N = 0, 1, 2)
@@ -280,4 +282,51 @@ versione vecchia, sessioni con accenti, emoji, virgolette e formule da foglio di
 nome da accorciare) e le fa leggere al codice Swift del Mac con lo stesso generatore (`tests/genera-attesi.sh`): i risultati devono essere uguali. Sul Mac
 gira con `npm test` dentro `windows/` (serve `swiftc`; dove manca si salta) e a ogni modifica sulla CI del Mac. Per i suoni, `tests/fixtures/rumore.json` ha
 le misure della sintesi dei rumori fatta dall'app per Mac (`tests/genera-rumore.sh`).
+
+## 9. `dafare.json` (le cose da fare)
+
+Per ora lo scrive e lo legge **solo l'app per Mac** (dalla pagina «Da fare» della scheda); la versione per Windows lo avrà più avanti.
+
+```json
+{
+  "items" : [
+    {
+      "createdAt" : "2026-10-20T07:00:00Z",
+      "due" : "2026-10-21",
+      "id" : "8F1C2D3E-4B5A-4C6D-8E7F-901A2B3C4D5E",
+      "subject" : "Analisi",
+      "text" : "Esercizi di analisi 4–6"
+    },
+    {
+      "createdAt" : "2026-10-19T16:30:00Z",
+      "doneAt" : "2026-10-20T08:12:00Z",
+      "id" : "1A2B3C4D-5E6F-4A7B-8C9D-0E1F2A3B4C5D",
+      "text" : "Mandare la mail al prof"
+    }
+  ],
+  "version" : 1
+}
+```
+
+| Campo | Obbligatorio | Note |
+|---|---|---|
+| `version` | **sì** | 1 |
+| `items` | **sì** | Le voci, al massimo **200** (da fare e fatte da poco). |
+| `id` | **sì** | UUID. |
+| `text` | **sì** | Pulito come le note del focus: parole separate da qualunque spazio o a capo unite con uno spazio solo, caratteri di controllo tolti, al massimo **120** caratteri. Vuoto = la voce si scarta. |
+| `createdAt` | **sì** | Quando è stata scritta (ISO 8601, UTC). |
+| `due` | no | La scadenza: un **giorno** `AAAA-MM-GG`, senza ora e senza fuso (il 23 è il 23 sull'orologio del computer, in qualunque fuso). Una data che non esiste (il 31 giugno) si toglie e la voce resta senza scadenza. |
+| `subject` | no | Come le materie di `sessioni.json` (§2.3: al massimo 40 caratteri, vuota = nessuna). |
+| `doneAt` | no | Quando è stata segnata come fatta (ISO 8601, UTC). Assente = ancora da fare. |
+
+- **Le voci fatte** restano **7 giorni** (da `doneAt`) e poi si tolgono, all'apertura o alla prima modifica.
+- **Si scrive** come gli altri file: tutto il file a ogni modifica, atomicamente, chiavi in ordine alfabetico, indentazione di 2 spazi.
+- **Rovinato**: si sposta in `dafare.corrotto-<epoch>.json`, si avvisa e si riparte da vuoto (se non si riesce a spostarlo: sola lettura).
+  **Illeggibile**, o di una **versione più nuova** di 1: si legge (se si può) e non si riscrive, con un avviso.
+- **«Cancella tutto»** (statistiche) **non** tocca questo file: le cose da fare non sono dati di studio.
+- **Come si mostrano** (`ToDoList.sections`): *Scadute* (`due` prima di oggi), *Oggi*, *Prossime*, *Senza data*; dentro ogni gruppo
+  per `due` e poi per `createdAt`, dal più vecchio. Accanto a ogni voce: «ieri», «oggi», «domani», il giorno della settimana e il numero
+  entro sei giorni («ven 23»), altrimenti giorno e mese («26 ott», con l'anno se non è quello di oggi).
+- **Il compagno** (`ToDoReminder`) ricorda solo le scadenze di **oggi** (o, se non ce ne sono, di **domani**), mai le scadute; al posto di una
+  frase a caso, al massimo una volta ogni tre ore, mai durante un focus e mai con le frasi spente.
 

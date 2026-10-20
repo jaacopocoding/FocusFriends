@@ -287,11 +287,6 @@ final class ToDoList {
         items.filter(\.isDone).sorted { ($0.doneAt ?? .distantPast) > ($1.doneAt ?? .distantPast) }
     }
 
-    /// Scadute e di oggi: quelle che chiedono attenzione.
-    func urgentCount(today: String) -> Int {
-        openItems.filter { item in item.due.map { (ToDoDay.days(from: today, to: $0) ?? 1) <= 0 } ?? false }.count
-    }
-
     /// Le voci da fare, raggruppate (le sezioni vuote non ci sono): scadute (le più vecchie prima), di oggi, prossime
     /// (le più vicine prima), senza data. A parità, la più vecchia per prima.
     func sections(today: String) -> [ToDoSection] {
@@ -308,11 +303,6 @@ final class ToDoList {
                 }
             return inGroup.isEmpty ? nil : ToDoSection(group: group, items: inGroup)
         }
-    }
-
-    /// La scadenza più vicina tra quelle da fare (oggi, domani…), per il fumetto del compagno.
-    func nextDue() -> ToDoItem? {
-        openItems.filter { $0.due != nil }.min { ($0.due ?? "", $0.createdAt) < ($1.due ?? "", $1.createdAt) }
     }
 
     // MARK: - Salvataggio

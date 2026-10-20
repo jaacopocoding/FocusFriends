@@ -5,7 +5,6 @@ struct ToDoCardState {
     var sections: [ToDoSection] = []
     var done: [ToDoItem] = []
     var openCount = 0
-    var urgentCount = 0
     /// Oggi, «AAAA-MM-GG».
     var today = ""
     /// Le materie usate di recente, per sceglierne una con un tocco.

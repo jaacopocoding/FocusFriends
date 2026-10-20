@@ -558,7 +558,7 @@ final class MenuController: NSObject, NSMenuDelegate {
         let lastSession = pomodoro.lastFocus?.sessionID.flatMap { id in SessionLog.shared.sessions.first { $0.id == id } }
         let todayDay = ToDoDay.string(for: now, calendar: ToDoDay.calendar())
         let todo = ToDoCardState(sections: ToDoList.shared.sections(today: todayDay), done: ToDoList.shared.doneItems,
-                                 openCount: ToDoList.shared.openCount, urgentCount: ToDoList.shared.urgentCount(today: todayDay),
+                                 openCount: ToDoList.shared.openCount,
                                  today: todayDay, recentSubjects: SessionLog.shared.recentSubjects())
         return MenuCardState(
             pet: window.pet, allPets: Pet.all, userName: Profile.shared.name, isPetVisible: window.isVisible,
