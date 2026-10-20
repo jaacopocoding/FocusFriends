@@ -42,6 +42,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let pomodoro = Pomodoro(petWindow: window, speaker: speaker)
         self.pomodoro = pomodoro
         pomodoro.onFocusCompleted = { [weak walker] in walker?.eatNow() }
+        // Le scadenze di oggi e domani: ogni tanto il compagno le ricorda, al posto di una frase a caso (mai durante un focus).
+        speaker.reminder = { [weak pomodoro] in
+            guard pomodoro?.phase != .focus else { return nil }
+            return ToDoReminder.message(for: ToDoList.shared.items, today: ToDoDay.string(for: Date(), calendar: ToDoDay.calendar()))
+        }
         // A fine focus: "com'è andata?" (se non l'hai spenta dal menu). Sparisce da sola quando il timer riparte o si ferma.
         pomodoro.onFocusRecorded = { [weak self, weak window, weak speaker] session in
             self?.menu?.evaluateCompanionRewards(announce: true)

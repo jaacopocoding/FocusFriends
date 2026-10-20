@@ -12,6 +12,12 @@ final class Speaker {
     /// C'è un fumetto sullo schermo in questo momento.
     var isSpeaking: Bool { bubble != nil }
 
+    /// Un promemoria da dire al posto di una frase a caso (le scadenze di oggi e domani); nil = niente da ricordare ora.
+    var reminder: (() -> String?)?
+    /// Ogni quanto, al massimo, un promemoria prende il posto di una frase a caso.
+    private static let reminderEvery: TimeInterval = 3 * 3600
+    private var lastReminder = Date.distantPast
+
     /// Pausa (in secondi) tra una frase spontanea e la successiva; nil = non parla di sua iniziativa.
     var interval: ClosedRange<TimeInterval>? = Chattiness.current.interval(whileFocusing: false)
 
@@ -50,6 +56,11 @@ final class Speaker {
 
     /// Dice la prossima frase del mazzo.
     func sayRandom() {
+        if Date().timeIntervalSince(lastReminder) >= Self.reminderEvery, let text = reminder?() {
+            lastReminder = Date()
+            say(text)
+            return
+        }
         // Rilegge il file a ogni frase: le modifiche si vedono subito, senza riavviare.
         let quotes = Quotes.load(for: petWindow.pet)
         say(deck.draw(from: quotes) ?? petWindow.pet.fallbackQuote)

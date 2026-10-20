@@ -1030,5 +1030,29 @@ check(todoBroken.items.isEmpty && todoBrokenProblems.count == 1 && !FileManager.
 _ = todoBroken.add(text: "di nuovo")
 check(ToDoList(directory: todoBrokenDir).items.count == 1, "dopo un file rovinato si scrive di nuovo")
 
+section("Da fare: il compagno ricorda le scadenze")
+func reminderItem(_ text: String, due: String?, done: Bool = false, n: Int = 0) -> ToDoItem {
+    ToDoItem(id: UUID(), text: text, due: due, subject: nil, createdAt: Date(timeIntervalSince1970: 1_760_000_000 + Double(n)), doneAt: done ? Date() : nil)
+}
+check(ToDoReminder.message(for: [], today: "2026-10-20") == nil, "niente voci: niente da dire")
+check(ToDoReminder.message(for: [reminderItem("Consegnare il modulo", due: "2026-10-19"), reminderItem("Senza data", due: nil),
+                                 reminderItem("Tra una settimana", due: "2026-10-27")], today: "2026-10-20") == nil,
+      "scadute, senza data o lontane: non se ne parla")
+check(ToDoReminder.message(for: [reminderItem("Esercizi di analisi", due: "2026-10-21")], today: "2026-10-20")
+      == "Domani scade «Esercizi di analisi». Un focus adesso?", "una scadenza domani")
+check(ToDoReminder.message(for: [reminderItem("Prenotare l'esame", due: "2026-10-20")], today: "2026-10-20")
+      == "Oggi scade «Prenotare l'esame». Un focus adesso?", "una scadenza oggi")
+check(ToDoReminder.message(for: [reminderItem("Per domani", due: "2026-10-21"), reminderItem("Per oggi", due: "2026-10-20")], today: "2026-10-20")
+      == "Oggi scade «Per oggi». Un focus adesso?", "se ci sono sia oggi sia domani, si dice oggi")
+check(ToDoReminder.message(for: [reminderItem("Prima", due: "2026-10-20", n: 1), reminderItem("Seconda", due: "2026-10-20", n: 2)], today: "2026-10-20")
+      == "Oggi scadono 2 cose: «Prima» e un'altra.", "due oggi: la più vecchia e «un'altra»")
+check(ToDoReminder.message(for: [reminderItem("A", due: "2026-10-21", n: 3), reminderItem("B", due: "2026-10-21", n: 1), reminderItem("C", due: "2026-10-21", n: 2)],
+                           today: "2026-10-20") == "Domani scadono 3 cose: «B» e altre 2.", "tre domani: la più vecchia e «altre 2»")
+check(ToDoReminder.message(for: [reminderItem("Fatta", due: "2026-10-20", done: true)], today: "2026-10-20") == nil, "le voci fatte non si ricordano")
+let longReminder = ToDoReminder.message(for: [reminderItem(String(repeating: "parola ", count: 20), due: "2026-10-20")], today: "2026-10-20") ?? ""
+check(longReminder == "Oggi scade «parola parola parola parola parola…». Un focus adesso?", "un testo lungo si accorcia a una parola intera")
+check(ToDoReminder.message(for: [reminderItem("Ultimo dell'anno", due: "2027-01-01")], today: "2026-12-31") == "Domani scade «Ultimo dell'anno». Un focus adesso?",
+      "domani a cavallo d'anno")
+
 print("\n\(checks) controlli, \(failures) falliti")
 exit(failures == 0 ? 0 : 1)

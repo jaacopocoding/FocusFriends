@@ -88,6 +88,38 @@ enum ToDoText {
     }
 }
 
+/// Cosa dice il compagno delle scadenze: solo quelle di oggi e di domani (le scadute non si rinfacciano).
+enum ToDoReminder {
+    /// Quanto è lungo, al massimo, il testo di una voce dentro il fumetto.
+    static let maxQuoted = 36
+
+    /// La frase per oggi (se c'è qualcosa che scade oggi) o, altrimenti, per domani; nil se non c'è niente di cui parlare.
+    static func message(for items: [ToDoItem], today: String) -> String? {
+        let open = items.filter { !$0.isDone }.sorted { $0.createdAt < $1.createdAt }
+        if let text = sentence(open.filter { $0.due == today }, when: "Oggi", singular: "scade", plural: "scadono") { return text }
+        guard let tomorrow = ToDoDay.adding(days: 1, to: today) else { return nil }
+        return sentence(open.filter { $0.due == tomorrow }, when: "Domani", singular: "scade", plural: "scadono")
+    }
+
+    private static func sentence(_ items: [ToDoItem], when: String, singular: String, plural: String) -> String? {
+        guard let first = items.first else { return nil }
+        let quoted = "«\(shortened(first.text))»"
+        if items.count == 1 { return "\(when) \(singular) \(quoted). Un focus adesso?" }
+        let others = items.count - 1
+        return "\(when) \(plural) \(items.count) cose: \(quoted) e \(others == 1 ? "un'altra" : "altre \(others)")."
+    }
+
+    /// Il testo accorciato (se serve) a una parola intera, con i puntini.
+    private static func shortened(_ text: String) -> String {
+        guard text.count > maxQuoted else { return text }
+        var cut = String(text.prefix(maxQuoted - 1))
+        if let space = cut.lastIndex(of: " "), cut.distance(from: cut.startIndex, to: space) > maxQuoted / 2 {
+            cut = String(cut[..<space])
+        }
+        return cut.trimmingCharacters(in: .whitespaces) + "…"
+    }
+}
+
 /// Una cosa da fare: un testo, e se serve un giorno di scadenza e una materia.
 struct ToDoItem: Codable, Equatable {
     var id: UUID
