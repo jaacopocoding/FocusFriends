@@ -21,9 +21,9 @@ import { date } from "./util.ts";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const fixtures = join(root, "tests", "fixtures");
 const generator = join(root, "build", "fixtures", "genera-attesi");
-const swiftSources = [
-  "SessionLog", "Profile", "GardenCatalog", "Garden", "GardenPoints", "CompanionRewards", "ToDo",
-].map((name) => join(root, "Sources", "FocusFriends", `${name}.swift`));
+// I sorgenti Swift sono quelli di tests/genera-attesi.sh (una sola lista: se se ne dimentica uno qui, la CI sul Mac lo scopre solo a generatore da rifare).
+const swiftSources = [...readFileSync(join(root, "tests", "genera-attesi.sh"), "utf8").matchAll(/Sources\/FocusFriends\/(\w+)\.swift/g)]
+  .map((match) => join(root, "Sources", "FocusFriends", `${match[1]}.swift`));
 const swiftMain = join(root, "tests", "genera-attesi", "main.swift");
 
 const hasSwift = process.platform === "darwin" && spawnSync("swiftc", ["--version"], { stdio: "ignore" }).status === 0;
