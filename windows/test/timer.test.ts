@@ -34,6 +34,36 @@ function setup(options: { longBreak?: boolean; start?: number; pet?: string; gar
   return { dir, clock, log, engine, events, advance, types, says };
 }
 
+describe("Il focus partito da una voce di «Da fare»", () => {
+  const recorded = (events: PomodoroEvent[]) => events.flatMap((e) => (e.type === "focusRecorded" ? [e] : []));
+  it("a fine focus l'evento dice da quale voce era partito", () => {
+    const t = setup();
+    t.engine.startFocus(25, "Anatomia", "ID-DELLA-VOCE");
+    t.advance(25 * MIN + 1000);
+    t.advance(GRACE_SECONDS * 1000 + 1000);
+    assert.deepEqual(recorded(t.events).map((e) => e.todoId), ["ID-DELLA-VOCE"]);
+  });
+  it("senza voce, todoId è null; e non resta da un focus all'altro", () => {
+    const t = setup();
+    t.engine.startFocus(25, null, "ID-DELLA-VOCE");
+    t.engine.stop();
+    t.engine.startFocus(25, "Fisica");
+    t.advance(25 * MIN + 1000);
+    t.advance(GRACE_SECONDS * 1000 + 1000);
+    assert.deepEqual(recorded(t.events).map((e) => e.todoId), [null]);
+  });
+  it("la voce si perde se il timer viene fermato o parte una pausa", () => {
+    const t = setup();
+    t.engine.startFocus(25, null, "ID-DELLA-VOCE");
+    t.advance(3 * MIN);
+    t.engine.startBreak(5);
+    t.engine.startFocus(25, null);
+    t.advance(25 * MIN + 1000);
+    t.advance(GRACE_SECONDS * 1000 + 1000);
+    assert.deepEqual(recorded(t.events).map((e) => e.todoId), [null]);
+  });
+});
+
 describe("Avvio del focus", () => {
   it("scrive il segno «in corso», dice la frase e parte da 25:00", () => {
     const t = setup();

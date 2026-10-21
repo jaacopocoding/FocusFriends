@@ -2,7 +2,7 @@
 
 > Purpose: a factual description of how the code in this repository works, written so that another reader (human or AI)
 > can judge whether the code is acceptable as written or needs revision for inefficiency.
-> Snapshot described: release `v0.9.1` (the to-do list, see the update of 21 October below; 0.9.0 was its first form); before it, this document described
+> Snapshot described: release `v0.10.0` (the to-do list, see the update of 21 October below; 0.9.0 was its first form); before it, this document described
 > `v0.8.0`, prepared after commit `4bf4576` (the release before that is `v0.7.0`). The document was first written against `2043b39`; it was then updated for the fixes made after
 > `ARCHITECTURE_REVIEW.md` (that review is committed next to this file and its §7 says what was changed), the
 > developer-mode flag, the fourth companion and the garden rewrite (points, shop, free placement).
@@ -21,7 +21,7 @@
 > document's §3), `PIANO_WINDOWS.md` (decisions and status) and `windows/RILASCIO.md` (installer and release).
 >
 > **Update, 21 October 2026.** The Swift sources changed for one new feature, the **to-do list** ("Da fare", commits `6bf851c`
-> and `c5c769b`, released in `v0.9.0`; refined in `v0.9.1`): `ToDo.swift` (model, store, day arithmetic, the companion's reminder text), `ToDoPage.swift`
+> and `c5c769b`, released in `v0.9.0`; refined in `v0.9.1`; closing the loop with the end-of-focus question in `v0.10.0`): `ToDo.swift` (model, store, day arithmetic, the companion's reminder text), `ToDoPage.swift`
 > (the card page), one row in the card, `Speaker.reminder` and `SubjectPrompt.ask(prefill:)`. It is described in §3.22; the
 > counts in this document (files, lines, checks) were updated for it. In `v0.9.1` the way to add an item changed (a "+" opening a "Nuova cosa"
 > page) and items can be edited by tapping them (§3.22). The Windows version has it too since its 1.1 (`windows-v1.1.0`),
@@ -60,11 +60,11 @@ Single user per Mac, no accounts, no network: all data is stored locally under
 | Third-party dependencies | None (no Package.swift, no CocoaPods/Carthage, no vendored code) | repository tree |
 | Build system | A shell script calling `swiftc -O` once per architecture, then `lipo` | `build.sh` |
 | Target | macOS 13.0 or later; universal binary (arm64 + x86_64) | `build.sh` (`-target "$arch-apple-macos13.0"`, `LSMinimumSystemVersion`) |
-| App version | `0.9.1` (build `12`), bundle id `com.jacopo.focusfriends` | `build.sh` (generated `Info.plist`) |
+| App version | `0.10.0` (build `13`), bundle id `com.jacopo.focusfriends` | `build.sh` (generated `Info.plist`) |
 | App type | Menu-bar "agent": `LSUIElement = true`, activation policy `.accessory` | `build.sh`, `AppDelegate.applicationDidFinishLaunching` |
 | Signing | Ad-hoc (`codesign --force --sign -`; `build.sh` stops with exit 1 if signing fails); not notarised, no hardened runtime or sandbox | `build.sh`, `README.md` "Scaricare e usare" |
 | Asset tooling | Python 3 scripts using Pillow and NumPy (not run at build time) | `tools/*.py` |
-| Tests | One hand-written Swift executable (`tests/main.swift`, 32 sections, 393 checks) that compiles eleven Foundation-only source files; no XCTest | `tests/run.sh` |
+| Tests | One hand-written Swift executable (`tests/main.swift`, 32 sections, 400 checks) that compiles eleven Foundation-only source files; no XCTest | `tests/run.sh` |
 | License | MIT (`LICENSE`); bundled music is CC0 (`CREDITS.md`) | `LICENSE`, `CREDITS.md` |
 | Swift toolchain version / Python version | Not pinned anywhere in the repository | **[unknown]** |
 
@@ -145,7 +145,7 @@ FocusFriends/
 │   ├── MusicLibrary.swift        MusicSource, MusicLibrary (file discovery, shuffle, titles), MusicSettings  (Foundation only)
 │   └── MusicPlayer.swift         AVAudioPlayer-based music playback with queue and fades
 ├── tests/
-│   ├── main.swift                hand-rolled test executable (check()/section()), 32 sections, 393 checks
+│   ├── main.swift                hand-rolled test executable (check()/section()), 32 sections, 400 checks
 │   ├── run.sh                    compiles 11 source files + tests/main.swift into build/tests/stats and runs it
 │   ├── genera-attesi.sh          builds and runs tests/genera-attesi/main.swift: for every folder in tests/fixtures/ writes what this app derives from it (the expected results the Windows port is compared with)
 │   ├── genera-rumore.sh          same idea for the ambient-noise synthesiser (tests/fixtures/rumore.json)
@@ -329,7 +329,7 @@ code. All UI code runs on the main thread; the only other thread is the audio re
   this focus (`GardenPoints.weightedMinutes`, `StudyStreak.analyze`, `GardenPoints.finishLine`),
   `begin(.rest, minutes: breakLength)`, sets `isLongBreak`,
   `speaker.say(focusFinishedMessage(...))`, then `onFocusCompleted?()` (Porcellino eats) and
-  `onFocusRecorded?(recorded)` (rewards + reflection card). Rest end: `finish()` `.rest` → `stop()` +
+  `onFocusRecorded?(recorded, finishedTodo)` (rewards + reflection card; `todoID` is the to-do item the focus started from, kept only in memory). Rest end: `finish()` `.rest` → `stop()` +
   "Pausa finita!" phrase.
 
 ### 3.8 Pause/resume, add minutes, notes, discard, finish early (focus screen controls)
@@ -454,12 +454,17 @@ code. All UI code runs on the main thread; the only other thread is the audio re
 ### 3.15 "How did it go?" (reflection card, rating, notes)
 
 - **What:** after a completed focus (if enabled) a card beside the pet offers three faces and an optional one-line
-  note; the same rating can also be given on the rest screen.
-- **Entry point:** `Pomodoro.onFocusRecorded` (AppDelegate) → `ReflectionCard.ask(session:near:completion:)`.
+  note; the same rating can also be given on the rest screen. When the focus started from a to-do item that is still open (§3.22),
+  the card also asks "Hai finito «…»?" with *Fatta* / *Non ancora*; with the toggle off, the card has only that question (v0.10.0).
+- **Entry point:** `Pomodoro.onFocusRecorded(session, todoID)` (AppDelegate) → `ReflectionCard.ask(session:near:todo:askHowItWent:onTodoAnswer:completion:)`.
 - **Execution path:** card is a non-activating `KeyablePanel` (`becomesKeyOnlyIfNeeded`); rating → `close(save:rating:)` →
   `SessionLog.setReflection(id:rating:note:)` (when the card is saved with a note only, the session's existing rating is
   kept: `rating ?? existing`) → completion → `speaker.say(ReflectionCard.reply(for:))`.
   `dismiss()` on timer reset/stop closes it without saving. Toggle: `ReflectionCard.isEnabled` (key `askHowItWent`).
+  The to-do question (`makeTodoBox`, a tinted box above the faces) answers through `onTodoAnswer(Bool)`: AppDelegate calls
+  `ToDoList.markDone(id:)` for *Fatta* (nothing happens if the item was done or removed meanwhile) and the companion says
+  `ToDoReminder.doneMessage`; the box then hides and the panel shrinks keeping its top edge (`answerTodo`), or closes if it was the only content.
+  `ask` shows nothing when there is no item and the toggle is off.
 
 ### 3.16 Statistics window
 
@@ -550,7 +555,7 @@ code. All UI code runs on the main thread; the only other thread is the audio re
     music (`music_*`), garden/growth art, Pianty stage frames → write `Info.plist` via heredoc →
     `codesign --force --sign -` (a failure prints an error and exits 1) → print the path.
   - `tests/run.sh`: `swiftc -O -o build/tests/stats` on eleven source files + `tests/main.swift` →
-    `build/tests/stats` (prints `• <section>` lines and `N controlli, M falliti`, exit code 0/1; 393 checks now).
+    `build/tests/stats` (prints `• <section>` lines and `N controlli, M falliti`, exit code 0/1; 400 checks now).
   - Tools: described in §5.9; they read `assets/**/*_original.png` / sheets and write processed PNGs or the icon.
 
 ### 3.22 To-do list ("Da fare")
@@ -586,6 +591,9 @@ code. All UI code runs on the main thread; the only other thread is the audio re
     the subject) instead of the Focus/Pausa switch (`addKindSwitch`); the back arrow returns to "Da fare" (`todoFocus` is cleared whenever the page is left).
     "Avvia il focus" calls `MenuCardActions.todoStartFocus(id, minutes)` and closes the card; `MenuController` starts the focus at once
     (`pomodoro.startFocus(minutes:subject:)`) when the item has a subject, otherwise it opens "Cosa studi adesso?" (`beginFocus`) with an empty field.
+  - Closing the loop (v0.10.0): `startFocus(minutes:subject:todoID:)` remembers the item (`Pomodoro.todoID`, in memory only; cleared by `stop`, `startBreak`
+    and the end of the focus); a focus that ends by itself reports it through `onFocusRecorded`, and the reflection card asks "Hai finito «…»?" (§3.15). Fatta → `ToDoList.markDone`.
+    A focus stopped early, or after the app was closed, asks nothing. No new file format.
   - Reminder: `ToDoReminder.message(for:today:)` takes the open items due today (oldest first), otherwise those due
     tomorrow; overdue items are never mentioned. One item: "Oggi|Domani scade «…». Un focus adesso?"; several:
     "… scadono N cose: «…» e un'altra / altre N−1."; the quoted text is cut at a whole word (≤ 36 characters). Because it
@@ -811,7 +819,7 @@ file/UserDefaults writes, windows, timers, sound, global state.
 - **Responsibility:** process entry. Creates `NSApplication.shared`, an `AppDelegate`, assigns it, calls `app.run()`.
 - **Side effects:** starts the app run loop.
 
-#### `AppDelegate.swift` (94)
+#### `AppDelegate.swift` (99)
 - **Responsibility:** composition root; holds strong references to `PetWindow`, `Speaker`, `Pomodoro`, `Walker`,
   `MenuController`, and owns `IntroCard` and `ReflectionCard`.
 - **Key members:** `applicationDidFinishLaunching` (sequence in §3.1), `applicationWillTerminate`.
@@ -898,7 +906,7 @@ file/UserDefaults writes, windows, timers, sound, global state.
 
 ### 5.4 `Sources/FocusFriends/` — timer
 
-#### `Pomodoro.swift` (602)
+#### `Pomodoro.swift` (610)
 - **Responsibility:** the focus/rest engine plus the clock window management plus the interface that the focus screen
   uses (progress, range text, notes, pause, discard, +minutes).
 - **Key members:** `Phase`; `startFocus`, `startBreak`, `stop`, `recordFocus` (private), `recordInterruptedFocusOnQuit`,
@@ -985,10 +993,10 @@ file/UserDefaults writes, windows, timers, sound, global state.
 - **Responsibility:** the "What are you studying now?" card (`Choice`: `.start(subject)`, `.cancel`, `.back`);
   chips for ≤ 6 recent subjects; last-note hint; optional `prefill` (the subject of a to-do item).
 
-#### `ReflectionCard.swift` (205)
+#### `ReflectionCard.swift` (302)
 - **Responsibility:** the "How did it go?" card, `reply(for:)` phrases, `isEnabled` flag (UserDefaults
-  `askHowItWent`), `ask/dismiss`. Uses a `.nonactivatingPanel` that becomes key only if needed.
-- **Side effects:** `SessionLog.setReflection` on save.
+  `askHowItWent`), `ask/dismiss`, and the optional "Hai finito?" box (`makeTodoBox`, `answerTodo`). Uses a `.nonactivatingPanel` that becomes key only if needed.
+- **Side effects:** `SessionLog.setReflection` on save; the to-do answer is reported to the caller, which changes `ToDoList`.
 
 ### 5.6 `Sources/FocusFriends/` — statistics and garden windows
 
@@ -1026,11 +1034,11 @@ file/UserDefaults writes, windows, timers, sound, global state.
 - **Side effects:** file reads/writes under `directory`, backups, `sessioni.corrotto-*` copies, observer callbacks,
   `onProblem` messages; `shared` instance reads the real data directory at first use.
 
-#### `ToDo.swift` (360)
+#### `ToDo.swift` (382)
 - **Responsibility:** the to-do list (§3.22). `ToDoDay` (day strings: `isValid`, `string(for:calendar:)`, `days(from:to:)`,
-  `adding(days:to:)`, `date(from:calendar:)`, `label(due:today:)`), `ToDoReminder` (`message(for:today:)`), `ToDoText` (`clean`, ≤ 120), `ToDoItem`
+  `adding(days:to:)`, `date(from:calendar:)`, `label(due:today:)`), `ToDoReminder` (`message(for:today:)`, `finishedQuestion(for:)`, `doneMessage(for:variant:)`), `ToDoText` (`clean`, ≤ 120), `ToDoItem`
   (Codable), `ToDoGroup`, `ToDoSection`, `ToDoList` (class: load with sanitising and purge, `add` → `AddResult`, `toggleDone`,
-  `remove`, `update(id:text:due:subject:)`, `openItems`, `openCount`, `doneItems`, `sections(today:)`, `onProblem`, observers, `save`).
+  `remove`, `update(id:text:due:subject:)`, `markDone(id:)`, `openItems`, `openCount`, `doneItems`, `sections(today:)`, `onProblem`, observers, `save`).
 - **Side effects:** reads and writes `dafare.json` under `directory`; moves a damaged file aside; `shared` uses the real
   data directory at first use.
 
@@ -1106,7 +1114,7 @@ file/UserDefaults writes, windows, timers, sound, global state.
 ### 5.9 Tests, build and tools
 
 #### `tests/main.swift` (1,056) and `tests/run.sh` (7)
-- A single executable: `check(_:_:line:)`, `section(_:)`, 32 sections (393 checks) covering subjects, log persistence,
+- A single executable: `check(_:_:line:)`, `section(_:)`, 32 sections (400 checks) covering subjects, log persistence,
   in-progress recovery, periods, summaries, streaks, texts, garden rules, format versions/migration, subject merging, backups and
   delete-all, time zones, profile, ratings/notes/insights/CSV, timer dial math, seasons, ambient settings, music
   library/settings, focus notes, paused-time recovery, companion rewards (including the developer flag), break cycle,
@@ -1598,7 +1606,7 @@ code is clear. Items without a mark still describe the current code.
 
 ### 7.8 Test coverage as it exists
 
-- Covered (32 sections, 393 checks in `tests/main.swift`): everything in the Foundation-only files listed in §4.1,
+- Covered (32 sections, 400 checks in `tests/main.swift`): everything in the Foundation-only files listed in §4.1,
   including the new damaged-data cases and the developer flag.
 - Not covered by any automated test in the repository: `Pomodoro` (timer, pause, grace, the sleep-gap rule, cycle
   wiring), `Speaker` (including when a to-do reminder replaces a phrase), `Walker`, `PetWindow`/`PetView`, `MenuController`,

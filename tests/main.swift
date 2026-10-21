@@ -973,6 +973,19 @@ check(todo.update(id: UUID(), text: "boh", due: nil, subject: nil) == .missing, 
 _ = todo.update(id: todoFirst.id, text: "Esercizi di analisi 4–6", due: "2026-10-21", subject: "Analisi")
 check(ToDoList(directory: todoDir, now: { todoClock }).items.first { $0.id == todoFirst.id }?.subject == "Analisi", "la modifica si salva")
 
+// «Hai finito?» a fine focus: segnare fatta una voce ancora da fare
+check(todo.markDone(id: todoFirst.id) == true && todo.items.first { $0.id == todoFirst.id }?.doneAt == todoClock, "una voce da fare si segna come fatta")
+check(todo.markDone(id: todoFirst.id) == false, "se è già fatta non cambia niente (e non cambia l'ora)")
+check(todo.markDone(id: UUID()) == false, "una voce che non c'è non si segna")
+todo.toggleDone(id: todoFirst.id)
+check(todo.items.first { $0.id == todoFirst.id }?.isDone == false, "(si rimette da fare per le prove che seguono)")
+check(ToDoReminder.finishedQuestion(for: todoFirst) == "Hai finito «Esercizi di analisi 4–6»?", "la domanda a fine focus")
+let longItem = ToDoItem(id: UUID(), text: String(repeating: "parola ", count: 20), due: nil, subject: nil, createdAt: Date(), doneAt: nil)
+check(ToDoReminder.finishedQuestion(for: longItem) == "Hai finito «parola parola parola parola parola…»?", "la domanda accorcia il testo lungo a una parola intera")
+check((0..<3).allSatisfy { ToDoReminder.doneMessage(for: todoFirst, variant: $0).contains("«Esercizi di analisi 4–6»") }
+      && ToDoReminder.doneMessage(for: todoFirst, variant: 3) == ToDoReminder.doneMessage(for: todoFirst, variant: 0)
+      && !ToDoReminder.doneMessage(for: todoFirst, variant: -1).isEmpty, "le frasi per «Fatta» nominano la voce, e la variante è sempre valida")
+
 let todoReloaded = ToDoList(directory: todoDir, now: { todoClock })
 check(todoReloaded.items == todo.items, "riaprendo la lista, le voci sono quelle")
 let todoText = (try? String(contentsOf: todoDir.appendingPathComponent("dafare.json"), encoding: .utf8)) ?? ""

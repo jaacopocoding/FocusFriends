@@ -10,7 +10,7 @@ circa 200 MB e 0 % di processore. **Le sigle W qui sotto non sono state spuntate
 
 | Sigla | Significato |
 |---|---|
-| **P** | Prova automatica (`npm test`, 277 prove): la logica dà gli stessi risultati. Le prove «di contratto» confrontano con i risultati dell'app per Mac sugli stessi file. |
+| **P** | Prova automatica (`npm test`, 283 prove): la logica dà gli stessi risultati. Le prove «di contratto» confrontano con i risultati dell'app per Mac sugli stessi file. |
 | **S** | Prova dal vivo sul Mac con l'app vera di Electron: eventi del mouse e tastiera simulati, schermate e misure (`FF_SELFTEST`). I copioni sono in `test/vivo/`. |
 | **W** | **Solo su Windows**: non si può provare dal Mac. Il passo da fare è in `PROVE_SU_WINDOWS.md`. |
 | **C** | Scritto nel codice, **senza una prova dedicata**: l'ho letto, non l'ho visto funzionare. |
@@ -65,6 +65,7 @@ circa 200 MB e 0 % di processore. **Le sigle W qui sotto non sono state spuntate
 | Orologio sotto il compagno: primi 2 minuti, ultimi 5, al passaggio del mouse (tendina) | Uguale | S |
 | Crescita: Pianty a stadi, Ciccio nel nido, Porcellino con la carota, Gattino cammina; dopo «+5» resta all'ultimo stadio | Uguale | P S |
 | «Com'è andata?» a fine focus: tre facce e una riga; non prende la tastiera; sparisce da sola | Uguale | P S; il fuoco che resta all'altra app: **W** |
+| «Hai finito «…»?» a fine focus, se il focus è partito dal ▶ di una voce di «Da fare» ancora da fare: *Fatta* la segna, *Non ancora* la lascia; con «Chiedi com'è andata» spento la scheda ha solo questa domanda (dalla 1.2) | Uguale | P (`timer.test.ts`, `dafare.test.ts`) S (`test/vivo/hai-finito.cjs`) |
 | Focus interrotto da chiusura improvvisa: si recupera all'avvio | Uguale (`in-corso.json` ogni 30 s); anche quando Windows chiude la sessione | P S |
 | All'uscita un focus in corso si registra come interrotto | Uguale | P S |
 

@@ -115,6 +115,18 @@ enum ToDoReminder {
         return "\(when) \(plural) \(items.count) cose: \(quoted) e \(others == 1 ? "un'altra" : "altre \(others)")."
     }
 
+    /// Quello che il compagno chiede a fine focus, se è partito da una voce: «Hai finito «Riassunto del capitolo 7»?».
+    static func finishedQuestion(for item: ToDoItem) -> String {
+        "Hai finito «\(shortened(item.text))»?"
+    }
+
+    /// E quello che dice se la risposta è «Fatta» (con qualche variante: `variant` sceglie quale).
+    static func doneMessage(for item: ToDoItem, variant: Int) -> String {
+        let quoted = "«\(shortened(item.text))»"
+        let lines = ["\(quoted) è fatta: bravo!", "Spuntata: \(quoted). Che soddisfazione!", "\(quoted) è fuori dalla lista. Ben fatto!"]
+        return lines[((variant % lines.count) + lines.count) % lines.count]
+    }
+
     /// Il testo accorciato (se serve) a una parola intera, con i puntini.
     private static func shortened(_ text: String) -> String {
         guard text.count > maxQuoted else { return text }
@@ -282,6 +294,16 @@ final class ToDoList {
         items[index] = item
         save()
         return .updated
+    }
+
+    /// Segna come fatta una voce ancora da fare (a fine focus: «Hai finito?» → «Fatta»). Non cambia niente se è già fatta o non c'è.
+    /// Ritorna `true` se l'ha cambiata.
+    @discardableResult
+    func markDone(id: UUID) -> Bool {
+        guard let index = items.firstIndex(where: { $0.id == id }), !items[index].isDone else { return false }
+        items[index].doneAt = now()
+        save()
+        return true
     }
 
     /// Segna come fatta (o rimette tra quelle da fare).

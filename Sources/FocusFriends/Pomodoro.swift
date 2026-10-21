@@ -56,6 +56,8 @@ final class Pomodoro {
     private(set) var breakMinutes = 5
     /// La materia del focus in corso (nil = nessuna, o non è un focus).
     private(set) var subject: String?
+    /// La voce di «Da fare» da cui è partito il focus in corso (solo in memoria: se l'app si chiude si perde).
+    private var todoID: UUID?
     private var plannedFocusMinutes = 0
     /// Le note scritte durante il focus in corso: finiscono nella sessione.
     private(set) var notes: [String] = []
@@ -84,7 +86,8 @@ final class Pomodoro {
     /// Chiamata quando un focus finisce davvero (non se lo fermi): il porcellino mangia la carota.
     var onFocusCompleted: (() -> Void)?
     /// Chiamata con la sessione appena salvata quando un focus finisce davvero ("com'è andata?").
-    var onFocusRecorded: ((StudySession) -> Void)?
+    /// Il focus è finito ed è stato registrato; `todoID` è la voce di «Da fare» da cui era partito (nil se non partiva da una).
+    var onFocusRecorded: ((StudySession, _ todoID: UUID?) -> Void)?
     /// Chiamata quando il timer si ferma o ne parte uno nuovo: la scheda "com'è andata?" non serve più.
     var onTimerReset: (() -> Void)?
 
@@ -117,7 +120,7 @@ final class Pomodoro {
 
     // MARK: - Comandi
 
-    func startFocus(minutes: Int, subject: String? = nil) {
+    func startFocus(minutes: Int, subject: String? = nil, todoID: UUID? = nil) {
         onTimerReset?()
         recordFocus(completed: false)     // se ce n'era uno in corso, finisce qui
         endGrace()
@@ -125,6 +128,7 @@ final class Pomodoro {
         lastFocus = nil
         notes = []
         self.subject = Subject.clean(subject)
+        self.todoID = todoID
         plannedFocusMinutes = minutes
         focusPet = petWindow.pet.id
         begin(.focus, minutes: minutes)
@@ -143,6 +147,7 @@ final class Pomodoro {
         extensions = 0
         lastFocus = nil
         subject = nil
+        todoID = nil
         breakMinutes = minutes
         begin(.rest, minutes: minutes)
         speaker.say("Pausa di \(minutes) minuti: stacca un attimo.")
@@ -185,6 +190,7 @@ final class Pomodoro {
         pausedTotal = 0
         notes = []
         subject = nil
+        todoID = nil
         ticker?.invalidate()
         ticker = nil
         curtainTimer?.invalidate()
@@ -416,10 +422,12 @@ final class Pomodoro {
             let breakLength = longBreak ? max(BreakCycle.longBreakMinutes, breakMinutes) : breakMinutes
             let studied = plannedFocusMinutes
             let finishedSubject = subject
+            let finishedTodo = todoID
             let recorded = recordFocus(completed: true)
             lastFocus = (studied, finishedSubject, recorded?.id)
             notes = []
             subject = nil
+            todoID = nil
             // Cosa è successo nel giardino: i punti guadagnati con questo focus (e quanto manca al prossimo).
             var gardenLine = "Il giardino cresce."
             if recorded != nil {
@@ -435,7 +443,7 @@ final class Pomodoro {
             speaker.say(Self.focusFinishedMessage(subject: finishedSubject, studiedMinutes: studied, breakMinutes: breakLength,
                                                   garden: gardenLine, longBreak: longBreak))
             onFocusCompleted?()
-            if let recorded { onFocusRecorded?(recorded) }
+            if let recorded { onFocusRecorded?(recorded, finishedTodo) }
         case .rest:
             stop()
             speaker.say("Pausa finita! Pronto per un altro giro?")

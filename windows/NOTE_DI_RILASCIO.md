@@ -1,9 +1,13 @@
-## FocusFriends per Windows 1.1.1
+## FocusFriends per Windows 1.2.0
 
 Il compagno che ti fa compagnia mentre studi, adesso anche su Windows 10 e 11 (Intel/AMD e ARM): un personaggio che cammina sul desktop,
 un timer Pomofocus con la sua schermata del focus, i suoni di sottofondo, le statistiche e i compagni da sbloccare studiando.
 Stessi dati, stesse regole e stesso aspetto dell'[app per Mac](https://github.com/jaacopocoding/FocusFriends#readme): i file di studio si possono
 leggere con l'una e con l'altra.
+
+### Novità della 1.2
+
+**«Hai finito?» a fine focus.** Se un focus è partito dal ▶ di una voce di *Da fare*, quando finisce la scheda di fine focus chiede anche «Hai finito «Riassunto del capitolo 7»?» con *Fatta* e *Non ancora*. *Fatta* segna la voce e il compagno ti fa i complimenti; *Non ancora* la lascia in lista. Se hai spento «Chiedi com'è andata», la scheda ha solo questa domanda. Se fermi il focus prima della fine non chiede niente. I dati non cambiano.
 
 ### Novità della 1.1
 

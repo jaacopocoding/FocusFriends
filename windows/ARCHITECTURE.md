@@ -3,15 +3,15 @@
 > Purpose: a factual description of how the Windows version works, written so that another reader (human or AI) can judge
 > whether the code is acceptable as written or needs revision. It is the counterpart of `../ARCHITECTURE.md`, which describes
 > the Mac app; features are numbered and named alike where they correspond, and `PARITA.md` compares them one by one.
-> Snapshot described: version `1.1.1`, released as `windows-v1.1.1` at `e989d20` (`1.1.0` is released as `windows-v1.1.0` at `4b84a72`; the first release, `windows-v1.0.0`, is at `75d07e9`; 1.0.1, at `74bda89`,
+> Snapshot described: version `1.2.0`, not yet released (`1.1.1` is released as `windows-v1.1.1` at `e989d20`, `1.1.0` as `windows-v1.1.0` at `4b84a72`; the first release, `windows-v1.0.0`, is at `75d07e9`; 1.0.1, at `74bda89`,
 > adds the lock-down of the windows, the gating of the test-only environment variables and the live-run scripts in `test/vivo/`, see §10;
-> 1.1.0 adds the to-do list, §4.16; 1.1.1 changes how items are added and lets them be edited). Content: **everything except the garden** (see `../PIANO_WINDOWS.md`).
+> 1.1.0 adds the to-do list, §4.16; 1.1.1 changes how items are added and lets them be edited; 1.2.0 asks "Hai finito?" at the end of a focus started from an item). Content: **everything except the garden** (see `../PIANO_WINDOWS.md`).
 > Everything here was read from the files in the repository; statements that could not be fully verified are marked
 > **[uncertain]**. Rationales are labelled **[documented]** (comes from code comments, `PIANO_WINDOWS.md`, `FORMATI.md` or git
 > history) or **[inferred]** (deduced from the code).
 > UI strings and code comments are in Italian (as on the Mac); identifiers are English. UI strings quoted here are glossed.
 > **What was and was not exercised on a real Windows machine:** the code runs on macOS during development (Electron is
-> cross-platform); the Windows CI job runs the type check, the logic tests (277 now) and the build on a Windows runner, and the author
+> cross-platform); the Windows CI job runs the type check, the logic tests (283 now) and the build on a Windows runner, and the author
 > installed the released installer on a Windows computer for a brief check (see `PARITA.md`, "Prova su Windows"). The parts that
 > only exist on Windows (real click-through, task-bar sides, scale factors, two monitors, sleep, fullscreen apps, virtual
 > desktops) are listed in `PROVE_SU_WINDOWS.md` and have **not** been verified one by one.
@@ -49,7 +49,7 @@ HTTP client in the code **[inferred]**).
 cd windows
 npm install          # Electron, TypeScript, esbuild, electron-builder (devDependencies)
 npm run check        # tsc --noEmit
-npm test             # 277 tests, no dependencies needed
+npm test             # 283 tests, no dependencies needed
 npm start            # builds dist/ and opens the companion (on macOS: data in a test folder)
 npm run pacchetto    # build + stage resources + electron-builder --win → release/*.exe
 ```
@@ -81,9 +81,9 @@ windows/
 
 | Area | Files (lines) |
 |---|---|
-| `core/` | `log.ts` (637), `pomodoro.ts` (457), `todoList.ts` (220), `todo.ts` (166), `stats.ts` (284), `walker.ts` (275), `profile.ts` (221), `settings.ts` (156), `rules.ts` (155), `time.ts` (151), `dashboard.ts` (146), `noise.ts` (146), `card.ts` (144), `pets.ts` (112), `phrases.ts` (92), `text.ts` (84), `displays.ts` (86), `audioPlan.ts` (72), `diagnostics.ts` (69), `points.ts` (57), `urls.ts` (21), `environment.ts` (20), `music.ts` (55), `files.ts` (53), `tracks.ts` (40), `rewards.ts` (40), `unlocks.ts` (33), `reflection.ts` (30), `csv.ts` (27), `colors.ts` (22) |
+| `core/` | `log.ts` (637), `pomodoro.ts` (464), `todoList.ts` (229), `todo.ts` (178), `stats.ts` (284), `walker.ts` (275), `profile.ts` (221), `settings.ts` (156), `rules.ts` (155), `time.ts` (151), `dashboard.ts` (146), `noise.ts` (146), `card.ts` (144), `pets.ts` (112), `phrases.ts` (92), `text.ts` (84), `displays.ts` (86), `audioPlan.ts` (72), `diagnostics.ts` (69), `points.ts` (57), `urls.ts` (21), `environment.ts` (20), `music.ts` (55), `files.ts` (53), `tracks.ts` (40), `rewards.ts` (40), `unlocks.ts` (33), `reflection.ts` (30), `csv.ts` (27), `colors.ts` (22) |
 | `main/` | `main.ts` (358), `card.ts` (229), `tray.ts` (229), `statsWindow.ts` (147), `protocol.ts` (69), `music.ts` (69), `stage.ts` (77), `timer.ts` (79), `overlay.ts` (46), `security.ts` (39), `paths.ts` (33), `login.ts` (18) |
-| `renderer/` | `overlay.ts` (642, the page controller), `card/card.ts` (858), `petView.ts` (380), `stats/stats.ts` (278), `clockView.ts` (255), `card/widgets.ts` (236), `audio/music.ts` (160), `audio/ambient.ts` (159), `speaker.ts` (156), `dialogs/*` (5 files, ≈ 300), `extendPrompt.ts` (71), `card/dom.ts` (60), `bubble.ts` (51), `audio/noiseWorklet.ts` (40), `avatar.ts` (26), `fonts.ts` (14), CSS and HTML |
+| `renderer/` | `overlay.ts` (642, the page controller), `card/card.ts` (858), `dialogs/reflectionCard.ts` (145), `petView.ts` (380), `stats/stats.ts` (278), `clockView.ts` (255), `card/widgets.ts` (236), `audio/music.ts` (160), `audio/ambient.ts` (159), `speaker.ts` (156), `dialogs/*` (5 files, ≈ 300), `extendPrompt.ts` (71), `card/dom.ts` (60), `bubble.ts` (51), `audio/noiseWorklet.ts` (40), `avatar.ts` (26), `fonts.ts` (14), CSS and HTML |
 
 Notes:
 
@@ -135,9 +135,9 @@ Principles (all **[documented]** in `PIANO_WINDOWS.md` unless stated):
 | `settings:get` / `settings:changed` | invoke / main → page | `SettingsSnapshot` (pet, movement, phrase frequency, ask-how-it-went, ambient sound and volume, music source/folder/volume) |
 | `phrase:next` | invoke | next phrase of that companion's shuffled deck (file re-read each time), or a to-do reminder (§4.16) |
 | `timer:get-state` / `timer:state` | invoke / main → page | `PomodoroSnapshot`; sent when what is visible changes (§4.7) |
-| `timer:event` | main → page | `PomodoroEvent`: say, dismissSpeech, sound, focusActive, focusCompleted, focusRecorded, reset, graceBegan, graceEnded |
+| `timer:event` | main → page | `PomodoroEvent`: say, dismissSpeech, sound, focusActive, focusCompleted, focusRecorded (with the `todoId` the focus started from), reset, graceBegan, graceEnded |
 | `timer:extend` | page → main | the "+5 minutes" button |
-| `card:data` / `card:command` / `card:add-timer` | invoke / send / invoke | `CardData` (§4.9), `CardCommand` (a closed union of 31 commands), custom-timer saving with its result |
+| `card:data` / `card:command` / `card:add-timer` | invoke / send / invoke | `CardData` (§4.9), `CardCommand` (a closed union of 32 commands), custom-timer saving with its result |
 | `card:toggle` / `card:reopen` | main → page | open/close the card (with an anchor rectangle or none), or reopen it where it was |
 | `overlay:input-mode` | page → main | `{interactive, keyboard}`: whether the window should receive clicks and the keyboard (§4.3) |
 | `overlay:visibility` | main → page | hide/show |
@@ -288,7 +288,7 @@ before drawing from the deck it may answer with a to-do reminder instead (at mos
 
 `ModalHost` shows a centred card on a backdrop (a click outside does **not** close it; Esc or the buttons do): "Cosa studi adesso?" (`subjectPrompt.ts`: free text, up to 6 recent subjects as chips,
 "Senza materia", back arrow, last-note hint, and a `prefill` when the focus starts from a to-do item), the welcome card (`introCard.ts`: name + first companion), the name dialog. `ReflectionCard` ("Com'è andata?", three faces + a 80-character note) sits beside the companion,
-**does not take the keyboard until its field is clicked**, and disappears on its own when the timer restarts or stops (`reset` event). All flow through `overlay:input-mode` (§4.3).
+**does not take the keyboard until its field is clicked**, and disappears on its own when the timer restarts or stops (`reset` event). Since 1.2.0 it can also ask "Hai finito «…»?" (`reflection-todo` box with *Non ancora* / *Fatta*) when the focus started from a to-do item, and with "Chiedi com'è andata" off it shows only that question (§4.16). All flow through `overlay:input-mode` (§4.3).
 
 ### 4.11 Sounds (`renderer/audio/*`, `core/audioPlan.ts`, `core/noise.ts`, `main/music.ts`)
 
@@ -354,7 +354,7 @@ The same feature as the Mac app (`../ARCHITECTURE.md` §3.22), with the same rul
   (text, subject, impossible day dropped, empty text drops the item; ids upper-cased as Swift writes them); done items older than 7 days are dropped at
   load and at every change; `update(id, text, due, subject)` (1.1.1) cleans like `add`, keeps the creation and done dates and saves only if something changed; at most 200 items; dates are written as `isoUtc` (whole seconds, `Z`), because Swift's `.iso8601` decoder rejects fractions.
 - **Main process:** `main.ts` creates the list next to the profile (`onProblem` → the companion says it) and passes it to `CardService`, which adds
-  `todoItems` to the card input and handles the commands `todoAdd`, `todoUpdate`, `todoToggle`, `todoRemove`. The `phrase:next` handler returns
+  `todoItems` to the card input and handles the commands `todoAdd`, `todoUpdate`, `todoDone`, `todoToggle`, `todoRemove`. The `phrase:next` handler returns
   `reminderMessage(...)` when 3 h have passed since the last reminder (`lastReminder`, in memory) and the timer is not in a focus.
 - **Page** (`MenuCard.buildToDo`, two modes kept in `todoForm`): **list** — header with back arrow, title and a round "+" (`openToDoForm(null)`),
   then `.todo-list` (at most 420 px tall, its scroll position kept across rebuilds) with group headings and rows (circle; the text, clamped to two lines
@@ -368,7 +368,11 @@ The same feature as the Mac app (`../ARCHITECTURE.md` §3.22), with the same rul
   page (the dial starts at the timer's last `focusMinutes`, or 50) with a "FOCUS PER" box instead of the Focus/Pausa switch; the back arrow returns to
   "Da fare". "Avvia il focus" (`startToDoFocusNow`) closes the card and sends `startFocus` with the item's subject straight away; for an item without a
   subject it calls `host.askFocus(minutes, null)`, i.e. "Cosa studi adesso?" with an empty field.
-- **Tests:** `dafare.test.ts` (days, labels, cleaning, the list and its file, editing, limits, damaged/newer files, reminder sentences); four sample folders in
+- **Closing the loop (1.2.0):** `startFocus` (engine and `CardCommand`) takes an optional `todoId`, kept in memory only in the engine (`_todoId`; cleared by `stop`, `startBreak`
+  and the end of the focus); "Avvia il focus" from the dial sends it, and so does the subject prompt when the item had no subject (`askFocus(minutes, subject, todoId)`). A focus that ends by itself emits
+  `focusRecorded` with `todoId`; the page (`askAtEndOfFocus`) looks the item up in the card data (only if it is still open) and opens the reflection card with `{ todo, askHowItWent }`. *Fatta* sends
+  the idempotent command `todoDone` (`ToDoList.markDone`) and the companion says `doneMessage`. A focus stopped early or after a restart asks nothing. No new file format.
+- **Tests:** `dafare.test.ts` (days, labels, cleaning, the list and its file, editing, `markDone`, the question texts, limits, damaged/newer files, reminder sentences); four sample folders in
   `../tests/fixtures/dafare*` checked against the Swift results, and a folder written by this code read back by Swift (`ritorno.test.ts`). Live run:
   `test/vivo/dafare.cjs`.
 
@@ -421,7 +425,7 @@ displays, sleep and the packaged app; they **print what they observe** and take 
 
 ## 7. Tests (`test/`, `npm test`)
 
-277 tests in 26 files, no framework, no dependencies. They run unchanged in the main process's code paths because the logic is pure.
+283 tests in 26 files, no framework, no dependencies. They run unchanged in the main process's code paths because the logic is pure.
 
 | File(s) | What they cover |
 |---|---|

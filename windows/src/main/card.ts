@@ -143,7 +143,7 @@ export function createCardService(options: CardServiceOptions): CardService {
       switch (command.name) {
         case "startFocus":
           showPetIfHidden();
-          run(() => timer().engine.startFocus(command.minutes, command.subject));
+          run(() => timer().engine.startFocus(command.minutes, command.subject, command.todoId ?? null));
           break;
         case "startBreak":
           showPetIfHidden();
@@ -221,6 +221,7 @@ export function createCardService(options: CardServiceOptions): CardService {
         }
         case "todoAdd": options.todo.add(command.text, command.due, command.subject); break;
         case "todoUpdate": options.todo.update(command.id, command.text, command.due, command.subject); break;
+        case "todoDone": options.todo.markDone(command.id); break;
         case "todoToggle": options.todo.toggleDone(command.id); break;
         case "todoRemove": options.todo.remove(command.id); break;
       }

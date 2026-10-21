@@ -156,6 +156,18 @@ function sentence(items: readonly ToDoItem[], when: string): string | null {
   return `${when} scadono ${items.length} cose: ${quoted} e ${others === 1 ? "un'altra" : `altre ${others}`}.`;
 }
 
+/** Quello che il compagno chiede a fine focus, se è partito da una voce: «Hai finito «Riassunto del capitolo 7»?». */
+export function finishedQuestion(item: Pick<ToDoItem, "text">): string {
+  return `Hai finito «${shortened(item.text)}»?`;
+}
+
+/** E quello che dice se la risposta è «Fatta» (con qualche variante: `variant` sceglie quale). */
+export function doneMessage(item: Pick<ToDoItem, "text">, variant: number): string {
+  const quoted = `«${shortened(item.text)}»`;
+  const lines = [`${quoted} è fatta: bravo!`, `Spuntata: ${quoted}. Che soddisfazione!`, `${quoted} è fuori dalla lista. Ben fatto!`];
+  return lines[((variant % lines.length) + lines.length) % lines.length]!;
+}
+
 /** Cosa dice il compagno: le scadenze di oggi o, se non ce ne sono, di domani; le scadute non si nominano. */
 export function reminderMessage(items: readonly ToDoItem[], today: string): string | null {
   const open = openItems(items).sort((a, b) => a.createdAt - b.createdAt);

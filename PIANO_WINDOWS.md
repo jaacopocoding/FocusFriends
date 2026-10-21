@@ -431,6 +431,11 @@ in alto, e l'ultima durata come punto di partenza), e «Avvia il focus» parte c
 Installer controllati prima di pubblicare: SHA-256 uguali a `SHA256SUMS.txt`, eseguibile x64 e ARM64 giusti, versione 1.1.1, 114 file di immagini, frasi e brani (5 `.m4a`), Chewy con la sua
 licenza, licenze di Electron e Chromium, nessuna mappa dei sorgenti, e nel codice compilato «Nuova cosa», «FOCUS PER», la modifica delle voci e il blocco di navigazione e permessi.
 
+**1.2.0 (preparata il 21 ottobre 2026, non ancora pubblicata): «Hai finito?».** Chiude il giro tra «Da fare» e il timer: se un focus parte dal ▶ di una voce, a fine focus la scheda
+«Com'è andata?» chiede anche «Hai finito «…»?» con *Fatta* e *Non ancora* (con «Chiedi com'è andata» spento, solo questa domanda). *Fatta* segna la voce. Il timer ricorda la voce solo in
+memoria (nessun nuovo formato di dati; se l'app si chiude durante il focus il legame si perde). Stessa cosa sul Mac (0.10.0). 283 prove su Windows e 400 sul Mac; provata dal vivo con
+`test/vivo/hai-finito.cjs`.
+
 ## Seconda uscita: il giardino (8–12 giorni)
 
 Si fa dopo, perché riusa tutto il resto (schede, finestre, immagini, dati) e non blocca nessuna delle altre funzioni.

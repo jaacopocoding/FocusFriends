@@ -37,7 +37,7 @@ export interface CardOpenRequest {
 
 /** Quello che si può fare dalla scheda (le stesse azioni del menu). */
 export type CardCommand =
-  | { name: "startFocus"; minutes: number; subject: string | null }
+  | { name: "startFocus"; minutes: number; subject: string | null; todoId?: string | null }
   | { name: "startBreak"; minutes: number }
   | { name: "stopTimer" }
   | { name: "addMinutes" }
@@ -65,6 +65,7 @@ export type CardCommand =
   | { name: "finishIntro"; userName: string | null; petId: string }
   | { name: "todoAdd"; text: string; due: string | null; subject: string | null }
   | { name: "todoUpdate"; id: string; text: string; due: string | null; subject: string | null }
+  | { name: "todoDone"; id: string }
   | { name: "todoToggle"; id: string }
   | { name: "todoRemove"; id: string }
   | { name: "quit" };

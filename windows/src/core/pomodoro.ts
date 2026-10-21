@@ -32,8 +32,8 @@ export type PomodoroEvent =
   | { type: "focusActive"; active: boolean }
   /** Un focus è finito davvero (non fermato): il porcellino mangia la carota. */
   | { type: "focusCompleted" }
-  /** La sessione appena salvata, per «com'è andata?». */
-  | { type: "focusRecorded"; session: StudySession }
+  /** La sessione appena salvata, per «com'è andata?»; `todoId` è la voce di «Da fare» da cui era partito il focus (null se non partiva da una). */
+  | { type: "focusRecorded"; session: StudySession; todoId: string | null }
   /** Il timer si ferma o ne parte uno nuovo: la scheda «com'è andata?» non serve più. */
   | { type: "reset" }
   | { type: "graceBegan"; seconds: number }
@@ -138,6 +138,8 @@ export class PomodoroEngine {
   private discarding = false;
   private _isLongBreak = false;
   private _subject: string | null = null;
+  /** La voce di «Da fare» da cui è partito il focus in corso (solo in memoria: se l'app si chiude si perde). */
+  private _todoId: string | null = null;
   private _notes: string[] = [];
   private _breakMinutes = 5;
   private _lastFocus: PomodoroSnapshot["lastFocus"] = null;
@@ -217,7 +219,7 @@ export class PomodoroEngine {
 
   // ---- comandi
 
-  startFocus(minutes: number, subject: string | null = null): void {
+  startFocus(minutes: number, subject: string | null = null, todoId: string | null = null): void {
     this.emit({ type: "reset" });
     this.recordFocus(false);       // se ce n'era uno in corso, finisce qui
     this.endGrace();
@@ -225,6 +227,7 @@ export class PomodoroEngine {
     this._lastFocus = null;
     this._notes = [];
     this._subject = cleanSubject(subject);
+    this._todoId = todoId;
     this.plannedFocusMinutes = minutes;
     this.focusPet = this.deps.petId();
     this.begin("focus", minutes);
@@ -241,6 +244,7 @@ export class PomodoroEngine {
     this.extensions = 0;
     this._lastFocus = null;
     this._subject = null;
+    this._todoId = null;
     this._breakMinutes = minutes;
     this.begin("rest", minutes);
     this.say(`Pausa di ${minutes} minuti: stacca un attimo.`);
@@ -281,6 +285,7 @@ export class PomodoroEngine {
     this.pausedTotal = 0;
     this._notes = [];
     this._subject = null;
+    this._todoId = null;
     this.setPhase(null);
   }
 
@@ -438,17 +443,19 @@ export class PomodoroEngine {
       const breakLength = longBreak ? Math.max(LONG_BREAK_MINUTES, this._breakMinutes) : this._breakMinutes;
       const studied = this.plannedFocusMinutes;
       const finishedSubject = this._subject;
+      const finishedTodo = this._todoId;
       const recorded = this.recordFocus(true);
       this._lastFocus = { minutes: studied, subject: finishedSubject, sessionId: recorded?.id ?? null };
       this._notes = [];
       this._subject = null;
+      this._todoId = null;
       const garden = recorded !== null && this.deps.gardenLine ? this.deps.gardenLine(recorded) : "";
       this.begin("rest", breakLength);
       this._isLongBreak = longBreak;
       this.say(focusFinishedMessage({ subject: finishedSubject, studiedMinutes: studied, breakMinutes: breakLength, garden, longBreak },
         () => this.random()));
       this.emit({ type: "focusCompleted" });
-      if (recorded !== null) this.emit({ type: "focusRecorded", session: recorded });
+      if (recorded !== null) this.emit({ type: "focusRecorded", session: recorded, todoId: finishedTodo });
     } else {
       this.stop();
       this.say("Pausa finita! Pronto per un altro giro?");

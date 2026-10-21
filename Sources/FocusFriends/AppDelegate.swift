@@ -47,13 +47,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             guard pomodoro?.phase != .focus else { return nil }
             return ToDoReminder.message(for: ToDoList.shared.items, today: ToDoDay.string(for: Date(), calendar: ToDoDay.calendar()))
         }
-        // A fine focus: "com'è andata?" (se non l'hai spenta dal menu). Sparisce da sola quando il timer riparte o si ferma.
-        pomodoro.onFocusRecorded = { [weak self, weak window, weak speaker] session in
+        // A fine focus: "com'è andata?" (se non l'hai spenta dal menu) e, se il focus era partito da una voce di «Da fare» ancora da fare,
+        // «Hai finito «…»?» (anche con «com'è andata» spento). Sparisce da sola quando il timer riparte o si ferma.
+        pomodoro.onFocusRecorded = { [weak self, weak window, weak speaker] session, todoID in
             self?.menu?.evaluateCompanionRewards(announce: true)
-            guard ReflectionCard.isEnabled, let self, let window else { return }
-            self.reflectionCard.ask(session: session, near: window) { rating in
+            guard let self, let window else { return }
+            let todo = todoID.flatMap { id in ToDoList.shared.items.first { $0.id == id && !$0.isDone } }
+            self.reflectionCard.ask(session: session, near: window, todo: todo, askHowItWent: ReflectionCard.isEnabled, onTodoAnswer: { finished in
+                guard finished, let todo, ToDoList.shared.markDone(id: todo.id) else { return }
+                speaker?.say(ToDoReminder.doneMessage(for: todo, variant: Int.random(in: 0..<3)))
+            }, completion: { rating in
                 if let rating { speaker?.say(ReflectionCard.reply(for: rating)) }
-            }
+            })
         }
         pomodoro.onTimerReset = { [weak self] in self?.reflectionCard.dismiss() }
         // Il suono ambiente (se acceso) accompagna il focus.

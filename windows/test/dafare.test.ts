@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import {
-  addDays, cleanToDoText, daysBetween, dueLabel, isValidDay, reminderMessage, sections, TODO_MAX_ITEMS, TODO_TEXT_MAX, todayOf,
+  addDays, cleanToDoText, daysBetween, doneMessage, dueLabel, finishedQuestion, isValidDay, reminderMessage, sections, TODO_MAX_ITEMS, TODO_TEXT_MAX, todayOf,
 } from "../src/core/todo.ts";
 import type { ToDoItem } from "../src/core/todo.ts";
 import { ToDoList } from "../src/core/todoList.ts";
@@ -128,6 +128,22 @@ describe("Da fare: la lista", () => {
     assert.equal(new ToDoList(directory, { now: () => clock }).items[0]?.subject, "Analisi", "la modifica si salva");
   });
 
+  it("«Hai finito?» a fine focus: segnare fatta una voce ancora da fare", () => {
+    const directory = tempDirectory();
+    let clock = date(2026, 10, 20, 9, 0);
+    const list = new ToDoList(directory, { now: () => clock });
+    const added = list.add("Esercizi di analisi 4–6", "2026-10-21", "Analisi");
+    const id = added.kind === "added" ? added.item.id : "";
+    clock += 5 * 60_000;
+    assert.equal(list.markDone(id), true);
+    assert.equal(list.items[0]?.doneAt, clock, "segnata con l'ora di adesso");
+    clock += 60_000;
+    assert.equal(list.markDone(id), false, "se è già fatta non cambia niente");
+    assert.equal(list.items[0]?.doneAt, clock - 60_000, "e l'ora non si sposta");
+    assert.equal(list.markDone("non-c-e"), false);
+    assert.equal(new ToDoList(directory, { now: () => clock }).doneItems.length, 1, "si salva");
+  });
+
   it("al massimo 200 voci", () => {
     const list = new ToDoList(tempDirectory());
     for (let i = 0; i < TODO_MAX_ITEMS; i += 1) list.add(`voce ${i}`);
@@ -157,6 +173,18 @@ describe("Da fare: la lista", () => {
     assert.ok(readdirSync(directory).some((name) => name.startsWith("dafare.corrotto-")));
     list.add("di nuovo");
     assert.equal(new ToDoList(directory).items.length, 1);
+  });
+});
+
+describe("Da fare: la domanda a fine focus", () => {
+  it("la domanda nomina la voce, accorciata a una parola intera se è lunga", () => {
+    assert.equal(finishedQuestion({ text: "Esercizi di analisi 4–6" }), "Hai finito «Esercizi di analisi 4–6»?");
+    assert.equal(finishedQuestion({ text: "parola ".repeat(20).trim() }), "Hai finito «parola parola parola parola parola…»?");
+  });
+  it("le frasi per «Fatta» nominano la voce e la variante è sempre valida", () => {
+    for (const variant of [0, 1, 2]) assert.ok(doneMessage({ text: "Esercizi di analisi 4–6" }, variant).includes("«Esercizi di analisi 4–6»"));
+    assert.equal(doneMessage({ text: "x" }, 3), doneMessage({ text: "x" }, 0));
+    assert.ok(doneMessage({ text: "x" }, -1).length > 0);
   });
 });
 

@@ -173,6 +173,15 @@ export class ToDoList {
     return "updated";
   }
 
+  /** Segna come fatta una voce ancora da fare (a fine focus: «Hai finito?» → «Fatta»). Non cambia niente se è già fatta o non c'è. Ritorna `true` se l'ha cambiata. */
+  markDone(id: string): boolean {
+    const item = this._items.find((x) => x.id === id);
+    if (!item || item.doneAt !== null) return false;
+    item.doneAt = this.now();
+    this.save();
+    return true;
+  }
+
   /** Segna come fatta (o rimette tra quelle da fare). */
   toggleDone(id: string): void {
     const item = this._items.find((x) => x.id === id);

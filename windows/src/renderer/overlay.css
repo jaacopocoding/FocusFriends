@@ -464,3 +464,28 @@ html, body {
   border-color: var(--accent);
   box-shadow: 0 0 0 1px var(--accent);
 }
+
+/* «Hai finito «…»?» nella scheda di fine focus */
+
+.reflection-todo {
+  margin: 4px 0 8px;
+  border: 1px solid var(--accent);
+  border-radius: 14px;
+  background: rgba(217, 120, 56, 0.12);
+  padding: 12px 14px;
+}
+
+.reflection-todo-question {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.reflection-todo-buttons {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 14px;
+  margin-top: 8px;
+}

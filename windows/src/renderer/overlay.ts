@@ -4,6 +4,9 @@
 import { PETS, finalStage, focusGrowthStage, growsWithTimer, petInfo, restImageIndex, stageForProgress } from "../core/pets.ts";
 import type { PetData } from "../core/pets.ts";
 import { reflectionReply } from "../core/reflection.ts";
+import { doneMessage } from "../core/todo.ts";
+import type { ToDoItem } from "../core/todo.ts";
+import type { StudySession } from "../core/log.ts";
 import { clockWanted } from "../core/pomodoro.ts";
 import type { PomodoroEvent, PomodoroSnapshot } from "../core/pomodoro.ts";
 import { chattinessInterval } from "../core/rules.ts";
@@ -304,8 +307,9 @@ function onTimerEvent(event: PomodoroEvent): void {
       music.setFocusActive(event.active);
       break;
     case "focusRecorded":
-      // A fine focus: «com'è andata?» (se non l'hai spenta dal menu). Sparisce da sola quando il timer riparte o si ferma.
-      if (settings.askHowItWent) reflection.ask(event.session);
+      // A fine focus: «com'è andata?» (se non l'hai spenta dal menu) e, se il focus era partito da una voce di «Da fare» ancora da fare,
+      // «Hai finito «…»?» (anche con «com'è andata» spento). Sparisce da sola quando il timer riparte o si ferma.
+      void askAtEndOfFocus(event.session, event.todoId);
       break;
     case "reset": reflection.dismiss(); break;
   }
@@ -482,13 +486,23 @@ function onStageMoved(next: { x: number; y: number; width: number; height: numbe
 
 // ---- «Cosa studi adesso?» e benvenuto
 
+/** La scheda di fine focus: le facce (se non sono spente) e la domanda sulla voce da cui era partito il focus (se è ancora da fare). */
+async function askAtEndOfFocus(session: StudySession, todoId: string | null): Promise<void> {
+  let todo: ToDoItem | null = null;
+  if (todoId !== null) {
+    const data = await api.getCardData();
+    todo = data.todo.sections.flatMap((section) => section.items).find((item) => item.id === todoId) ?? null;
+  }
+  if (settings.askHowItWent || todo !== null) reflection.ask(session, { todo, askHowItWent: settings.askHowItWent });
+}
+
 /** Prima di avviare un focus si chiede la materia (e si ricorda l'ultima nota). */
-async function askFocus(minutes: number, prefill: string | null = null): Promise<void> {
+async function askFocus(minutes: number, prefill: string | null = null, todoId: string | null = null): Promise<void> {
   const data = await api.getCardData();
   openSubjectPrompt(modals, {
     minutes, recent: data.recentSubjects, lastNote: data.lastNote, prefill,
     onChoice: (choice) => {
-      if (choice.kind === "start") api.cardCommand({ name: "startFocus", minutes, subject: choice.subject });
+      if (choice.kind === "start") api.cardCommand({ name: "startFocus", minutes, subject: choice.subject, ...(todoId !== null ? { todoId } : {}) });
       else if (choice.kind === "back") card.reopen();
     },
   });
@@ -541,12 +555,17 @@ async function start(): Promise<void> {
     onClosed: refreshHover,
     onSave: (sessionId, rating, note) => api.cardCommand({ name: "saveReflection", sessionId, rating, note }),
     onRated: (rating) => speaker.say(reflectionReply(rating)),
+    onTodoAnswer: (item, finished) => {
+      if (!finished) return;
+      api.cardCommand({ name: "todoDone", id: item.id });
+      speaker.say(doneMessage(item, Math.floor(Math.random() * 3)));
+    },
   });
   card = new MenuCard({
     api, container: stage, timer: () => timerState, scene: sceneSize, urlOf,
     petBox: () => ({ ...view.position, ...view.size }),
     onOpenChange: (open) => { needs.card = open; syncInput(); if (!open) refreshHover(); },
-    askFocus: (minutes, subject) => { void askFocus(minutes, subject ?? null); },
+    askFocus: (minutes, subject, todoId) => { void askFocus(minutes, subject ?? null, todoId ?? null); },
   });
   card.currentPetId = settings.pet;
   await loadPet(settings.pet);

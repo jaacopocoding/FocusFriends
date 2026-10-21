@@ -501,7 +501,7 @@ final class MenuController: NSObject, NSMenuDelegate {
     }
 
     /// `subject`: la materia già scritta nella scheda (quando si parte da una cosa da fare).
-    private func beginFocus(minutes: Int, subject prefilled: String? = nil) {
+    private func beginFocus(minutes: Int, subject prefilled: String? = nil, todoID: UUID? = nil) {
         subjectPrompt.ask(minutes: minutes, recent: SessionLog.shared.recentSubjects(), prefill: prefilled,
                           lastNote: SessionLog.shared.lastNote(), near: window) { [weak self] choice in
             guard let self else { return }
@@ -512,7 +512,7 @@ final class MenuController: NSObject, NSMenuDelegate {
                 self.returnToMenu()
             case .start(let subject):
                 self.showPetIfHidden()
-                self.pomodoro.startFocus(minutes: minutes, subject: subject)
+                self.pomodoro.startFocus(minutes: minutes, subject: subject, todoID: todoID)
             }
         }
     }
@@ -641,9 +641,9 @@ final class MenuController: NSObject, NSMenuDelegate {
                 if let subject = item.subject {
                     // La materia c'è già: il focus parte subito, senza chiedere «Cosa studi adesso?».
                     self.showPetIfHidden()
-                    self.pomodoro.startFocus(minutes: minutes, subject: subject)
+                    self.pomodoro.startFocus(minutes: minutes, subject: subject, todoID: item.id)
                 } else {
-                    self.beginFocus(minutes: minutes, subject: nil)
+                    self.beginFocus(minutes: minutes, subject: nil, todoID: item.id)
                 }
             }
         )

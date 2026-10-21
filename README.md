@@ -77,7 +77,7 @@ compagni sbloccati ci vivono, e se li tocchi parlano.
 
 ## Scaricare e usare
 
-1. Scarica `FocusFriends-0.9.1-macOS.zip` dalla pagina delle [Releases](https://github.com/jaacopocoding/FocusFriends/releases) e decomprimilo.
+1. Scarica `FocusFriends-0.10.0-macOS.zip` dalla pagina delle [Releases](https://github.com/jaacopocoding/FocusFriends/releases) e decomprimilo.
 2. Trascina **FocusFriends** in *Applicazioni* e aprilo (macOS 13 o successivo, Apple Silicon e Intel).
 3. L'app non è firmata con un account sviluppatore Apple, quindi la prima volta macOS potrebbe rifiutarla.
    Fai clic destro sull'app → **Apri** → **Apri**, oppure da Terminale:
@@ -167,6 +167,9 @@ Nella scheda del menu c'è la riga **Da fare** (a destra, quante cose restano). 
 - **Sotto il mouse** compaiono ▶ *Inizia un focus* e × *Togli*. Il ▶ porta al quadrante *Gira il timer* (con «Focus per…» in alto, e come punto di
   partenza l'ultima durata usata): scegli i minuti e *Avvia il focus* parte con la materia della voce, senza richiedertela. Se la voce non ha una
   materia, dopo i minuti si apre «Cosa studi adesso?». La freccia torna alla lista.
+- **Quando il focus finisce** (se era partito dal ▶ di una voce ancora da fare), la scheda di fine focus aggiunge «Hai finito «Riassunto del
+  capitolo 7»?» con *Fatta* e *Non ancora*: *Fatta* segna la voce e il compagno ti fa i complimenti, *Non ancora* la lascia in lista. Se hai spento
+  «Chiedi com'è andata» la scheda ha solo questa domanda. Se il focus è stato fermato prima della fine, non chiede niente.
 - **Il compagno** ogni tanto ricorda le scadenze di oggi, o di domani («Domani scade «Esercizi di analisi». Un focus adesso?»):
   al posto di una frase a caso, al massimo una volta ogni tre ore, mai durante un focus e mai con *Frasi: Mai*.
 

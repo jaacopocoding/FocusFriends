@@ -42,7 +42,7 @@ export interface CardHost {
   /** La scheda si apre o si chiude (la pagina deve smettere o riprendere di decidere da sola quando lasciar passare i clic). */
   onOpenChange(open: boolean): void;
   /** Un focus da N minuti: prima si chiede la materia («Cosa studi adesso?»), eventualmente già scritta. */
-  askFocus(minutes: number, subject?: string | null): void;
+  askFocus(minutes: number, subject?: string | null, todoId?: string | null): void;
 }
 
 const MONTH_NAMES = ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", "agosto", "settembre", "ottobre", "novembre", "dicembre"];
@@ -659,8 +659,8 @@ export class MenuCard {
   /** «Avvia il focus» dal quadrante, per una voce di «Da fare»: con la materia della voce parte subito; senza, si chiede «Cosa studi adesso?». */
   private startToDoFocusNow(item: ToDoItem, minutes: number): void {
     this.close();
-    if (item.subject !== null) this.api.cardCommand({ name: "startFocus", minutes, subject: item.subject });
-    else this.host.askFocus(minutes, null);
+    if (item.subject !== null) this.api.cardCommand({ name: "startFocus", minutes, subject: item.subject, todoId: item.id });
+    else this.host.askFocus(minutes, null, item.id);
   }
 
   // ---- la pagina dei timer
