@@ -421,12 +421,15 @@ non segnata «Latest» (resta la `v0.9.0` per Mac). Installer controllati prima 
 versione 1.1.0 nel pacchetto e nell'eseguibile, 114 file di immagini, frasi e brani (5 `.m4a`), il carattere Chewy con la sua licenza, le licenze di Electron e Chromium, nessuna
 mappa dei sorgenti, e dentro il codice compilato la pagina «Da fare» e il blocco di navigazione e permessi della 1.0.1.
 
-**1.1.1 (preparata il 21 ottobre 2026, non ancora pubblicata): aggiungere e modificare.** Dopo averla usata, l'utente ha chiesto di cambiare il modo di aggiungere: il «+»
+**1.1.1 (pubblicata il 21 ottobre 2026): aggiungere e modificare.** Dopo averla usata, l'utente ha chiesto di cambiare il modo di aggiungere: il «+»
 in alto a destra apre la pagina «Nuova cosa» (nome, scadenza, materia, «Aggiungi»), non più un campo sopra la lista; e toccando il testo di una voce si apre la stessa pagina per
 **modificarla**. I nomi lunghi vanno a capo su due righe; la materia si può anche scrivere. Stessa cosa sul Mac (0.9.1). Il formato di `dafare.json` non cambia; nuova operazione
 `update` in `ToDoList` (Swift e TypeScript), provata in `tests/main.swift` e `windows/test/dafare.test.ts`; 277 prove su Windows e 393 sul Mac.
 Provando la versione sul Mac, una seconda correzione: il ▶ «Inizia un focus» faceva partire la durata dell'ultimo focus; ora porta al quadrante «Gira il timer» (con «Focus per…»
 in alto, e l'ultima durata come punto di partenza), e «Avvia il focus» parte con la materia della voce, senza richiederla (senza materia si apre «Cosa studi adesso?»).
+È uscita come [`windows-v1.1.1`](https://github.com/jaacopocoding/FocusFriends/releases/tag/windows-v1.1.1) (tag su `e989d20`), insieme alla `v0.9.1` per Mac (che è la «Latest»); non firmata, non «Latest».
+Installer controllati prima di pubblicare: SHA-256 uguali a `SHA256SUMS.txt`, eseguibile x64 e ARM64 giusti, versione 1.1.1, 114 file di immagini, frasi e brani (5 `.m4a`), Chewy con la sua
+licenza, licenze di Electron e Chromium, nessuna mappa dei sorgenti, e nel codice compilato «Nuova cosa», «FOCUS PER», la modifica delle voci e il blocco di navigazione e permessi.
 
 ## Seconda uscita: il giardino (8–12 giorni)
 
