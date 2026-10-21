@@ -17,6 +17,8 @@ import { earned, focuses } from "../src/core/rewards.ts";
 import { ToDoList } from "../src/core/todoList.ts";
 import { addDays, dueLabel, GROUP_TITLES, reminderMessage, todayOf } from "../src/core/todo.ts";
 import { isoUtc } from "../src/core/time.ts";
+import { insight, launchGreeting, milestone, wakeGreeting, weeklyRecap } from "../src/core/remarks.ts";
+import type { RemarksContext } from "../src/core/remarks.ts";
 
 export const ZONE = "Europe/Rome";
 export const NOW = Date.UTC(2026, 9, 14, 18, 0, 0);     // le 20:00 a Roma (CEST, UTC+2)
@@ -45,6 +47,72 @@ function relativeFiles(directory: string, prefix = ""): string[] {
     else found.push(normalized(`${prefix}${entry}`));
   }
   return found.sort();
+}
+
+// ---- le frasi di contesto (remarks.ts): gli stessi momenti fissi e gli stessi dati di tests/genera-attesi/main.swift
+
+const CONTEXT_MOMENTS: Array<[number, number, number, number, number]> = [
+  [2026, 10, 12, 9, 30], [2026, 10, 13, 15, 0], [2026, 10, 14, 20, 0], [2026, 10, 15, 2, 30], [2026, 10, 18, 10, 0], [2026, 10, 26, 8, 0],
+];
+const CONTEXT_DUE = "Oggi scade «Esercizi di analisi». Un focus adesso?";
+
+/** L'istante in cui a Roma l'orologio segna questa data e quest'ora. */
+function romeInstant(y: number, m: number, d: number, h = 0, min = 0): number {
+  const target = Date.UTC(y, m - 1, d, h, min);
+  let instant = target;
+  for (let i = 0; i < 2; i += 1) instant = target - (wallOf(instant, ZONE) - instant);
+  return instant;
+}
+
+const two = (n: number): string => String(n).padStart(2, "0");
+
+export function contextJson(sessions: readonly StudySession[]): Record<string, unknown> {
+  const context = (at: number, extra: Partial<RemarksContext> = {}): RemarksContext =>
+    ({ now: at, zone: ZONE, name: "Jacopo", sessions, openTodoCount: 0, due: null, ...extra });
+  const moments = CONTEXT_MOMENTS.map(([y, mo, d, h, mi]) => {
+    const at = romeInstant(y, mo, d, h, mi);
+    const withDue = launchGreeting(context(at, { openTodoCount: 2, due: CONTEXT_DUE }), 0);
+    const recap = weeklyRecap(context(at));
+    return {
+      adesso: `${y}-${two(mo)}-${two(d)}T${two(h)}:${two(mi)}`,
+      saluti: [0, 1, 2, 3, 4, 5].map((variant) => launchGreeting(context(at, { openTodoCount: 2 }), variant).text),
+      salutoSenzaNome: launchGreeting(context(at, { name: null }), 0).text,
+      salutoConScadenza: { testo: withDue.text, copreIlPromemoria: withDue.coversReminder },
+      risveglio: [0, 1, 2, 3, 4, 5].map((variant) => wakeGreeting(context(at, { openTodoCount: 2 }), 7200, variant)?.text ?? null),
+      risveglioBreve: wakeGreeting(context(at), 1800, 0)?.text ?? null,
+      riepilogo: recap === null ? null : { chiave: recap.key, testo: recap.text },
+      numeri: [0, 1, 2].map((variant) => insight(context(at), variant)),
+    };
+  });
+  // I traguardi: man mano che il registro cresce (ogni sessione, dalla più vecchia), quali frasi scattano.
+  const ordered = [...sessions].sort((a, b) => (a.start !== b.start ? a.start - b.start : a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+  const milestones: Array<{ dopo: number; frase: string }> = [];
+  ordered.forEach((current, index) => {
+    const text = milestone(ordered.slice(0, index), ordered.slice(0, index + 1), current.start, ZONE);
+    if (text !== null) milestones.push({ dopo: index + 1, frase: text });
+  });
+  return { momenti: moments, traguardi: milestones };
+}
+
+/** Gli anniversari su date inventate (come `anniversaryJSON` nel generatore Swift). */
+export function anniversariesJson(): { anniversari: Array<Record<string, string>> } {
+  const sessionOn = (y: number, m: number, d: number): StudySession => ({
+    id: `${y}-${m}-${d}`, start: romeInstant(y, m, d, 10), localStart: `${y}-${two(m)}-${two(d)}T10:00`, seconds: 3000, plannedMinutes: 50, completed: true,
+  });
+  const found: Array<Record<string, string>> = [];
+  const firsts: Array<[number, number, number]> = [[2026, 1, 31], [2026, 1, 30], [2026, 1, 29], [2024, 2, 29], [2025, 12, 15], [2026, 8, 31], [2026, 3, 31], [2026, 2, 28]];
+  for (const [fy, fm, fd] of firsts) {
+    const first = sessionOn(fy, fm, fd);
+    const end = Date.UTC(2029, 0, 1);
+    for (let day = Date.UTC(fy, fm - 1, fd) + DAY_MS; day < end; day += DAY_MS) {
+      const at = new Date(day);
+      const [y, m, d] = [at.getUTCFullYear(), at.getUTCMonth() + 1, at.getUTCDate()];
+      const today = sessionOn(y, m, d);
+      const text = milestone([first], [first, today], today.start + 2 * 3_600_000, ZONE);
+      if (text !== null) found.push({ primo: `${fy}-${two(fm)}-${two(fd)}`, oggi: `${y}-${two(m)}-${two(d)}`, frase: text });
+    }
+  }
+  return { anniversari: found };
 }
 
 /** Le cartelle di esempio da confrontare (le «impostazioni-*» hanno un altro test, e «attesi» è l'uscita). */
@@ -105,6 +173,7 @@ export function derive(fixtures: string, name: string): Record<string, unknown> 
         stats["frasi"] = insights(sessions, ZONE);
         stats["csv"] = csv(sessions);
         result["statistiche"] = stats;
+        result["contesto"] = contextJson(sessions);
       }
     }
 

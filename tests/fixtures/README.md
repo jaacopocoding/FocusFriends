@@ -26,5 +26,8 @@ fisso (14 ottobre 2026, ore 20:00, Europe/Rome): quante sessioni, quali file nas
 punti, i compagni. Un'altra versione dell'app deve dare gli stessi risultati. I numeri di tempo dei nomi dei file messi
 da parte sono scritti `<epoch>`.
 
+Per ogni cartella con sessioni c'è anche `contesto`: le frasi di contesto (`Remarks.swift`) in sei momenti fissi (saluti con tutte le varianti, risveglio, riepilogo della settimana, numeri a voce) e i traguardi
+raggiunti man mano che il registro cresce. `attesi/_contesto-anniversari.json` non riguarda una cartella: sono gli anniversari («un mese insieme»…) calcolati su date inventate, 8 primi giorni (fine mese e anno bisestile compresi) fino al 2028.
+
 Per rifarli (solo se cambiano gli esempi o le regole del Mac): `./tests/genera-attesi.sh`. L'esito è sempre lo stesso
 a parità di codice.

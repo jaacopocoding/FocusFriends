@@ -91,6 +91,13 @@ export class Settings {
   get askHowItWent(): boolean { return this.bool("askHowItWent", true); }
   set askHowItWent(value: boolean) { this.set("askHowItWent", value); }
 
+  /** Il lunedì (come «AAAA-MM-GG») della settimana di cui il compagno ha già detto il riepilogo; null se non l'ha mai detto. */
+  get lastWeeklyRecap(): string | null {
+    const value = this.values["lastWeeklyRecap"];
+    return typeof value === "string" && value !== "" ? value : null;
+  }
+  set lastWeeklyRecap(value: string | null) { this.set("lastWeeklyRecap", value); }
+
   /** Pausa lunga dopo quattro focus. */
   get longBreakEnabled(): boolean { return this.bool("longBreakEnabled", true); }
   set longBreakEnabled(value: boolean) { this.set("longBreakEnabled", value); }

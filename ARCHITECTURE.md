@@ -64,7 +64,7 @@ Single user per Mac, no accounts, no network: all data is stored locally under
 | App type | Menu-bar "agent": `LSUIElement = true`, activation policy `.accessory` | `build.sh`, `AppDelegate.applicationDidFinishLaunching` |
 | Signing | Ad-hoc (`codesign --force --sign -`; `build.sh` stops with exit 1 if signing fails); not notarised, no hardened runtime or sandbox | `build.sh`, `README.md` "Scaricare e usare" |
 | Asset tooling | Python 3 scripts using Pillow and NumPy (not run at build time) | `tools/*.py` |
-| Tests | One hand-written Swift executable (`tests/main.swift`, 33 sections, 443 checks) that compiles twelve Foundation-only source files; no XCTest | `tests/run.sh` |
+| Tests | One hand-written Swift executable (`tests/main.swift`, 33 sections, 445 checks) that compiles twelve Foundation-only source files; no XCTest | `tests/run.sh` |
 | License | MIT (`LICENSE`); bundled music is CC0 (`CREDITS.md`) | `LICENSE`, `CREDITS.md` |
 | Swift toolchain version / Python version | Not pinned anywhere in the repository | **[unknown]** |
 
@@ -146,7 +146,7 @@ FocusFriends/
 │   ├── MusicLibrary.swift        MusicSource, MusicLibrary (file discovery, shuffle, titles), MusicSettings  (Foundation only)
 │   └── MusicPlayer.swift         AVAudioPlayer-based music playback with queue and fades
 ├── tests/
-│   ├── main.swift                hand-rolled test executable (check()/section()), 33 sections, 443 checks
+│   ├── main.swift                hand-rolled test executable (check()/section()), 33 sections, 445 checks
 │   ├── run.sh                    compiles 12 source files + tests/main.swift into build/tests/stats and runs it
 │   ├── genera-attesi.sh          builds and runs tests/genera-attesi/main.swift: for every folder in tests/fixtures/ writes what this app derives from it (the expected results the Windows port is compared with)
 │   ├── genera-rumore.sh          same idea for the ambient-noise synthesiser (tests/fixtures/rumore.json)
@@ -557,7 +557,7 @@ code. All UI code runs on the main thread; the only other thread is the audio re
     music (`music_*`), garden/growth art, Pianty stage frames → write `Info.plist` via heredoc →
     `codesign --force --sign -` (a failure prints an error and exits 1) → print the path.
   - `tests/run.sh`: `swiftc -O -o build/tests/stats` on twelve source files + `tests/main.swift` →
-    `build/tests/stats` (prints `• <section>` lines and `N controlli, M falliti`, exit code 0/1; 443 checks now).
+    `build/tests/stats` (prints `• <section>` lines and `N controlli, M falliti`, exit code 0/1; 445 checks now).
   - Tools: described in §5.9; they read `assets/**/*_original.png` / sheets and write processed PNGs or the icon.
 
 ### 3.22 To-do list ("Da fare")
@@ -629,12 +629,15 @@ code. All UI code runs on the main thread; the only other thread is the audio re
   `wakeGreeting` (away ≥ 1 h): "Rieccoti!" and variants + today's study or the to-dos. `weeklyRecap` (Mon–Wed only; the previous week's total, days studied, focus count
   and strongest day; the key is the week's first day) — the caller stores the key in `UserDefaults` (`lastWeeklyRecap`) when it is said. `insight` picks one of the
   (≤ 2) lines of `StudyStats.insights`. `milestone(before:after:now:)`: streak (3, 7, 14, 30, 60, 100), focus count (10 … 1000), total hours (10 … 500) or
-  an anniversary ("un mese", months, "un anno", years; only at the first focus of the day), the first that applies, only at the moment it is crossed.
+  an anniversary ("un mese", months, "un anno", years; only at the first focus of the day), the first that applies, only at the moment it is crossed. Months are counted on
+  the calendar (year × 12 + month), not with `Calendar.dateComponents`, which gives 0 from 31 January to 28 February: an anniversary of the 31st falls on the last day of shorter months.
 - **Rules:** nothing is said in a focus; all spontaneous phrases are silenced by "Frasi: Mai" (the queue is consumed by the spontaneous timer, the wake greeting
   checks `Chattiness`); milestones are part of the end-of-focus flow like the unlock announcement, both through `sayWhenQuiet` so they do not cover each other;
   Italian without grammatical gender for the user; never invents data (no study → no recap; with a streak under 2 days no streak line).
 - **Tests:** a section in `tests/main.swift` ("Frasi di contesto"): day parts, every greeting form, the wake greeting, the recap (days of the week, tie, one-day week),
-  the insight, and all milestones, including their priority and the anniversary rules.
+  the insight, and all milestones, including their priority and the anniversary rules (also month ends). `tests/genera-attesi/main.swift` writes the same outputs for the sample
+  folders (`contesto` in `tests/fixtures/attesi/*.json`) and for 294 invented anniversaries (`_contesto-anniversari.json`); the Windows port (`core/remarks.ts`) must match them
+  (`windows/test/contratto.test.ts`, `FORMATI.md` §8).
 
 ---
 
@@ -1139,7 +1142,7 @@ file/UserDefaults writes, windows, timers, sound, global state.
 ### 5.9 Tests, build and tools
 
 #### `tests/main.swift` (1,056) and `tests/run.sh` (7)
-- A single executable: `check(_:_:line:)`, `section(_:)`, 33 sections (443 checks) covering subjects, log persistence,
+- A single executable: `check(_:_:line:)`, `section(_:)`, 33 sections (445 checks) covering subjects, log persistence,
   in-progress recovery, periods, summaries, streaks, texts, garden rules, format versions/migration, subject merging, backups and
   delete-all, time zones, profile, ratings/notes/insights/CSV, timer dial math, seasons, ambient settings, music
   library/settings, focus notes, paused-time recovery, companion rewards (including the developer flag), break cycle,
@@ -1631,7 +1634,7 @@ code is clear. Items without a mark still describe the current code.
 
 ### 7.8 Test coverage as it exists
 
-- Covered (33 sections, 443 checks in `tests/main.swift`): everything in the Foundation-only files listed in §4.1,
+- Covered (33 sections, 445 checks in `tests/main.swift`): everything in the Foundation-only files listed in §4.1,
   including the new damaged-data cases and the developer flag.
 - Not covered by any automated test in the repository: `Pomodoro` (timer, pause, grace, the sleep-gap rule, cycle
   wiring), `Speaker` (including when a to-do reminder replaces a phrase), `Walker`, `PetWindow`/`PetView`, `MenuController`,

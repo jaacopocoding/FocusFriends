@@ -5,7 +5,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { CHANNEL } from "../shared/api.ts";
-import type { CardCommand, CardOpenRequest, SettingsSnapshot } from "../shared/api.ts";
+import type { CardCommand, CardOpenRequest, QuietSpeech, SettingsSnapshot } from "../shared/api.ts";
 import { PhraseDeck, loadPhrases } from "../core/phrases.ts";
 import { AppLog } from "../core/diagnostics.ts";
 import { describeDisplay } from "../core/displays.ts";
@@ -15,11 +15,12 @@ import { Profile } from "../core/profile.ts";
 import type { TimerKind } from "../core/rules.ts";
 import { Settings } from "../core/settings.ts";
 import { refreshSystemZone } from "../core/time.ts";
-import { reminderMessage, todayOf } from "../core/todo.ts";
 import { ToDoList } from "../core/todoList.ts";
 import { createCardService } from "./card.ts";
 import { loginItem } from "./login.ts";
 import { createMusicService } from "./music.ts";
+import { createRemarks } from "./remarks.ts";
+import type { RemarksService } from "./remarks.ts";
 import { createStage } from "./stage.ts";
 import type { Stage } from "./stage.ts";
 import { createStatsController } from "./statsWindow.ts";
@@ -44,9 +45,6 @@ if (process.env["FF_SELFTEST"] !== undefined) {
 registerScheme();
 
 let visible = true;
-
-/** Ogni quanto, al massimo, un promemoria delle cose da fare prende il posto di una frase a caso. */
-const REMINDER_EVERY_MS = 3 * 3_600_000;
 
 // Una sola copia dell'app: un doppio avvio non deve mai toccare i dati due volte (è già successo sul Mac, per un errore di una prova).
 // (Solo le prove automatiche possono saltare il controllo, per aprire più copie con cartelle di dati diverse.)
@@ -118,6 +116,7 @@ async function start(): Promise<void> {
     for (const [channel, payload] of waiting.splice(0)) win.webContents.send(channel, payload);
   });
   const say = (text: string): void => send(CHANNEL.timerEvent, { type: "say", text });
+  const sayWhenQuiet = (speech: QuietSpeech): void => send(CHANNEL.sayWhenQuiet, speech);
 
   const stage = createStage(win, send);
   ipcMain.on(CHANNEL.dragging, (_event, on: unknown) => stage.setDragging(on === true));
@@ -132,31 +131,25 @@ async function start(): Promise<void> {
 
   ipcMain.handle(CHANNEL.getSettings, () => snapshot(settings));
   const interactions: string[] = [];
-  // Le scadenze di oggi e domani: ogni tanto il compagno le ricorda al posto di una frase a caso (al massimo ogni tre ore,
-  // mai durante un focus). Come Speaker.reminder sul Mac.
-  let lastReminder = -Infinity;
-  let timerPhase: () => string | null = () => null;
-  ipcMain.handle(CHANNEL.nextPhrase, (_event, petId: unknown) => {
-    const now = Date.now();
-    if (now - lastReminder >= REMINDER_EVERY_MS && timerPhase() !== "focus") {
-      const reminder = reminderMessage(todo.items, todayOf(now));
-      if (reminder !== null) {
-        lastReminder = now;
-        return reminder;
-      }
-    }
+
+  // Il timer, il menu dell'area di notifica e la scheda si conoscono a vicenda: nascono uno dopo l'altro e si agganciano.
+  let tray: ReturnType<typeof createTray> | null = null;
+  const service: TimerService = startTimer({ directory: data, settings, send, onChange: () => tray?.refresh() });
+  // Le frasi che il compagno dice di sua iniziativa, in quest'ordine: il saluto dell'avvio e il riepilogo della settimana (una volta), le scadenze
+  // di oggi e domani (al massimo ogni tre ore, mai durante un focus), ogni tanto un numero dello studio, e poi il mazzo. Come Speaker.sayRandom sul Mac.
+  const remarks = createRemarks({
+    settings, profile, todo, log: () => service.log, timerPhase: () => service.engine.snapshot().phase,
+    isVisible: () => visible, sayWhenQuiet,
+  });
+  ipcMain.handle(CHANNEL.nextPhrase, (_event, petId: unknown) => remarks.nextPhrase(() => {
     const id = typeof petId === "string" ? petId : settings.pet;
     // Il file si rilegge a ogni frase: le modifiche valgono subito.
     const phrases = loadPhrases(id, { userDirectory: data, bundledDirectory: assets });
     let deck = decks.get(id);
     if (!deck) { deck = new PhraseDeck(); decks.set(id, deck); }
     return deck.draw(phrases) ?? petInfo(id).fallbackQuote;
-  });
-
-  // Il timer, il menu dell'area di notifica e la scheda si conoscono a vicenda: nascono uno dopo l'altro e si agganciano.
-  let tray: ReturnType<typeof createTray> | null = null;
-  const service: TimerService = startTimer({ directory: data, settings, send, onChange: () => tray?.refresh() });
-  timerPhase = () => service.engine.snapshot().phase;
+  }));
+  remarks.greetOnLaunch();
 
   const setVisible = (on: boolean): void => {
     visible = on;
@@ -172,7 +165,7 @@ async function start(): Promise<void> {
   });
   const card = createCardService({
     settings, profile, todo, window: win, timer: () => service,
-    isVisible: () => visible, setVisible, say,
+    isVisible: () => visible, setVisible, say, sayWhenQuiet,
     speakNow: () => send(CHANNEL.speakNow),
     reopenCard: () => send(CHANNEL.cardReopen),
     moreSettings: () => tray?.popUp(),
@@ -246,7 +239,10 @@ async function start(): Promise<void> {
   // Fine di un focus o di una pausa: il compagno compare anche se l'avevi nascosto.
   service.engine.onEvent((event) => {
     if (event.type === "sound" && !visible) setVisible(true);
-    if (event.type === "focusRecorded") card.evaluateCompanionRewards(true);
+    if (event.type === "focusRecorded") {
+      card.evaluateCompanionRewards(true);
+      remarks.focusRecorded(event.session);
+    }
   });
   card.evaluateCompanionRewards(false);
   // La prima volta (anche per chi la usava già): come ti chiami e chi ti fa compagnia.
@@ -273,7 +269,7 @@ async function start(): Promise<void> {
   // Sleep e risveglio (anche col coperchio chiuso). Il timer non ha bisogno di niente: un salto di più di 10 secondi lo conta già
   // come tempo da fermo. Al risveglio, però, possono essere cambiati il fuso orario (un viaggio), gli schermi (un monitor
   // scollegato nel frattempo) e l'uscita audio, che a volte si ferma da sola.
-  powerMonitor.on("suspend", () => log.info("il computer va in sleep"));
+  powerMonitor.on("suspend", () => { log.info("il computer va in sleep"); remarks.suspended(); });
   const awake = (what: string): void => {
     log.info(`${what}: si rileggono fuso e schermi, l'audio riparte se serve`);
     refreshSystemZone();
@@ -281,10 +277,10 @@ async function start(): Promise<void> {
     stage.refit();
     send(CHANNEL.systemResumed);
   };
-  powerMonitor.on("resume", () => awake("il computer si risveglia"));
+  powerMonitor.on("resume", () => { awake("il computer si risveglia"); remarks.resumed(); });
   powerMonitor.on("unlock-screen", () => awake("lo schermo è sbloccato"));
 
-  if (process.env["FF_SELFTEST"] !== undefined) runSelfTest(win, interactions, settings, () => service, card, stats, stage);
+  if (process.env["FF_SELFTEST"] !== undefined) runSelfTest(win, interactions, settings, () => service, card, stats, stage, remarks);
 }
 
 /**
@@ -294,7 +290,7 @@ async function start(): Promise<void> {
  * - FF_SELFTEST_FILE=percorso.cjs: un copione che riceve gli strumenti (finestra, attese, schermate, misure, eventi del mouse).
  * FF_SELFTEST_OUT è la cartella dove scrivere.
  */
-function runSelfTest(win: BrowserWindow, interactions: string[], settings: Settings, timer: () => TimerService, card: ReturnType<typeof createCardService>, stats: StatsController, stage: Stage): void {
+function runSelfTest(win: BrowserWindow, interactions: string[], settings: Settings, timer: () => TimerService, card: ReturnType<typeof createCardService>, stats: StatsController, stage: Stage, remarks: RemarksService): void {
   const out = process.env["FF_SELFTEST_OUT"] ?? join(app.getPath("temp"), "ff-selftest");
   mkdirSync(out, { recursive: true });
   // I messaggi della pagina (e i suoi errori) escono sul terminale.
@@ -309,6 +305,7 @@ function runSelfTest(win: BrowserWindow, interactions: string[], settings: Setti
     card,
     stats,
     stage,
+    remarks,
     sleep: (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)),
     js: (code: string) => win.webContents.executeJavaScript(code) as Promise<unknown>,
     async shot(name: string) {

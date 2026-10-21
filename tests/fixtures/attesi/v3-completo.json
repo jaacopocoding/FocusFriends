@@ -1,6 +1,223 @@
 {
   "adesso" : "2026-10-14T20:00 Europe/Rome",
   "cartella" : "v3-completo",
+  "contesto" : {
+    "momenti" : [
+      {
+        "adesso" : "2026-10-12T09:30",
+        "numeri" : [
+          "Con Anatomia vai bene: 4 focus su 4 sono andati bene.",
+          "Con Anatomia vai bene: 4 focus su 4 sono andati bene.",
+          "Con Anatomia vai bene: 4 focus su 4 sono andati bene."
+        ],
+        "riepilogo" : {
+          "chiave" : "2026-10-05",
+          "testo" : "Settimana scorsa: 4 h 05 in 4 giorni, 5 focus. Il giorno più forte: martedì (1 h 35)."
+        },
+        "risveglio" : [
+          "Rieccoti! Oggi sei a 25 min.",
+          "Eccoti di nuovo! Oggi sei a 25 min.",
+          "Ti stavo aspettando! Oggi sei a 25 min.",
+          "Rieccoti! Hai 2 cose da fare.",
+          "Eccoti di nuovo! Hai 2 cose da fare.",
+          "Ti stavo aspettando! Hai 2 cose da fare."
+        ],
+        "risveglioBreve" : null,
+        "saluti" : [
+          "Buongiorno, Jacopo! Oggi hai già studiato 25 min.",
+          "Buongiorno, Jacopo! Sei a 5 giorni di fila.",
+          "Buongiorno, Jacopo! Hai 2 cose da fare.",
+          "Buongiorno, Jacopo! Oggi hai già studiato 25 min.",
+          "Buongiorno, Jacopo! Sei a 5 giorni di fila.",
+          "Buongiorno, Jacopo! Hai 2 cose da fare."
+        ],
+        "salutoConScadenza" : {
+          "copreIlPromemoria" : true,
+          "testo" : "Buongiorno, Jacopo! Oggi scade «Esercizi di analisi». Un focus adesso?"
+        },
+        "salutoSenzaNome" : "Buongiorno! Oggi hai già studiato 25 min."
+      },
+      {
+        "adesso" : "2026-10-13T15:00",
+        "numeri" : [
+          "Con Anatomia vai bene: 4 focus su 4 sono andati bene.",
+          "Con Anatomia vai bene: 4 focus su 4 sono andati bene.",
+          "Con Anatomia vai bene: 4 focus su 4 sono andati bene."
+        ],
+        "riepilogo" : {
+          "chiave" : "2026-10-05",
+          "testo" : "Settimana scorsa: 4 h 05 in 4 giorni, 5 focus. Il giorno più forte: martedì (1 h 35)."
+        },
+        "risveglio" : [
+          "Rieccoti! Oggi sei a 1 h.",
+          "Eccoti di nuovo! Oggi sei a 1 h.",
+          "Ti stavo aspettando! Oggi sei a 1 h.",
+          "Rieccoti! Hai 2 cose da fare.",
+          "Eccoti di nuovo! Hai 2 cose da fare.",
+          "Ti stavo aspettando! Hai 2 cose da fare."
+        ],
+        "risveglioBreve" : null,
+        "saluti" : [
+          "Buon pomeriggio, Jacopo! Oggi hai già studiato 1 h.",
+          "Buon pomeriggio, Jacopo! Sei a 5 giorni di fila.",
+          "Buon pomeriggio, Jacopo! Hai 2 cose da fare.",
+          "Buon pomeriggio, Jacopo! Oggi hai già studiato 1 h.",
+          "Buon pomeriggio, Jacopo! Sei a 5 giorni di fila.",
+          "Buon pomeriggio, Jacopo! Hai 2 cose da fare."
+        ],
+        "salutoConScadenza" : {
+          "copreIlPromemoria" : true,
+          "testo" : "Buon pomeriggio, Jacopo! Oggi scade «Esercizi di analisi». Un focus adesso?"
+        },
+        "salutoSenzaNome" : "Buon pomeriggio! Oggi hai già studiato 1 h."
+      },
+      {
+        "adesso" : "2026-10-14T20:00",
+        "numeri" : [
+          "Con Anatomia vai bene: 4 focus su 4 sono andati bene.",
+          "Con Anatomia vai bene: 4 focus su 4 sono andati bene.",
+          "Con Anatomia vai bene: 4 focus su 4 sono andati bene."
+        ],
+        "riepilogo" : {
+          "chiave" : "2026-10-05",
+          "testo" : "Settimana scorsa: 4 h 05 in 4 giorni, 5 focus. Il giorno più forte: martedì (1 h 35)."
+        },
+        "risveglio" : [
+          "Rieccoti! Oggi sei a 50 min.",
+          "Eccoti di nuovo! Oggi sei a 50 min.",
+          "Ti stavo aspettando! Oggi sei a 50 min.",
+          "Rieccoti! Hai 2 cose da fare.",
+          "Eccoti di nuovo! Hai 2 cose da fare.",
+          "Ti stavo aspettando! Hai 2 cose da fare."
+        ],
+        "risveglioBreve" : null,
+        "saluti" : [
+          "Buonasera, Jacopo! Oggi hai già studiato 50 min.",
+          "Buonasera, Jacopo! Sei a 5 giorni di fila.",
+          "Buonasera, Jacopo! Hai 2 cose da fare.",
+          "Buonasera, Jacopo! Oggi hai già studiato 50 min.",
+          "Buonasera, Jacopo! Sei a 5 giorni di fila.",
+          "Buonasera, Jacopo! Hai 2 cose da fare."
+        ],
+        "salutoConScadenza" : {
+          "copreIlPromemoria" : true,
+          "testo" : "Buonasera, Jacopo! Oggi scade «Esercizi di analisi». Un focus adesso?"
+        },
+        "salutoSenzaNome" : "Buonasera! Oggi hai già studiato 50 min."
+      },
+      {
+        "adesso" : "2026-10-15T02:30",
+        "numeri" : [
+          "Con Anatomia vai bene: 4 focus su 4 sono andati bene.",
+          "Con Anatomia vai bene: 4 focus su 4 sono andati bene.",
+          "Con Anatomia vai bene: 4 focus su 4 sono andati bene."
+        ],
+        "riepilogo" : null,
+        "risveglio" : [
+          "Rieccoti! Hai 2 cose da fare.",
+          "Eccoti di nuovo! Hai 2 cose da fare.",
+          "Ti stavo aspettando! Hai 2 cose da fare.",
+          "Rieccoti! Hai 2 cose da fare.",
+          "Eccoti di nuovo! Hai 2 cose da fare.",
+          "Ti stavo aspettando! Hai 2 cose da fare."
+        ],
+        "risveglioBreve" : null,
+        "saluti" : [
+          "Jacopo, è tardi. Un ultimo focus e poi a dormire?",
+          "Jacopo, è tardi: la testa ha bisogno di riposo, non solo di studio.",
+          "Jacopo, è tardi. Un ultimo focus e poi a dormire?",
+          "Jacopo, è tardi: la testa ha bisogno di riposo, non solo di studio.",
+          "Jacopo, è tardi. Un ultimo focus e poi a dormire?",
+          "Jacopo, è tardi: la testa ha bisogno di riposo, non solo di studio."
+        ],
+        "salutoConScadenza" : {
+          "copreIlPromemoria" : false,
+          "testo" : "Jacopo, è tardi. Un ultimo focus e poi a dormire?"
+        },
+        "salutoSenzaNome" : "È tardi. Un ultimo focus e poi a dormire?"
+      },
+      {
+        "adesso" : "2026-10-18T10:00",
+        "numeri" : [
+          "Con Anatomia vai bene: 4 focus su 4 sono andati bene.",
+          "Con Anatomia vai bene: 4 focus su 4 sono andati bene.",
+          "Con Anatomia vai bene: 4 focus su 4 sono andati bene."
+        ],
+        "riepilogo" : null,
+        "risveglio" : [
+          "Rieccoti! Hai 2 cose da fare.",
+          "Eccoti di nuovo! Hai 2 cose da fare.",
+          "Ti stavo aspettando! Hai 2 cose da fare.",
+          "Rieccoti! Hai 2 cose da fare.",
+          "Eccoti di nuovo! Hai 2 cose da fare.",
+          "Ti stavo aspettando! Hai 2 cose da fare."
+        ],
+        "risveglioBreve" : null,
+        "saluti" : [
+          "Buona domenica, Jacopo! Hai 2 cose da fare.",
+          "Buona domenica, Jacopo! Hai 2 cose da fare.",
+          "Buona domenica, Jacopo! Hai 2 cose da fare.",
+          "Buona domenica, Jacopo! Hai 2 cose da fare.",
+          "Buona domenica, Jacopo! Hai 2 cose da fare.",
+          "Buona domenica, Jacopo! Hai 2 cose da fare."
+        ],
+        "salutoConScadenza" : {
+          "copreIlPromemoria" : true,
+          "testo" : "Buona domenica, Jacopo! Oggi scade «Esercizi di analisi». Un focus adesso?"
+        },
+        "salutoSenzaNome" : "Buona domenica! Si comincia quando vuoi."
+      },
+      {
+        "adesso" : "2026-10-26T08:00",
+        "numeri" : [
+          "Con Anatomia vai bene: 4 focus su 4 sono andati bene.",
+          "Con Anatomia vai bene: 4 focus su 4 sono andati bene.",
+          "Con Anatomia vai bene: 4 focus su 4 sono andati bene."
+        ],
+        "riepilogo" : null,
+        "risveglio" : [
+          "Rieccoti! Hai 2 cose da fare.",
+          "Eccoti di nuovo! Hai 2 cose da fare.",
+          "Ti stavo aspettando! Hai 2 cose da fare.",
+          "Rieccoti! Hai 2 cose da fare.",
+          "Eccoti di nuovo! Hai 2 cose da fare.",
+          "Ti stavo aspettando! Hai 2 cose da fare."
+        ],
+        "risveglioBreve" : null,
+        "saluti" : [
+          "Buongiorno, Jacopo! Hai 2 cose da fare.",
+          "Buongiorno, Jacopo! Hai 2 cose da fare.",
+          "Buongiorno, Jacopo! Hai 2 cose da fare.",
+          "Buongiorno, Jacopo! Hai 2 cose da fare.",
+          "Buongiorno, Jacopo! Hai 2 cose da fare.",
+          "Buongiorno, Jacopo! Hai 2 cose da fare."
+        ],
+        "salutoConScadenza" : {
+          "copreIlPromemoria" : true,
+          "testo" : "Buongiorno, Jacopo! Oggi scade «Esercizi di analisi». Un focus adesso?"
+        },
+        "salutoSenzaNome" : "Buongiorno! Si comincia quando vuoi."
+      }
+    ],
+    "traguardi" : [
+      {
+        "dopo" : 5,
+        "frase" : "Tre giorni di fila!"
+      },
+      {
+        "dopo" : 10,
+        "frase" : "10 focus insieme!"
+      },
+      {
+        "dopo" : 12,
+        "frase" : "Tre giorni di fila!"
+      },
+      {
+        "dopo" : 15,
+        "frase" : "10 ore di studio insieme!"
+      }
+    ]
+  },
   "fileDopo" : [
     "backup/sessioni-2026-10-14.json",
     "giardino.json",

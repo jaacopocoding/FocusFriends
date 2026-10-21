@@ -96,6 +96,18 @@ export class Speaker {
     }, visibleFor * 1000);
   }
 
+  /**
+   * Dice la frase dopo `afterSeconds`, ma solo se `stillWanted` non dice di no (per esempio è partito un altro focus) e, se in quel momento
+   * il compagno sta già parlando, aspetta che finisca (tre secondi alla volta, fino a quattro volte). Come Speaker.sayWhenQuiet sul Mac.
+   */
+  sayWhenQuiet(text: string, afterSeconds: number, stillWanted: () => boolean = () => true, tries = 4): void {
+    window.setTimeout(() => {
+      if (!stillWanted()) return;
+      if (this.bubble !== null && tries > 0) this.sayWhenQuiet(text, 3, stillWanted, tries - 1);
+      else this.say(text);
+    }, afterSeconds * 1000);
+  }
+
   private scheduleNext(seconds: number): void {
     window.clearTimeout(this.nextTimer);
     this.nextTimer = window.setTimeout(() => { void this.sayRandom(); }, seconds * 1000);

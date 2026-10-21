@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { derive, fixtureNames } from "./atteso.ts";
+import { anniversariesJson, derive, fixtureNames } from "./atteso.ts";
 
 const fixtures = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "tests", "fixtures");
 
@@ -22,4 +22,9 @@ describe("contratto con la versione per Mac", () => {
       assert.deepEqual(actual, expected);
     });
   }
+
+  it("gli anniversari («un mese insieme»…) su date inventate", () => {
+    const expected = JSON.parse(readFileSync(join(fixtures, "attesi", "_contesto-anniversari.json"), "utf8")) as unknown;
+    assert.deepEqual(JSON.parse(JSON.stringify(anniversariesJson())), expected);
+  });
 });

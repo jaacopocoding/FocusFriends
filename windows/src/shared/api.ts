@@ -70,6 +70,15 @@ export type CardCommand =
   | { name: "todoRemove"; id: string }
   | { name: "quit" };
 
+/** Una frase da dire appena il compagno non sta già parlando: un annuncio di sblocco, un traguardo, il saluto al risveglio. */
+export interface QuietSpeech {
+  text: string;
+  /** Dopo quanti secondi provare a dirla. */
+  after: number;
+  /** Quando ha ancora senso dirla: sempre, fuori da un focus, o solo in pausa. */
+  only: "always" | "outsideFocus" | "inBreak";
+}
+
 /** Cosa mette a disposizione il ponte (`preload`) alla pagina, come `window.focusfriends`. */
 export interface FocusFriendsApi {
   getSettings(): Promise<SettingsSnapshot>;
@@ -80,6 +89,8 @@ export interface FocusFriendsApi {
   /** Com'è il timer adesso, e ogni volta che cambia qualcosa che si vede (a ogni secondo, o subito se succede qualcosa). */
   getTimerState(): Promise<PomodoroSnapshot>;
   onTimerState(callback: (state: PomodoroSnapshot) => void): void;
+  /** Una frase da dire quando il compagno ha finito di parlare (si ritenta qualche volta), se ha ancora senso. */
+  onSayWhenQuiet(callback: (speech: QuietSpeech) => void): void;
   /** Quello che il timer vuole far dire o fare al compagno: una frase, il suono, il «+5 minuti» che compare e scompare… */
   onTimerEvent(callback: (event: PomodoroEvent) => void): void;
   /** Il pulsante «+5 minuti» che compare a fine focus. */
@@ -129,6 +140,7 @@ export const CHANNEL = {
   timerEvent: "timer:event",
   timerExtend: "timer:extend",
   speakNow: "speech:now",
+  sayWhenQuiet: "speech:when-quiet",
   musicTracks: "music:tracks",
   cardData: "card:data",
   cardCommand: "card:command",

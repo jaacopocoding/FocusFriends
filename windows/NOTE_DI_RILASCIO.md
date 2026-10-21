@@ -7,6 +7,8 @@ leggere con l'una e con l'altra.
 
 ### Novità della 1.2
 
+**Saluti legati al momento e numeri a voce.** Il compagno ti saluta quando apri l'app, secondo l'ora e con il tuo nome («Buongiorno, Jacopo! Ieri hai studiato 2 h 40: si riparte?»), e quando il computer torna da uno sleep di almeno un'ora («Rieccoti!»). Il lunedì (fino al mercoledì) racconta com'è andata la settimana scorsa («Settimana scorsa: 3 h 40 in 3 giorni, 3 focus. Il giorno più forte: mercoledì (2 h 10).»), ogni tanto, al posto di una frase a caso, ti dice quando rendi meglio, e dopo la frase di fine focus festeggia i traguardi: giorni di fila, numero di focus, ore di studio, «Oggi è un mese che studiamo insieme». Mai durante un focus. Con «Frasi: Mai» tace, tranne i traguardi, che fanno parte del messaggio di fine focus. Le frasi non si coprono più a vicenda (l'annuncio dei compagni sbloccati aspetta che il fumetto finisca) e il fumetto sta sopra la scheda «Com'è andata?», così si legge sempre per intero. L'unica cosa nuova nei dati è quale riepilogo della settimana hai già sentito (`lastWeeklyRecap` in `impostazioni.json`).
+
 **«Hai finito?» a fine focus.** Se un focus è partito dal ▶ di una voce di *Da fare*, quando finisce la scheda di fine focus chiede anche «Hai finito «Riassunto del capitolo 7»?» con *Fatta* e *Non ancora*. *Fatta* segna la voce e il compagno ti fa i complimenti; *Non ancora* la lascia in lista. Se hai spento «Chiedi com'è andata», la scheda ha solo questa domanda. Se fermi il focus prima della fine non chiede niente. I dati non cambiano.
 
 ### Novità della 1.1

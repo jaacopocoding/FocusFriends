@@ -251,6 +251,7 @@ Sul Mac le preferenze stanno in `UserDefaults`. Su Windows stanno in un oggetto 
 | `customTimers.focus` | elenco di interi | minuti, da 1 a 180, fino a 6, in ordine crescente | vuoto |
 | `customTimers.rest` | elenco di interi | minuti, da 1 a 60, fino a 6, in ordine crescente | vuoto |
 | `developerMode` | vero/falso | tutto sbloccato | `false` |
+| `lastWeeklyRecap` | testo | il lunedì («AAAA-MM-GG») della settimana di cui il compagno ha già detto il riepilogo | assente |
 
 - Un valore mancante, di un tipo sbagliato o fuori elenco vale il **predefinito**; non è mai un errore. I timer fuori misura o ripetuti si ignorano.
 - I timer di serie non si salvano: **focus 30 e 50**, **pausa 5 e 10**.
@@ -275,7 +276,7 @@ Sul Mac le preferenze stanno in `UserDefaults`. Su Windows stanno in un oggetto 
 `tests/fixtures/` raccoglie cartelle di dati di esempio (ognuna è una cartella dei dati) e, in `tests/fixtures/attesi/`,
 **quello che la versione per Mac ne ricava** con un «adesso» fisso (14 ottobre 2026, ore 20:00, fuso `Europe/Rome`): quante
 sessioni, quali file nascono (copie, file messi da parte), quali avvisi, la serie, i punti. Ogni nuova versione dell'app
-deve dare gli stessi risultati. Per rifarli: `tests/genera-attesi.sh`.
+deve dare gli stessi risultati. Per rifarli: `tests/genera-attesi.sh`. Dalla 0.10.0 / 1.2.0 comprendono anche le **frasi di contesto** (`contesto`: saluti, risveglio, riepilogo e numeri in sei momenti fissi, e i traguardi man mano che il registro cresce) e `attesi/_contesto-anniversari.json` (gli anniversari su date inventate).
 
 La stessa prova vale **nel verso opposto**: `windows/test/ritorno.test.ts` fa scrivere al codice per Windows alcune cartelle di dati (una migrazione da una
 versione vecchia, sessioni con accenti, emoji, virgolette e formule da foglio di calcolo, voti e note, un focus in corso con pausa, un profilo con il

@@ -79,6 +79,19 @@ describe("Impostazioni", () => {
     assert.ok(!("musicFolder" in JSON.parse(readFileSync(join(dir, "impostazioni.json"), "utf8"))), "togliere la cartella toglie la chiave");
   });
 
+  it("il riepilogo della settimana già detto si ricorda (e un valore sbagliato vale «mai detto»)", () => {
+    const dir = tempDirectory();
+    const s = new Settings(dir);
+    assert.equal(s.lastWeeklyRecap, null);
+    s.lastWeeklyRecap = "2026-10-12";
+    assert.equal(new Settings(dir).lastWeeklyRecap, "2026-10-12");
+    assert.equal(JSON.parse(readFileSync(join(dir, "impostazioni.json"), "utf8")).lastWeeklyRecap, "2026-10-12");
+    writeFileSync(join(dir, "impostazioni.json"), '{"lastWeeklyRecap": 7}');
+    assert.equal(new Settings(dir).lastWeeklyRecap, null, "un numero al posto del testo");
+    writeFileSync(join(dir, "impostazioni.json"), '{"lastWeeklyRecap": ""}');
+    assert.equal(new Settings(dir).lastWeeklyRecap, null, "un testo vuoto");
+  });
+
   it("le chiavi che non conosce restano", () => {
     const dir = tempDirectory();
     writeFileSync(join(dir, "impostazioni.json"), '{"cosaDelFuturo": 7}');

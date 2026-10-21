@@ -14,7 +14,7 @@ import type { Settings } from "../core/settings.ts";
 import { CHATTINESS } from "../core/rules.ts";
 import { PET_IDS } from "../core/pets.ts";
 import { reflectionReply, saveReflection } from "../core/reflection.ts";
-import type { CardCommand } from "../shared/api.ts";
+import type { CardCommand, QuietSpeech } from "../shared/api.ts";
 import type { TimerService } from "./timer.ts";
 import type { ToDoList } from "../core/todoList.ts";
 
@@ -27,6 +27,8 @@ export interface CardServiceOptions {
   isVisible: () => boolean;
   setVisible: (visible: boolean) => void;
   say: (text: string) => void;
+  /** Una frase che aspetta che il compagno abbia finito di parlare. */
+  sayWhenQuiet: (speech: QuietSpeech) => void;
   speakNow: () => void;
   reopenCard: () => void;
   moreSettings: () => void;
@@ -134,8 +136,8 @@ export function createCardService(options: CardServiceOptions): CardService {
     evaluateCompanionRewards(announce) {
       const fresh = evaluateUnlocks(profile, timer().log.sessions, PET_IDS, settings.developerMode);
       if (fresh.length === 0 || !announce) return;
-      // Dopo la frase di fine focus, che altrimenti la coprirebbe.
-      setTimeout(() => options.say(unlockMessage(fresh)), 9000);
+      // Dopo la frase di fine focus, che altrimenti la coprirebbe (e senza coprire un traguardo detto negli stessi momenti).
+      options.sayWhenQuiet({ text: unlockMessage(fresh), after: 9, only: "always" });
     },
 
     command(command) {

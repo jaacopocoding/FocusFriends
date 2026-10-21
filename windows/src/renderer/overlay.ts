@@ -602,6 +602,9 @@ async function start(): Promise<void> {
   });
   api.onTimerState(onTimerState);
   api.onTimerEvent(onTimerEvent);
+  api.onSayWhenQuiet(({ text, after, only }) => {
+    speaker.sayWhenQuiet(text, after, () => only === "always" || (only === "inBreak" ? timerState?.phase === "rest" : timerState?.phase !== "focus"));
+  });
   api.onSpeakNow(() => { void speaker.sayRandom(); });
   api.onCardToggle((request) => card.toggle(request));
   api.onAskSubject((minutes) => { void askFocus(minutes); });

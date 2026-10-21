@@ -51,6 +51,8 @@ circa 200 MB e 0 % di processore. **Le sigle W qui sotto non sono state spuntate
 | «Fai parlare», «Modifica le frasi…» (copia il file incluso e lo apre) | Menu e tocco sul compagno; il file si apre con l'editor predefinito di Windows | S; l'editor vero: **W** |
 | Il file delle frasi è `~/Library/Application Support/FocusFriends/frasi_<pet>.txt` | `%APPDATA%\FocusFriends\frasi_<pet>.txt` | = |
 | Il compagno ricorda le scadenze di oggi (o di domani) di «Da fare», al posto di una frase a caso, al massimo ogni 3 ore, mai durante un focus | Uguale: lo decide il processo principale quando la pagina chiede la frase | P (le frasi, sugli stessi dati del Mac) S |
+| Saluti legati al momento (dalla 1.2): all'avvio, per fascia della giornata e con il nome («Buongiorno, Jacopo! Ieri hai studiato 2 h 40: si riparte?»), alla prima frase spontanea; il lunedì–mercoledì il riepilogo della settimana scorsa (una volta per settimana, `lastWeeklyRecap`); ogni tanto, al posto di una frase a caso, una frase «quando rendi meglio»; al risveglio dallo sleep dopo almeno un'ora «Rieccoti!…» | Uguale; `suspend` e `resume` di Windows al posto delle notifiche dello sleep del Mac; `lastWeeklyRecap` sta in `impostazioni.json` invece che in `UserDefaults` | P (saluti, risveglio, riepilogo e numeri: stessi testi del Mac su 9 cartelle di esempio, in 6 momenti fissi) S (`test/vivo/frasi-contesto.cjs`); il vero sleep: **W** |
+| Traguardi a voce dopo la frase di fine focus (giorni di fila 3/7/14/30/60/100, focus 10…1000, ore 10…500, «un mese / un anno insieme»), una sola frase, mai coperta né sopra un'altra (aspetta che il fumetto finisca) | Uguale | P (gli stessi traguardi del Mac mano a mano che il registro cresce, e 294 anniversari su date inventate) S |
 
 ## 4. Il focus
 

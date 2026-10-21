@@ -51,6 +51,68 @@ func relativeFiles(in directory: URL) -> [String] {
     return found.sorted()
 }
 
+// ---- le frasi di contesto (Remarks.swift): i saluti, il riepilogo, i numeri e i traguardi, in alcuni momenti fissi e con i dati della cartella
+
+let contextMoments: [(Int, Int, Int, Int, Int)] = [(2026, 10, 12, 9, 30), (2026, 10, 13, 15, 0), (2026, 10, 14, 20, 0), (2026, 10, 15, 2, 30),
+                                                   (2026, 10, 18, 10, 0), (2026, 10, 26, 8, 0)]
+let contextDue = "Oggi scade «Esercizi di analisi». Un focus adesso?"
+
+func contextJSON(sessions: [StudySession]) -> [String: Any] {
+    func ctx(_ at: Date, name: String? = "Jacopo", todos: Int = 0, due: String? = nil) -> Remarks.Context {
+        Remarks.Context(now: at, calendar: cal, name: name, sessions: sessions, openTodoCount: todos, due: due)
+    }
+    var moments: [[String: Any]] = []
+    for (y, mo, d, h, mi) in contextMoments {
+        let at = cal.date(from: DateComponents(year: y, month: mo, day: d, hour: h, minute: mi))!
+        let withDue = Remarks.launchGreeting(ctx(at, todos: 2, due: contextDue), variant: 0)
+        let recap = Remarks.weeklyRecap(ctx(at))
+        moments.append([
+            "adesso": String(format: "%04d-%02d-%02dT%02d:%02d", y, mo, d, h, mi),
+            "saluti": (0..<6).map { Remarks.launchGreeting(ctx(at, todos: 2), variant: $0).text },
+            "salutoSenzaNome": Remarks.launchGreeting(ctx(at, name: nil), variant: 0).text,
+            "salutoConScadenza": ["testo": withDue.text, "copreIlPromemoria": withDue.coversReminder] as [String: Any],
+            "risveglio": (0..<6).map { (i: Int) -> Any in v(Remarks.wakeGreeting(ctx(at, todos: 2), away: 7200, variant: i)?.text) },
+            "risveglioBreve": v(Remarks.wakeGreeting(ctx(at), away: 1800, variant: 0)?.text),
+            "riepilogo": recap == nil ? NSNull() as Any : ["chiave": recap!.key, "testo": recap!.text] as [String: Any],
+            "numeri": (0..<3).map { (i: Int) -> Any in v(Remarks.insight(ctx(at), variant: i)) },
+        ])
+    }
+    // I traguardi: man mano che il registro cresce (ogni sessione, dalla più vecchia), quali frasi scattano.
+    let ordered = sessions.sorted { $0.start != $1.start ? $0.start < $1.start : $0.id.uuidString < $1.id.uuidString }
+    var milestones: [[String: Any]] = []
+    for i in ordered.indices {
+        if let text = Remarks.milestone(before: Array(ordered[..<i]), after: Array(ordered[...i]), now: ordered[i].start, calendar: cal) {
+            milestones.append(["dopo": i + 1, "frase": text])
+        }
+    }
+    return ["momenti": moments, "traguardi": milestones]
+}
+
+/// Gli anniversari («un mese insieme»…) su date inventate: per ogni primo giorno e ogni giorno dopo, la frase se scatta.
+func anniversaryJSON() -> [[String: Any]] {
+    func session(_ y: Int, _ m: Int, _ d: Int) -> StudySession {
+        let start = cal.date(from: DateComponents(year: y, month: m, day: d, hour: 10))!
+        return StudySession(start: start, localStart: StudySession.localString(for: start, calendar: cal), seconds: 3000, plannedMinutes: 50, completed: true, subject: nil)
+    }
+    var found: [[String: Any]] = []
+    for first in [(2026, 1, 31), (2026, 1, 30), (2026, 1, 29), (2024, 2, 29), (2025, 12, 15), (2026, 8, 31), (2026, 3, 31), (2026, 2, 28)] {
+        let firstSession = session(first.0, first.1, first.2)
+        var day = cal.date(byAdding: .day, value: 1, to: cal.startOfDay(for: firstSession.start))!
+        let end = cal.date(from: DateComponents(year: 2029, month: 1, day: 1))!
+        while day < end {
+            let c = cal.dateComponents([.year, .month, .day], from: day)
+            let today = session(c.year!, c.month!, c.day!)
+            let at = cal.date(byAdding: .hour, value: 2, to: today.start)!
+            if let text = Remarks.milestone(before: [firstSession], after: [firstSession, today], now: at, calendar: cal) {
+                found.append(["primo": String(format: "%04d-%02d-%02d", first.0, first.1, first.2),
+                              "oggi": String(format: "%04d-%02d-%02d", c.year!, c.month!, c.day!), "frase": text])
+            }
+            day = cal.date(byAdding: .day, value: 1, to: day)!
+        }
+    }
+    return found
+}
+
 try? fm.createDirectory(at: outputDirectory, withIntermediateDirectories: true)
 var written = 0
 for entry in try fm.contentsOfDirectory(atPath: fixtures.path).sorted() {
@@ -111,6 +173,7 @@ for entry in try fm.contentsOfDirectory(atPath: fixtures.path).sorted() {
             stats["frasi"] = StudyStats.insights(sessions: sessions, calendar: cal)
             stats["csv"] = SessionCSV.csv(for: sessions)
             result["statistiche"] = stats
+            result["contesto"] = contextJSON(sessions: sessions)
         }
     }
 
@@ -189,4 +252,6 @@ for entry in try fm.contentsOfDirectory(atPath: fixtures.path).sorted() {
     written += 1
     try? fm.removeItem(at: tmp)
 }
+let anniversaries = try JSONSerialization.data(withJSONObject: ["anniversari": anniversaryJSON()], options: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes])
+try (anniversaries + Data("\n".utf8)).write(to: outputDirectory.appendingPathComponent("_contesto-anniversari.json"))
 print("Scritti \(written) file in \(outputDirectory.path)")

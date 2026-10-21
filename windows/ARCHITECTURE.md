@@ -5,13 +5,13 @@
 > the Mac app; features are numbered and named alike where they correspond, and `PARITA.md` compares them one by one.
 > Snapshot described: version `1.2.0`, not yet released (`1.1.1` is released as `windows-v1.1.1` at `e989d20`, `1.1.0` as `windows-v1.1.0` at `4b84a72`; the first release, `windows-v1.0.0`, is at `75d07e9`; 1.0.1, at `74bda89`,
 > adds the lock-down of the windows, the gating of the test-only environment variables and the live-run scripts in `test/vivo/`, see §10;
-> 1.1.0 adds the to-do list, §4.16; 1.1.1 changes how items are added and lets them be edited; 1.2.0 asks "Hai finito?" at the end of a focus started from an item). Content: **everything except the garden** (see `../PIANO_WINDOWS.md`).
+> 1.1.0 adds the to-do list, §4.16; 1.1.1 changes how items are added and lets them be edited; 1.2.0 asks "Hai finito?" at the end of a focus started from an item, and adds the context phrases, §4.17). Content: **everything except the garden** (see `../PIANO_WINDOWS.md`).
 > Everything here was read from the files in the repository; statements that could not be fully verified are marked
 > **[uncertain]**. Rationales are labelled **[documented]** (comes from code comments, `PIANO_WINDOWS.md`, `FORMATI.md` or git
 > history) or **[inferred]** (deduced from the code).
 > UI strings and code comments are in Italian (as on the Mac); identifiers are English. UI strings quoted here are glossed.
 > **What was and was not exercised on a real Windows machine:** the code runs on macOS during development (Electron is
-> cross-platform); the Windows CI job runs the type check, the logic tests (283 now) and the build on a Windows runner, and the author
+> cross-platform); the Windows CI job runs the type check, the logic tests (318 now) and the build on a Windows runner, and the author
 > installed the released installer on a Windows computer for a brief check (see `PARITA.md`, "Prova su Windows"). The parts that
 > only exist on Windows (real click-through, task-bar sides, scale factors, two monitors, sleep, fullscreen apps, virtual
 > desktops) are listed in `PROVE_SU_WINDOWS.md` and have **not** been verified one by one.
@@ -49,7 +49,7 @@ HTTP client in the code **[inferred]**).
 cd windows
 npm install          # Electron, TypeScript, esbuild, electron-builder (devDependencies)
 npm run check        # tsc --noEmit
-npm test             # 283 tests, no dependencies needed
+npm test             # 318 tests, no dependencies needed
 npm start            # builds dist/ and opens the companion (on macOS: data in a test folder)
 npm run pacchetto    # build + stage resources + electron-builder --win → release/*.exe
 ```
@@ -69,21 +69,21 @@ windows/
 ├── resources/                      fine-focus.wav (the end-of-focus chime, generated from scratch), fonts/ (Chewy + licence)
 ├── installer/icon.png              the installer and program icon
 ├── src/
-│   ├── core/       (30 files)      pure logic, no Electron, no DOM: runs in Node tests, in the main process and in the pages
-│   ├── main/       (12 files)      main process: windows, tray, timer service, files, protocol, dialogs, power events, window lock-down
+│   ├── core/       (32 files)      pure logic, no Electron, no DOM: runs in Node tests, in the main process and in the pages
+│   ├── main/       (13 files)      main process: windows, tray, timer service, files, protocol, dialogs, power events, window lock-down
 │   ├── preload/    (2 files)       the secure bridges (`preload.cjs` for the overlay, `preload-stats.cjs` for the statistics window)
 │   ├── shared/     (2 files)       the typed contract between main and pages (`api.ts`, `statsApi.ts`)
 │   └── renderer/                   the overlay page (companion, bubble, clock, card, dialogs, sounds) and the statistics page
-├── test/           (28 files)      26 test files + 2 helpers (`util.ts`, `atteso.ts`); see §7
-│   └── vivo/       (29 files)      scripts for live runs of the real app (`esegui.sh`, `misure.sh`, 26 scenarios and a README); see §5.3
+├── test/           (29 files)      27 test files + 2 helpers (`util.ts`, `atteso.ts`); see §7
+│   └── vivo/       (31 files)      scripts for live runs of the real app (`esegui.sh`, `misure.sh`, 28 scenarios and a README); see §5.3
 └── tools/                          build.mjs, genera-icone.mjs, prepara-risorse.mjs
 ```
 
 | Area | Files (lines) |
 |---|---|
-| `core/` | `log.ts` (637), `pomodoro.ts` (464), `todoList.ts` (229), `todo.ts` (178), `stats.ts` (284), `walker.ts` (275), `profile.ts` (221), `settings.ts` (156), `rules.ts` (155), `time.ts` (151), `dashboard.ts` (146), `noise.ts` (146), `card.ts` (144), `pets.ts` (112), `phrases.ts` (92), `text.ts` (84), `displays.ts` (86), `audioPlan.ts` (72), `diagnostics.ts` (69), `points.ts` (57), `urls.ts` (21), `environment.ts` (20), `music.ts` (55), `files.ts` (53), `tracks.ts` (40), `rewards.ts` (40), `unlocks.ts` (33), `reflection.ts` (30), `csv.ts` (27), `colors.ts` (22) |
-| `main/` | `main.ts` (358), `card.ts` (229), `tray.ts` (229), `statsWindow.ts` (147), `protocol.ts` (69), `music.ts` (69), `stage.ts` (77), `timer.ts` (79), `overlay.ts` (46), `security.ts` (39), `paths.ts` (33), `login.ts` (18) |
-| `renderer/` | `overlay.ts` (642, the page controller), `card/card.ts` (858), `dialogs/reflectionCard.ts` (145), `petView.ts` (380), `stats/stats.ts` (278), `clockView.ts` (255), `card/widgets.ts` (236), `audio/music.ts` (160), `audio/ambient.ts` (159), `speaker.ts` (156), `dialogs/*` (5 files, ≈ 300), `extendPrompt.ts` (71), `card/dom.ts` (60), `bubble.ts` (51), `audio/noiseWorklet.ts` (40), `avatar.ts` (26), `fonts.ts` (14), CSS and HTML |
+| `core/` | `log.ts` (637), `pomodoro.ts` (464), `todoList.ts` (229), `todo.ts` (178), `stats.ts` (284), `walker.ts` (275), `profile.ts` (221), `remarks.ts` (204), `settings.ts` (163), `rules.ts` (155), `time.ts` (151), `dashboard.ts` (146), `noise.ts` (146), `card.ts` (144), `pets.ts` (112), `phrases.ts` (92), `phraseChooser.ts` (69), `text.ts` (84), `displays.ts` (86), `audioPlan.ts` (72), `diagnostics.ts` (69), `points.ts` (57), `urls.ts` (21), `environment.ts` (20), `music.ts` (55), `files.ts` (53), `tracks.ts` (40), `rewards.ts` (40), `unlocks.ts` (33), `reflection.ts` (30), `csv.ts` (27), `colors.ts` (22) |
+| `main/` | `main.ts` (355), `card.ts` (233), `tray.ts` (229), `statsWindow.ts` (147), `protocol.ts` (69), `music.ts` (69), `stage.ts` (77), `timer.ts` (79), `remarks.ts` (113), `overlay.ts` (46), `security.ts` (39), `paths.ts` (33), `login.ts` (18) |
+| `renderer/` | `overlay.ts` (664, the page controller), `card/card.ts` (858), `dialogs/reflectionCard.ts` (145), `petView.ts` (380), `stats/stats.ts` (278), `clockView.ts` (255), `card/widgets.ts` (236), `audio/music.ts` (160), `audio/ambient.ts` (159), `speaker.ts` (168), `dialogs/*` (5 files, ≈ 300), `extendPrompt.ts` (71), `card/dom.ts` (60), `bubble.ts` (51), `audio/noiseWorklet.ts` (40), `avatar.ts` (26), `fonts.ts` (14), CSS and HTML |
 
 Notes:
 
@@ -143,6 +143,7 @@ Principles (all **[documented]** in `PIANO_WINDOWS.md` unless stated):
 | `overlay:visibility` | main → page | hide/show |
 | `stage:moved` / `stage:dragging` | main → page / page → main | work-area rectangle of the window's display; start/stop of a drag (§4.4) |
 | `focus:ask-subject`, `name:ask`, `intro:show`, `speech:now` | main → page | tray menu actions that need the page to show something |
+| `speech:when-quiet` | main → page | a phrase to say as soon as the companion is not already speaking (`QuietSpeech`: text, delay, when it still makes sense): unlock announcements, milestones, the wake-up greeting (§4.6, §4.17) |
 | `music:tracks` | invoke | `MusicList {version, tracks[{id,title}]}` for a source |
 | `system:resumed` | main → page | the computer woke up or the screen was unlocked (§4.15) |
 | `stats:get-data`, `stats:data`, `stats:edit`, `stats:delete`, `stats:export-csv`, `stats:delete-all`, `stats:back` | statistics page ↔ main | all calls check `event.sender === window.webContents` (`trusted`) |
@@ -246,7 +247,8 @@ have their own ranges). The bubble is a DOM element: `bubble.png` scaled to the 
 the image's proportions (`bubbleSize`, measured in a hidden `#measure` span). It follows the companion (`follow(now)`: it rises at once, descends at most 140 px/s), sits beside the pet when
 there is no room above, and stays `max(4.5, 2.5 + 0.06 × characters)` seconds. Phrases come from `loadPhrases`: the user's file in the data folder, else the bundled one, else the
 pet's fallback; a `PhraseDeck` per companion shuffles and never repeats until the deck is used (`FORMATI.md` §7). The main process answers `phrase:next` (so files are re-read for each phrase);
-before drawing from the deck it may answer with a to-do reminder instead (at most every 3 h, never during a focus, §4.16).
+before drawing from the deck it may answer with something else: a queued context phrase (the launch greeting, the weekly recap), a to-do reminder (at most every 3 h, never during a focus, §4.16) or, once in six, a "when you do best" sentence (§4.17).
+Phrases that must not cover another one (unlock announcements, milestones, the wake-up greeting) come from the main process as `speech:when-quiet` (`QuietSpeech {text, after, only}`): `Speaker.sayWhenQuiet` waits `after` seconds, checks that the phrase is still wanted (`only`: always, outside a focus, or only in a break) and, if the companion is speaking, retries every 3 s up to four times. The bubble has `z-index: 16`, above "Com'è andata?" (15), so a phrase said while that card is open is readable (as on the Mac, where the later window is on top).
 
 ### 4.7 The timer engine and its service (`core/pomodoro.ts`, `main/timer.ts`)
 
@@ -327,14 +329,14 @@ fields), and "Cancella tutto…" (confirmation; removes sessions, in-progress fi
 ### 4.14 Companion unlocking (`core/rewards.ts`, `core/unlocks.ts`, `main/card.ts`)
 
 The first companion is free; the others unlock at 20, 50 and 100 "full focuses" (50 minutes of study each, interrupted minutes included). After every recorded focus `evaluateCompanionRewards(true)` unlocks what was earned and the companion says so
-9 seconds after the end-of-focus phrase; at start the same runs silently. Locked companions cannot be chosen from the card or the menu.
+9 seconds after the end-of-focus phrase (`sayWhenQuiet`, so it waits if a milestone is being said); at start the same runs silently. Locked companions cannot be chosen from the card or the menu.
 
 ### 4.15 System integration
 
 - **Tray** (`Tray` with the head of the current companion, 32 px), **no taskbar button** (`skipTaskbar`).
 - **Single instance:** `requestSingleInstanceLock()` (bypassed only by `FF_NO_LOCK=1` together with `FF_SELFTEST`); a second launch quits and the first shows the companion.
 - **Login item:** `setLoginItemSettings({openAtLogin})`, enabled only when `app.isPackaged` (otherwise it would register Electron itself).
-- **Power:** `suspend` (logged), `resume` and `unlock-screen` → `awake()`: refresh the time-zone cache, log the displays, `stage.refit()`, send `system:resumed`. The timer needs nothing (the 10 s gap rule).
+- **Power:** `suspend` (logged; the context phrases remember when), `resume` and `unlock-screen` → `awake()`: refresh the time-zone cache, log the displays, `stage.refit()`, send `system:resumed`; `resume` also lets the companion say "Rieccoti!" (§4.17). The timer needs nothing (the 10 s gap rule).
 - **Shutdown:** `before-quit` and `session-end` (Windows closing the session) → `service.shutdown()` → a running focus is saved as interrupted.
 - **Crash handling:** `uncaughtException` / `unhandledRejection` / `child-process-gone` go to the app log; the page is reloaded after a render-process crash (max 3 per 10 min).
 - **App log** (`core/diagnostics.ts`): `registro-app.log` in the data folder, one line per fact, 200 KB then rotated to `registro-app.1.log`; no names, subjects or notes, and the user's home path in messages becomes `~`. Since 1.0.0 it also records the Windows version
@@ -376,6 +378,26 @@ The same feature as the Mac app (`../ARCHITECTURE.md` §3.22), with the same rul
   `../tests/fixtures/dafare*` checked against the Swift results, and a folder written by this code read back by Swift (`ritorno.test.ts`). Live run:
   `test/vivo/dafare.cjs`.
 
+### 4.17 Context phrases (since 1.2: `core/remarks.ts`, `core/phraseChooser.ts`, `main/remarks.ts`)
+
+The companion greets according to the moment and says the study numbers aloud. Everything is derived from the log and the clock; the only thing stored is which weekly recap was
+already said (`lastWeeklyRecap` in `impostazioni.json`, `FORMATI.md` §6). Same rules and texts as `Remarks.swift` (the contract tests compare them, below). Neutral Italian ("Rieccoti", never "bentornato").
+
+- **Launch greeting** (`launchGreeting`): 5–12 morning, 12–18 afternoon, 18–23 evening, otherwise night ("È tardi…"); Sundays "Buona domenica"; with the user's name when there is one. After the greeting one line:
+  today's or yesterday's study, the streak (≥ 2 days), the open to-dos, or "Si comincia quando vuoi."; if something is due today or tomorrow that sentence replaces the line and the reminder is not repeated right after
+  (`coversReminder`). Not said before the welcome card has been seen.
+- **Weekly recap** (`weeklyRecap`): on Monday to Wednesday, once per week (the key is last week's Monday, compared with `lastWeeklyRecap`): "Settimana scorsa: 3 h 40 in 3 giorni, 3 focus. Il giorno più forte: mercoledì (2 h 10)."
+  Nothing if last week had no study. Greeting and recap are queued in the `PhraseChooser` and said at the **first spontaneous phrases** (so never with "Frasi: Mai"; "Fai parlare" also draws them).
+- **`PhraseChooser`** (the order of `Speaker.sayRandom` on the Mac): queued occasion → to-do reminder (≥ 3 h since the last, never during a focus) → once in six a "when you do best" sentence (`StudyStats.insights`, never during a focus,
+  never the same twice in a row) → the deck. The main process owns it (`createRemarks`), the page only asks `phrase:next`.
+- **Wake-up greeting** (`wakeGreeting`): `suspend` records the time; on `resume` after **at least an hour** "Rieccoti!" / "Eccoti di nuovo!" / "Ti stavo aspettando!" plus today's study or the open to-dos, 5 s later, only outside a focus,
+  only if the companion is visible and "Frasi" is not "Mai".
+- **Milestones** (`milestone`): after `focusRecorded`, compared with the log without that session: streak 3/7/14/30/60/100 days, focus 10/25/50/100/250/500/1000, hours 10/25/50/100/250/500, and "Oggi è un mese / un anno… che studiamo insieme"
+  (same day of the month as the first focus, first focus of the day; months are counted on the calendar, so an anniversary of the 31st falls on the last day of shorter months). One phrase only, in that order; said 9 s after the end-of-focus phrase, only during the break
+  (`sayWhenQuiet`, `only: "inBreak"`). Like the unlock announcement it is part of the end-of-focus message, so "Frasi: Mai" does not silence it.
+- **Tests:** `contesto.test.ts` (the same checks as the Swift section "Frasi di contesto", the chooser, and the main-process service with a real engine and log); the contract compares greetings (6 fixed moments × variants), wake-up, recap, insights and the
+  milestones reached as each sample log grows, plus `attesi/_contesto-anniversari.json` (294 anniversaries from invented dates, including month ends and a leap year). Live run: `test/vivo/frasi-contesto.cjs`.
+
 ---
 
 ## 5. Contracts, environment and self-test
@@ -402,12 +424,12 @@ which made "Cancella tutto…" skip its confirmation.
 
 With `FF_SELFTEST`, the preload exposes `selfTest: true` and the page defines `window.__ff` (say, state, hit test, open/close the card, audio state, interrupt audio…). `FF_SELFTEST=<seconds list>` takes screenshots and process
 metrics at those moments; `FF_SELFTEST_FILE=<script.cjs>` runs a script that receives tools: the window, `js()` (run code in the page), `shot()`, `metrics()`, `mouse()`/`key()` (simulated input events), the settings, the timer service
-(`run`, `engine`, `log`), the card and statistics controllers, the stage, `power()` (emit `suspend`/`resume`/`lock-screen`/`unlock-screen`) and `quit()`.
+(`run`, `engine`, `log`), the card and statistics controllers, the context-phrases service (`remarks`), the stage, `power()` (emit `suspend`/`resume`/`lock-screen`/`unlock-screen`) and `quit()`.
 
 **Live runs (`test/vivo/`, since 1.0.1).** The scenario scripts used during development are in the repository, with a runner: `test/vivo/esegui.sh <script> [seconds]` builds,
 creates a **new** results folder with its own data folder inside it (it never uses real data and never deletes anything: if the folder exists it stops), writes
 `impostazioni.json` / `profilo.json`, opens the real Electron app with `FF_SELFTEST` and `FF_SELFTEST_FILE`, kills it after a time limit (macOS has no `timeout`),
-prints the app's output and shrinks the screenshots. `misure.sh` measures memory and CPU at rest. 26 scenarios cover the timer, the card, the dialogs, sounds, statistics, saving, the to-do list,
+prints the app's output and shrinks the screenshots. `misure.sh` measures memory and CPU at rest. 28 scenarios cover the timer, the card, the dialogs, sounds, statistics, saving, the to-do list,
 displays, sleep and the packaged app; they **print what they observe** and take screenshots, for a person to judge: they are not assertions. `test/vivo/README.md` lists what each one checks and what it needs.
 
 ---
@@ -425,7 +447,7 @@ displays, sleep and the packaged app; they **print what they observe** and take 
 
 ## 7. Tests (`test/`, `npm test`)
 
-283 tests in 26 files, no framework, no dependencies. They run unchanged in the main process's code paths because the logic is pure.
+318 tests in 27 files, no framework, no dependencies. They run unchanged in the main process's code paths because the logic is pure.
 
 | File(s) | What they cover |
 |---|---|
@@ -435,6 +457,7 @@ displays, sleep and the packaged app; they **print what they observe** and take 
 | `statistiche`, `cruscotto`, `colori`, `testo` | periods, summaries, streak with its frozen day, insights, CSV, the dashboard's Italian texts, subject colours (64-bit hash equal to Swift), text cleaning |
 | `timer`, `camminata`, `personaggi`, `sblocchi`, `riflessione`, `scheda` | the timer engine with a fake clock (pause, grace, "+5", discard, sleep gap, long break), the walker, pet stages (compared with Swift), unlock rules, reflection replies, card data |
 | `musica`, `elencomusica`, `suoni`, `rumore` | music queue and listing, audio plan decisions, the noise synthesiser against measurements from the Mac (rain and brown within 1 %, wind within 3 %: the Mac accumulates the phase in Float32) |
+| `contesto` | context phrases: greetings by day part, wake-up, weekly recap, milestones and anniversaries, the phrase chooser, and the main-process service (a real engine and log, fake clock) |
 | `dafare` | the to-do list: day strings and labels, text cleaning, add/toggle/remove, grouping and order, the file (format, 7-day purge, 200-item limit, newer and damaged files), reminder sentences |
 | `ambiente`, `indirizzi` | the test-variable gating (`FF_*` ignored without `FF_SELFTEST`, `FF_DATA_DIR` ignored in the installed app) and the URL rule of the lock-down (only `ff://app/…`; log lines carry scheme and site only) |
 | `schermi`, `fusi` | display geometry and the task-bar side; time zones: DST days of 23 and 25 hours, a zone changed while running, Sydney, Lord Howe, India/Nepal, the date line |

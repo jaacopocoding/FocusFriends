@@ -1,6 +1,223 @@
 {
   "adesso" : "2026-10-14T20:00 Europe/Rome",
   "cartella" : "v3-serie-lunga",
+  "contesto" : {
+    "momenti" : [
+      {
+        "adesso" : "2026-10-12T09:30",
+        "numeri" : [
+          null,
+          null,
+          null
+        ],
+        "riepilogo" : {
+          "chiave" : "2026-10-05",
+          "testo" : "Settimana scorsa: 7 h in 7 giorni, 7 focus. Il giorno più forte: lunedì (1 h)."
+        },
+        "risveglio" : [
+          "Rieccoti! Oggi sei a 1 h.",
+          "Eccoti di nuovo! Oggi sei a 1 h.",
+          "Ti stavo aspettando! Oggi sei a 1 h.",
+          "Rieccoti! Hai 2 cose da fare.",
+          "Eccoti di nuovo! Hai 2 cose da fare.",
+          "Ti stavo aspettando! Hai 2 cose da fare."
+        ],
+        "risveglioBreve" : null,
+        "saluti" : [
+          "Buongiorno, Jacopo! Oggi hai già studiato 1 h.",
+          "Buongiorno, Jacopo! Sei a 15 giorni di fila.",
+          "Buongiorno, Jacopo! Hai 2 cose da fare.",
+          "Buongiorno, Jacopo! Oggi hai già studiato 1 h.",
+          "Buongiorno, Jacopo! Sei a 15 giorni di fila.",
+          "Buongiorno, Jacopo! Hai 2 cose da fare."
+        ],
+        "salutoConScadenza" : {
+          "copreIlPromemoria" : true,
+          "testo" : "Buongiorno, Jacopo! Oggi scade «Esercizi di analisi». Un focus adesso?"
+        },
+        "salutoSenzaNome" : "Buongiorno! Oggi hai già studiato 1 h."
+      },
+      {
+        "adesso" : "2026-10-13T15:00",
+        "numeri" : [
+          null,
+          null,
+          null
+        ],
+        "riepilogo" : {
+          "chiave" : "2026-10-05",
+          "testo" : "Settimana scorsa: 7 h in 7 giorni, 7 focus. Il giorno più forte: lunedì (1 h)."
+        },
+        "risveglio" : [
+          "Rieccoti! Oggi sei a 1 h.",
+          "Eccoti di nuovo! Oggi sei a 1 h.",
+          "Ti stavo aspettando! Oggi sei a 1 h.",
+          "Rieccoti! Hai 2 cose da fare.",
+          "Eccoti di nuovo! Hai 2 cose da fare.",
+          "Ti stavo aspettando! Hai 2 cose da fare."
+        ],
+        "risveglioBreve" : null,
+        "saluti" : [
+          "Buon pomeriggio, Jacopo! Oggi hai già studiato 1 h.",
+          "Buon pomeriggio, Jacopo! Sei a 15 giorni di fila.",
+          "Buon pomeriggio, Jacopo! Hai 2 cose da fare.",
+          "Buon pomeriggio, Jacopo! Oggi hai già studiato 1 h.",
+          "Buon pomeriggio, Jacopo! Sei a 15 giorni di fila.",
+          "Buon pomeriggio, Jacopo! Hai 2 cose da fare."
+        ],
+        "salutoConScadenza" : {
+          "copreIlPromemoria" : true,
+          "testo" : "Buon pomeriggio, Jacopo! Oggi scade «Esercizi di analisi». Un focus adesso?"
+        },
+        "salutoSenzaNome" : "Buon pomeriggio! Oggi hai già studiato 1 h."
+      },
+      {
+        "adesso" : "2026-10-14T20:00",
+        "numeri" : [
+          null,
+          null,
+          null
+        ],
+        "riepilogo" : {
+          "chiave" : "2026-10-05",
+          "testo" : "Settimana scorsa: 7 h in 7 giorni, 7 focus. Il giorno più forte: lunedì (1 h)."
+        },
+        "risveglio" : [
+          "Rieccoti! Oggi sei a 1 h.",
+          "Eccoti di nuovo! Oggi sei a 1 h.",
+          "Ti stavo aspettando! Oggi sei a 1 h.",
+          "Rieccoti! Hai 2 cose da fare.",
+          "Eccoti di nuovo! Hai 2 cose da fare.",
+          "Ti stavo aspettando! Hai 2 cose da fare."
+        ],
+        "risveglioBreve" : null,
+        "saluti" : [
+          "Buonasera, Jacopo! Oggi hai già studiato 1 h.",
+          "Buonasera, Jacopo! Sei a 15 giorni di fila.",
+          "Buonasera, Jacopo! Hai 2 cose da fare.",
+          "Buonasera, Jacopo! Oggi hai già studiato 1 h.",
+          "Buonasera, Jacopo! Sei a 15 giorni di fila.",
+          "Buonasera, Jacopo! Hai 2 cose da fare."
+        ],
+        "salutoConScadenza" : {
+          "copreIlPromemoria" : true,
+          "testo" : "Buonasera, Jacopo! Oggi scade «Esercizi di analisi». Un focus adesso?"
+        },
+        "salutoSenzaNome" : "Buonasera! Oggi hai già studiato 1 h."
+      },
+      {
+        "adesso" : "2026-10-15T02:30",
+        "numeri" : [
+          null,
+          null,
+          null
+        ],
+        "riepilogo" : null,
+        "risveglio" : [
+          "Rieccoti! Hai 2 cose da fare.",
+          "Eccoti di nuovo! Hai 2 cose da fare.",
+          "Ti stavo aspettando! Hai 2 cose da fare.",
+          "Rieccoti! Hai 2 cose da fare.",
+          "Eccoti di nuovo! Hai 2 cose da fare.",
+          "Ti stavo aspettando! Hai 2 cose da fare."
+        ],
+        "risveglioBreve" : null,
+        "saluti" : [
+          "Jacopo, è tardi. Un ultimo focus e poi a dormire?",
+          "Jacopo, è tardi: la testa ha bisogno di riposo, non solo di studio.",
+          "Jacopo, è tardi. Un ultimo focus e poi a dormire?",
+          "Jacopo, è tardi: la testa ha bisogno di riposo, non solo di studio.",
+          "Jacopo, è tardi. Un ultimo focus e poi a dormire?",
+          "Jacopo, è tardi: la testa ha bisogno di riposo, non solo di studio."
+        ],
+        "salutoConScadenza" : {
+          "copreIlPromemoria" : false,
+          "testo" : "Jacopo, è tardi. Un ultimo focus e poi a dormire?"
+        },
+        "salutoSenzaNome" : "È tardi. Un ultimo focus e poi a dormire?"
+      },
+      {
+        "adesso" : "2026-10-18T10:00",
+        "numeri" : [
+          null,
+          null,
+          null
+        ],
+        "riepilogo" : null,
+        "risveglio" : [
+          "Rieccoti! Hai 2 cose da fare.",
+          "Eccoti di nuovo! Hai 2 cose da fare.",
+          "Ti stavo aspettando! Hai 2 cose da fare.",
+          "Rieccoti! Hai 2 cose da fare.",
+          "Eccoti di nuovo! Hai 2 cose da fare.",
+          "Ti stavo aspettando! Hai 2 cose da fare."
+        ],
+        "risveglioBreve" : null,
+        "saluti" : [
+          "Buona domenica, Jacopo! Hai 2 cose da fare.",
+          "Buona domenica, Jacopo! Hai 2 cose da fare.",
+          "Buona domenica, Jacopo! Hai 2 cose da fare.",
+          "Buona domenica, Jacopo! Hai 2 cose da fare.",
+          "Buona domenica, Jacopo! Hai 2 cose da fare.",
+          "Buona domenica, Jacopo! Hai 2 cose da fare."
+        ],
+        "salutoConScadenza" : {
+          "copreIlPromemoria" : true,
+          "testo" : "Buona domenica, Jacopo! Oggi scade «Esercizi di analisi». Un focus adesso?"
+        },
+        "salutoSenzaNome" : "Buona domenica! Si comincia quando vuoi."
+      },
+      {
+        "adesso" : "2026-10-26T08:00",
+        "numeri" : [
+          null,
+          null,
+          null
+        ],
+        "riepilogo" : null,
+        "risveglio" : [
+          "Rieccoti! Hai 2 cose da fare.",
+          "Eccoti di nuovo! Hai 2 cose da fare.",
+          "Ti stavo aspettando! Hai 2 cose da fare.",
+          "Rieccoti! Hai 2 cose da fare.",
+          "Eccoti di nuovo! Hai 2 cose da fare.",
+          "Ti stavo aspettando! Hai 2 cose da fare."
+        ],
+        "risveglioBreve" : null,
+        "saluti" : [
+          "Buongiorno, Jacopo! Hai 2 cose da fare.",
+          "Buongiorno, Jacopo! Hai 2 cose da fare.",
+          "Buongiorno, Jacopo! Hai 2 cose da fare.",
+          "Buongiorno, Jacopo! Hai 2 cose da fare.",
+          "Buongiorno, Jacopo! Hai 2 cose da fare.",
+          "Buongiorno, Jacopo! Hai 2 cose da fare."
+        ],
+        "salutoConScadenza" : {
+          "copreIlPromemoria" : true,
+          "testo" : "Buongiorno, Jacopo! Oggi scade «Esercizi di analisi». Un focus adesso?"
+        },
+        "salutoSenzaNome" : "Buongiorno! Si comincia quando vuoi."
+      }
+    ],
+    "traguardi" : [
+      {
+        "dopo" : 3,
+        "frase" : "Tre giorni di fila!"
+      },
+      {
+        "dopo" : 7,
+        "frase" : "Sette giorni di fila! Una settimana intera."
+      },
+      {
+        "dopo" : 10,
+        "frase" : "10 focus insieme!"
+      },
+      {
+        "dopo" : 14,
+        "frase" : "Due settimane di fila: che costanza!"
+      }
+    ]
+  },
   "fileDopo" : [
     "sessioni.json"
   ],

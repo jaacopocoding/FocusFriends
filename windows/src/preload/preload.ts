@@ -5,7 +5,7 @@ import { CHANNEL } from "../shared/api.ts";
 import type { CardData } from "../core/card.ts";
 import type { PomodoroEvent, PomodoroSnapshot } from "../core/pomodoro.ts";
 import type { AddTimerResult, MusicSource } from "../core/rules.ts";
-import type { CardOpenRequest, FocusFriendsApi, MusicList, SettingsSnapshot } from "../shared/api.ts";
+import type { CardOpenRequest, FocusFriendsApi, MusicList, QuietSpeech, SettingsSnapshot } from "../shared/api.ts";
 
 const api: FocusFriendsApi = {
   getSettings: () => ipcRenderer.invoke(CHANNEL.getSettings) as Promise<SettingsSnapshot>,
@@ -22,6 +22,9 @@ const api: FocusFriendsApi = {
   },
   onTimerEvent: (callback) => {
     ipcRenderer.on(CHANNEL.timerEvent, (_event, event: PomodoroEvent) => callback(event));
+  },
+  onSayWhenQuiet: (callback) => {
+    ipcRenderer.on(CHANNEL.sayWhenQuiet, (_event, speech: QuietSpeech) => callback(speech));
   },
   extendFocus: () => ipcRenderer.send(CHANNEL.timerExtend),
   musicTracks: (source: MusicSource) => ipcRenderer.invoke(CHANNEL.musicTracks, source) as Promise<MusicList>,

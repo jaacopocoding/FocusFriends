@@ -431,10 +431,15 @@ in alto, e l'ultima durata come punto di partenza), e «Avvia il focus» parte c
 Installer controllati prima di pubblicare: SHA-256 uguali a `SHA256SUMS.txt`, eseguibile x64 e ARM64 giusti, versione 1.1.1, 114 file di immagini, frasi e brani (5 `.m4a`), Chewy con la sua
 licenza, licenze di Electron e Chromium, nessuna mappa dei sorgenti, e nel codice compilato «Nuova cosa», «FOCUS PER», la modifica delle voci e il blocco di navigazione e permessi.
 
-**1.2.0 (preparata il 21 ottobre 2026, non ancora pubblicata): «Hai finito?».** Chiude il giro tra «Da fare» e il timer: se un focus parte dal ▶ di una voce, a fine focus la scheda
+**1.2.0 (preparata il 21 ottobre 2026, non ancora pubblicata): «Hai finito?» e le frasi legate al momento.** Chiude il giro tra «Da fare» e il timer: se un focus parte dal ▶ di una voce, a fine focus la scheda
 «Com'è andata?» chiede anche «Hai finito «…»?» con *Fatta* e *Non ancora* (con «Chiedi com'è andata» spento, solo questa domanda). *Fatta* segna la voce. Il timer ricorda la voce solo in
-memoria (nessun nuovo formato di dati; se l'app si chiude durante il focus il legame si perde). Stessa cosa sul Mac (0.10.0). 283 prove su Windows e 400 sul Mac; provata dal vivo con
-`test/vivo/hai-finito.cjs`.
+memoria (nessun nuovo formato di dati; se l'app si chiude durante il focus il legame si perde). Stessa cosa sul Mac (0.10.0). Provata dal vivo con `test/vivo/hai-finito.cjs`.
+Poi **le frasi legate al momento e i numeri a voce** (stesse regole e testi del Mac, `Remarks.swift` ↔ `core/remarks.ts`): il saluto dell'avvio per fascia della giornata, con il nome; il riepilogo
+della settimana scorsa (lunedì–mercoledì, una volta per settimana: l'unica cosa salvata è `lastWeeklyRecap` in `impostazioni.json`, già `UserDefaults` sul Mac); ogni tanto una frase «quando rendi
+meglio»; «Rieccoti!» al risveglio dallo sleep dopo almeno un'ora; i traguardi (giorni di fila, focus, ore, «un mese insieme») detti dopo la frase di fine focus. Le frasi in coda e la scelta
+della prossima (`PhraseChooser`) stanno nel processo principale; un nuovo canale `speech:when-quiet` fa aspettare le frasi che non devono coprirne un'altra (anche l'annuncio degli sblocchi). Il fumetto
+sta ora sopra «Com'è andata?». Provata sugli stessi dati del Mac (saluti in 6 momenti fissi, traguardi mano a mano che il registro cresce, 294 anniversari su date inventate: `genera-attesi` e
+`contratto.test.ts`) e dal vivo con `test/vivo/frasi-contesto.cjs`. Nel farlo si è corretto anche il Mac: da un 31 gennaio al 28 febbraio il conteggio dei mesi dava zero. 318 prove su Windows e 445 sul Mac.
 
 ## Seconda uscita: il giardino (8–12 giorni)
 

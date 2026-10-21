@@ -59,6 +59,7 @@ Un secondo monitor (anche virtuale) con scala diversa, per esempio il principale
 | Avviare un **focus da 5 minuti** con la pioggia, mettere il computer in sleep per un minuto, svegliarlo | Il tempo dormito **non** conta (l'orologio non salta avanti), la pioggia riparte da sola, il compagno è al suo posto |
 | Chiudere il coperchio e riaprirlo (portatile), oppure *Sospendi* | Come sopra |
 | Win + L (blocca) e sbloccare durante un focus | Il focus continua |
+| Senza nessun focus, mettere il computer in sleep per **più di un'ora** e svegliarlo (dalla 1.2) | Dopo 5 secondi il compagno dice «Rieccoti!…» (con lo studio di oggi o le cose da fare). Con meno di un'ora, o con «Frasi: Mai», o con il compagno nascosto, non dice niente |
 | Cambiare il **fuso orario** (Ora e lingua → Data e ora) mentre l'app è aperta | Le sessioni di prima restano nel loro giorno; una sessione nuova usa l'orologio nuovo (si vede nelle statistiche, «Oggi») |
 | Spostare l'ora avanti di un'ora e indietro (ora legale) | Nessuna sessione cambia giorno |
 

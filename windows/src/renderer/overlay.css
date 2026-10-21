@@ -27,6 +27,8 @@ html, body {
   position: absolute;
   left: 0;
   top: 0;
+  /* Sopra «Com'è andata?» (che sta a 15): una frase detta mentre la scheda è aperta si legge tutta. Sotto le finestre di dialogo. */
+  z-index: 16;
   pointer-events: none;
   background-image: url("ff://app/assets/bubble.png");
   background-size: 100% 100%;
