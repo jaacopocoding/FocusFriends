@@ -155,11 +155,14 @@ per tipo) e uno tuo si può *rimuovere*. *Avvia* parte con i minuti scelti; la p
 
 Nella scheda del menu c'è la riga **Da fare** (a destra, quante cose restano). Apre una pagina per segnarsi le cose da ricordare:
 
-- **Si aggiunge** scrivendo nel campo in alto e premendo Invio (o «+»). Mentre scrivi compaiono, facoltative, la **scadenza**
-  (*Oggi*, *Domani*, *Fra una settimana*, oppure *Scegli…* con un calendario) e la **materia** (quelle usate di recente).
-  La scadenza è un giorno, senza ora.
+- **Si aggiunge** con il **«+»** in alto a destra, che apre la pagina *Nuova cosa*: il nome (già pronto da scrivere), la **scadenza**
+  (*Oggi*, *Domani*, *Fra una settimana*, oppure *Scegli…* con un calendario) e la **materia** (si scrive, o si tocca una di quelle usate
+  di recente), poi *Aggiungi* (o Invio). La scadenza è un giorno, senza ora; scadenza e materia sono facoltative. Con *Annulla*, la freccia
+  o Esc nei campi si torna alla lista senza salvare.
 - **La lista** è divisa in *Scadute*, *Oggi*, *Prossime* e *Senza data*; accanto a ogni voce c'è la scadenza («ieri», «oggi»,
   «domani», «ven 23», «26 ott»).
+- **Toccando il testo di una voce** si apre la stessa pagina, *Modifica*, già compilata: si cambiano nome, scadenza e materia. I nomi lunghi vanno
+  a capo (fino a due righe).
 - **Il cerchio** segna una voce come fatta: va in fondo, tra le *Fatte*, e dopo una settimana sparisce. Toccandolo di nuovo torna da fare.
 - **Sotto il mouse** compaiono ▶ *Inizia un focus* (apre «Cosa studi adesso?» con la materia già scritta) e × *Togli*.
 - **Il compagno** ogni tanto ricorda le scadenze di oggi, o di domani («Domani scade «Esercizi di analisi». Un focus adesso?»):
@@ -169,7 +172,7 @@ Le voci stanno in `dafare.json`, accanto a `sessioni.json` (il formato è in [`F
 statistiche non le tocca. «Da fare» c'è anche nella versione per Windows (dalla 1.1).
 
 <p align="center">
-  <img src="docs/images/da-fare.png" width="640" alt="La pagina Da fare: la lista con una voce sotto il mouse, e una voce nuova con la scadenza e la materia">
+  <img src="docs/images/da-fare.png" width="640" alt="La pagina Da fare: la lista con una voce sotto il mouse, e la pagina Nuova cosa con la scadenza e la materia">
 </p>
 
 ## Pomofocus

@@ -26,6 +26,12 @@ enum ToDoDay {
         return (year, month, day)
     }
 
+    /// Mezzogiorno di quel giorno sul calendario dato (per mostrarlo in un calendario); nil se non è un giorno valido.
+    static func date(from day: String, calendar: Calendar = ToDoDay.calendar()) -> Date? {
+        guard let p = parts(day) else { return nil }
+        return calendar.date(from: DateComponents(year: p.year, month: p.month, day: p.day, hour: 12))
+    }
+
     static func string(for date: Date, calendar: Calendar) -> String {
         let c = calendar.dateComponents([.year, .month, .day], from: date)
         return String(format: "%04d-%02d-%02d", c.year ?? 1970, c.month ?? 1, c.day ?? 1)
@@ -253,6 +259,29 @@ final class ToDoList {
         items.append(item)
         save()
         return .added(item)
+    }
+
+    enum UpdateResult: Equatable {
+        case updated
+        /// Il testo è vuoto (dopo averlo pulito): la voce resta com'era.
+        case empty
+        /// Non c'è nessuna voce con questo id.
+        case missing
+    }
+
+    /// Cambia il testo, la scadenza e la materia di una voce (quando è stata scritta e se è fatta non cambia).
+    @discardableResult
+    func update(id: UUID, text: String, due: String?, subject: String?) -> UpdateResult {
+        guard let index = items.firstIndex(where: { $0.id == id }) else { return .missing }
+        guard let cleaned = ToDoText.clean(text) else { return .empty }
+        var item = items[index]
+        item.text = cleaned
+        item.due = due.flatMap { ToDoDay.isValid($0) ? $0 : nil }
+        item.subject = Subject.clean(subject)
+        guard item != items[index] else { return .updated }
+        items[index] = item
+        save()
+        return .updated
     }
 
     /// Segna come fatta (o rimette tra quelle da fare).

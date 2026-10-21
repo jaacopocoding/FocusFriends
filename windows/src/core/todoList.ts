@@ -157,6 +157,22 @@ export class ToDoList {
     return { kind: "added", item };
   }
 
+  /** Cambia il testo, la scadenza e la materia di una voce (la data di quando è stata scritta e se è fatta non cambiano). */
+  update(id: string, text: string, due: string | null, subject: string | null): "updated" | "empty" | "missing" {
+    const item = this._items.find((x) => x.id === id);
+    if (!item) return "missing";
+    const cleaned = cleanToDoText(text);
+    if (cleaned === null) return "empty";
+    const newDue = due !== null && isValidDay(due) ? due : null;
+    const newSubject = cleanSubject(subject);
+    if (item.text === cleaned && item.due === newDue && item.subject === newSubject) return "updated";
+    item.text = cleaned;
+    item.due = newDue;
+    item.subject = newSubject;
+    this.save();
+    return "updated";
+  }
+
   /** Segna come fatta (o rimette tra quelle da fare). */
   toggleDone(id: string): void {
     const item = this._items.find((x) => x.id === id);

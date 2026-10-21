@@ -3,15 +3,15 @@
 > Purpose: a factual description of how the Windows version works, written so that another reader (human or AI) can judge
 > whether the code is acceptable as written or needs revision. It is the counterpart of `../ARCHITECTURE.md`, which describes
 > the Mac app; features are numbered and named alike where they correspond, and `PARITA.md` compares them one by one.
-> Snapshot described: version `1.1.0`, released as `windows-v1.1.0` at `4b84a72` (the first release, `windows-v1.0.0`, is at `75d07e9`; 1.0.1, at `74bda89`,
+> Snapshot described: version `1.1.1`, not yet released (`1.1.0` is released as `windows-v1.1.0` at `4b84a72`; the first release, `windows-v1.0.0`, is at `75d07e9`; 1.0.1, at `74bda89`,
 > adds the lock-down of the windows, the gating of the test-only environment variables and the live-run scripts in `test/vivo/`, see §10;
-> 1.1.0 adds the to-do list, §4.16). Content: **everything except the garden** (see `../PIANO_WINDOWS.md`).
+> 1.1.0 adds the to-do list, §4.16; 1.1.1 changes how items are added and lets them be edited). Content: **everything except the garden** (see `../PIANO_WINDOWS.md`).
 > Everything here was read from the files in the repository; statements that could not be fully verified are marked
 > **[uncertain]**. Rationales are labelled **[documented]** (comes from code comments, `PIANO_WINDOWS.md`, `FORMATI.md` or git
 > history) or **[inferred]** (deduced from the code).
 > UI strings and code comments are in Italian (as on the Mac); identifiers are English. UI strings quoted here are glossed.
 > **What was and was not exercised on a real Windows machine:** the code runs on macOS during development (Electron is
-> cross-platform); the Windows CI job runs the type check, the logic tests (276 now) and the build on a Windows runner, and the author
+> cross-platform); the Windows CI job runs the type check, the logic tests (277 now) and the build on a Windows runner, and the author
 > installed the released installer on a Windows computer for a brief check (see `PARITA.md`, "Prova su Windows"). The parts that
 > only exist on Windows (real click-through, task-bar sides, scale factors, two monitors, sleep, fullscreen apps, virtual
 > desktops) are listed in `PROVE_SU_WINDOWS.md` and have **not** been verified one by one.
@@ -49,7 +49,7 @@ HTTP client in the code **[inferred]**).
 cd windows
 npm install          # Electron, TypeScript, esbuild, electron-builder (devDependencies)
 npm run check        # tsc --noEmit
-npm test             # 276 tests, no dependencies needed
+npm test             # 277 tests, no dependencies needed
 npm start            # builds dist/ and opens the companion (on macOS: data in a test folder)
 npm run pacchetto    # build + stage resources + electron-builder --win → release/*.exe
 ```
@@ -81,9 +81,9 @@ windows/
 
 | Area | Files (lines) |
 |---|---|
-| `core/` | `log.ts` (637), `pomodoro.ts` (457), `todoList.ts` (204), `todo.ts` (166), `stats.ts` (284), `walker.ts` (275), `profile.ts` (221), `settings.ts` (156), `rules.ts` (155), `time.ts` (151), `dashboard.ts` (146), `noise.ts` (146), `card.ts` (144), `pets.ts` (112), `phrases.ts` (92), `text.ts` (84), `displays.ts` (86), `audioPlan.ts` (72), `diagnostics.ts` (69), `points.ts` (57), `urls.ts` (21), `environment.ts` (20), `music.ts` (55), `files.ts` (53), `tracks.ts` (40), `rewards.ts` (40), `unlocks.ts` (33), `reflection.ts` (30), `csv.ts` (27), `colors.ts` (22) |
+| `core/` | `log.ts` (637), `pomodoro.ts` (457), `todoList.ts` (220), `todo.ts` (166), `stats.ts` (284), `walker.ts` (275), `profile.ts` (221), `settings.ts` (156), `rules.ts` (155), `time.ts` (151), `dashboard.ts` (146), `noise.ts` (146), `card.ts` (144), `pets.ts` (112), `phrases.ts` (92), `text.ts` (84), `displays.ts` (86), `audioPlan.ts` (72), `diagnostics.ts` (69), `points.ts` (57), `urls.ts` (21), `environment.ts` (20), `music.ts` (55), `files.ts` (53), `tracks.ts` (40), `rewards.ts` (40), `unlocks.ts` (33), `reflection.ts` (30), `csv.ts` (27), `colors.ts` (22) |
 | `main/` | `main.ts` (358), `card.ts` (229), `tray.ts` (229), `statsWindow.ts` (147), `protocol.ts` (69), `music.ts` (69), `stage.ts` (77), `timer.ts` (79), `overlay.ts` (46), `security.ts` (39), `paths.ts` (33), `login.ts` (18) |
-| `renderer/` | `overlay.ts` (642, the page controller), `card/card.ts` (799), `petView.ts` (380), `stats/stats.ts` (278), `clockView.ts` (255), `card/widgets.ts` (236), `audio/music.ts` (160), `audio/ambient.ts` (159), `speaker.ts` (156), `dialogs/*` (5 files, ≈ 300), `extendPrompt.ts` (71), `card/dom.ts` (60), `bubble.ts` (51), `audio/noiseWorklet.ts` (40), `avatar.ts` (26), `fonts.ts` (14), CSS and HTML |
+| `renderer/` | `overlay.ts` (642, the page controller), `card/card.ts` (858), `petView.ts` (380), `stats/stats.ts` (278), `clockView.ts` (255), `card/widgets.ts` (236), `audio/music.ts` (160), `audio/ambient.ts` (159), `speaker.ts` (156), `dialogs/*` (5 files, ≈ 300), `extendPrompt.ts` (71), `card/dom.ts` (60), `bubble.ts` (51), `audio/noiseWorklet.ts` (40), `avatar.ts` (26), `fonts.ts` (14), CSS and HTML |
 
 Notes:
 
@@ -137,7 +137,7 @@ Principles (all **[documented]** in `PIANO_WINDOWS.md` unless stated):
 | `timer:get-state` / `timer:state` | invoke / main → page | `PomodoroSnapshot`; sent when what is visible changes (§4.7) |
 | `timer:event` | main → page | `PomodoroEvent`: say, dismissSpeech, sound, focusActive, focusCompleted, focusRecorded, reset, graceBegan, graceEnded |
 | `timer:extend` | page → main | the "+5 minutes" button |
-| `card:data` / `card:command` / `card:add-timer` | invoke / send / invoke | `CardData` (§4.9), `CardCommand` (a closed union of 30 commands), custom-timer saving with its result |
+| `card:data` / `card:command` / `card:add-timer` | invoke / send / invoke | `CardData` (§4.9), `CardCommand` (a closed union of 31 commands), custom-timer saving with its result |
 | `card:toggle` / `card:reopen` | main → page | open/close the card (with an anchor rectangle or none), or reopen it where it was |
 | `overlay:input-mode` | page → main | `{interactive, keyboard}`: whether the window should receive clicks and the keyboard (§4.3) |
 | `overlay:visibility` | main → page | hide/show |
@@ -352,18 +352,21 @@ The same feature as the Mac app (`../ARCHITECTURE.md` §3.22), with the same rul
 - **File** (`core/todoList.ts`): `ToDoList` mirrors the Swift store: decoding is all-or-nothing like `JSONDecoder` (a missing or wrongly typed field in
   any item makes the whole file "damaged": moved to `dafare.corrotto-<epoch>.json`); `version` > 1 → read-only with a message; items are sanitised
   (text, subject, impossible day dropped, empty text drops the item; ids upper-cased as Swift writes them); done items older than 7 days are dropped at
-  load and at every change; at most 200 items; dates are written as `isoUtc` (whole seconds, `Z`), because Swift's `.iso8601` decoder rejects fractions.
+  load and at every change; `update(id, text, due, subject)` (1.1.1) cleans like `add`, keeps the creation and done dates and saves only if something changed; at most 200 items; dates are written as `isoUtc` (whole seconds, `Z`), because Swift's `.iso8601` decoder rejects fractions.
 - **Main process:** `main.ts` creates the list next to the profile (`onProblem` → the companion says it) and passes it to `CardService`, which adds
-  `todoItems` to the card input and handles the commands `todoAdd`, `todoToggle`, `todoRemove`. The `phrase:next` handler returns
+  `todoItems` to the card input and handles the commands `todoAdd`, `todoUpdate`, `todoToggle`, `todoRemove`. The `phrase:next` handler returns
   `reminderMessage(...)` when 3 h have passed since the last reminder (`lastReminder`, in memory) and the timer is not in a focus.
-- **Page** (`MenuCard.buildToDo`): header with back arrow; an `<input>` (`.todo-input`) with a "+" button — Enter or "+" sends `todoAdd` and clears the
-  field; the choices appear when the field stops being empty (the card is rebuilt only on that change; the field keeps focus and caret); due chips
-  (today, tomorrow, +7, "Scegli…" which shows a **small calendar drawn in the card**, `calendar()`: Monday-first grid, month arrows, past days disabled)
-  and up to six recent-subject chips; the list (`.todo-list`, at most 420 px tall, 250 px while the choices are shown, with its own scroll position kept
-  across rebuilds) with group headings and rows (circle, text, subject dot, due label; on hover or keyboard focus the ▶ and × buttons replace the label,
-  pure CSS). ▶ closes the card and calls `host.askFocus(minutes, subject)` (the timer's `focusMinutes`, or 50), which opens "Cosa studi adesso?" with
-  the subject already written.
-- **Tests:** `dafare.test.ts` (days, labels, cleaning, the list and its file, limits, damaged/newer files, reminder sentences); four sample folders in
+- **Page** (`MenuCard.buildToDo`, two modes kept in `todoForm`): **list** — header with back arrow, title and a round "+" (`openToDoForm(null)`),
+  then `.todo-list` (at most 420 px tall, its scroll position kept across rebuilds) with group headings and rows (circle; the text, clamped to two lines
+  with `-webkit-line-clamp`; subject dot; due label; on hover or keyboard focus the ▶ and × buttons replace the label, pure CSS; for open items the text is a
+  `<button>` that opens the form for that item). **Form** ("Nuova cosa" / "Modifica", `buildToDoForm`): the name `<input>` (`.todo-name`, focused on
+  opening), the due chips (today, tomorrow, +7, "Scegli…" which shows a **small calendar drawn in the card**, `calendar()`: Monday-first grid, month arrows,
+  past days disabled), the subject `<input>` with up to six recent-subject chips (a chip fills the field; typing the same subject lights the chip, repainted
+  in place without rebuilding), and "Aggiungi" / "Salva" (dimmed while the name is empty) with "Annulla". Enter in either field saves; Esc anywhere in the
+  form goes back to the list (the window-level key handler checks `todoForm` before closing the card). The draft lives in `todoName`, `todoSubjectText`
+  and `todoDue`, so it survives the rebuilds that follow a chip. ▶ closes the card and calls `host.askFocus(minutes, subject)` (the timer's
+  `focusMinutes`, or 50), which opens "Cosa studi adesso?" with the subject already written.
+- **Tests:** `dafare.test.ts` (days, labels, cleaning, the list and its file, editing, limits, damaged/newer files, reminder sentences); four sample folders in
   `../tests/fixtures/dafare*` checked against the Swift results, and a folder written by this code read back by Swift (`ritorno.test.ts`). Live run:
   `test/vivo/dafare.cjs`.
 
@@ -416,7 +419,7 @@ displays, sleep and the packaged app; they **print what they observe** and take 
 
 ## 7. Tests (`test/`, `npm test`)
 
-276 tests in 26 files, no framework, no dependencies. They run unchanged in the main process's code paths because the logic is pure.
+277 tests in 26 files, no framework, no dependencies. They run unchanged in the main process's code paths because the logic is pure.
 
 | File(s) | What they cover |
 |---|---|

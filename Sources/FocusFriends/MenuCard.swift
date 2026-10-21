@@ -91,6 +91,7 @@ struct MenuCardActions {
     var setBackgroundVolume: (Double) -> Void
     var rateLast: (FocusRating) -> Void
     var todoAdd: (_ text: String, _ due: String?, _ subject: String?) -> Void
+    var todoUpdate: (_ id: UUID, _ text: String, _ due: String?, _ subject: String?) -> Void
     var todoToggle: (UUID) -> Void
     var todoRemove: (UUID) -> Void
     var todoStartFocus: (UUID) -> Void
@@ -655,6 +656,10 @@ private final class MenuCardView: NSView {
                 },
                 add: { [weak self] text, due, subject in
                     self?.actions.todoAdd(text, due, subject)
+                    self?.rebuild()
+                },
+                update: { [weak self] id, text, due, subject in
+                    self?.actions.todoUpdate(id, text, due, subject)
                     self?.rebuild()
                 },
                 toggle: { [weak self] id in

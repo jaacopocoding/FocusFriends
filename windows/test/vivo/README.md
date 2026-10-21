@@ -63,7 +63,7 @@ perché `FF_SELFTEST` è acceso: in uso normale l'app non le legge.
 | `sleep.cjs` | sleep e risveglio simulati con pioggia e musica | |
 | `chiusura.cjs` | chiusura con un focus in corso: in `data/sessioni.json` deve restare come interrotto | ≈ 70 s |
 | `sicurezza.cjs` | niente navigazione verso il web, niente finestre nuove, niente permessi | |
-| `dafare.cjs` | «Da fare»: pagina vuota, una voce scritta con scadenza e materia, calendario, lista, riga sotto il mouse, voci fatte, «Inizia un focus» con la materia, il fumetto del promemoria | schermate della sola scheda |
+| `dafare.cjs` | «Da fare»: pagina vuota, il «+» e «Nuova cosa» (nome, scadenza, materia, calendario, Esc, nome vuoto), «Modifica» toccando una voce con il titolo lungo, riga sotto il mouse, voci fatte, «Inizia un focus» con la materia, il fumetto del promemoria | schermate della sola scheda |
 | `pacchetto.cjs` | l'app impacchettata: compagno, carattere, scheda e brani si caricano dall'asar | `FF_APP=<…>/app.asar` |
 
 Un copione è un file `.cjs` che esporta una funzione `async (strumenti) => { … }`: per scriverne uno nuovo si parte da `timer.cjs`.

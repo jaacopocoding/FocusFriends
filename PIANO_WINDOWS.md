@@ -421,6 +421,11 @@ non segnata «Latest» (resta la `v0.9.0` per Mac). Installer controllati prima 
 versione 1.1.0 nel pacchetto e nell'eseguibile, 114 file di immagini, frasi e brani (5 `.m4a`), il carattere Chewy con la sua licenza, le licenze di Electron e Chromium, nessuna
 mappa dei sorgenti, e dentro il codice compilato la pagina «Da fare» e il blocco di navigazione e permessi della 1.0.1.
 
+**1.1.1 (preparata il 21 ottobre 2026, non ancora pubblicata): aggiungere e modificare.** Dopo averla usata, l'utente ha chiesto di cambiare il modo di aggiungere: il «+»
+in alto a destra apre la pagina «Nuova cosa» (nome, scadenza, materia, «Aggiungi»), non più un campo sopra la lista; e toccando il testo di una voce si apre la stessa pagina per
+**modificarla**. I nomi lunghi vanno a capo su due righe; la materia si può anche scrivere. Stessa cosa sul Mac (0.9.1). Il formato di `dafare.json` non cambia; nuova operazione
+`update` in `ToDoList` (Swift e TypeScript), provata in `tests/main.swift` e `windows/test/dafare.test.ts`; 277 prove su Windows e 393 sul Mac.
+
 ## Seconda uscita: il giardino (8–12 giorni)
 
 Si fa dopo, perché riusa tutto il resto (schede, finestre, immagini, dati) e non blocca nessuna delle altre funzioni.

@@ -120,6 +120,9 @@ function writeScenarios(into: string): string[] {
     list.add("Senza data né materia");
     const gone = list.add("Da togliere", "2026-10-20");
     if (gone.kind === "added") list.remove(gone.item.id);
+    // Una voce corretta dopo averla scritta: nuovo testo (con accenti), un'altra scadenza, un'altra materia.
+    const fixed = list.add("Esercizi 1–3", "2026-10-16", "Analisi");
+    if (fixed.kind === "added") list.update(fixed.item.id, "Esercizi 4–6 (è già l'una)", "2026-10-21", "Analisi due");
     now = date(2026, 10, 13, 18, 0);
     const done = list.add("Mandare la mail al prof", null, "Chimica");
     if (done.kind === "added") list.toggleDone(done.item.id);

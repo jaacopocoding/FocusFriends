@@ -924,6 +924,8 @@ check(ToDoDay.label(due: "2026-10-19", today: todoToday) == "ieri" && ToDoDay.la
 check(ToDoDay.label(due: "2026-10-23", today: todoToday) == "ven 23" && ToDoDay.label(due: "2026-10-26", today: todoToday) == "lun 26", "entro la settimana: giorno e numero")
 check(ToDoDay.label(due: "2026-10-27", today: todoToday) == "27 ott" && ToDoDay.label(due: "2026-10-18", today: todoToday) == "18 ott", "oltre la settimana, o scaduta da più di un giorno")
 check(ToDoDay.label(due: "2027-01-05", today: todoToday) == "5 gen 2027", "un altro anno si scrive")
+check(ToDoDay.date(from: "2026-10-23").map { ToDoDay.string(for: $0, calendar: ToDoDay.calendar()) } == "2026-10-23" && ToDoDay.date(from: "2026-02-30") == nil,
+      "da un giorno si torna al giorno")
 check(ToDoText.clean("  comprare   il libro \t\n di anatomia ") == "comprare il libro di anatomia", "il testo si pulisce")
 check(ToDoText.clean("   ") == nil && ToDoText.clean(nil) == nil, "testo vuoto = niente")
 check(ToDoText.clean(String(repeating: "è", count: 300))?.count == ToDoText.maxLength, "testo accorciato a \(ToDoText.maxLength)")
@@ -955,6 +957,21 @@ check(todoGroups[1].items.map(\.text) == ["Riassunto del capitolo 7", "Prenotare
 check(todoGroups[2].items.map(\.text) == ["Esercizi di analisi 4–6", "Relazione di laboratorio"], "prossime: la scadenza più vicina per prima")
 check(todoGroups[3].items.map(\.text) == ["Cercare un libro per Storia"], "senza data")
 check(todo.sections(today: "2026-10-25").map { $0.items.count } == [4, 1, 1], "con un altro giorno cambia tutto: 4 scadute, 1 prossima, 1 senza data")
+
+// modificare una voce: testo, scadenza e materia; il resto non cambia
+check(todo.update(id: todoFirst.id, text: "  Esercizi di analisi 7–9 ", due: "2026-10-30", subject: " Analisi  matematica ") == .updated, "una voce si modifica")
+let todoEdited = todo.items.first { $0.id == todoFirst.id }
+check(todoEdited?.text == "Esercizi di analisi 7–9" && todoEdited?.due == "2026-10-30" && todoEdited?.subject == "Analisi matematica"
+      && todoEdited?.createdAt == todoFirst.createdAt && todoEdited?.isDone == false, "modificata: testo, scadenza e materia puliti; il resto resta")
+check(todo.update(id: todoFirst.id, text: "Esercizi di analisi 7–9", due: nil, subject: nil) == .updated
+      && todo.items.first { $0.id == todoFirst.id }?.due == nil && todo.items.first { $0.id == todoFirst.id }?.subject == nil, "si può togliere la scadenza e la materia")
+check(todo.update(id: todoFirst.id, text: "   ", due: "2026-10-30", subject: nil) == .empty
+      && todo.items.first { $0.id == todoFirst.id }?.text == "Esercizi di analisi 7–9", "un testo vuoto non cambia niente")
+check(todo.update(id: todoFirst.id, text: "x", due: "2026-02-30", subject: nil) == .updated
+      && todo.items.first { $0.id == todoFirst.id }?.due == nil, "una data che non esiste si toglie")
+check(todo.update(id: UUID(), text: "boh", due: nil, subject: nil) == .missing, "una voce che non c'è non si modifica")
+_ = todo.update(id: todoFirst.id, text: "Esercizi di analisi 4–6", due: "2026-10-21", subject: "Analisi")
+check(ToDoList(directory: todoDir, now: { todoClock }).items.first { $0.id == todoFirst.id }?.subject == "Analisi", "la modifica si salva")
 
 let todoReloaded = ToDoList(directory: todoDir, now: { todoClock })
 check(todoReloaded.items == todo.items, "riaprendo la lista, le voci sono quelle")

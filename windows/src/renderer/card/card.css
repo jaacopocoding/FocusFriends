@@ -1112,44 +1112,22 @@ input.volume::-webkit-slider-thumb {
   padding: 14px 16px 14px;
 }
 
-.todo-input-row {
-  margin-top: 12px;
-  display: flex;
-  align-items: center;
-  height: 38px;
-  box-sizing: border-box;
-  border: 1px solid var(--edge);
-  border-radius: 19px;
-  background: rgba(255, 255, 255, 0.6);
-  padding: 0 4px 0 16px;
+.todo-caption {
+  font-size: 11.5px;
+  color: var(--ink-light);
+  margin: 12px 0 5px 4px;
 }
 
-.todo-input-row:focus-within {
-  border: 1.5px solid var(--accent);
+.todo-caption.first {
+  margin-top: 14px;
 }
 
-.todo-input {
-  flex: 1;
-  min-width: 0;
-  border: 0;
-  background: transparent;
-  font: 13px var(--ui);
-  color: var(--ink);
-  outline: none;
-}
-
-.card-root .todo-input:focus-visible {
-  outline: none;
-}
-
-.todo-input::placeholder {
-  color: rgb(150, 130, 80);
-}
-
-.todo-plus {
+.page-header .todo-plus {
+  margin-left: auto;
+  margin-right: 6px;
   flex: none;
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   background: var(--accent);
   color: white;
@@ -1158,18 +1136,77 @@ input.volume::-webkit-slider-thumb {
   justify-content: center;
 }
 
-.todo-plus:active {
+.page-header .todo-plus:hover {
   background: var(--accent-pressed);
 }
 
-.todo-choices {
-  margin-top: 6px;
+.todo-field {
+  display: block;
+  width: 100%;
+  height: 36px;
+  box-sizing: border-box;
+  border: 1px solid var(--edge);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.6);
+  padding: 0 16px;
+  font: 13px var(--ui);
+  color: var(--ink);
+  user-select: text;
+  -webkit-user-select: text;
 }
 
-.todo-caption {
-  font-size: 11.5px;
-  color: var(--ink-light);
-  margin: 8px 0 5px 4px;
+.card-root .todo-field:focus,
+.card-root .todo-field:focus-visible {
+  outline: none;
+  border: 1.5px solid var(--accent);
+  padding: 0 15.5px;
+}
+
+.todo-field::placeholder {
+  color: rgb(150, 130, 80);
+}
+
+.todo-chips.gap {
+  margin-top: 8px;
+}
+
+.card-root .todo-save {
+  margin-top: 16px;
+  width: 100%;
+  height: 40px;
+  border-radius: 20px;
+  background: var(--accent);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: 18px var(--marker);
+}
+
+.card-root .todo-save:hover {
+  background: var(--accent-pressed);
+}
+
+.card-root .todo-save.off,
+.card-root .todo-save.off:hover {
+  background: rgba(217, 120, 56, 0.45);
+}
+
+.page-todo .link.todo-cancel {
+  display: block;
+  margin: 6px auto 0;
+  text-align: center;
+}
+
+.card-root .todo-edit {
+  display: block;
+  text-align: left;
+  border-radius: 6px;
+}
+
+.card-root .todo-edit:hover .todo-title {
+  text-decoration: underline;
+  text-decoration-color: rgba(102, 77, 51, 0.4);
 }
 
 .todo-chips {
@@ -1285,10 +1322,6 @@ input.volume::-webkit-slider-thumb {
   scrollbar-width: thin;
 }
 
-.todo-list.short {
-  max-height: 250px;
-}
-
 .todo-group {
   font: 15px/20px var(--marker);
   margin: 6px 0 2px 2px;
@@ -1342,9 +1375,12 @@ input.volume::-webkit-slider-thumb {
 
 .todo-title {
   font-size: 13px;
-  white-space: nowrap;
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
 }
 
 .todo-row.done .todo-title {

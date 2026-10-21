@@ -14,7 +14,7 @@ import {
 } from "../../core/rules.ts";
 import type { TimerKind } from "../../core/rules.ts";
 import { duration } from "../../core/stats.ts";
-import { subjectKey } from "../../core/text.ts";
+import { cleanSubject, SUBJECT_MAX, subjectKey } from "../../core/text.ts";
 import { addDays, cleanToDoText, daysBetween, dueLabel, GROUP_TITLES, isValidDay, TODO_TEXT_MAX } from "../../core/todo.ts";
 import type { ToDoItem } from "../../core/todo.ts";
 import type { CardAnchor, CardCommand, CardOpenRequest, FocusFriendsApi } from "../../shared/api.ts";
@@ -64,9 +64,10 @@ export class MenuCard {
   private lockHint: string | null = null;
   private draftNote = "";
   // La pagina «Da fare»: quello che si sta scrivendo e le scelte fatte, che restano mentre la scheda si ricostruisce.
-  private todoDraft = "";
+  private todoForm: { editing: string | null } | null = null;
+  private todoName = "";
+  private todoSubjectText = "";
   private todoDue: string | null = null;
-  private todoSubject: string | null = null;
   private todoPicking = false;
   /** Il mese mostrato dal calendario, «AAAA-MM». */
   private todoMonth: string | null = null;
@@ -78,7 +79,10 @@ export class MenuCard {
   private refreshTimer: number | undefined;
   private closedAt = 0;
   private readonly onKey = (event: KeyboardEvent): void => {
-    if (event.key === "Escape") { event.preventDefault(); this.close(); }
+    if (event.key !== "Escape") return;
+    event.preventDefault();
+    // Dentro il modulo «Nuova cosa» / «Modifica» Esc torna alla lista senza salvare.
+    if (this.page === "todo" && this.todoForm !== null) this.closeToDoForm(); else this.close();
   };
   private readonly onBlur = (): void => this.close();
 
@@ -225,8 +229,10 @@ export class MenuCard {
     const focusedKey = document.activeElement instanceof HTMLElement ? document.activeElement.getAttribute("aria-label") : null;
     const draft = root.querySelector<HTMLInputElement>(".postit-input");
     if (draft) this.draftNote = draft.value;
-    const todoInput = root.querySelector<HTMLInputElement>(".todo-input");
-    if (todoInput) this.todoDraft = todoInput.value;
+    const todoName = root.querySelector<HTMLInputElement>(".todo-name");
+    if (todoName) this.todoName = todoName.value;
+    const todoSubject = root.querySelector<HTMLInputElement>(".todo-subject-input");
+    if (todoSubject) this.todoSubjectText = todoSubject.value;
     const scroll = root.scrollTop;
     const listScroll = root.querySelector<HTMLElement>(".todo-list")?.scrollTop ?? 0;
 
@@ -375,8 +381,8 @@ export class MenuCard {
     body.append(this.option("smile", "Chiedi com'è andata", null, data.askOn, () => this.command({ name: "toggleAsk" })));
     body.append(this.option("listChecks", "Da fare", data.todo.openCount > 0 ? String(data.todo.openCount) : null, null, () => {
       this.page = "todo";
+      this.todoForm = null;
       this.rebuild(false);
-      this.root?.querySelector<HTMLInputElement>(".todo-input")?.focus({ preventScroll: true });
     }));
     body.append(this.option(data.petVisible ? "eyeOff" : "eye", data.petVisible ? `Nascondi ${pet.name}` : `Mostra ${pet.name}`, null, null,
       () => this.command({ name: "toggleVisibility" }, true)));
@@ -436,47 +442,70 @@ export class MenuCard {
 
   // ---- la pagina «Da fare» (ToDoPage.swift)
 
+  /** La lista (con il «+» in alto) oppure, da lì, il modulo «Nuova cosa» / «Modifica». */
   private buildToDo(root: HTMLElement, body: HTMLElement, data: CardData): void {
     root.prepend(h("div", { class: "avatar-spacer" }));
+    if (this.todoForm !== null) { this.buildToDoForm(body, data); return; }
     body.append(h("div", { class: "page-header" },
       button("back", "Torna alla scheda", () => { this.page = "main"; this.rebuild(false); }, icon("back", 18)),
       h("div", { class: "page-title" }, "Da fare"),
+      button("todo-plus", "Nuova cosa", () => this.openToDoForm(null), icon("plus", 16)),
     ));
-
-    const input = h("input", {
-      type: "text", class: "todo-input", placeholder: "Aggiungi una cosa…", "aria-label": "Aggiungi una cosa", maxlength: TODO_TEXT_MAX * 2,
-    });
-    input.value = this.todoDraft;
-    input.addEventListener("keydown", (event) => {
-      if (event.key === "Enter") { event.preventDefault(); this.addToDo(input.value); }
-    });
-    // Le scelte (scadenza, materia) compaiono quando si comincia a scrivere e spariscono se il campo torna vuoto.
-    input.addEventListener("input", () => {
-      const was = this.todoDraft;
-      this.todoDraft = input.value;
-      if ((was === "") !== (input.value === "")) this.rebuild(false);
-    });
-    body.append(h("div", { class: "todo-input-row" }, input,
-      button("todo-plus", "Aggiungi", () => this.addToDo(input.value), icon("plus", 15))));
-    if (this.todoDraft !== "") body.append(this.todoChoices(data));
     body.append(this.todoList(data));
   }
 
-  private todoChoices(data: CardData): HTMLElement {
+  /** Apre il modulo: per una cosa nuova (`null`) o per modificarne una. */
+  private openToDoForm(item: ToDoItem | null): void {
+    this.todoForm = { editing: item?.id ?? null };
+    this.todoName = item?.text ?? "";
+    this.todoSubjectText = item?.subject ?? "";
+    this.todoDue = item?.due ?? null;
+    this.todoPicking = false;
+    this.rebuild(false);
+    this.root?.querySelector<HTMLInputElement>(".todo-name")?.focus({ preventScroll: true });
+  }
+
+  private closeToDoForm(): void {
+    this.todoForm = null;
+    this.todoName = "";
+    this.todoSubjectText = "";
+    this.todoDue = null;
+    this.todoPicking = false;
+    this.rebuild(false);
+  }
+
+  private buildToDoForm(body: HTMLElement, data: CardData): void {
+    const editing = this.todoForm?.editing ?? null;
     const today = data.todo.today;
+    body.append(h("div", { class: "page-header" },
+      button("back", "Torna alla lista", () => this.closeToDoForm(), icon("back", 18)),
+      h("div", { class: "page-title" }, editing === null ? "Nuova cosa" : "Modifica"),
+    ));
+
+    const save = button(`todo-save${cleanToDoText(this.todoName) === null ? " off" : ""}`, editing === null ? "Aggiungi" : "Salva",
+      () => this.saveToDo(), editing === null ? "Aggiungi" : "Salva");
+    const name = h("input", {
+      type: "text", class: "todo-field todo-name", placeholder: "Per esempio: ripassare il capitolo 3", "aria-label": "Cosa c'è da fare?", maxlength: TODO_TEXT_MAX * 2,
+    });
+    name.value = this.todoName;
+    name.addEventListener("input", () => { this.todoName = name.value; save.classList.toggle("off", cleanToDoText(name.value) === null); });
+    name.addEventListener("keydown", (event) => { if (event.key === "Enter") { event.preventDefault(); this.saveToDo(); } });
+    body.append(h("div", { class: "todo-caption first" }, "Cosa c'è da fare?"), name);
+
+    // Per quando
     const tomorrow = addDays(today, 1), nextWeek = addDays(today, 7);
     const pick = (day: string | null): void => {
       this.todoDue = this.todoDue === day ? null : day;
       this.todoPicking = false;
       this.rebuild(false);
     };
-    const custom = this.todoDue !== null && this.todoDue !== today && this.todoDue !== tomorrow && this.todoDue !== nextWeek;
     const chip = (title: string, on: boolean, run: () => void): HTMLButtonElement => {
       const element = button(`todo-chip${on ? " on" : ""}`, title, run, title);
       element.setAttribute("aria-pressed", String(on));
       return element;
     };
-    const due = h("div", { class: "todo-chips" },
+    const custom = this.todoDue !== null && this.todoDue !== today && this.todoDue !== tomorrow && this.todoDue !== nextWeek;
+    body.append(h("div", { class: "todo-caption" }, "Per quando"), h("div", { class: "todo-chips" },
       chip("Oggi", this.todoDue === today, () => pick(today)),
       chip("Domani", this.todoDue !== null && this.todoDue === tomorrow, () => pick(tomorrow)),
       chip("Fra una settimana", this.todoDue !== null && this.todoDue === nextWeek, () => pick(nextWeek)),
@@ -485,17 +514,57 @@ export class MenuCard {
         this.todoMonth = (this.todoDue ?? today).slice(0, 7);
         this.rebuild(false);
       }),
-    );
-    const block = h("div", { class: "todo-choices" }, h("div", { class: "todo-caption" }, "Per quando"), due);
-    if (this.todoPicking) block.append(this.calendar(today));
-    const subjects = data.recentSubjects.slice(0, 6);
-    if (subjects.length > 0) {
-      block.append(h("div", { class: "todo-caption" }, "Materia"), h("div", { class: "todo-chips" }, ...subjects.map((name) => {
-        const on = this.todoSubject !== null && subjectKey(this.todoSubject) === subjectKey(name);
-        return chip(name, on, () => { this.todoSubject = on ? null : name; this.rebuild(false); });
-      })));
-    }
-    return block;
+    ));
+    if (this.todoPicking) body.append(this.calendar(today));
+
+    // Materia: si scrive, oppure si tocca una di quelle usate di recente
+    const subject = h("input", {
+      type: "text", class: "todo-field todo-subject-input", placeholder: "Scrivila o toccane una", "aria-label": "Materia", maxlength: SUBJECT_MAX * 2,
+    });
+    subject.value = this.todoSubjectText;
+    const recent = data.recentSubjects.slice(0, 6);
+    const chips = recent.map((entry) => ({ entry, element: chip(entry, false, () => {
+      const typed = cleanSubject(this.todoSubjectText);
+      const on = typed !== null && subjectKey(typed) === subjectKey(entry);
+      this.todoSubjectText = on ? "" : entry;
+      subject.value = this.todoSubjectText;
+      paint();
+    }) }));
+    const paint = (): void => {
+      const typed = cleanSubject(subject.value);
+      for (const { entry, element } of chips) {
+        const on = typed !== null && subjectKey(typed) === subjectKey(entry);
+        element.classList.toggle("on", on);
+        element.setAttribute("aria-pressed", String(on));
+      }
+    };
+    paint();
+    subject.addEventListener("input", () => { this.todoSubjectText = subject.value; paint(); });
+    subject.addEventListener("keydown", (event) => { if (event.key === "Enter") { event.preventDefault(); this.saveToDo(); } });
+    body.append(h("div", { class: "todo-caption" }, "Materia"), subject);
+    if (chips.length > 0) body.append(h("div", { class: "todo-chips gap" }, ...chips.map((c) => c.element)));
+
+    body.append(save, button("link todo-cancel", "Annulla", () => this.closeToDoForm(), "Annulla"));
+  }
+
+  /** «Aggiungi» o «Salva»: con il nome vuoto non si fa niente e si resta nel campo. */
+  private saveToDo(): void {
+    const form = this.todoForm;
+    if (form === null) return;
+    const name = this.root?.querySelector<HTMLInputElement>(".todo-name");
+    const text = name?.value ?? this.todoName;
+    if (cleanToDoText(text) === null) { name?.focus({ preventScroll: true }); return; }
+    const due = this.todoDue !== null && isValidDay(this.todoDue) ? this.todoDue : null;
+    const subject = cleanSubject(this.root?.querySelector<HTMLInputElement>(".todo-subject-input")?.value ?? this.todoSubjectText);
+    if (form.editing === null) this.api.cardCommand({ name: "todoAdd", text, due, subject });
+    else this.api.cardCommand({ name: "todoUpdate", id: form.editing, text, due, subject });
+    this.todoForm = null;
+    this.todoName = "";
+    this.todoSubjectText = "";
+    this.todoDue = null;
+    this.todoPicking = false;
+    this.rebuild(false);
+    this.scheduleRefresh();
   }
 
   /** Un piccolo calendario (al posto di quello di sistema, che in una finestra trasparente non si apre bene): un mese alla volta, da oggi in poi. */
@@ -532,7 +601,7 @@ export class MenuCard {
 
   private todoList(data: CardData): HTMLElement {
     const todo = data.todo;
-    const list = h("div", { class: `todo-list${this.todoDraft !== "" ? " short" : ""}` });
+    const list = h("div", { class: "todo-list" });
     for (const section of todo.sections) {
       list.append(h("div", { class: `todo-group${section.group === "overdue" ? " overdue" : ""}` }, GROUP_TITLES[section.group]));
       for (const item of section.items) list.append(this.todoRow(item, todo.today));
@@ -558,29 +627,19 @@ export class MenuCard {
     const overdue = !done && item.due !== null && (daysBetween(today, item.due) ?? 0) < 0;
     const subject = item.subject !== null ? h("div", { class: "todo-subject" }, h("span", { class: "todo-dot" }), item.subject) : null;
     if (subject && item.subject !== null) subject.style.setProperty("--subject", subjectColor(item.subject));
+    const title = h("div", { class: "todo-title" }, item.text);
+    // Il testo si tocca per modificare (le voci fatte no).
+    const text = done ? h("div", { class: "todo-text" }, title, subject)
+      : button("todo-text todo-edit", `Modifica: ${item.text}`, () => this.openToDoForm(item), title, subject);
     return h("div", { class: `todo-row${done ? " done" : ""}` },
       button(`todo-check${done ? " on" : ""}`, done ? "Rimetti da fare" : "Segna come fatta",
         () => this.command({ name: "todoToggle", id: item.id }), done ? icon("check", 12) : null),
-      h("div", { class: "todo-text" }, h("div", { class: "todo-title" }, item.text), subject),
+      text,
       item.due !== null ? h("span", { class: `todo-due${overdue ? " overdue" : ""}` }, dueLabel(item.due, today)) : null,
       h("span", { class: "todo-actions" },
         done ? null : button("todo-play", "Inizia un focus", () => this.startToDoFocus(item), icon("play", 11)),
         button("todo-remove", "Togli dalla lista", () => this.command({ name: "todoRemove", id: item.id }), icon("close", 14))),
     );
-  }
-
-  private addToDo(text: string): void {
-    if (cleanToDoText(text) === null) return;
-    const due = this.todoDue !== null && isValidDay(this.todoDue) ? this.todoDue : null;
-    this.api.cardCommand({ name: "todoAdd", text, due, subject: this.todoSubject });
-    this.todoDraft = "";
-    this.todoDue = null;
-    this.todoSubject = null;
-    this.todoPicking = false;
-    const input = this.root?.querySelector<HTMLInputElement>(".todo-input");
-    if (input) input.value = "";
-    this.rebuild(false);
-    this.scheduleRefresh();
   }
 
   /** «Inizia un focus» da una voce: si chiude la scheda e «Cosa studi adesso?» ha già la sua materia. */

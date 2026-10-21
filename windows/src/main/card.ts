@@ -220,6 +220,7 @@ export function createCardService(options: CardServiceOptions): CardService {
           break;
         }
         case "todoAdd": options.todo.add(command.text, command.due, command.subject); break;
+        case "todoUpdate": options.todo.update(command.id, command.text, command.due, command.subject); break;
         case "todoToggle": options.todo.toggleDone(command.id); break;
         case "todoRemove": options.todo.remove(command.id); break;
       }

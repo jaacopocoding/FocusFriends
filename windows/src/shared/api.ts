@@ -64,6 +64,7 @@ export type CardCommand =
   | { name: "setName"; userName: string | null }
   | { name: "finishIntro"; userName: string | null; petId: string }
   | { name: "todoAdd"; text: string; due: string | null; subject: string | null }
+  | { name: "todoUpdate"; id: string; text: string; due: string | null; subject: string | null }
   | { name: "todoToggle"; id: string }
   | { name: "todoRemove"; id: string }
   | { name: "quit" };

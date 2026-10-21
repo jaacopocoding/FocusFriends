@@ -633,6 +633,7 @@ final class MenuController: NSObject, NSMenuDelegate {
                 self.speaker.say(ReflectionCard.reply(for: rating))
             },
             todoAdd: { text, due, subject in ToDoList.shared.add(text: text, due: due, subject: subject) },
+            todoUpdate: { id, text, due, subject in ToDoList.shared.update(id: id, text: text, due: due, subject: subject) },
             todoToggle: { ToDoList.shared.toggleDone(id: $0) },
             todoRemove: { ToDoList.shared.remove(id: $0) },
             todoStartFocus: { [weak self] id in

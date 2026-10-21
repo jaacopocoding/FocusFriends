@@ -106,6 +106,28 @@ describe("Da fare: la lista", () => {
     assert.equal(purged.openCount, 4);
   });
 
+  it("una voce si modifica: testo, scadenza e materia; il resto non cambia", () => {
+    const directory = tempDirectory();
+    const clock = date(2026, 10, 20, 9, 0);
+    const list = new ToDoList(directory, { now: () => clock });
+    const added = list.add("Esercizi di analisi 4–6", "2026-10-21", "Analisi");
+    assert.ok(added.kind === "added");
+    const id = added.kind === "added" ? added.item.id : "";
+    assert.equal(list.update(id, "  Esercizi di analisi 7–9 ", "2026-10-30", " Analisi  matematica "), "updated");
+    const edited = list.items.find((x) => x.id === id);
+    assert.deepEqual([edited?.text, edited?.due, edited?.subject, edited?.createdAt, edited?.doneAt],
+      ["Esercizi di analisi 7–9", "2026-10-30", "Analisi matematica", clock, null]);
+    assert.equal(list.update(id, "Esercizi di analisi 7–9", null, null), "updated");
+    assert.deepEqual([list.items[0]?.due, list.items[0]?.subject], [null, null], "si toglie la scadenza e la materia");
+    assert.equal(list.update(id, "   ", "2026-10-30", null), "empty");
+    assert.equal(list.items[0]?.text, "Esercizi di analisi 7–9", "un testo vuoto non cambia niente");
+    assert.equal(list.update(id, "x", "2026-02-30", null), "updated");
+    assert.equal(list.items[0]?.due, null, "una data che non esiste si toglie");
+    assert.equal(list.update("non-c-e", "boh", null, null), "missing");
+    list.update(id, "Esercizi di analisi 4–6", "2026-10-21", "Analisi");
+    assert.equal(new ToDoList(directory, { now: () => clock }).items[0]?.subject, "Analisi", "la modifica si salva");
+  });
+
   it("al massimo 200 voci", () => {
     const list = new ToDoList(tempDirectory());
     for (let i = 0; i < TODO_MAX_ITEMS; i += 1) list.add(`voce ${i}`);

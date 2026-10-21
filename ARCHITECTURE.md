@@ -23,7 +23,8 @@
 > **Update, 21 October 2026.** The Swift sources changed for one new feature, the **to-do list** ("Da fare", commits `6bf851c`
 > and `c5c769b`, released in `v0.9.0`): `ToDo.swift` (model, store, day arithmetic, the companion's reminder text), `ToDoPage.swift`
 > (the card page), one row in the card, `Speaker.reminder` and `SubjectPrompt.ask(prefill:)`. It is described in §3.22; the
-> counts in this document (files, lines, checks) were updated for it. The Windows version has it too since its 1.1 (`windows-v1.1.0`),
+> counts in this document (files, lines, checks) were updated for it. In `v0.9.1` the way to add an item changed (a "+" opening a "Nuova cosa"
+> page) and items can be edited by tapping them (§3.22). The Windows version has it too since its 1.1 (`windows-v1.1.0`),
 > with the same file format; the contract between the two is checked both ways (`tests/fixtures/dafare*`).
 
 ---
@@ -63,7 +64,7 @@ Single user per Mac, no accounts, no network: all data is stored locally under
 | App type | Menu-bar "agent": `LSUIElement = true`, activation policy `.accessory` | `build.sh`, `AppDelegate.applicationDidFinishLaunching` |
 | Signing | Ad-hoc (`codesign --force --sign -`; `build.sh` stops with exit 1 if signing fails); not notarised, no hardened runtime or sandbox | `build.sh`, `README.md` "Scaricare e usare" |
 | Asset tooling | Python 3 scripts using Pillow and NumPy (not run at build time) | `tools/*.py` |
-| Tests | One hand-written Swift executable (`tests/main.swift`, 32 sections, 385 checks) that compiles eleven Foundation-only source files; no XCTest | `tests/run.sh` |
+| Tests | One hand-written Swift executable (`tests/main.swift`, 32 sections, 393 checks) that compiles eleven Foundation-only source files; no XCTest | `tests/run.sh` |
 | License | MIT (`LICENSE`); bundled music is CC0 (`CREDITS.md`) | `LICENSE`, `CREDITS.md` |
 | Swift toolchain version / Python version | Not pinned anywhere in the repository | **[unknown]** |
 
@@ -122,7 +123,7 @@ FocusFriends/
 │   ├── MenuController.swift      status-bar item, classic NSMenu, builds MenuCardState/Actions, rewards, music selection
 │   ├── MenuHeader.swift          header view of the classic menu (avatar + name + status)
 │   ├── MenuCard.swift            the paper "card" UI: main page, timer-dial page, focus page, rest page, to-do page (hosts ToDoPageView); MenuCard panel
-│   ├── ToDoPage.swift            ToDoPageView: the "Da fare" page of the card (input, due/subject chips, date picker, list rows)
+│   ├── ToDoPage.swift            ToDoPageView: the "Da fare" page of the card (list with the "+", the new/edit form with due/subject chips and a date picker, list rows)
 │   ├── FocusScreenViews.swift    FocusPalette, FocusTomatoView, PostItView, FocusDraw (stickers, holes), CycleDotsView
 │   ├── PaperUI.swift             shared look: Paper colours/fonts, PillButton, TextButton, ChipButton, PaperCardView, KeyablePanel, FaceIcon, RatingButton, BackToMenuButton
 │   ├── IntroCard.swift           first-run card: name + first companion (CompanionButton)
@@ -144,7 +145,7 @@ FocusFriends/
 │   ├── MusicLibrary.swift        MusicSource, MusicLibrary (file discovery, shuffle, titles), MusicSettings  (Foundation only)
 │   └── MusicPlayer.swift         AVAudioPlayer-based music playback with queue and fades
 ├── tests/
-│   ├── main.swift                hand-rolled test executable (check()/section()), 32 sections, 385 checks
+│   ├── main.swift                hand-rolled test executable (check()/section()), 32 sections, 393 checks
 │   ├── run.sh                    compiles 11 source files + tests/main.swift into build/tests/stats and runs it
 │   ├── genera-attesi.sh          builds and runs tests/genera-attesi/main.swift: for every folder in tests/fixtures/ writes what this app derives from it (the expected results the Windows port is compared with)
 │   ├── genera-rumore.sh          same idea for the ambient-noise synthesiser (tests/fixtures/rumore.json)
@@ -549,7 +550,7 @@ code. All UI code runs on the main thread; the only other thread is the audio re
     music (`music_*`), garden/growth art, Pianty stage frames → write `Info.plist` via heredoc →
     `codesign --force --sign -` (a failure prints an error and exits 1) → print the path.
   - `tests/run.sh`: `swiftc -O -o build/tests/stats` on eleven source files + `tests/main.swift` →
-    `build/tests/stats` (prints `• <section>` lines and `N controlli, M falliti`, exit code 0/1; 385 checks now).
+    `build/tests/stats` (prints `• <section>` lines and `N controlli, M falliti`, exit code 0/1; 393 checks now).
   - Tools: described in §5.9; they read `assets/**/*_original.png` / sheets and write processed PNGs or the icon.
 
 ### 3.22 To-do list ("Da fare")
@@ -559,7 +560,7 @@ code. All UI code runs on the main thread; the only other thread is the audio re
   the bottom ("Fatte · N") and disappear after 7 days; an item can start a focus with its subject; the companion mentions
   deadlines of today (or tomorrow).
 - **Entry point:** the row added in `MenuCardView.rebuild` (`page = .todo`) → `buildToDo` → `ToDoPageView`; the actions
-  `MenuCardActions.todoAdd / todoToggle / todoRemove / todoStartFocus`, implemented in `MenuController.cardActions()` on
+  `MenuCardActions.todoAdd / todoUpdate / todoToggle / todoRemove / todoStartFocus`, implemented in `MenuController.cardActions()` on
   `ToDoList.shared`; `Speaker.reminder`, set in `AppDelegate`.
 - **Execution path:**
   - State: `MenuController.cardState()` computes today as a day string (`ToDoDay.string(for: now, calendar: ToDoDay.calendar())`)
@@ -567,17 +568,20 @@ code. All UI code runs on the main thread; the only other thread is the audio re
     `SessionLog.recentSubjects()` for the chips).
   - The page: `buildToDo` keeps one `ToDoPageView` alive across rebuilds (like the timer dial), so the draft text, the chosen
     due day and subject, and the list's scroll offset survive; it sits below the 30-pt overflow and reports its height through
-    `onHeight` → `fit(toDoHeight:)` → `onResize`. `ToDoPageView.rebuild` lays out: header with back arrow; an `InputPill` with
-    a borderless `NSTextField` (delegate: `controlTextDidChange` caps the text at 120 characters and, when the field turns
-    empty or non-empty, rebuilds asynchronously to show or hide the choices, then restores first responder and caret);
-    the choices, only while there is text: due chips (today, tomorrow, +7 days, "Scegli…" which shows an `NSDatePicker`
-    `.clockAndCalendar`, locale `it_IT`, minimum today) and up to six recent-subject chips, in wrapping rows (`addChips`);
-    the list, an `NSScrollView` (at most 420 pt high, 250 while the choices are open) over a flipped document of section
-    headers and `ToDoRowView`s (check circle; text; subject dot and name; due label — red when overdue — which on hover is
-    replaced by ▶ and ×). If a visible legacy scroller narrows the clip view, the document is rebuilt at that width.
-  - Actions: Return or "+" → `submit` → `actions.add` → `ToDoList.add` → save → `MenuCardView.rebuild()` → `ToDoPageView.update`.
-    The circle → `toggleDone`; × → `remove`. ▶ closes the card (`perform(true)`) and calls `MenuController.beginFocus(minutes:subject:)`
-    with `pomodoro.focusMinutes` (50 if zero), which opens "Cosa studi adesso?" with the subject already written.
+    `onHeight` → `fit(toDoHeight:)` → `onResize`. `ToDoPageView` has two modes. **List:** header with back arrow, title and a round "+" button
+    (`openForm(editing: nil)`); an `NSScrollView` (at most 420 pt high) over a flipped document of section headers and `ToDoRowView`s (check circle;
+    the text, up to two lines, ending with "…" if longer; subject dot and name; due label — red when overdue — which on hover is replaced by ▶ and ×; for
+    open items a transparent button over the text opens the form for that item). If a visible legacy scroller narrows the clip view, the document is
+    rebuilt at that width. **Form** ("Nuova cosa" or "Modifica", `buildForm`): two persistent `NSTextField`s inside `InputPill`s (the name, capped at
+    120 characters; the subject, capped at 40), the due chips (today, tomorrow, +7 days, "Scegli…" which shows an `NSDatePicker` `.clockAndCalendar`,
+    locale `it_IT`, minimum today, starting on the item's day), the recent-subject chips (a chip fills the subject field; typing the same subject
+    lights the chip, which rebuilds the page asynchronously and restores first responder and caret) and a big "Aggiungi" / "Salva" button, dimmed while
+    the name is empty. Return in either field saves; Esc in a field (`control(_:textView:doCommandBy:)` → `cancelOperation`), "Annulla" and the back
+    arrow return to the list without saving (Esc anywhere else closes the card, as always).
+  - Actions: "Aggiungi" → `save` → `actions.add`, "Salva" → `actions.update` (`ToDoList.update`: text/due/subject cleaned like on `add`, the creation and
+    done dates unchanged, a changed item is saved) → `MenuCardView.rebuild()` → `ToDoPageView.update`. The circle → `toggleDone`; × → `remove`. ▶ closes
+    the card (`perform(true)`) and calls `MenuController.beginFocus(minutes:subject:)` with `pomodoro.focusMinutes` (50 if zero), which opens "Cosa studi
+    adesso?" with the subject already written.
   - Reminder: `ToDoReminder.message(for:today:)` takes the open items due today (oldest first), otherwise those due
     tomorrow; overdue items are never mentioned. One item: "Oggi|Domani scade «…». Un focus adesso?"; several:
     "… scadono N cose: «…» e un'altra / altre N−1."; the quoted text is cut at a whole word (≤ 36 characters). Because it
@@ -948,11 +952,11 @@ file/UserDefaults writes, windows, timers, sound, global state.
 - **Inputs/outputs:** consumes `MenuCardState`, calls `MenuCardActions`; reports its height through `onResize`.
 - **Side effects:** panel at `.popUpMenu` level; global/local mouse monitors; 1 s timer; `NSApp.activate`.
 
-#### `ToDoPage.swift` (539)
+#### `ToDoPage.swift` (659)
 - **Responsibility:** the "Da fare" page: `ToDoCardState` (what the page receives), `ToDoPageActions`, private `ToDoButton`
-  (closure-drawn button, like `CardButton`), private `FlippedView`, `InputPill`, `ToDoRowView` (one item, hover tracking area
-  that shows ▶ and ×), and `ToDoPageView` (`update`, `rebuild`, `addInput`, `addChoices`, `addChips`, `makeDocument(width:)`,
-  `addList`, `submit`, `NSTextFieldDelegate` methods).
+  (closure-drawn button, like `CardButton`), private `FlippedView`, `InputPill`, `ToDoRowView` (one item: wrapped text, hover tracking area
+  that shows ▶ and ×, a button over the text that edits), and `ToDoPageView` (`update`, `rebuild`, `buildList`, `makeDocument(width:)`, `addList`,
+  `openForm`/`closeForm`/`buildForm`, `addCaption`, `addField`, `addChips`, `save`, `NSTextFieldDelegate` methods).
 - **Inputs/outputs:** consumes `ToDoCardState`, calls `ToDoPageActions`; reports its height through `onHeight`.
 - **Side effects:** none of its own (all data changes go through the actions to `ToDoList.shared`).
 
@@ -1018,11 +1022,11 @@ file/UserDefaults writes, windows, timers, sound, global state.
 - **Side effects:** file reads/writes under `directory`, backups, `sessioni.corrotto-*` copies, observer callbacks,
   `onProblem` messages; `shared` instance reads the real data directory at first use.
 
-#### `ToDo.swift` (331)
+#### `ToDo.swift` (360)
 - **Responsibility:** the to-do list (§3.22). `ToDoDay` (day strings: `isValid`, `string(for:calendar:)`, `days(from:to:)`,
-  `adding(days:to:)`, `label(due:today:)`), `ToDoReminder` (`message(for:today:)`), `ToDoText` (`clean`, ≤ 120), `ToDoItem`
+  `adding(days:to:)`, `date(from:calendar:)`, `label(due:today:)`), `ToDoReminder` (`message(for:today:)`), `ToDoText` (`clean`, ≤ 120), `ToDoItem`
   (Codable), `ToDoGroup`, `ToDoSection`, `ToDoList` (class: load with sanitising and purge, `add` → `AddResult`, `toggleDone`,
-  `remove`, `openItems`, `openCount`, `doneItems`, `sections(today:)`, `onProblem`, observers, `save`).
+  `remove`, `update(id:text:due:subject:)`, `openItems`, `openCount`, `doneItems`, `sections(today:)`, `onProblem`, observers, `save`).
 - **Side effects:** reads and writes `dafare.json` under `directory`; moves a damaged file aside; `shared` uses the real
   data directory at first use.
 
@@ -1098,7 +1102,7 @@ file/UserDefaults writes, windows, timers, sound, global state.
 ### 5.9 Tests, build and tools
 
 #### `tests/main.swift` (1,056) and `tests/run.sh` (7)
-- A single executable: `check(_:_:line:)`, `section(_:)`, 32 sections (385 checks) covering subjects, log persistence,
+- A single executable: `check(_:_:line:)`, `section(_:)`, 32 sections (393 checks) covering subjects, log persistence,
   in-progress recovery, periods, summaries, streaks, texts, garden rules, format versions/migration, subject merging, backups and
   delete-all, time zones, profile, ratings/notes/insights/CSV, timer dial math, seasons, ambient settings, music
   library/settings, focus notes, paused-time recovery, companion rewards (including the developer flag), break cycle,
@@ -1590,7 +1594,7 @@ code is clear. Items without a mark still describe the current code.
 
 ### 7.8 Test coverage as it exists
 
-- Covered (32 sections, 385 checks in `tests/main.swift`): everything in the Foundation-only files listed in §4.1,
+- Covered (32 sections, 393 checks in `tests/main.swift`): everything in the Foundation-only files listed in §4.1,
   including the new damaged-data cases and the developer flag.
 - Not covered by any automated test in the repository: `Pomodoro` (timer, pause, grace, the sleep-gap rule, cycle
   wiring), `Speaker` (including when a to-do reminder replaces a phrase), `Walker`, `PetWindow`/`PetView`, `MenuController`,
