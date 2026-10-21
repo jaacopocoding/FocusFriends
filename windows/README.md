@@ -4,11 +4,12 @@ La versione per Windows di FocusFriends, scritta con **Electron** (TypeScript, H
 in [`../PIANO_WINDOWS.md`](../PIANO_WINDOWS.md) e i formati dei dati, comuni con l'app per Mac, in
 [`../FORMATI.md`](../FORMATI.md).
 
-**Stato:** la **prima uscita** (versione 1.0.0, senza il giardino) è **pubblicata** dal 18 ottobre 2026:
-[release `windows-v1.0.0`](https://github.com/jaacopocoding/FocusFriends/releases/tag/windows-v1.0.0). È provata sul Mac con prove automatiche e prove dal vivo, sulla
+**Stato:** l'ultima versione è la **1.1.0** (con «Da fare», senza il giardino), **pubblicata** il 21 ottobre 2026:
+[release `windows-v1.1.0`](https://github.com/jaacopocoding/FocusFriends/releases/tag/windows-v1.1.0). La prima uscita, la 1.0.0, è del 18 ottobre
+([`windows-v1.0.0`](https://github.com/jaacopocoding/FocusFriends/releases/tag/windows-v1.0.0)). È provata sul Mac con prove automatiche e prove dal vivo, sulla
 CI di GitHub (macchina Windows) e, in modo sommario, su un computer Windows vero. Il confronto con l'app per Mac, funzione per funzione, è in [`PARITA.md`](PARITA.md);
 quello che resta da provare su Windows, punto per punto, in [`PROVE_SU_WINDOWS.md`](PROVE_SU_WINDOWS.md). Il giardino è la seconda uscita.
-Nel codice c'è già la **1.1** (non ancora pubblicata): la pagina **Da fare** della scheda, come sull'app per Mac.
+La 1.1 aggiunge la pagina **Da fare** della scheda, come sull'app per Mac (con la 1.0.1, che non è uscita da sola).
 Clic sull'icona nell'area di notifica = la scheda; tasto destro = il menu.
 
 **Per provarlo** serve Node 24 o più nuovo:

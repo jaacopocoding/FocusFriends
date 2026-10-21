@@ -23,7 +23,7 @@
 > **Update, 21 October 2026.** The Swift sources changed for one new feature, the **to-do list** ("Da fare", commits `6bf851c`
 > and `c5c769b`, released in `v0.9.0`): `ToDo.swift` (model, store, day arithmetic, the companion's reminder text), `ToDoPage.swift`
 > (the card page), one row in the card, `Speaker.reminder` and `SubjectPrompt.ask(prefill:)`. It is described in §3.22; the
-> counts in this document (files, lines, checks) were updated for it. The Windows version has it too since its 1.1 (not yet released),
+> counts in this document (files, lines, checks) were updated for it. The Windows version has it too since its 1.1 (`windows-v1.1.0`),
 > with the same file format; the contract between the two is checked both ways (`tests/fixtures/dafare*`).
 
 ---
