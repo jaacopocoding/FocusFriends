@@ -164,7 +164,9 @@ Nella scheda del menu c'è la riga **Da fare** (a destra, quante cose restano). 
 - **Toccando il testo di una voce** si apre la stessa pagina, *Modifica*, già compilata: si cambiano nome, scadenza e materia. I nomi lunghi vanno
   a capo (fino a due righe).
 - **Il cerchio** segna una voce come fatta: va in fondo, tra le *Fatte*, e dopo una settimana sparisce. Toccandolo di nuovo torna da fare.
-- **Sotto il mouse** compaiono ▶ *Inizia un focus* (apre «Cosa studi adesso?» con la materia già scritta) e × *Togli*.
+- **Sotto il mouse** compaiono ▶ *Inizia un focus* e × *Togli*. Il ▶ porta al quadrante *Gira il timer* (con «Focus per…» in alto, e come punto di
+  partenza l'ultima durata usata): scegli i minuti e *Avvia il focus* parte con la materia della voce, senza richiedertela. Se la voce non ha una
+  materia, dopo i minuti si apre «Cosa studi adesso?». La freccia torna alla lista.
 - **Il compagno** ogni tanto ricorda le scadenze di oggi, o di domani («Domani scade «Esercizi di analisi». Un focus adesso?»):
   al posto di una frase a caso, al massimo una volta ogni tre ore, mai durante un focus e mai con *Frasi: Mai*.
 

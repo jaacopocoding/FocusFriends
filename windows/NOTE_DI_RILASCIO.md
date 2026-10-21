@@ -13,7 +13,7 @@ tutte e due facoltative.
 - Il **«+»** in alto a destra apre la pagina *Nuova cosa*: il nome, la scadenza (*Oggi*, *Domani*, *Fra una settimana* o un giorno dal calendario) e la materia (si scrive, o si tocca una di quelle usate di recente), poi *Aggiungi*. *Annulla*, la freccia o Esc tornano alla lista senza salvare.
 - **Toccando il testo di una voce** si apre la stessa pagina, *Modifica*, già compilata. I nomi lunghi vanno a capo.
 - La lista è divisa in *Scadute*, *Oggi*, *Prossime* e *Senza data*. Il cerchio segna una voce come fatta (sparisce dopo una settimana).
-- Passando sopra una voce compaiono ▶ *Inizia un focus* (con la materia già scritta) e × *Togli*.
+- Passando sopra una voce compaiono ▶ *Inizia un focus* e × *Togli*. Il ▶ porta al quadrante *Gira il timer*, con «Focus per…» in alto: scegli i minuti e il focus parte con la materia della voce (senza materia, dopo i minuti si apre «Cosa studi adesso?»).
 - Il compagno ogni tanto ricorda le scadenze di oggi o di domani, mai durante un focus.
 
 (La 1.1.1 è la 1.1 con il «+» e la modifica delle voci: la 1.1.0 aggiungeva le cose scrivendo il nome in un campo sopra la lista.)

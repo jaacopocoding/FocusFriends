@@ -288,8 +288,8 @@ code. All UI code runs on the main thread; the only other thread is the audio re
   last note hint) and starts the timer.
 - **Entry point:** `MenuController.beginFocus(minutes:subject:)`, reached from: card duration buttons (`addDurations`),
   dial "Start the focus" (`buildTimers`), rest page "New focus · N min" (`buildRest`), classic menu items
-  (`startFocus(_:)`, tag = minutes), and the play button of a to-do item (§3.22: its subject is passed as `subject`
-  and written in the field through `SubjectPrompt.ask(prefill:)`).
+  (`startFocus(_:)`, tag = minutes), and the play button of a to-do item (§3.22: after choosing the minutes on the dial, a focus for an
+  item with a subject starts directly; without one the prompt opens, and `SubjectPrompt.ask(prefill:)` can pre-fill the field).
 - **Execution path:** `SubjectPrompt.ask(minutes:recent:prefill:lastNote:near:completion:)` (recent from
   `SessionLog.recentSubjects()`, hint from `SessionLog.lastNote()`) → `.start(subject)` → `showPetIfHidden()` →
   `Pomodoro.startFocus(minutes:subject:)`:
@@ -560,7 +560,7 @@ code. All UI code runs on the main thread; the only other thread is the audio re
   the bottom ("Fatte · N") and disappear after 7 days; an item can start a focus with its subject; the companion mentions
   deadlines of today (or tomorrow).
 - **Entry point:** the row added in `MenuCardView.rebuild` (`page = .todo`) → `buildToDo` → `ToDoPageView`; the actions
-  `MenuCardActions.todoAdd / todoUpdate / todoToggle / todoRemove / todoStartFocus`, implemented in `MenuController.cardActions()` on
+  `MenuCardActions.todoAdd / todoUpdate / todoToggle / todoRemove / todoStartFocus(id, minutes)`, implemented in `MenuController.cardActions()` on
   `ToDoList.shared`; `Speaker.reminder`, set in `AppDelegate`.
 - **Execution path:**
   - State: `MenuController.cardState()` computes today as a day string (`ToDoDay.string(for: now, calendar: ToDoDay.calendar())`)
@@ -580,8 +580,12 @@ code. All UI code runs on the main thread; the only other thread is the audio re
     arrow return to the list without saving (Esc anywhere else closes the card, as always).
   - Actions: "Aggiungi" → `save` → `actions.add`, "Salva" → `actions.update` (`ToDoList.update`: text/due/subject cleaned like on `add`, the creation and
     done dates unchanged, a changed item is saved) → `MenuCardView.rebuild()` → `ToDoPageView.update`. The circle → `toggleDone`; × → `remove`. ▶ closes
-    the card (`perform(true)`) and calls `MenuController.beginFocus(minutes:subject:)` with `pomodoro.focusMinutes` (50 if zero), which opens "Cosa studi
-    adesso?" with the subject already written.
+    to the timer dial instead (`MenuCardView.openTimers(forToDo:)`, v0.9.1): see the next item.
+  - Play (▶): `openTimers(forToDo:)` stores the item in `todoFocus`, sets `dialKind = .focus`, starts the dial at the last chosen duration
+    (`MenuCardState.focusMinutes`, 50 if zero or out of range) and shows the "Gira il timer" page with a "FOCUS PER" box (`addTodoBanner`: the text and
+    the subject) instead of the Focus/Pausa switch (`addKindSwitch`); the back arrow returns to "Da fare" (`todoFocus` is cleared whenever the page is left).
+    "Avvia il focus" calls `MenuCardActions.todoStartFocus(id, minutes)` and closes the card; `MenuController` starts the focus at once
+    (`pomodoro.startFocus(minutes:subject:)`) when the item has a subject, otherwise it opens "Cosa studi adesso?" (`beginFocus`) with an empty field.
   - Reminder: `ToDoReminder.message(for:today:)` takes the open items due today (oldest first), otherwise those due
     tomorrow; overdue items are never mentioned. One item: "Oggi|Domani scade «…». Un focus adesso?"; several:
     "… scadono N cose: «…» e un'altra / altre N−1."; the quoted text is cut at a whole word (≤ 36 characters). Because it

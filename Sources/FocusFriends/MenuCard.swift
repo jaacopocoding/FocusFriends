@@ -94,7 +94,8 @@ struct MenuCardActions {
     var todoUpdate: (_ id: UUID, _ text: String, _ due: String?, _ subject: String?) -> Void
     var todoToggle: (UUID) -> Void
     var todoRemove: (UUID) -> Void
-    var todoStartFocus: (UUID) -> Void
+    /// Avvia un focus per questa cosa da fare, con i minuti scelti sul quadrante.
+    var todoStartFocus: (UUID, Int) -> Void
 }
 
 /// Un pulsante disegnato a mano (origine in alto): ogni elemento della scheda lo usa con il suo disegno.
@@ -170,6 +171,8 @@ private final class MenuCardView: NSView {
     private var todoPage: ToDoPageView?
     private var dialKind: CustomTimers.Kind = .focus
     private var dialMinutes = 50
+    /// La cosa da fare per cui si sta scegliendo quanto dura il focus (si arriva dal ▶ di «Da fare»): il quadrante la mostra e «Avvia» parte per lei.
+    private var todoFocus: ToDoItem?
     private var timerMessage: String?
 
     private var statusLabel: NSTextField?
@@ -280,6 +283,7 @@ private final class MenuCardView: NSView {
         for view in subviews where !(page == .timers && view === dial) && !(page == .todo && view === todoPage) { view.removeFromSuperview() }
         if page != .timers { dial = nil }
         if page != .todo { todoPage = nil }
+        if page != .timers { todoFocus = nil }
         statusLabel = nil
         clockLabel = nil
         tomato = nil
@@ -670,9 +674,7 @@ private final class MenuCardView: NSView {
                     self?.actions.todoRemove(id)
                     self?.rebuild()
                 },
-                startFocus: { [weak self] id in
-                    self?.perform(true) { self?.actions.todoStartFocus(id) }
-                }))
+                startFocus: { [weak self] id in self?.openTimers(forToDo: id) }))
             view.onHeight = { [weak self] height in self?.fit(toDoHeight: height) }
             todoPage = view
         }
@@ -680,6 +682,18 @@ private final class MenuCardView: NSView {
         addSubview(view)
         view.update(s.todo)
         fit(toDoHeight: view.height)
+    }
+
+    /// Il ▶ di una voce: si va al quadrante «Gira il timer» per scegliere i minuti; «Avvia il focus» parte per quella voce.
+    private func openTimers(forToDo id: UUID) {
+        let s = provide()
+        guard let item = (s.todo.sections.flatMap(\.items) + s.todo.done).first(where: { $0.id == id }) else { return }
+        todoFocus = item
+        dialKind = .focus
+        dialMinutes = (1...dialMax).contains(s.focusMinutes) ? s.focusMinutes : 50     // l'ultima durata scelta, come punto di partenza
+        timerMessage = nil
+        page = .timers
+        rebuild()
     }
 
     private func fit(toDoHeight height: CGFloat) {
@@ -696,28 +710,41 @@ private final class MenuCardView: NSView {
     private var dialMax: Int { dialKind == .focus ? 120 : 30 }
     private var dialStep: Int { dialKind == .focus ? 5 : 1 }
 
-    /// "‹ Gira il timer": il quadrante da girare per scegliere i minuti, i timer salvati e Avvia.
-    private func buildTimers(_ s: MenuCardState) {
-        let w = Self.width
+    /// Il riquadro «FOCUS PER …» sopra il quadrante, quando si arriva dal ▶ di una voce di «Da fare». Restituisce la nuova y.
+    private func addTodoBanner(_ item: ToDoItem, y start: CGFloat) -> CGFloat {
         let pad = Self.pad
-        let inner = w - 2 * pad
-        var y = Self.overflow + 14
-
-        // Intestazione con la freccia indietro
-        add(NSRect(x: pad - 6, y: y, width: 36, height: 30), label: "Torna alla scheda", { [weak self] in
-            self?.page = .main
-            self?.rebuild()
-        }) { rect, pressed, hovered in
-            if let image = Paper.symbolImage("chevron.left", size: 15, color: hovered || pressed ? Paper.ink : Paper.inkLight) {
-                let size = image.size
-                image.draw(in: NSRect(x: rect.midX - size.width / 2, y: rect.midY - size.height / 2, width: size.width, height: size.height),
-                           from: .zero, operation: .sourceOver, fraction: 1, respectFlipped: true, hints: nil)
-            }
+        let inner = Self.width - 2 * pad
+        var y = start
+        let hasSubject = item.subject != nil
+        let box = NSView(frame: NSRect(x: pad, y: y, width: inner, height: hasSubject ? 62 : 46))
+        box.wantsLayer = true
+        box.layer?.cornerRadius = 12
+        box.layer?.backgroundColor = Paper.accent.withAlphaComponent(0.12).cgColor
+        box.layer?.borderColor = Paper.accent.cgColor
+        box.layer?.borderWidth = 1
+        addSubview(box)
+        _ = label("FOCUS PER", font: NSFont.systemFont(ofSize: 10.5, weight: .semibold), color: Paper.inkLight, alignment: .left,
+                  frame: NSRect(x: box.frame.minX + 12, y: y + 7, width: inner - 24, height: 13))
+        _ = label(item.text, font: NSFont.systemFont(ofSize: 13), alignment: .left,
+                  frame: NSRect(x: box.frame.minX + 12, y: y + 22, width: inner - 24, height: 17))
+        if let subject = item.subject {
+            let dot = NSView(frame: NSRect(x: box.frame.minX + 13, y: y + 45, width: 8, height: 8))
+            dot.wantsLayer = true
+            dot.layer?.cornerRadius = 4
+            dot.layer?.backgroundColor = Paper.color(forSubject: subject).cgColor
+            addSubview(dot)
+            _ = label(subject, font: NSFont.systemFont(ofSize: 11), color: Paper.inkLight, alignment: .left,
+                  frame: NSRect(x: box.frame.minX + 26, y: y + 41, width: inner - 38, height: 15))
         }
-        _ = label("Gira il timer", font: Paper.markerFont(20), alignment: .left,
-                  frame: NSRect(x: pad + 30, y: y + 2, width: inner - 30, height: 26))
-        y += 42
+        y += box.frame.height + 10
+        return y
+    }
 
+    /// «Focus / Pausa»: la scelta di cosa gira il quadrante. Restituisce la nuova y.
+    private func addKindSwitch(_ s: MenuCardState, y start: CGFloat) -> CGFloat {
+        let pad = Self.pad
+        let inner = Self.width - 2 * pad
+        var y = start
         // Focus o pausa
         let backdrop = NSView(frame: NSRect(x: pad, y: y, width: inner, height: 30))
         backdrop.wantsLayer = true
@@ -747,6 +774,34 @@ private final class MenuCardView: NSView {
             }
         }
         y += 30 + 10
+        return y
+    }
+
+    /// "‹ Gira il timer": il quadrante da girare per scegliere i minuti, i timer salvati e Avvia.
+    private func buildTimers(_ s: MenuCardState) {
+        let w = Self.width
+        let pad = Self.pad
+        let inner = w - 2 * pad
+        var y = Self.overflow + 14
+
+        // Intestazione con la freccia indietro (da «Da fare» si torna alla lista)
+        add(NSRect(x: pad - 6, y: y, width: 36, height: 30), label: todoFocus == nil ? "Torna alla scheda" : "Torna a Da fare", { [weak self] in
+            guard let self else { return }
+            self.page = self.todoFocus == nil ? .main : .todo
+            self.todoFocus = nil
+            self.rebuild()
+        }) { rect, pressed, hovered in
+            if let image = Paper.symbolImage("chevron.left", size: 15, color: hovered || pressed ? Paper.ink : Paper.inkLight) {
+                let size = image.size
+                image.draw(in: NSRect(x: rect.midX - size.width / 2, y: rect.midY - size.height / 2, width: size.width, height: size.height),
+                           from: .zero, operation: .sourceOver, fraction: 1, respectFlipped: true, hints: nil)
+            }
+        }
+        _ = label("Gira il timer", font: Paper.markerFont(20), alignment: .left,
+                  frame: NSRect(x: pad + 30, y: y + 2, width: inner - 30, height: 26))
+        y += 42
+
+        y = todoFocus.map { addTodoBanner($0, y: y) } ?? addKindSwitch(s, y: y)
 
         // Il quadrante
         let dialSize: CGFloat = 176
@@ -854,7 +909,8 @@ private final class MenuCardView: NSView {
         let title = isFocus ? "Avvia il focus" : "Avvia la pausa"
         add(NSRect(x: pad, y: y, width: inner, height: 42), label: title, close: true, { [weak self] in
             guard let self else { return }
-            if self.dialKind == .focus { self.actions.startFocus(self.dialMinutes) } else { self.actions.startBreak(self.dialMinutes) }
+            if let item = self.todoFocus { self.actions.todoStartFocus(item.id, self.dialMinutes) }
+            else if self.dialKind == .focus { self.actions.startFocus(self.dialMinutes) } else { self.actions.startBreak(self.dialMinutes) }
         }) { rect, pressed, hovered in
             let shape = NSBezierPath(roundedRect: rect.insetBy(dx: 0.5, dy: 0.5), xRadius: rect.height / 2, yRadius: rect.height / 2)
             (pressed ? Paper.accentPressed : Paper.accent).setFill()

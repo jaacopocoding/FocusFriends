@@ -636,9 +636,15 @@ final class MenuController: NSObject, NSMenuDelegate {
             todoUpdate: { id, text, due, subject in ToDoList.shared.update(id: id, text: text, due: due, subject: subject) },
             todoToggle: { ToDoList.shared.toggleDone(id: $0) },
             todoRemove: { ToDoList.shared.remove(id: $0) },
-            todoStartFocus: { [weak self] id in
+            todoStartFocus: { [weak self] id, minutes in
                 guard let self, let item = ToDoList.shared.items.first(where: { $0.id == id }) else { return }
-                self.beginFocus(minutes: self.pomodoro.focusMinutes > 0 ? self.pomodoro.focusMinutes : 50, subject: item.subject)
+                if let subject = item.subject {
+                    // La materia c'è già: il focus parte subito, senza chiedere «Cosa studi adesso?».
+                    self.showPetIfHidden()
+                    self.pomodoro.startFocus(minutes: minutes, subject: subject)
+                } else {
+                    self.beginFocus(minutes: minutes, subject: nil)
+                }
             }
         )
     }

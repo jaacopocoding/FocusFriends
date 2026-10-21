@@ -364,8 +364,10 @@ The same feature as the Mac app (`../ARCHITECTURE.md` §3.22), with the same rul
   past days disabled), the subject `<input>` with up to six recent-subject chips (a chip fills the field; typing the same subject lights the chip, repainted
   in place without rebuilding), and "Aggiungi" / "Salva" (dimmed while the name is empty) with "Annulla". Enter in either field saves; Esc anywhere in the
   form goes back to the list (the window-level key handler checks `todoForm` before closing the card). The draft lives in `todoName`, `todoSubjectText`
-  and `todoDue`, so it survives the rebuilds that follow a chip. ▶ closes the card and calls `host.askFocus(minutes, subject)` (the timer's
-  `focusMinutes`, or 50), which opens "Cosa studi adesso?" with the subject already written.
+  and `todoDue`, so it survives the rebuilds that follow a chip. ▶ (`startToDoFocus`, 1.1.1) keeps the item in `todoFocus` and goes to the "Gira il timer"
+  page (the dial starts at the timer's last `focusMinutes`, or 50) with a "FOCUS PER" box instead of the Focus/Pausa switch; the back arrow returns to
+  "Da fare". "Avvia il focus" (`startToDoFocusNow`) closes the card and sends `startFocus` with the item's subject straight away; for an item without a
+  subject it calls `host.askFocus(minutes, null)`, i.e. "Cosa studi adesso?" with an empty field.
 - **Tests:** `dafare.test.ts` (days, labels, cleaning, the list and its file, editing, limits, damaged/newer files, reminder sentences); four sample folders in
   `../tests/fixtures/dafare*` checked against the Swift results, and a folder written by this code read back by Swift (`ritorno.test.ts`). Live run:
   `test/vivo/dafare.cjs`.

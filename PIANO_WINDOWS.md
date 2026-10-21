@@ -425,6 +425,8 @@ mappa dei sorgenti, e dentro il codice compilato la pagina «Da fare» e il bloc
 in alto a destra apre la pagina «Nuova cosa» (nome, scadenza, materia, «Aggiungi»), non più un campo sopra la lista; e toccando il testo di una voce si apre la stessa pagina per
 **modificarla**. I nomi lunghi vanno a capo su due righe; la materia si può anche scrivere. Stessa cosa sul Mac (0.9.1). Il formato di `dafare.json` non cambia; nuova operazione
 `update` in `ToDoList` (Swift e TypeScript), provata in `tests/main.swift` e `windows/test/dafare.test.ts`; 277 prove su Windows e 393 sul Mac.
+Provando la versione sul Mac, una seconda correzione: il ▶ «Inizia un focus» faceva partire la durata dell'ultimo focus; ora porta al quadrante «Gira il timer» (con «Focus per…»
+in alto, e l'ultima durata come punto di partenza), e «Avvia il focus» parte con la materia della voce, senza richiederla (senza materia si apre «Cosa studi adesso?»).
 
 ## Seconda uscita: il giardino (8–12 giorni)
 

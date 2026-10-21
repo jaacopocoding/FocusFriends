@@ -64,6 +64,8 @@ export class MenuCard {
   private lockHint: string | null = null;
   private draftNote = "";
   // La pagina «Da fare»: quello che si sta scrivendo e le scelte fatte, che restano mentre la scheda si ricostruisce.
+  /** La cosa da fare per cui si sceglie quanto dura il focus (si arriva dal ▶ di «Da fare»): il quadrante la mostra e «Avvia» parte per lei. */
+  private todoFocus: ToDoItem | null = null;
   private todoForm: { editing: string | null } | null = null;
   private todoName = "";
   private todoSubjectText = "";
@@ -237,6 +239,7 @@ export class MenuCard {
     const listScroll = root.querySelector<HTMLElement>(".todo-list")?.scrollTop ?? 0;
 
     root.replaceChildren();
+    if (this.page !== "timers") this.todoFocus = null;
     this.dial = null; this.tomato = null; this.clock = null;
     root.classList.toggle("notebook", this.page === "focus" || this.page === "rest");
     const state = timer ?? emptyTimer();
@@ -642,11 +645,22 @@ export class MenuCard {
     );
   }
 
-  /** «Inizia un focus» da una voce: si chiude la scheda e «Cosa studi adesso?» ha già la sua materia. */
+  /** Il ▶ di una voce: si va al quadrante «Gira il timer» per scegliere i minuti; «Avvia il focus» parte per quella voce. */
   private startToDoFocus(item: ToDoItem): void {
-    const minutes = this.host.timer()?.focusMinutes || 50;
+    const last = this.host.timer()?.focusMinutes ?? 0;
+    this.todoFocus = item;
+    this.dialKind = "focus";
+    this.dialMinutes = last >= 1 && last <= 120 ? last : 50;      // l'ultima durata scelta, come punto di partenza
+    this.timerMessage = null;
+    this.page = "timers";
+    this.rebuild(false);
+  }
+
+  /** «Avvia il focus» dal quadrante, per una voce di «Da fare»: con la materia della voce parte subito; senza, si chiede «Cosa studi adesso?». */
+  private startToDoFocusNow(item: ToDoItem, minutes: number): void {
     this.close();
-    this.host.askFocus(minutes, item.subject);
+    if (item.subject !== null) this.api.cardCommand({ name: "startFocus", minutes, subject: item.subject });
+    else this.host.askFocus(minutes, null);
   }
 
   // ---- la pagina dei timer
@@ -664,10 +678,27 @@ export class MenuCard {
     const maxMinutes = kind === "focus" ? 120 : 30, step = kind === "focus" ? 5 : 1;
     const hardMax = ALLOWED_TIMERS[kind].max;
     root.prepend(h("div", { class: "avatar-spacer" }));
+    const fromToDo = this.todoFocus;
     body.append(h("div", { class: "page-header" },
-      button("back", "Torna alla scheda", () => { this.page = "main"; this.rebuild(false); }, icon("back", 18)),
+      button("back", fromToDo === null ? "Torna alla scheda" : "Torna a Da fare", () => {
+        this.page = fromToDo === null ? "main" : "todo";
+        this.todoFocus = null;
+        this.rebuild(false);
+      }, icon("back", 18)),
       h("div", { class: "page-title" }, "Gira il timer"),
     ));
+    // Per quale cosa da fare si sceglie (al posto di «Focus / Pausa», che qui non serve)
+    if (fromToDo !== null) {
+      const banner = h("div", { class: "todo-focus-for" },
+        h("div", { class: "todo-focus-caption" }, "FOCUS PER"),
+        h("div", { class: "todo-focus-text" }, fromToDo.text));
+      if (fromToDo.subject !== null) {
+        const subject = h("div", { class: "todo-subject" }, h("span", { class: "todo-dot" }), fromToDo.subject);
+        subject.style.setProperty("--subject", subjectColor(fromToDo.subject));
+        banner.append(subject);
+      }
+      body.append(banner);
+    }
     // Focus o pausa
     const switcher = h("div", { class: "segmented", role: "tablist" });
     for (const k of ["focus", "rest"] as const) {
@@ -682,7 +713,7 @@ export class MenuCard {
       tab.setAttribute("aria-selected", String(kind === k));
       switcher.append(tab);
     }
-    body.append(switcher);
+    if (fromToDo === null) body.append(switcher);
 
     // Il quadrante
     const dial = createDial((minutes) => { this.dialMinutes = minutes; this.timerMessage = null; this.updateTimersFooter(data); });
@@ -692,7 +723,9 @@ export class MenuCard {
     body.append(h("div", { class: "dial-link", id: "dial-link" }));
     body.append(h("div", { class: "chips", id: "dial-chips" }));
     const start = button("start", kind === "focus" ? "Avvia il focus" : "Avvia la pausa", () => {
-      if (kind === "focus") this.askFocus(this.dialMinutes); else this.command({ name: "startBreak", minutes: this.dialMinutes }, true);
+      if (fromToDo !== null) this.startToDoFocusNow(fromToDo, this.dialMinutes);
+      else if (kind === "focus") this.askFocus(this.dialMinutes);
+      else this.command({ name: "startBreak", minutes: this.dialMinutes }, true);
     }, icon("play", 14), kind === "focus" ? "Avvia il focus" : "Avvia la pausa");
     body.append(start);
     if (timer.phase !== null) {

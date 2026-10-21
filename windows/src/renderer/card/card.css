@@ -1501,3 +1501,33 @@ input.volume::-webkit-slider-thumb {
 .card-root .todo-done-toggle:hover {
   color: var(--ink);
 }
+
+/* ---- «Gira il timer» aperto dal ▶ di una voce di «Da fare» */
+
+.todo-focus-for {
+  margin-top: 12px;
+  box-sizing: border-box;
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  background: rgba(217, 120, 56, 0.12);
+  padding: 7px 12px 8px;
+}
+
+.todo-focus-caption {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--ink-light);
+}
+
+.todo-focus-text {
+  font-size: 13px;
+  margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.todo-focus-for .todo-subject {
+  margin-top: 3px;
+}

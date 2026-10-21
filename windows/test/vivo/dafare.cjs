@@ -144,15 +144,45 @@ module.exports = async ({ js, sleep, mouse, key, timer, card, win, settings }) =
   await shotCard("8-fatte");
   console.log("dafare.json:\n" + fs.readFileSync(path.join(process.env.FF_DATA_DIR, "dafare.json"), "utf8"));
 
-  // «Inizia un focus» da una voce con la materia: «Cosa studi adesso?» ce l'ha già scritta.
-  const withSubject = await rect(".todo-row", 1);
-  mouse("mouseMove", withSubject.x + withSubject.width / 2, withSubject.y + withSubject.height / 2);
+  // ▶ su una voce con la materia: si va al quadrante «Gira il timer» per scegliere i minuti; «Avvia il focus» parte per quella voce, senza chiedere la materia.
+  const play = (title) => js(`(() => {
+    const row = [...document.querySelectorAll('.todo-row')].find((r) => r.querySelector('.todo-title').textContent.startsWith(${JSON.stringify(title)}));
+    if (!row) return false;
+    row.querySelector('.todo-play').click();
+    return true;
+  })()`);
+  console.log("▶ su «Riassunto del capitolo 7»:", await play("Riassunto del capitolo 7"));
+  await sleep(500);
+  console.log("pagina:", await js("document.querySelector('.page-title').textContent"), "| riquadro:", await js("(document.querySelector('.todo-focus-for') || {}).innerText"),
+    "| interruttore Focus/Pausa nascosto:", await js("document.querySelector('.segmented') === null"), "| minuti sul quadrante:", await js("document.querySelector('.dial-wrap').innerText.replace(/\\s+/g, ' ')"));
+  await shotCard("9-play-quadrante");
+  await click("Torna a Da fare");
+  await sleep(400);
+  console.log("freccia: di nuovo la lista?", await js("document.querySelector('.todo-plus') !== null"));
+  await play("Riassunto del capitolo 7");
+  await sleep(400);
+  await js("[...document.querySelectorAll('.chips button')].find((b) => b.textContent === '30').click()");
   await sleep(300);
-  console.log("«Inizia un focus» sulla riga:", await js("document.querySelectorAll('.todo-row')[1].querySelector('.todo-title').textContent"));
-  await js("document.querySelectorAll('.todo-row')[1].querySelector('.todo-play').click()");
+  await click("Avvia il focus");
   await sleep(900);
-  console.log("scheda chiusa?", !(await js("window.__ff.cardOpen()")), "materia nel campo:", await js("(document.querySelector('.modal input') || {}).value"));
-  await shotCard("9-materia-gia-scritta", ".modal");
+  const started = svc.snapshot();
+  console.log("scheda chiusa?", !(await js("window.__ff.cardOpen()")), "| finestra della materia aperta?", await js("window.__ff.modalOpen()"),
+    "| focus:", JSON.stringify({ fase: started.phase, minuti: started.focusMinutes, materia: started.subject }));
+  svc.run(() => svc.engine.stop());
+  await sleep(500);
+
+  // ▶ su una voce senza materia: dopo i minuti si chiede «Cosa studi adesso?».
+  await js("window.__ff.openCard()");
+  await sleep(500);
+  await click("Da fare");
+  await sleep(400);
+  await play("Cercare un libro per Storia");
+  await sleep(400);
+  await click("Avvia il focus");
+  await sleep(900);
+  console.log("senza materia: finestra «Cosa studi adesso?» aperta?", await js("window.__ff.modalOpen()"), "| campo:", JSON.stringify(await js("(document.querySelector('.modal input') || {}).value")),
+    "| fase:", svc.snapshot().phase);
+  await shotCard("10-senza-materia", ".modal");
   key("Escape");
   await sleep(400);
 
@@ -160,7 +190,7 @@ module.exports = async ({ js, sleep, mouse, key, timer, card, win, settings }) =
   await js("window.__ff.say()");
   await sleep(1500);
   console.log("fumetto:", await js("(document.querySelector('.bubble .text') || document.querySelector('.bubble') || {}).textContent"));
-  await shotCard("10-fumetto", ".bubble");
+  await shotCard("11-fumetto", ".bubble");
   await js("window.__ff.say()");
   await sleep(1500);
   console.log("frase dopo (non più il promemoria):", await js("(document.querySelector('.bubble .text') || document.querySelector('.bubble') || {}).textContent"));
