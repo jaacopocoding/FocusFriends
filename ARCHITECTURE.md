@@ -21,7 +21,7 @@
 > document's §3), `PIANO_WINDOWS.md` (decisions and status) and `windows/RILASCIO.md` (installer and release).
 >
 > **Update, 21 October 2026.** The Swift sources changed for one new feature, the **to-do list** ("Da fare", commits `6bf851c`
-> and `c5c769b`, released in `v0.9.0`; refined in `v0.9.1`; closing the loop with the end-of-focus question in `v0.10.0`): `ToDo.swift` (model, store, day arithmetic, the companion's reminder text), `ToDoPage.swift`
+> and `c5c769b`, released in `v0.9.0`; refined in `v0.9.1`; closing the loop with the end-of-focus question and the context phrases of §3.23 in `v0.10.0`): `ToDo.swift` (model, store, day arithmetic, the companion's reminder text), `ToDoPage.swift`
 > (the card page), one row in the card, `Speaker.reminder` and `SubjectPrompt.ask(prefill:)`. It is described in §3.22; the
 > counts in this document (files, lines, checks) were updated for it. In `v0.9.1` the way to add an item changed (a "+" opening a "Nuova cosa"
 > page) and items can be edited by tapping them (§3.22). The Windows version has it too since its 1.1 (`windows-v1.1.0`),
@@ -54,7 +54,7 @@ Single user per Mac, no accounts, no network: all data is stored locally under
 
 | Item | Value | Source |
 |---|---|---|
-| Language | Swift (one module, `Sources/FocusFriends/*.swift`, 38 files, 11,423 lines by `wc -l`) | `build.sh` |
+| Language | Swift (one module, `Sources/FocusFriends/*.swift`, 39 files, 12,067 lines by `wc -l`) | `build.sh` |
 | UI framework | AppKit, custom-drawn views (no SwiftUI, no storyboards/xibs, no Interface Builder) | all view files |
 | Other Apple frameworks | Foundation, AVFoundation (`AVAudioEngine`, `AVAudioSourceNode`, `AVAudioPlayer`), ServiceManagement (`SMAppService`, launch at login) | `import` lines |
 | Third-party dependencies | None (no Package.swift, no CocoaPods/Carthage, no vendored code) | repository tree |
@@ -64,7 +64,7 @@ Single user per Mac, no accounts, no network: all data is stored locally under
 | App type | Menu-bar "agent": `LSUIElement = true`, activation policy `.accessory` | `build.sh`, `AppDelegate.applicationDidFinishLaunching` |
 | Signing | Ad-hoc (`codesign --force --sign -`; `build.sh` stops with exit 1 if signing fails); not notarised, no hardened runtime or sandbox | `build.sh`, `README.md` "Scaricare e usare" |
 | Asset tooling | Python 3 scripts using Pillow and NumPy (not run at build time) | `tools/*.py` |
-| Tests | One hand-written Swift executable (`tests/main.swift`, 32 sections, 400 checks) that compiles eleven Foundation-only source files; no XCTest | `tests/run.sh` |
+| Tests | One hand-written Swift executable (`tests/main.swift`, 33 sections, 443 checks) that compiles twelve Foundation-only source files; no XCTest | `tests/run.sh` |
 | License | MIT (`LICENSE`); bundled music is CC0 (`CREDITS.md`) | `LICENSE`, `CREDITS.md` |
 | Swift toolchain version / Python version | Not pinned anywhere in the repository | **[unknown]** |
 
@@ -105,13 +105,14 @@ FocusFriends/
 ├── .github/workflows/            mac.yml (tests + build + contract tests) and windows.yml (types, tests, build; installers and a draft release on a `windows-v*` tag)
 ├── windows/                      the Windows app (Electron + TypeScript): src/, test/, tools/, resources/, ARCHITECTURE.md (its architecture), PARITA.md, PROVE_SU_WINDOWS.md, RILASCIO.md
 ├── build.sh                      build script: swiftc ×2 archs → lipo → app bundle, resources, Info.plist, ad-hoc codesign (fails if signing fails)
-├── Sources/FocusFriends/         the whole app (single Swift module, 38 files)
+├── Sources/FocusFriends/         the whole app (single Swift module, 39 files)
 │   ├── main.swift                entry point: NSApplication + AppDelegate
 │   ├── AppDelegate.swift         composition root: creates window, speaker, walker, pomodoro, menu; wires callbacks
 │   ├── Pet.swift                 value type describing a companion (resources, sizes, behaviours) + the 4 definitions
 │   ├── PetWindow.swift           PetWindow (transparent floating NSWindow) + PetView (drawing, fade, pick-up, Zzz)
 │   ├── Walker.swift              state machine for walking / eating / sleeping / popcorning (30 Hz, 1 Hz when idle)
 │   ├── Speaker.swift             schedules and shows speech bubbles above the pet
+│   ├── Remarks.swift             context phrases: greetings, spoken numbers (weekly recap, insights), milestones   (Foundation only)
 │   ├── SpeechBubble.swift        OverlayWindow base class, BubbleWindow, BubbleView (bubble.png scaled to text)
 │   ├── Quotes.swift              loads phrase files (user file → legacy dir → bundled → fallback)
 │   ├── PhraseDeck.swift          shuffled-deck phrase picker (no repeats until the deck is used)
@@ -145,8 +146,8 @@ FocusFriends/
 │   ├── MusicLibrary.swift        MusicSource, MusicLibrary (file discovery, shuffle, titles), MusicSettings  (Foundation only)
 │   └── MusicPlayer.swift         AVAudioPlayer-based music playback with queue and fades
 ├── tests/
-│   ├── main.swift                hand-rolled test executable (check()/section()), 32 sections, 400 checks
-│   ├── run.sh                    compiles 11 source files + tests/main.swift into build/tests/stats and runs it
+│   ├── main.swift                hand-rolled test executable (check()/section()), 33 sections, 443 checks
+│   ├── run.sh                    compiles 12 source files + tests/main.swift into build/tests/stats and runs it
 │   ├── genera-attesi.sh          builds and runs tests/genera-attesi/main.swift: for every folder in tests/fixtures/ writes what this app derives from it (the expected results the Windows port is compared with)
 │   ├── genera-rumore.sh          same idea for the ambient-noise synthesiser (tests/fixtures/rumore.json)
 │   └── fixtures/                 18 sample data folders (sessions v0–v3, damaged, newer, in-progress, profile, garden, settings), `attesi/` (expected results) and a README
@@ -281,6 +282,7 @@ code. All UI code runs on the main thread; the only other thread is the audio re
   (`reminderEvery`, `lastReminder` in memory): a to-do deadline of today or tomorrow then replaces the random phrase (§3.22).
   "Edit phrases…" (`openQuotesFile`) creates the user directory, copies the legacy or bundled file there if missing,
   and opens it with `NSWorkspace.shared.open`.
+  `sayRandom` first drains the context queue (§3.23), then a to-do reminder (§3.22), then, one time in six, an insight, and only then the deck.
 
 ### 3.5 Starting a focus (subject prompt)
 
@@ -554,8 +556,8 @@ code. All UI code runs on the main thread; the only other thread is the audio re
     `lipo -create` into `Contents/MacOS/FocusFriends` → copy bubble, phrase files, icon, pet frames (prefixed names),
     music (`music_*`), garden/growth art, Pianty stage frames → write `Info.plist` via heredoc →
     `codesign --force --sign -` (a failure prints an error and exits 1) → print the path.
-  - `tests/run.sh`: `swiftc -O -o build/tests/stats` on eleven source files + `tests/main.swift` →
-    `build/tests/stats` (prints `• <section>` lines and `N controlli, M falliti`, exit code 0/1; 400 checks now).
+  - `tests/run.sh`: `swiftc -O -o build/tests/stats` on twelve source files + `tests/main.swift` →
+    `build/tests/stats` (prints `• <section>` lines and `N controlli, M falliti`, exit code 0/1; 443 checks now).
   - Tools: described in §5.9; they read `assets/**/*_original.png` / sheets and write processed PNGs or the icon.
 
 ### 3.22 To-do list ("Da fare")
@@ -612,6 +614,27 @@ code. All UI code runs on the main thread; the only other thread is the audio re
   ricorda le scadenze"), and the contract with the Windows port: four sample folders (`tests/fixtures/dafare*`) whose results the
   generator writes (`genera-attesi`, §5.9). The page itself has no automated test; during development it was rendered offscreen with sample
   data, and its buttons clicked, by a throwaway harness that is not in the repository.
+
+### 3.23 Context phrases: greetings, spoken numbers and milestones (`Remarks.swift`, v0.10.0)
+
+- **What:** phrases that depend on who studies and when, said by the companion: a greeting at launch and after a long sleep, the previous week's
+  recap, a "when you do better" insight now and then, and milestones at the end of a focus. No data of its own; the only thing remembered is which weekly
+  recap was already said.
+- **Entry point:** `AppDelegate.applicationDidFinishLaunching` (queues the launch greeting and recap with `Speaker.enqueue`, installs `speaker.insight`,
+  observes `NSWorkspace.willSleepNotification` / `didWakeNotification`) and `Pomodoro.onFocusRecorded` (milestones).
+- **Execution path:** `Remarks` (pure, Foundation only; every function takes a `Context` of now/calendar/name/sessions/open to-do count/due-sentence and a
+  `variant` number so tests are deterministic; callers pass a random one). `launchGreeting`: day part by hour (5–12, 12–18, 18–23, else night; "Buona domenica"
+  on Sundays), then one context line chosen by `variant` among: yesterday's study (only if nothing studied yet today), today's study, the streak (≥ 2 days) and
+  the open to-dos; if something is due today or tomorrow the due-sentence (§3.22) is the line and `coversReminder` tells the speaker not to repeat it.
+  `wakeGreeting` (away ≥ 1 h): "Rieccoti!" and variants + today's study or the to-dos. `weeklyRecap` (Mon–Wed only; the previous week's total, days studied, focus count
+  and strongest day; the key is the week's first day) — the caller stores the key in `UserDefaults` (`lastWeeklyRecap`) when it is said. `insight` picks one of the
+  (≤ 2) lines of `StudyStats.insights`. `milestone(before:after:now:)`: streak (3, 7, 14, 30, 60, 100), focus count (10 … 1000), total hours (10 … 500) or
+  an anniversary ("un mese", months, "un anno", years; only at the first focus of the day), the first that applies, only at the moment it is crossed.
+- **Rules:** nothing is said in a focus; all spontaneous phrases are silenced by "Frasi: Mai" (the queue is consumed by the spontaneous timer, the wake greeting
+  checks `Chattiness`); milestones are part of the end-of-focus flow like the unlock announcement, both through `sayWhenQuiet` so they do not cover each other;
+  Italian without grammatical gender for the user; never invents data (no study → no recap; with a streak under 2 days no streak line).
+- **Tests:** a section in `tests/main.swift` ("Frasi di contesto"): day parts, every greeting form, the wake greeting, the recap (days of the week, tie, one-day week),
+  the insight, and all milestones, including their priority and the anniversary rules.
 
 ---
 
@@ -725,7 +748,7 @@ version 1 (wrapped, with `localStart` per `tests/main.swift`); 2 adds `rating`/`
 
 **`UserDefaults` keys** (domain of the app bundle id): `pet`, `phraseFrequency`, `movement`, `askHowItWent`,
 `longBreakEnabled`, `ambientSound`, `ambientVolume`, `musicSource`, `musicFolder`, `musicVolume`,
-`customTimers.focus`, `customTimers.rest`, `migratedFromBonsy`, and `developerMode` (read by `Profile.isDeveloper`,
+`customTimers.focus`, `customTimers.rest`, `migratedFromBonsy`, `lastWeeklyRecap` (the week of the last recap said) and `developerMode` (read by `Profile.isDeveloper`,
 never written by the app). Each is declared next to the type that uses it (there is no central registry).
 
 **Other value types:** `Pet` (`Equatable` struct with 29 stored properties), `Pomodoro.Phase`, `MenuCardState`
@@ -871,10 +894,12 @@ file/UserDefaults writes, windows, timers, sound, global state.
 
 ### 5.3 `Sources/FocusFriends/` — speech
 
-#### `Speaker.swift` (185)
+#### `Speaker.swift` (233)
 - **Responsibility:** when and where speech bubbles appear.
-- **Key members:** `interval` (set from `Chattiness`), `reminder` (closure; at most every 3 h it replaces a random phrase,
-  `lastReminder`), `start/stop/reschedule/dismissNow`, `sayRandom`, `say`,
+- **Key members:** `interval` (set from `Chattiness`), `enqueue(Occasion)` (context phrases — launch greeting, weekly recap — said at the next
+  spontaneous phrase, before anything else), `reminder` (closure; at most every 3 h it replaces a random phrase, `lastReminder`, `markReminderSaid`),
+  `insight` (closure; one random phrase in six may be a "when you do better" line), `sayWhenQuiet(_:after:while:tries:)` (a delayed phrase that waits for
+  a bubble already on screen, and is dropped if `stillWanted` says no), `start/stop/reschedule/dismissNow`, `sayRandom`, `say`,
   `scheduleNext`, `bubbleOrigin(dt:)`, `startFollowing/followNow`, `dismissBubble`, `isSpeaking`. Owns a `PhraseDeck`.
 - **Side effects:** creates `BubbleWindow` child windows, timers, reads phrase files through `Quotes.load` at each phrase.
 
@@ -1114,7 +1139,7 @@ file/UserDefaults writes, windows, timers, sound, global state.
 ### 5.9 Tests, build and tools
 
 #### `tests/main.swift` (1,056) and `tests/run.sh` (7)
-- A single executable: `check(_:_:line:)`, `section(_:)`, 32 sections (400 checks) covering subjects, log persistence,
+- A single executable: `check(_:_:line:)`, `section(_:)`, 33 sections (443 checks) covering subjects, log persistence,
   in-progress recovery, periods, summaries, streaks, texts, garden rules, format versions/migration, subject merging, backups and
   delete-all, time zones, profile, ratings/notes/insights/CSV, timer dial math, seasons, ambient settings, music
   library/settings, focus notes, paused-time recovery, companion rewards (including the developer flag), break cycle,
@@ -1124,7 +1149,7 @@ file/UserDefaults writes, windows, timers, sound, global state.
   the to-do list (day strings and labels across months, years and leap years; text cleaning; add/toggle/remove; grouping and
   order; the file format; the 7-day purge; the 200-item limit; sanitising, newer and damaged files; the reminder sentences).
   It exits non-zero on failure. Not covered by tests: `Pomodoro`, `Speaker`, `Walker`, all views, both audio engines.
-- `run.sh`: `swiftc -O -o build/tests/stats <11 sources> tests/main.swift && build/tests/stats`.
+- `run.sh`: `swiftc -O -o build/tests/stats <12 sources> tests/main.swift && build/tests/stats`.
 - `genera-attesi.sh` / `tests/genera-attesi/main.swift`: for each folder of `tests/fixtures/` (copied to a temporary folder) it
   opens `SessionLog`, `Profile` and `Garden` with a fixed "now" (14 Oct 2026, 20:00, Europe/Rome) and writes the numbers the app derives
   (sessions, files created, warnings, summaries, streak, points, unlocked companions, and — for folders with `dafare.json` — the to-do
@@ -1606,7 +1631,7 @@ code is clear. Items without a mark still describe the current code.
 
 ### 7.8 Test coverage as it exists
 
-- Covered (32 sections, 400 checks in `tests/main.swift`): everything in the Foundation-only files listed in §4.1,
+- Covered (33 sections, 443 checks in `tests/main.swift`): everything in the Foundation-only files listed in §4.1,
   including the new damaged-data cases and the developer flag.
 - Not covered by any automated test in the repository: `Pomodoro` (timer, pause, grace, the sleep-gap rule, cycle
   wiring), `Speaker` (including when a to-do reminder replaces a phrase), `Walker`, `PetWindow`/`PetView`, `MenuController`,

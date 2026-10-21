@@ -513,6 +513,21 @@ del giro successivo non è mai uguale all'ultima uscita. La **frequenza** si sce
 frasi*, `Chattiness.swift`): "Ogni tanto" è il valore di partenza (40–110 secondi, durante un focus 4–8
 minuti); "Mai" tace subito, anche il fumetto che c'è. Restano sempre i messaggi del timer e *Fai parlare*.
 
+### Saluti e numeri a voce
+
+Oltre alle frasi a mazzo, il compagno ha qualche frase che dipende da **chi sei e da quando studi** (`Remarks.swift`, con prove). Parla in italiano
+senza genere («Rieccoti!», mai «bentornato» o «contento» riferiti a te), e tace con *Frasi: Mai* (tranne i traguardi, che fanno parte del messaggio di fine focus).
+
+- **Il saluto dell'avvio**, alla prima frase spontanea, a seconda dell'ora e con il tuo nome: «Buongiorno, Jacopo! Ieri hai studiato 2 h 40: si riparte?»,
+  «Buon pomeriggio, Jacopo! Oggi hai già studiato 1 h 20.», «Buonasera, Jacopo! Sei a 5 giorni di fila.», «Buona domenica, Jacopo! Hai 3 cose da fare.».
+  Di notte (23–5): «Jacopo, è tardi. Un ultimo focus e poi a dormire?». Se oggi o domani scade qualcosa di «Da fare», dice quello.
+- **Al risveglio dallo sleep** (dopo almeno un'ora): «Rieccoti! Oggi sei a 1 h 20.» o «Rieccoti! Hai 3 cose da fare.». Non quando c'è un focus in corso.
+- **Il riepilogo della settimana**, la prima volta che avvii l'app dal lunedì al mercoledì: «Settimana scorsa: 12 h in 5 giorni, 18 focus. Il giorno più forte:
+  giovedì (3 h 10).». Si ricorda quale ha già detto (`lastWeeklyRecap`, nelle preferenze), e salta le settimane senza studio.
+- **Una delle frasi «quando rendi meglio»** delle statistiche, ogni tanto al posto di una frase a caso (una su sei, mai due volte di fila la stessa, mai durante un focus).
+- **I traguardi**, detti dopo il messaggio di fine focus, nel momento in cui li raggiungi: 3, 7, 14, 30, 60 e 100 giorni di fila; 10, 25, 50, 100, 250, 500 e 1000 focus;
+  10, 25, 50, 100, 250 e 500 ore; e «Oggi è un mese che studiamo insieme» (poi mesi, un anno, anni), al primo focus del giorno. Se ne scattano più d'uno, ne dice uno solo.
+
 ## L'intestazione del menu classico
 
 In cima c'è una scheda color carta (`MenuHeader.swift`) con la testa del personaggio in un avatar circolare, il
@@ -529,6 +544,7 @@ Sources/FocusFriends/
   Pet.swift             i personaggi: immagini, frasi, misure, come camminano
   PetWindow.swift       finestra trasparente con il personaggio e i suoi stadi
   Speaker.swift         tempi e comparsa dei fumetti
+  Remarks.swift         i saluti, i numeri detti a voce e i traguardi (solo Foundation, con prove)
   Walker.swift          camminata dei personaggi che camminano
   SpeechBubble.swift    fumetto: immagine scalata sul testo
   Quotes.swift          caricamento delle frasi

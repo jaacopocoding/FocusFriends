@@ -818,8 +818,8 @@ final class MenuController: NSObject, NSMenuDelegate {
         let text = names.count == 1
             ? "Hai sbloccato \(names[0])! Lo trovi nel menu, tra i compagni."
             : "Hai sbloccato \(names.joined(separator: " e "))! Li trovi nel menu, tra i compagni."
-        // Dopo la frase di fine focus, che altrimenti la coprirebbe.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 9) { [weak self] in self?.speaker.say(text) }
+        // Dopo la frase di fine focus, che altrimenti la coprirebbe (e senza coprire un traguardo detto negli stessi momenti).
+        speaker.sayWhenQuiet(text, after: 9)
     }
 
     /// Cambia personaggio (dal menu, o dalla scheda di introduzione).

@@ -1082,5 +1082,90 @@ check(longReminder == "Oggi scade «parola parola parola parola parola…». Un 
 check(ToDoReminder.message(for: [reminderItem("Ultimo dell'anno", due: "2027-01-01")], today: "2026-12-31") == "Domani scade «Ultimo dell'anno». Un focus adesso?",
       "domani a cavallo d'anno")
 
+section("Frasi di contesto: saluti, numeri e traguardi")
+func rkSession(_ m: Int, _ d: Int, _ h: Int = 10, seconds: Int = 3000, y: Int = 2026) -> StudySession {
+    StudySession(start: date(y, m, d, h), localStart: StudySession.localString(for: date(y, m, d, h), calendar: cal),
+                 seconds: seconds, plannedMinutes: 50, completed: true, subject: "Anatomia")
+}
+func rkContext(_ now: Date, name: String? = "Jacopo", sessions: [StudySession] = [], todos: Int = 0, due: String? = nil) -> Remarks.Context {
+    Remarks.Context(now: now, calendar: cal, name: name, sessions: sessions, openTodoCount: todos, due: due)
+}
+let rkTuesdayMorning = date(2026, 10, 20, 9)
+check([4, 5, 11, 12, 17, 18, 22, 23, 0].map { Remarks.dayPart(hour: $0) } == [.night, .morning, .morning, .afternoon, .afternoon, .evening, .evening, .night, .night],
+      "le fasce della giornata")
+check(Remarks.launchGreeting(rkContext(rkTuesdayMorning), variant: 0).text == "Buongiorno, Jacopo! Si comincia quando vuoi.", "saluto del mattino con il nome")
+check(Remarks.launchGreeting(rkContext(rkTuesdayMorning, name: nil), variant: 0).text == "Buongiorno! Si comincia quando vuoi.", "senza nome")
+check(Remarks.launchGreeting(rkContext(date(2026, 10, 20, 15)), variant: 0).text.hasPrefix("Buon pomeriggio, Jacopo!"), "saluto del pomeriggio")
+check(Remarks.launchGreeting(rkContext(date(2026, 10, 20, 20)), variant: 0).text.hasPrefix("Buonasera, Jacopo!"), "saluto della sera")
+check(Remarks.launchGreeting(rkContext(date(2026, 10, 18, 10)), variant: 0).text.hasPrefix("Buona domenica, Jacopo!"), "la domenica")
+check(Remarks.launchGreeting(rkContext(date(2026, 10, 20, 0, 30)), variant: 0).text == "Jacopo, è tardi. Un ultimo focus e poi a dormire?", "di notte")
+check(Remarks.launchGreeting(rkContext(date(2026, 10, 20, 0, 30), name: nil), variant: 0).text == "È tardi. Un ultimo focus e poi a dormire?", "di notte, senza nome")
+check(Remarks.launchGreeting(rkContext(date(2026, 10, 20, 0, 30)), variant: 1).text.contains("riposo"), "di notte, un'altra frase")
+check(Remarks.launchGreeting(rkContext(rkTuesdayMorning, sessions: [rkSession(10, 19)]), variant: 0).text == "Buongiorno, Jacopo! Ieri hai studiato 50 min: si riparte?",
+      "ieri hai studiato, oggi ancora no")
+check(Remarks.launchGreeting(rkContext(date(2026, 10, 20, 15), sessions: [rkSession(10, 20, 9)]), variant: 0).text == "Buon pomeriggio, Jacopo! Oggi hai già studiato 50 min.",
+      "oggi hai già studiato")
+let rkStreak = [rkSession(10, 17), rkSession(10, 18), rkSession(10, 19)]
+let rkLines = (0..<3).map { Remarks.launchGreeting(rkContext(rkTuesdayMorning, sessions: rkStreak, todos: 2), variant: $0).text }
+check(rkLines == ["Buongiorno, Jacopo! Ieri hai studiato 50 min: si riparte?", "Buongiorno, Jacopo! Sei a 3 giorni di fila.", "Buongiorno, Jacopo! Hai 2 cose da fare."],
+      "ieri, la serie e le cose da fare: una per volta (\(rkLines))")
+check(Remarks.launchGreeting(rkContext(rkTuesdayMorning, sessions: rkStreak, todos: 2), variant: 3).text == rkLines[0]
+      && !Remarks.launchGreeting(rkContext(rkTuesdayMorning, todos: 1), variant: -1).text.isEmpty, "la variante rientra sempre")
+check(Remarks.launchGreeting(rkContext(rkTuesdayMorning, todos: 1), variant: 0).text == "Buongiorno, Jacopo! Hai 1 cosa da fare.", "una sola cosa da fare")
+let rkDue = "Oggi scade «Esercizi di analisi». Un focus adesso?"
+let rkWithDue = Remarks.launchGreeting(rkContext(rkTuesdayMorning, todos: 3, due: rkDue), variant: 2)
+check(rkWithDue.text == "Buongiorno, Jacopo! \(rkDue)" && rkWithDue.coversReminder, "se scade qualcosa, è la prima cosa che dice (e non va ripetuta)")
+check(!Remarks.launchGreeting(rkContext(rkTuesdayMorning), variant: 0).coversReminder, "senza scadenze non copre il promemoria")
+
+check(Remarks.wakeGreeting(rkContext(rkTuesdayMorning), away: 1800, variant: 0) == nil, "meno di un'ora di sleep: nessun saluto")
+check(Remarks.wakeGreeting(rkContext(rkTuesdayMorning), away: 7200, variant: 0)?.text == "Rieccoti!", "dopo un po', «Rieccoti!»")
+check(Remarks.wakeGreeting(rkContext(rkTuesdayMorning), away: 7200, variant: 1)?.text == "Eccoti di nuovo!", "e un'altra variante")
+check(Remarks.wakeGreeting(rkContext(rkTuesdayMorning, todos: 3), away: 7200, variant: 0)?.text == "Rieccoti! Hai 3 cose da fare.", "con le cose da fare")
+check(Remarks.wakeGreeting(rkContext(date(2026, 10, 20, 15), sessions: [rkSession(10, 20, 9)], todos: 3), away: 7200, variant: 0)?.text == "Rieccoti! Oggi sei a 50 min.",
+      "con lo studio di oggi")
+check(Remarks.wakeGreeting(rkContext(rkTuesdayMorning, due: rkDue), away: 7200, variant: 0)?.coversReminder == true, "e con una scadenza")
+
+// il riepilogo della settimana (lunedì–mercoledì)
+let rkWeek = [rkSession(10, 12, 9, seconds: 3600), rkSession(10, 14, 15, seconds: 7800), rkSession(10, 16, 11, seconds: 1800)]
+let rkMonday = date(2026, 10, 19, 9)
+let rkRecap = Remarks.weeklyRecap(rkContext(rkMonday, sessions: rkWeek))
+check(rkRecap?.key == "2026-10-12" && rkRecap?.text == "Settimana scorsa: 3 h 40 in 3 giorni, 3 focus. Il giorno più forte: mercoledì (2 h 10).",
+      "riepilogo della settimana scorsa (\(rkRecap?.text ?? "nil"))")
+check(Remarks.weeklyRecap(rkContext(date(2026, 10, 21, 9), sessions: rkWeek))?.key == "2026-10-12", "ancora fino al mercoledì")
+check(Remarks.weeklyRecap(rkContext(date(2026, 10, 22, 9), sessions: rkWeek)) == nil && Remarks.weeklyRecap(rkContext(date(2026, 10, 18, 9), sessions: rkWeek)) == nil,
+      "da giovedì a domenica non lo dice")
+check(Remarks.weeklyRecap(rkContext(rkMonday, sessions: [rkSession(10, 20)])) == nil && Remarks.weeklyRecap(rkContext(rkMonday)) == nil, "se la settimana scorsa non hai studiato: niente")
+check(Remarks.weeklyRecap(rkContext(rkMonday, sessions: [rkSession(10, 14, 15, seconds: 7800)]))?.text == "Settimana scorsa: 2 h 10 in 1 giorno, 1 focus.", "un giorno solo: niente «giorno più forte»")
+check(Remarks.weeklyRecap(rkContext(rkMonday, sessions: [rkSession(10, 15, 9, seconds: 3600), rkSession(10, 13, 9, seconds: 3600)]))?.text.contains("martedì") == true, "a pari merito, il giorno prima")
+
+let rkInsight = Remarks.insight(rkContext(rkTuesdayMorning, sessions: many), variant: 0)
+check(rkInsight == found[0] && Remarks.insight(rkContext(rkTuesdayMorning, sessions: many), variant: found.count) == found[0]
+      && Remarks.insight(rkContext(rkTuesdayMorning), variant: 0) == nil, "una frase «quando rendi meglio», se ce n'è")
+
+// i traguardi
+func rkDays(_ days: [Int], month: Int = 10) -> [StudySession] { days.map { rkSession(month, $0) } }
+check(Remarks.milestone(before: rkDays([17, 18]), after: rkDays([17, 18, 19]), now: date(2026, 10, 19, 12), calendar: cal) == "Tre giorni di fila!", "tre giorni di fila")
+check(Remarks.milestone(before: rkDays([17, 18, 19]), after: rkDays([17, 18, 19]) + [rkSession(10, 19, 14)], now: date(2026, 10, 19, 16), calendar: cal) == nil,
+      "un altro focus lo stesso giorno: niente")
+check(Remarks.milestone(before: rkDays([13, 14, 15, 16, 17, 18]), after: rkDays([13, 14, 15, 16, 17, 18, 19]), now: date(2026, 10, 19, 12), calendar: cal)
+      == "Sette giorni di fila! Una settimana intera.", "sette giorni di fila")
+let rkSameDay = (0..<9).map { rkSession(9, 1, 8 + $0 / 3, seconds: 600 + $0) }
+check(Remarks.milestone(before: rkSameDay, after: rkSameDay + [rkSession(9, 1, 20, seconds: 600)], now: date(2026, 9, 1, 21), calendar: cal) == "10 focus insieme!", "il decimo focus")
+let rkFifty = (0..<49).map { rkSession(8, 1 + $0 / 3, 8 + $0 % 3, seconds: 600) }
+check(Remarks.milestone(before: rkFifty, after: rkFifty + [rkSession(9, 20, 9, seconds: 600)], now: date(2026, 9, 20, 10), calendar: cal) == "50 focus: un traguardo tondo!", "il cinquantesimo focus")
+check(Remarks.milestone(before: [rkSession(9, 1, 8, seconds: 35_940)], after: [rkSession(9, 1, 8, seconds: 35_940), rkSession(9, 20, 9, seconds: 120)], now: date(2026, 9, 20, 10), calendar: cal)
+      == "10 ore di studio insieme!", "le prime dieci ore")
+check(Remarks.milestone(before: [rkSession(7, 1, 8, seconds: 359_400)], after: [rkSession(7, 1, 8, seconds: 359_400), rkSession(9, 20, 9, seconds: 1200)], now: date(2026, 9, 20, 10), calendar: cal)
+      == "100 ore passate insieme a me. Grazie!", "le cento ore")
+check(Remarks.milestone(before: rkDays([17, 18]) + (0..<7).map { rkSession(9, 1, 8, seconds: 600 + $0) }, after: rkDays([17, 18, 19]) + (0..<7).map { rkSession(9, 1, 8, seconds: 600 + $0) },
+                        now: date(2026, 10, 19, 12), calendar: cal) == "Tre giorni di fila!", "se ne scattano due insieme, vince la serie")
+check(Remarks.milestone(before: [rkSession(9, 19)], after: [rkSession(9, 19), rkSession(10, 19)], now: date(2026, 10, 19, 12), calendar: cal) == "Oggi è un mese che studiamo insieme.", "un mese insieme")
+check(Remarks.milestone(before: [rkSession(9, 19), rkSession(10, 19, 8)], after: [rkSession(9, 19), rkSession(10, 19, 8), rkSession(10, 19, 14)], now: date(2026, 10, 19, 16), calendar: cal) == nil,
+      "l'anniversario si dice solo al primo focus del giorno")
+check(Remarks.milestone(before: [rkSession(10, 19, y: 2025)], after: [rkSession(10, 19, y: 2025), rkSession(10, 19)], now: date(2026, 10, 19, 12), calendar: cal) == "Oggi è un anno che studiamo insieme!", "un anno")
+check(Remarks.milestone(before: [rkSession(10, 19, y: 2024)], after: [rkSession(10, 19, y: 2024), rkSession(10, 19)], now: date(2026, 10, 19, 12), calendar: cal) == "Oggi sono 2 anni che studiamo insieme!", "due anni")
+check(Remarks.milestone(before: [rkSession(7, 19)], after: [rkSession(7, 19), rkSession(10, 19)], now: date(2026, 10, 19, 12), calendar: cal) == "Oggi sono 3 mesi che studiamo insieme.", "tre mesi")
+check(Remarks.milestone(before: [rkSession(9, 5)], after: [rkSession(9, 5), rkSession(10, 19)], now: date(2026, 10, 19, 12), calendar: cal) == nil, "un giorno qualunque: niente")
+
 print("\n\(checks) controlli, \(failures) falliti")
 exit(failures == 0 ? 0 : 1)

@@ -12,6 +12,24 @@ final class Speaker {
     /// C'è un fumetto sullo schermo in questo momento.
     var isSpeaking: Bool { bubble != nil }
 
+    /// Una frase «di contesto» (il saluto dell'avvio, il riepilogo della settimana) da dire alla prossima occasione, prima delle frasi a caso.
+    struct Occasion {
+        var text: String
+        /// Dice già le scadenze: il promemoria delle scadenze non va ripetuto subito dopo.
+        var coversReminder = false
+        /// Chiamata quando la frase è stata detta (per ricordarlo).
+        var onSaid: (() -> Void)?
+    }
+    private var queued: [Occasion] = []
+
+    /// Mette una frase in coda: la dice al prossimo momento in cui il compagno parla di sua iniziativa (mai, se le frasi sono su «Mai»).
+    func enqueue(_ occasion: Occasion) {
+        queued.append(occasion)
+    }
+
+    /// Un numero detto a voce (le frasi «quando rendi meglio»), ogni tanto al posto di una frase a caso.
+    var insight: (() -> String?)?
+
     /// Un promemoria da dire al posto di una frase a caso (le scadenze di oggi e domani); nil = niente da ricordare ora.
     var reminder: (() -> String?)?
     /// Ogni quanto, al massimo, un promemoria prende il posto di una frase a caso.
@@ -56,14 +74,44 @@ final class Speaker {
 
     /// Dice la prossima frase del mazzo.
     func sayRandom() {
+        if !queued.isEmpty {
+            let occasion = queued.removeFirst()
+            if occasion.coversReminder { markReminderSaid() }
+            occasion.onSaid?()
+            say(occasion.text)
+            return
+        }
         if Date().timeIntervalSince(lastReminder) >= Self.reminderEvery, let text = reminder?() {
             lastReminder = Date()
+            say(text)
+            return
+        }
+        // Ogni tanto (una volta su sei) un numero dello studio, se ce n'è uno da dire.
+        if Int.random(in: 0..<6) == 0, let text = insight?() {
             say(text)
             return
         }
         // Rilegge il file a ogni frase: le modifiche si vedono subito, senza riavviare.
         let quotes = Quotes.load(for: petWindow.pet)
         say(deck.draw(from: quotes) ?? petWindow.pet.fallbackQuote)
+    }
+
+    /// Il promemoria delle scadenze è già stato detto adesso: il prossimo non prima di qualche ora.
+    func markReminderSaid() {
+        lastReminder = Date()
+    }
+
+    /// Dice la frase dopo `delay` secondi, ma solo se `unless` non dice di no (per esempio è partito un altro focus) e, se in quel momento
+    /// il compagno sta già parlando, aspetta che finisca (qualche secondo alla volta, fino a quattro volte).
+    func sayWhenQuiet(_ text: String, after delay: TimeInterval, while stillWanted: @escaping () -> Bool = { true }, tries: Int = 4) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+            guard let self, stillWanted() else { return }
+            if self.isSpeaking, tries > 0 {
+                self.sayWhenQuiet(text, after: 3, while: stillWanted, tries: tries - 1)
+            } else {
+                self.say(text)
+            }
+        }
     }
 
     func say(_ text: String) {
