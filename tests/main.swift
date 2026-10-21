@@ -1166,6 +1166,10 @@ check(Remarks.milestone(before: [rkSession(10, 19, y: 2025)], after: [rkSession(
 check(Remarks.milestone(before: [rkSession(10, 19, y: 2024)], after: [rkSession(10, 19, y: 2024), rkSession(10, 19)], now: date(2026, 10, 19, 12), calendar: cal) == "Oggi sono 2 anni che studiamo insieme!", "due anni")
 check(Remarks.milestone(before: [rkSession(7, 19)], after: [rkSession(7, 19), rkSession(10, 19)], now: date(2026, 10, 19, 12), calendar: cal) == "Oggi sono 3 mesi che studiamo insieme.", "tre mesi")
 check(Remarks.milestone(before: [rkSession(9, 5)], after: [rkSession(9, 5), rkSession(10, 19)], now: date(2026, 10, 19, 12), calendar: cal) == nil, "un giorno qualunque: niente")
+check(Remarks.milestone(before: [rkSession(1, 31)], after: [rkSession(1, 31), rkSession(2, 28)], now: date(2026, 2, 28, 12), calendar: cal) == "Oggi è un mese che studiamo insieme.",
+      "un mese insieme, anche se il primo focus era un 31")
+check(Remarks.milestone(before: [rkSession(1, 31)], after: [rkSession(1, 31), rkSession(4, 30)], now: date(2026, 4, 30, 12), calendar: cal) == "Oggi sono 3 mesi che studiamo insieme.",
+      "tre mesi, dal 31 gennaio al 30 aprile")
 
 print("\n\(checks) controlli, \(failures) falliti")
 exit(failures == 0 ? 0 : 1)

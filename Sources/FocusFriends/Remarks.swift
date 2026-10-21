@@ -172,7 +172,9 @@ enum Remarks {
         if let first = after.map({ $0.startTime(in: calendar) }).min() {
             let today = calendar.startOfDay(for: now)
             let studiedBefore = before.contains { calendar.startOfDay(for: $0.startTime(in: calendar)) == today }
-            let months = calendar.dateComponents([.month], from: calendar.startOfDay(for: first), to: today).month ?? 0
+            // I mesi si contano sul calendario (non con `dateComponents`, che da un 31 gennaio al 28 febbraio dice zero).
+            let months = (calendar.component(.year, from: today) * 12 + calendar.component(.month, from: today))
+                - (calendar.component(.year, from: first) * 12 + calendar.component(.month, from: first))
             if !studiedBefore, months >= 1, anniversaryDay(of: first, in: today, calendar: calendar) {
                 if months == 1 { return "Oggi è un mese che studiamo insieme." }
                 if months == 12 { return "Oggi è un anno che studiamo insieme!" }
