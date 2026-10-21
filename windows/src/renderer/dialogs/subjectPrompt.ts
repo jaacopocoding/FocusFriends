@@ -14,6 +14,8 @@ const MAX_CHIPS = 6;
 export function openSubjectPrompt(host: ModalHost, options: {
   minutes: number;
   recent: readonly string[];
+  /** La materia già scritta nel campo (quando si parte da una cosa da fare). */
+  prefill?: string | null;
   lastNote: { subject: string | null; note: string } | null;
   onChoice(choice: SubjectChoice): void;
 }): void {
@@ -26,6 +28,7 @@ export function openSubjectPrompt(host: ModalHost, options: {
     build(close) {
       const input = h("input", { type: "text", class: "text-field", placeholder: "La materia, per esempio Anatomia", "aria-label": "La materia", maxlength: SUBJECT_MAX * 2 });
       const start = (): void => decide({ kind: "start", subject: cleanSubject(input.value) })(close);
+      if (options.prefill) input.value = options.prefill;
       input.addEventListener("keydown", (event) => { if (event.key === "Enter") { event.preventDefault(); start(); } });
 
       const recent = options.recent.slice(0, MAX_CHIPS);

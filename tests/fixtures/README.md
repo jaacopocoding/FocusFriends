@@ -15,6 +15,8 @@ sono in [`../../FORMATI.md`](../../FORMATI.md).
 | `in-corso-attivo`, `in-corso-fermo`, `in-corso-sotto-un-minuto` | recupero dopo una chiusura improvvisa (anche con il timer fermo, e sotto il minuto) |
 | `profilo-vecchio`, `profilo-solo-nome`, `profilo-rovinato` | profilo senza elenco dei sbloccati (li hanno tutti), nome lungo da accorciare, file rovinato |
 | `giardino-rovinato`, `giardino-piu-nuovo` | giardino rovinato (si mette da parte) e di una versione più nuova |
+| `dafare` | le cose da fare: tutti i gruppi ed etichette (anche l'anno dopo), materia da pulire, una data che non esiste, testo vuoto, caratteri di controllo, emoji, testo troppo lungo, voci fatte (una da più di 7 giorni: sparisce), un id in minuscolo, un campo sconosciuto, una data con il fuso «+02:00» |
+| `dafare-rovinato`, `dafare-nuovo`, `dafare-campo-sbagliato` | cose da fare: file non JSON (si mette da parte), versione 2 (sola lettura; promemoria con il testo accorciato), una scadenza scritta come numero (tutto il file è rovinato, come in Swift) |
 | `impostazioni-esempio`, `impostazioni-sbagliate` | solo per Windows: preferenze valide e preferenze con valori sbagliati (valgono i predefiniti), più un file di frasi |
 
 ## `attesi/`

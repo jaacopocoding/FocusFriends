@@ -14,6 +14,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { SessionLog } from "../src/core/log.ts";
 import { Profile } from "../src/core/profile.ts";
+import { ToDoList } from "../src/core/todoList.ts";
 import { derive, NOW, ZONE } from "./atteso.ts";
 import { date } from "./util.ts";
 
@@ -21,7 +22,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const fixtures = join(root, "tests", "fixtures");
 const generator = join(root, "build", "fixtures", "genera-attesi");
 const swiftSources = [
-  "SessionLog", "Profile", "GardenCatalog", "Garden", "GardenPoints", "CompanionRewards",
+  "SessionLog", "Profile", "GardenCatalog", "Garden", "GardenPoints", "CompanionRewards", "ToDo",
 ].map((name) => join(root, "Sources", "FocusFriends", `${name}.swift`));
 const swiftMain = join(root, "tests", "genera-attesi", "main.swift");
 
@@ -101,6 +102,29 @@ function writeScenarios(into: string): string[] {
     profile.unlock(["gattino"]);
   }
 
+  // 5. Le cose da fare: voci con e senza scadenza e materia, testi con accenti, virgolette, emoji e caratteri di controllo,
+  //    una fatta, una tolta, una con una data che non esiste (si toglie), una fatta da più di 7 giorni (alla lettura sparisce).
+  {
+    const directory = make("ritorno-dafare");
+    let now = date(2026, 10, 2, 9, 0);
+    const list = new ToDoList(directory, { now: () => now });
+    const old = list.add("Voce fatta tanto tempo fa");
+    if (old.kind === "added") list.toggleDone(old.item.id);
+    now = date(2026, 10, 12, 8, 30);
+    list.add("Consegnare il modulo", "2026-10-13");
+    list.add("  Riassunto   del capitolo 7 ", "2026-10-14", " Anatomia ");
+    now += 60_000;
+    list.add("Prenotare l'esame «orale» \"di giugno\"", "2026-10-14", "Fisiologia – è già l'una");
+    list.add("Esercizi 4–6 📚\tcon\u0007 tab", "2026-10-15", "Analisi");
+    list.add("Data sbagliata", "2026-02-30");
+    list.add("Senza data né materia");
+    const gone = list.add("Da togliere", "2026-10-20");
+    if (gone.kind === "added") list.remove(gone.item.id);
+    now = date(2026, 10, 13, 18, 0);
+    const done = list.add("Mandare la mail al prof", null, "Chimica");
+    if (done.kind === "added") list.toggleDone(done.item.id);
+  }
+
   return names;
 }
 
@@ -114,7 +138,7 @@ describe("contratto al contrario: Windows scrive, il Mac legge", { skip: !hasSwi
       const output = join(work, "attesi");
       const run = spawnSync(generator, [scenarios, output], { encoding: "utf8" });
       assert.equal(run.status, 0, `generatore Swift: ${run.stderr}`);
-      assert.deepEqual(names.length, 4);
+      assert.deepEqual(names.length, 5);
       for (const name of names) {
         const swift = JSON.parse(readFileSync(join(output, `${name}.json`), "utf8")) as Record<string, unknown>;
         delete swift["giardino"];

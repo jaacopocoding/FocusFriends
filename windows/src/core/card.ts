@@ -9,6 +9,8 @@ import { analyzeStreak, periodContaining, summarize } from "./stats.ts";
 import { backgroundCurrent } from "./rules.ts";
 import type { AmbientSound, BackgroundChoice, Chattiness, MusicSource } from "./rules.ts";
 import { wallOf } from "./time.ts";
+import { doneItems, openItems, sections, todayOf } from "./todo.ts";
+import type { ToDoItem, ToDoSection } from "./todo.ts";
 
 export interface CompanionEntry {
   id: string;
@@ -46,6 +48,16 @@ export interface CardData {
   /** Le materie usate di recente (fino a sei), per «Cosa studi adesso?», e l'ultima nota scritta. */
   recentSubjects: string[];
   lastNote: { subject: string | null; note: string } | null;
+  /** Le cose da fare (la pagina «Da fare»): già raggruppate per oggi. */
+  todo: ToDoCardData;
+}
+
+export interface ToDoCardData {
+  sections: ToDoSection[];
+  done: ToDoItem[];
+  openCount: number;
+  /** Oggi, «AAAA-MM-GG». */
+  today: string;
 }
 
 export interface CardInput {
@@ -71,6 +83,7 @@ export interface CardInput {
   lastSessionId: string | null;
   recentSubjects: string[];
   lastNote: { subject?: string; note: string } | null;
+  todoItems: readonly ToDoItem[];
 }
 
 /** Per ogni compagno bloccato, la frase che dice quanto manca («si sblocca a 20 focus: ne hai 12»). */
@@ -121,5 +134,11 @@ export function buildCardData(input: CardInput): CardData {
     hasLastSession: last !== undefined,
     recentSubjects: input.recentSubjects,
     lastNote: input.lastNote === null ? null : { subject: input.lastNote.subject ?? null, note: input.lastNote.note },
+    todo: todoData(input.todoItems, todayOf(input.now, input.zone)),
   };
+}
+
+/** Quello che serve alla pagina «Da fare» (MenuController.cardState in Swift). */
+export function todoData(items: readonly ToDoItem[], today: string): ToDoCardData {
+  return { sections: sections(items, today), done: doneItems(items), openCount: openItems(items).length, today };
 }

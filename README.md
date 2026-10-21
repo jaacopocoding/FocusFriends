@@ -166,7 +166,7 @@ Nella scheda del menu c'è la riga **Da fare** (a destra, quante cose restano). 
   al posto di una frase a caso, al massimo una volta ogni tre ore, mai durante un focus e mai con *Frasi: Mai*.
 
 Le voci stanno in `dafare.json`, accanto a `sessioni.json` (il formato è in [`FORMATI.md`](FORMATI.md) §9); *Cancella tutto…* delle
-statistiche non le tocca. Per ora «Da fare» c'è solo nell'app per Mac.
+statistiche non le tocca. «Da fare» c'è anche nella versione per Windows (dalla 1.1).
 
 <p align="center">
   <img src="docs/images/da-fare.png" width="640" alt="La pagina Da fare: la lista con una voce sotto il mouse, e una voce nuova con la scadenza e la materia">

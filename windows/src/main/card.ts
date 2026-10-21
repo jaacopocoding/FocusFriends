@@ -16,10 +16,12 @@ import { PET_IDS } from "../core/pets.ts";
 import { reflectionReply, saveReflection } from "../core/reflection.ts";
 import type { CardCommand } from "../shared/api.ts";
 import type { TimerService } from "./timer.ts";
+import type { ToDoList } from "../core/todoList.ts";
 
 export interface CardServiceOptions {
   settings: Settings;
   profile: Profile;
+  todo: ToDoList;
   timer: () => TimerService;
   window: BrowserWindow;
   isVisible: () => boolean;
@@ -111,6 +113,7 @@ export function createCardService(options: CardServiceOptions): CardService {
         music: settings.musicSource, musicFolder: settings.musicFolder, musicVolume: settings.musicVolume,
         lastSessionId: engine.snapshot().lastFocus?.sessionId ?? null,
         recentSubjects: timer().log.recentSubjects(), lastNote: timer().log.lastNote(),
+        todoItems: options.todo.items,
       });
     },
 
@@ -216,6 +219,9 @@ export function createCardService(options: CardServiceOptions): CardService {
           options.say(petInfo(command.petId).greeting);
           break;
         }
+        case "todoAdd": options.todo.add(command.text, command.due, command.subject); break;
+        case "todoToggle": options.todo.toggleDone(command.id); break;
+        case "todoRemove": options.todo.remove(command.id); break;
       }
     },
   };

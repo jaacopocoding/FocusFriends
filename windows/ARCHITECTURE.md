@@ -3,15 +3,15 @@
 > Purpose: a factual description of how the Windows version works, written so that another reader (human or AI) can judge
 > whether the code is acceptable as written or needs revision. It is the counterpart of `../ARCHITECTURE.md`, which describes
 > the Mac app; features are numbered and named alike where they correspond, and `PARITA.md` compares them one by one.
-> Snapshot described: version `1.0.1` (the first release, `windows-v1.0.0`, is at `75d07e9`; 1.0.1 adds the lock-down of the
-> windows, the gating of the test-only environment variables and the live-run scripts in `test/vivo/`, see §10). Content: **everything
-> except the garden** (see `../PIANO_WINDOWS.md`).
+> Snapshot described: version `1.1.0`, not yet released (the first release, `windows-v1.0.0`, is at `75d07e9`; 1.0.1, at `74bda89`,
+> adds the lock-down of the windows, the gating of the test-only environment variables and the live-run scripts in `test/vivo/`, see §10;
+> 1.1.0 adds the to-do list, §4.16). Content: **everything except the garden** (see `../PIANO_WINDOWS.md`).
 > Everything here was read from the files in the repository; statements that could not be fully verified are marked
 > **[uncertain]**. Rationales are labelled **[documented]** (comes from code comments, `PIANO_WINDOWS.md`, `FORMATI.md` or git
 > history) or **[inferred]** (deduced from the code).
 > UI strings and code comments are in Italian (as on the Mac); identifiers are English. UI strings quoted here are glossed.
 > **What was and was not exercised on a real Windows machine:** the code runs on macOS during development (Electron is
-> cross-platform); the Windows CI job runs the type check, the 259 logic tests and the build on a Windows runner, and the author
+> cross-platform); the Windows CI job runs the type check, the logic tests (276 now) and the build on a Windows runner, and the author
 > installed the released installer on a Windows computer for a brief check (see `PARITA.md`, "Prova su Windows"). The parts that
 > only exist on Windows (real click-through, task-bar sides, scale factors, two monitors, sleep, fullscreen apps, virtual
 > desktops) are listed in `PROVE_SU_WINDOWS.md` and have **not** been verified one by one.
@@ -23,7 +23,8 @@
 ### 1.1 What the app does
 
 Same product as the Mac app: a desktop companion (one of four characters) that walks on the desktop, speaks, and keeps a
-Pomodoro-style timer ("Pomofocus") with a notebook-like card, background sounds, statistics and companion unlocking. Study
+Pomodoro-style timer ("Pomofocus") with a notebook-like card, background sounds, statistics, companion unlocking and (since 1.1) a to-do
+list with optional due days. Study
 sessions are stored in the same JSON files as on the Mac (`../FORMATI.md`). The garden (points, shop, meadow) is not part of
 this release. All data stays on the machine; the app makes no network requests (`connect-src ff:` in the page's CSP, no
 HTTP client in the code **[inferred]**).
@@ -48,7 +49,7 @@ HTTP client in the code **[inferred]**).
 cd windows
 npm install          # Electron, TypeScript, esbuild, electron-builder (devDependencies)
 npm run check        # tsc --noEmit
-npm test             # 259 tests, no dependencies needed
+npm test             # 276 tests, no dependencies needed
 npm start            # builds dist/ and opens the companion (on macOS: data in a test folder)
 npm run pacchetto    # build + stage resources + electron-builder --win → release/*.exe
 ```
@@ -68,26 +69,26 @@ windows/
 ├── resources/                      fine-focus.wav (the end-of-focus chime, generated from scratch), fonts/ (Chewy + licence)
 ├── installer/icon.png              the installer and program icon
 ├── src/
-│   ├── core/       (28 files)      pure logic, no Electron, no DOM: runs in Node tests, in the main process and in the pages
+│   ├── core/       (30 files)      pure logic, no Electron, no DOM: runs in Node tests, in the main process and in the pages
 │   ├── main/       (12 files)      main process: windows, tray, timer service, files, protocol, dialogs, power events, window lock-down
 │   ├── preload/    (2 files)       the secure bridges (`preload.cjs` for the overlay, `preload-stats.cjs` for the statistics window)
 │   ├── shared/     (2 files)       the typed contract between main and pages (`api.ts`, `statsApi.ts`)
 │   └── renderer/                   the overlay page (companion, bubble, clock, card, dialogs, sounds) and the statistics page
-├── test/           (27 files)      25 test files + 2 helpers (`util.ts`, `atteso.ts`); see §7
-│   └── vivo/       (28 files)      scripts for live runs of the real app (`esegui.sh`, `misure.sh`, 25 scenarios and a README); see §5.3
+├── test/           (28 files)      26 test files + 2 helpers (`util.ts`, `atteso.ts`); see §7
+│   └── vivo/       (29 files)      scripts for live runs of the real app (`esegui.sh`, `misure.sh`, 26 scenarios and a README); see §5.3
 └── tools/                          build.mjs, genera-icone.mjs, prepara-risorse.mjs
 ```
 
 | Area | Files (lines) |
 |---|---|
-| `core/` | `log.ts` (637), `pomodoro.ts` (457), `stats.ts` (284), `walker.ts` (275), `profile.ts` (221), `settings.ts` (156), `rules.ts` (155), `time.ts` (151), `dashboard.ts` (146), `noise.ts` (146), `card.ts` (125), `pets.ts` (112), `phrases.ts` (92), `text.ts` (84), `displays.ts` (86), `audioPlan.ts` (72), `diagnostics.ts` (69), `points.ts` (57), `urls.ts` (21), `environment.ts` (20), `music.ts` (55), `files.ts` (53), `tracks.ts` (40), `rewards.ts` (40), `unlocks.ts` (33), `reflection.ts` (30), `csv.ts` (27), `colors.ts` (22) |
-| `main/` | `main.ts` (338), `card.ts` (223), `tray.ts` (229), `statsWindow.ts` (147), `protocol.ts` (69), `music.ts` (69), `stage.ts` (77), `timer.ts` (79), `overlay.ts` (46), `security.ts` (39), `paths.ts` (33), `login.ts` (18) |
-| `renderer/` | `overlay.ts` (642, the page controller), `card/card.ts` (615), `petView.ts` (380), `stats/stats.ts` (278), `clockView.ts` (255), `card/widgets.ts` (236), `audio/music.ts` (160), `audio/ambient.ts` (159), `speaker.ts` (156), `dialogs/*` (5 files, ≈ 300), `extendPrompt.ts` (71), `card/dom.ts` (60), `bubble.ts` (51), `audio/noiseWorklet.ts` (40), `avatar.ts` (26), `fonts.ts` (14), CSS and HTML |
+| `core/` | `log.ts` (637), `pomodoro.ts` (457), `todoList.ts` (204), `todo.ts` (166), `stats.ts` (284), `walker.ts` (275), `profile.ts` (221), `settings.ts` (156), `rules.ts` (155), `time.ts` (151), `dashboard.ts` (146), `noise.ts` (146), `card.ts` (144), `pets.ts` (112), `phrases.ts` (92), `text.ts` (84), `displays.ts` (86), `audioPlan.ts` (72), `diagnostics.ts` (69), `points.ts` (57), `urls.ts` (21), `environment.ts` (20), `music.ts` (55), `files.ts` (53), `tracks.ts` (40), `rewards.ts` (40), `unlocks.ts` (33), `reflection.ts` (30), `csv.ts` (27), `colors.ts` (22) |
+| `main/` | `main.ts` (358), `card.ts` (229), `tray.ts` (229), `statsWindow.ts` (147), `protocol.ts` (69), `music.ts` (69), `stage.ts` (77), `timer.ts` (79), `overlay.ts` (46), `security.ts` (39), `paths.ts` (33), `login.ts` (18) |
+| `renderer/` | `overlay.ts` (642, the page controller), `card/card.ts` (799), `petView.ts` (380), `stats/stats.ts` (278), `clockView.ts` (255), `card/widgets.ts` (236), `audio/music.ts` (160), `audio/ambient.ts` (159), `speaker.ts` (156), `dialogs/*` (5 files, ≈ 300), `extendPrompt.ts` (71), `card/dom.ts` (60), `bubble.ts` (51), `audio/noiseWorklet.ts` (40), `avatar.ts` (26), `fonts.ts` (14), CSS and HTML |
 
 Notes:
 
 - The rule that keeps `core/` reusable: modules imported by a page must not import `node:*`. Where a module needed both, it was split:
-  `rules.ts`/`settings.ts`, `tracks.ts`/`music.ts`. Nothing enforces this except the page bundle failing to build **[inferred]**.
+  `rules.ts`/`settings.ts`, `tracks.ts`/`music.ts`, `todo.ts`/`todoList.ts`. Nothing enforces this except the page bundle failing to build **[inferred]**.
 - `core/points.ts` (garden points) is **not imported by any app module**; it exists for the garden release and for the contract tests (`test/atteso.ts`).
   `PomodoroDeps.gardenLine` and `StatsDeps.onDeleteAll` are the empty hooks the garden will fill (§4.7, §4.13).
 
@@ -132,11 +133,11 @@ Principles (all **[documented]** in `PIANO_WINDOWS.md` unless stated):
 |---|---|---|
 | `renderer:ready` | page → main | the page can receive messages; before it, main queues them (`pageReady` + `waiting` in `main.ts`) |
 | `settings:get` / `settings:changed` | invoke / main → page | `SettingsSnapshot` (pet, movement, phrase frequency, ask-how-it-went, ambient sound and volume, music source/folder/volume) |
-| `phrase:next` | invoke | next phrase of that companion's shuffled deck (file re-read each time) |
+| `phrase:next` | invoke | next phrase of that companion's shuffled deck (file re-read each time), or a to-do reminder (§4.16) |
 | `timer:get-state` / `timer:state` | invoke / main → page | `PomodoroSnapshot`; sent when what is visible changes (§4.7) |
 | `timer:event` | main → page | `PomodoroEvent`: say, dismissSpeech, sound, focusActive, focusCompleted, focusRecorded, reset, graceBegan, graceEnded |
 | `timer:extend` | page → main | the "+5 minutes" button |
-| `card:data` / `card:command` / `card:add-timer` | invoke / send / invoke | `CardData` (§4.9), `CardCommand` (a closed union of 27 commands), custom-timer saving with its result |
+| `card:data` / `card:command` / `card:add-timer` | invoke / send / invoke | `CardData` (§4.9), `CardCommand` (a closed union of 30 commands), custom-timer saving with its result |
 | `card:toggle` / `card:reopen` | main → page | open/close the card (with an anchor rectangle or none), or reopen it where it was |
 | `overlay:input-mode` | page → main | `{interactive, keyboard}`: whether the window should receive clicks and the keyboard (§4.3) |
 | `overlay:visibility` | main → page | hide/show |
@@ -244,7 +245,8 @@ First phrase 5 s after start (unless frequency is "never"), then every `chattine
 have their own ranges). The bubble is a DOM element: `bubble.png` scaled to the text; the text wrap width is chosen among 110…260 px so that the ellipse gets
 the image's proportions (`bubbleSize`, measured in a hidden `#measure` span). It follows the companion (`follow(now)`: it rises at once, descends at most 140 px/s), sits beside the pet when
 there is no room above, and stays `max(4.5, 2.5 + 0.06 × characters)` seconds. Phrases come from `loadPhrases`: the user's file in the data folder, else the bundled one, else the
-pet's fallback; a `PhraseDeck` per companion shuffles and never repeats until the deck is used (`FORMATI.md` §7). The main process answers `phrase:next` (so files are re-read for each phrase).
+pet's fallback; a `PhraseDeck` per companion shuffles and never repeats until the deck is used (`FORMATI.md` §7). The main process answers `phrase:next` (so files are re-read for each phrase);
+before drawing from the deck it may answer with a to-do reminder instead (at most every 3 h, never during a focus, §4.16).
 
 ### 4.7 The timer engine and its service (`core/pomodoro.ts`, `main/timer.ts`)
 
@@ -270,9 +272,10 @@ pet's fallback; a `PhraseDeck` per companion shuffles and never repeats until th
 ### 4.9 The card and the tray menu (`renderer/card/*`, `core/card.ts`, `main/card.ts`, `main/tray.ts`)
 
 - **Data flow:** `CardService.data()` (main) builds a `CardData` with the pure function `buildCardData` from the engine snapshot, the sessions, the profile and the settings: today's minutes, focus
-  count, streak, companions with locks, saved timers, quick settings, recent subjects, last note. The page asks `card:data` when opening and after each command (a 40 ms debounce, `scheduleRefresh`).
+  count, streak, companions with locks, saved timers, quick settings, recent subjects, last note, and the to-do data (`todoData`: sections for today, done items, open count, today). The page asks `card:data` when opening and after each command (a 40 ms debounce, `scheduleRefresh`).
 - **Pages:** `main` (companions, 30/50/break, "Altri timer…", today tiles, quick settings), `timers` (the tomato-shaped dial, 5–120 min focus / 1–30 rest, saved timers up to 6 per kind), `focus`
-  (notebook page with subject, time range, cycle dots, tomato with progress arc, "+5", Ferma/Riprendi, "Termina e salva", background sound chips and volume, notes post-it, discard) and `rest` (green variant).
+  (notebook page with subject, time range, cycle dots, tomato with progress arc, "+5", Ferma/Riprendi, "Termina e salva", background sound chips and volume, notes post-it, discard), `rest` (green variant)
+  and `todo` (§4.16), opened from the "Da fare" row of the main page.
   `onTimerState` updates only the clock text and tomato each second and **rebuilds** only when the phase, the pause state or the last session changes.
 - **Position:** `reposition()` places it beside the companion (it follows it, flipping side at the edges) or, when opened from the tray, next to the icon (`cardPlacement`, any task-bar side); a transparent backdrop catches
   outside clicks (left or right) and `Esc` closes it.
@@ -284,7 +287,7 @@ pet's fallback; a `PhraseDeck` per companion shuffles and never repeats until th
 ### 4.10 Dialogs inside the overlay (`renderer/dialogs/*`)
 
 `ModalHost` shows a centred card on a backdrop (a click outside does **not** close it; Esc or the buttons do): "Cosa studi adesso?" (`subjectPrompt.ts`: free text, up to 6 recent subjects as chips,
-"Senza materia", back arrow, last-note hint), the welcome card (`introCard.ts`: name + first companion), the name dialog. `ReflectionCard` ("Com'è andata?", three faces + a 80-character note) sits beside the companion,
+"Senza materia", back arrow, last-note hint, and a `prefill` when the focus starts from a to-do item), the welcome card (`introCard.ts`: name + first companion), the name dialog. `ReflectionCard` ("Com'è andata?", three faces + a 80-character note) sits beside the companion,
 **does not take the keyboard until its field is clicked**, and disappears on its own when the timer restarts or stops (`reset` event). All flow through `overlay:input-mode` (§4.3).
 
 ### 4.11 Sounds (`renderer/audio/*`, `core/audioPlan.ts`, `core/noise.ts`, `main/music.ts`)
@@ -301,7 +304,7 @@ pet's fallback; a `PhraseDeck` per companion shuffles and never repeats until th
 ### 4.12 Data: log, recovery, settings, profile (`core/log.ts`, `settings.ts`, `profile.ts`, `files.ts`, `main/paths.ts`)
 
 - **Folder:** `%APPDATA%\FocusFriends` on Windows; on other systems (development) `<userData>/dati-di-prova` — **never** the Mac app's folder; `FF_DATA_DIR` overrides it, but only when running from the sources or with `FF_SELFTEST` (the installed app ignores it, §5.2).
-- **Files** (formats in `../FORMATI.md`): `sessioni.json` (v3), `in-corso.json`, `profilo.json`, `impostazioni.json`, `frasi_<pet>.txt`, `backup/`, `registro-app.log`.
+- **Files** (formats in `../FORMATI.md`): `sessioni.json` (v3), `in-corso.json`, `profilo.json`, `impostazioni.json`, `dafare.json` (§4.16), `frasi_<pet>.txt`, `backup/`, `registro-app.log`.
 - **Writing:** `writeFileAtomic` (temporary file in the same folder + rename), UTF-8, keys sorted, `"key" : value` spacing like the Mac writes (`stringifyJson`).
 - **`SessionLog`:** loads in the constructor with the same rules as Swift: a missing file is empty; unreadable → read-only + message; older versions → intact copy in `backup/sessioni-formato<N>.json` and rewrite as v3; bare list (v0) → copy
   `sessioni-formato0.json`; newer version → read-only; partly corrupt → keep the readable sessions and put the original aside as `sessioni.corrotto-<epoch>.json`; wholly corrupt → move aside and start empty. Subject spellings are unified
@@ -337,12 +340,39 @@ The first companion is free; the others unlock at 20, 50 and 100 "full focuses" 
 - **App log** (`core/diagnostics.ts`): `registro-app.log` in the data folder, one line per fact, 200 KB then rotated to `registro-app.1.log`; no names, subjects or notes, and the user's home path in messages becomes `~`. Since 1.0.0 it also records the Windows version
   and, for every display, size, scale factor, work area and the side of the task bar (at start, on change, on wake-up).
 
+### 4.16 The to-do list ("Da fare", since 1.1: `core/todo.ts`, `core/todoList.ts`, `renderer/card/card.ts`, `main/card.ts`, `main/main.ts`)
+
+The same feature as the Mac app (`../ARCHITECTURE.md` §3.22), with the same rules and texts.
+
+- **Logic** (`core/todo.ts`, pure, imported by the page too): day strings `AAAA-MM-GG` handled as UTC midnights (`isValidDay` — year ≥ 1, real
+  calendar days —, `daysBetween`, `addDays`, `todayOf(now, zone)` through `wallOf`), the Italian labels (`dueLabel`: "ieri", "oggi", "domani",
+  "ven 23", "26 ott", with the year when different), `cleanToDoText` (like the focus notes, ≤ 120 graphemes), `sections` (overdue / today / upcoming /
+  no date; by due day, then oldest first), `doneItems`, and `reminderMessage` (today's items, otherwise tomorrow's; the quoted text cut at a whole word,
+  ≤ 36 graphemes, using `Intl.Segmenter` as Swift counts `Character`s).
+- **File** (`core/todoList.ts`): `ToDoList` mirrors the Swift store: decoding is all-or-nothing like `JSONDecoder` (a missing or wrongly typed field in
+  any item makes the whole file "damaged": moved to `dafare.corrotto-<epoch>.json`); `version` > 1 → read-only with a message; items are sanitised
+  (text, subject, impossible day dropped, empty text drops the item; ids upper-cased as Swift writes them); done items older than 7 days are dropped at
+  load and at every change; at most 200 items; dates are written as `isoUtc` (whole seconds, `Z`), because Swift's `.iso8601` decoder rejects fractions.
+- **Main process:** `main.ts` creates the list next to the profile (`onProblem` → the companion says it) and passes it to `CardService`, which adds
+  `todoItems` to the card input and handles the commands `todoAdd`, `todoToggle`, `todoRemove`. The `phrase:next` handler returns
+  `reminderMessage(...)` when 3 h have passed since the last reminder (`lastReminder`, in memory) and the timer is not in a focus.
+- **Page** (`MenuCard.buildToDo`): header with back arrow; an `<input>` (`.todo-input`) with a "+" button — Enter or "+" sends `todoAdd` and clears the
+  field; the choices appear when the field stops being empty (the card is rebuilt only on that change; the field keeps focus and caret); due chips
+  (today, tomorrow, +7, "Scegli…" which shows a **small calendar drawn in the card**, `calendar()`: Monday-first grid, month arrows, past days disabled)
+  and up to six recent-subject chips; the list (`.todo-list`, at most 420 px tall, 250 px while the choices are shown, with its own scroll position kept
+  across rebuilds) with group headings and rows (circle, text, subject dot, due label; on hover or keyboard focus the ▶ and × buttons replace the label,
+  pure CSS). ▶ closes the card and calls `host.askFocus(minutes, subject)` (the timer's `focusMinutes`, or 50), which opens "Cosa studi adesso?" with
+  the subject already written.
+- **Tests:** `dafare.test.ts` (days, labels, cleaning, the list and its file, limits, damaged/newer files, reminder sentences); four sample folders in
+  `../tests/fixtures/dafare*` checked against the Swift results, and a folder written by this code read back by Swift (`ritorno.test.ts`). Live run:
+  `test/vivo/dafare.cjs`.
+
 ---
 
 ## 5. Contracts, environment and self-test
 
 ### 5.1 Data contract
-`../FORMATI.md` is the specification; `../tests/fixtures/` holds sample data folders and `attesi/` the results derived by the Mac app with a fixed "now" (14 Oct 2026, 20:00, Europe/Rome); `rumore.json` holds measured noise statistics. See §7.
+`../FORMATI.md` is the specification; `../tests/fixtures/` holds sample data folders (since 1.1 also four with `dafare.json`) and `attesi/` the results derived by the Mac app with a fixed "now" (14 Oct 2026, 20:00, Europe/Rome); `rumore.json` holds measured noise statistics. See §7.
 
 ### 5.2 Environment variables
 
@@ -368,7 +398,7 @@ metrics at those moments; `FF_SELFTEST_FILE=<script.cjs>` runs a script that rec
 **Live runs (`test/vivo/`, since 1.0.1).** The scenario scripts used during development are in the repository, with a runner: `test/vivo/esegui.sh <script> [seconds]` builds,
 creates a **new** results folder with its own data folder inside it (it never uses real data and never deletes anything: if the folder exists it stops), writes
 `impostazioni.json` / `profilo.json`, opens the real Electron app with `FF_SELFTEST` and `FF_SELFTEST_FILE`, kills it after a time limit (macOS has no `timeout`),
-prints the app's output and shrinks the screenshots. `misure.sh` measures memory and CPU at rest. 25 scenarios cover the timer, the card, the dialogs, sounds, statistics, saving,
+prints the app's output and shrinks the screenshots. `misure.sh` measures memory and CPU at rest. 26 scenarios cover the timer, the card, the dialogs, sounds, statistics, saving, the to-do list,
 displays, sleep and the packaged app; they **print what they observe** and take screenshots, for a person to judge: they are not assertions. `test/vivo/README.md` lists what each one checks and what it needs.
 
 ---
@@ -386,16 +416,17 @@ displays, sleep and the packaged app; they **print what they observe** and take 
 
 ## 7. Tests (`test/`, `npm test`)
 
-259 tests in 25 files, no framework, no dependencies. They run unchanged in the main process's code paths because the logic is pure.
+276 tests in 26 files, no framework, no dependencies. They run unchanged in the main process's code paths because the logic is pure.
 
 | File(s) | What they cover |
 |---|---|
-| `contratto.test.ts` + `atteso.ts` | for every sample folder in `../tests/fixtures/` the TypeScript code derives exactly what the Swift app derived (`attesi/*.json`): counts, files created, warnings, summaries, streak, points, companions |
-| `ritorno.test.ts` | the **reverse** contract: folders written by this code (migration from v2, accents/emoji/quotes/formula-like text, rating, rename, delete, an in-progress focus with pause, a profile) are read by the **Swift** generator and must give the same results; runs only on macOS with `swiftc` (skipped elsewhere); verified to fail when a file is altered |
+| `contratto.test.ts` + `atteso.ts` | for every sample folder in `../tests/fixtures/` the TypeScript code derives exactly what the Swift app derived (`attesi/*.json`): counts, files created, warnings, summaries, streak, points, companions, to-do groups, labels and reminders |
+| `ritorno.test.ts` | the **reverse** contract: folders written by this code (migration from v2, accents/emoji/quotes/formula-like text, rating, rename, delete, an in-progress focus with pause, a profile, a to-do list) are read by the **Swift** generator and must give the same results; runs only on macOS with `swiftc` (skipped elsewhere); verified to fail when a file is altered |
 | `registro`, `profilo`, `impostazioni`, `registroapp`, `frasi` | log load/save/recovery/backups/migrations, profile, settings and their defaults, the app log (incl. home-path stripping), phrase files and the shuffled deck |
 | `statistiche`, `cruscotto`, `colori`, `testo` | periods, summaries, streak with its frozen day, insights, CSV, the dashboard's Italian texts, subject colours (64-bit hash equal to Swift), text cleaning |
 | `timer`, `camminata`, `personaggi`, `sblocchi`, `riflessione`, `scheda` | the timer engine with a fake clock (pause, grace, "+5", discard, sleep gap, long break), the walker, pet stages (compared with Swift), unlock rules, reflection replies, card data |
 | `musica`, `elencomusica`, `suoni`, `rumore` | music queue and listing, audio plan decisions, the noise synthesiser against measurements from the Mac (rain and brown within 1 %, wind within 3 %: the Mac accumulates the phase in Float32) |
+| `dafare` | the to-do list: day strings and labels, text cleaning, add/toggle/remove, grouping and order, the file (format, 7-day purge, 200-item limit, newer and damaged files), reminder sentences |
 | `ambiente`, `indirizzi` | the test-variable gating (`FF_*` ignored without `FF_SELFTEST`, `FF_DATA_DIR` ignored in the installed app) and the URL rule of the lock-down (only `ff://app/…`; log lines carry scheme and site only) |
 | `schermi`, `fusi` | display geometry and the task-bar side; time zones: DST days of 23 and 25 hours, a zone changed while running, Sydney, Lord Howe, India/Nepal, the date line |
 
@@ -423,7 +454,7 @@ Those were exercised with scripted runs of the real app on macOS (simulated mous
 ## 9. Differences from the Mac app
 
 See `PARITA.md` for the row-by-row table. In short: one window instead of several; no Dock but a tray icon (Windows 11 may hide it in the "^" overflow); a generated chime instead of the system sound "Glass"; Chewy and Lucide instead of Marker Felt and SF Symbols; no
-"all desktops" behaviour (not available on Windows) and no automatic hiding over fullscreen apps (like the Mac, the companion stays above); more memory (Electron); preferences in `impostazioni.json` instead of `UserDefaults`; installer unsigned; garden not included yet.
+"all desktops" behaviour (not available on Windows) and no automatic hiding over fullscreen apps (like the Mac, the companion stays above); more memory (Electron); preferences in `impostazioni.json` instead of `UserDefaults`; installer unsigned; garden not included yet; the to-do date picker is drawn in the card instead of the system one.
 
 ---
 
@@ -439,4 +470,6 @@ test-only environment variables count only with `FF_SELFTEST` (§5.2); the live-
 5. **Possible hot spots [inferred, not measured]:** the statistics page gets **all sessions** at every log change (a structured clone) and recomputes the summary in the page; `buildCardData` summarises all sessions on every card refresh; `loadPhrases` re-reads the phrase file for each phrase. Fine for thousands of sessions; not tested with tens of thousands.
 6. **One stylesheet pair per page, with `card.css` duplicated** in both bundles (a few tens of KB, no functional effect).
 7. **The single-instance lock** relies on Electron's `requestSingleInstanceLock()`; how it behaves with two different Windows users or after a crash on Windows was not examined **[uncertain]**.
-8. **`erasableSyntaxOnly`** forbids parameter properties and enums: classes in `core/` declare fields explicitly. A newcomer may be surprised; it is required for Node's type stripping in the tests.
+8. **To-do list (1.1):** the card is rebuilt when the input turns empty or non-empty (to show or hide the choices); the drawn calendar has no arrow-key
+   navigation between days (Tab only); `lastReminder` lives in memory, so after a restart the first phrase can be the reminder again (as on the Mac).
+9. **`erasableSyntaxOnly`** forbids parameter properties and enums: classes in `core/` declare fields explicitly. A newcomer may be surprised; it is required for Node's type stripping in the tests.

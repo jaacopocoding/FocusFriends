@@ -63,6 +63,9 @@ export type CardCommand =
   | { name: "saveReflection"; sessionId: string; rating: Rating | null; note: string | null }
   | { name: "setName"; userName: string | null }
   | { name: "finishIntro"; userName: string | null; petId: string }
+  | { name: "todoAdd"; text: string; due: string | null; subject: string | null }
+  | { name: "todoToggle"; id: string }
+  | { name: "todoRemove"; id: string }
   | { name: "quit" };
 
 /** Cosa mette a disposizione il ponte (`preload`) alla pagina, come `window.focusfriends`. */

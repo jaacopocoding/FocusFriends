@@ -158,6 +158,31 @@ for entry in try fm.contentsOfDirectory(atPath: fixtures.path).sorted() {
         result["giardino"] = part
     }
 
+    // ---- cose da fare
+    if has("dafare.json") {
+        let list = ToDoList(directory: tmp, now: { now })
+        var problems: [String] = []
+        list.onProblem = { problems.append(normalized($0)) }
+        let today = ToDoDay.string(for: now, calendar: cal)
+        let iso = ISO8601DateFormatter()
+        var reminders: [String: Any] = [:]
+        for offset in [-1, 0, 1] {
+            let day = ToDoDay.adding(days: offset, to: today)!
+            reminders[day] = v(ToDoReminder.message(for: list.items, today: day))
+        }
+        result["daFare"] = [
+            "voci": list.items.count, "daFare": list.openCount, "solaLettura": list.isReadOnly, "avvisi": problems,
+            "gruppi": list.sections(today: today).map { section in
+                ["gruppo": section.group.title, "voci": section.items.map { item in
+                    ["testo": item.text, "scadenza": v(item.due), "etichetta": v(item.due.map { ToDoDay.label(due: $0, today: today) }),
+                     "materia": v(item.subject)] as [String: Any]
+                }] as [String: Any]
+            },
+            "fatte": list.doneItems.map { ["testo": $0.text, "fattaIl": iso.string(from: $0.doneAt!)] as [String: Any] },
+            "promemoria": reminders,
+        ] as [String: Any]
+    }
+
     result["fileDopo"] = relativeFiles(in: tmp)
     let data = try JSONSerialization.data(withJSONObject: result, options: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes])
     try (data + Data("\n".utf8)).write(to: outputDirectory.appendingPathComponent("\(entry).json"))

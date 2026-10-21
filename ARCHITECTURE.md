@@ -23,7 +23,8 @@
 > **Update, 21 October 2026.** The Swift sources changed for one new feature, the **to-do list** ("Da fare", commits `6bf851c`
 > and `c5c769b`, not yet in a release): `ToDo.swift` (model, store, day arithmetic, the companion's reminder text), `ToDoPage.swift`
 > (the card page), one row in the card, `Speaker.reminder` and `SubjectPrompt.ask(prefill:)`. It is described in §3.22; the
-> counts in this document (files, lines, checks) were updated for it. The Windows version does not have it yet.
+> counts in this document (files, lines, checks) were updated for it. The Windows version has it too since its 1.1 (not yet released),
+> with the same file format; the contract between the two is checked both ways (`tests/fixtures/dafare*`).
 
 ---
 
@@ -592,7 +593,8 @@ code. All UI code runs on the main thread; the only other thread is the audio re
   not depend on the time zone or on daylight saving; the Italian labels ("ieri", "ven 23", "26 ott") use fixed tables,
   not the system locale **[inferred: so that the Windows port can produce the same strings]**.
 - **Tests:** three sections in `tests/main.swift` ("Da fare: giorni e testi", "Da fare: la lista", "Da fare: il compagno
-  ricorda le scadenze"). The page itself has no automated test; during development it was rendered offscreen with sample
+  ricorda le scadenze"), and the contract with the Windows port: four sample folders (`tests/fixtures/dafare*`) whose results the
+  generator writes (`genera-attesi`, §5.9). The page itself has no automated test; during development it was rendered offscreen with sample
   data, and its buttons clicked, by a throwaway harness that is not in the repository.
 
 ---
@@ -1109,7 +1111,8 @@ file/UserDefaults writes, windows, timers, sound, global state.
 - `run.sh`: `swiftc -O -o build/tests/stats <11 sources> tests/main.swift && build/tests/stats`.
 - `genera-attesi.sh` / `tests/genera-attesi/main.swift`: for each folder of `tests/fixtures/` (copied to a temporary folder) it
   opens `SessionLog`, `Profile` and `Garden` with a fixed "now" (14 Oct 2026, 20:00, Europe/Rome) and writes the numbers the app derives
-  (sessions, files created, warnings, summaries, streak, points, unlocked companions) to `tests/fixtures/attesi/<folder>.json`.
+  (sessions, files created, warnings, summaries, streak, points, unlocked companions, and — for folders with `dafare.json` — the to-do
+  groups, labels, done items and the reminder for the day before, the day and the day after) to `tests/fixtures/attesi/<folder>.json`.
   The Windows port must derive the same; its `windows/test/ritorno.test.ts` runs the same generator on folders written by the Windows code
   (the contract in the other direction, skipped where `swiftc` is missing). `genera-rumore.sh` does the same for `NoiseSynth` output.
 

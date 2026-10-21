@@ -10,7 +10,7 @@ circa 200 MB e 0 % di processore. **Le sigle W qui sotto non sono state spuntate
 
 | Sigla | Significato |
 |---|---|
-| **P** | Prova automatica (`npm test`, 259 prove): la logica dà gli stessi risultati. Le prove «di contratto» confrontano con i risultati dell'app per Mac sugli stessi file. |
+| **P** | Prova automatica (`npm test`, 276 prove): la logica dà gli stessi risultati. Le prove «di contratto» confrontano con i risultati dell'app per Mac sugli stessi file. |
 | **S** | Prova dal vivo sul Mac con l'app vera di Electron: eventi del mouse e tastiera simulati, schermate e misure (`FF_SELFTEST`). I copioni sono in `test/vivo/`. |
 | **W** | **Solo su Windows**: non si può provare dal Mac. Il passo da fare è in `PROVE_SU_WINDOWS.md`. |
 | **C** | Scritto nel codice, **senza una prova dedicata**: l'ho letto, non l'ho visto funzionare. |
@@ -50,6 +50,7 @@ circa 200 MB e 0 % di processore. **Le sigle W qui sotto non sono state spuntate
 | Quattro frequenze (spesso, ogni tanto, raramente, mai) | Uguale | P |
 | «Fai parlare», «Modifica le frasi…» (copia il file incluso e lo apre) | Menu e tocco sul compagno; il file si apre con l'editor predefinito di Windows | S; l'editor vero: **W** |
 | Il file delle frasi è `~/Library/Application Support/FocusFriends/frasi_<pet>.txt` | `%APPDATA%\FocusFriends\frasi_<pet>.txt` | = |
+| Il compagno ricorda le scadenze di oggi (o di domani) di «Da fare», al posto di una frase a caso, al massimo ogni 3 ore, mai durante un focus | Uguale: lo decide il processo principale quando la pagina chiede la frase | P (le frasi, sugli stessi dati del Mac) S |
 
 ## 4. Il focus
 
@@ -77,6 +78,7 @@ circa 200 MB e 0 % di processore. **Le sigle W qui sotto non sono state spuntate
 | Pagina principale: compagni con lucchetti, durate 30/50/pausa, «Altri timer…», riquadri di oggi, impostazioni rapide, «Esci» | Uguale (senza il pulsante «Giardino», seconda uscita) | S |
 | «Gira il timer»: quadrante a pomodoro 5–120 / 1–30, rotella, fino a 6 timer salvati per tipo | Uguale (anche con le frecce) | P S |
 | Pagina del focus e della pausa (verde), facce per l'ultimo focus | Uguale | S |
+| **Da fare** (dalla 1.1): riga nella scheda; lista divisa in scadute, oggi, prossime, senza data; aggiunta con scelte di data e materia; ▶ «Inizia un focus» con la materia già scritta e × sotto il mouse; voci fatte ripiegate, tolte dopo 7 giorni | Uguale. Il calendario di «Scegli…» è disegnato nella scheda (quello di sistema si apre in una finestra a parte, che in una finestra trasparente e senza fuoco non è affidabile) | P (contratto su 4 cartelle di esempio, nei due versi) S (`test/vivo/dafare.cjs`) |
 | Menu classico: Nascondi/Mostra, Fai parlare, Pomofocus, Statistiche, Il tuo nome, Chiedi com'è andata, Pausa lunga, Frequenza, Personaggio, Movimento, Avvia al login, Modifica le frasi, Esci | Tutte le voci, più **Schermo** (con più schermi) e i sottomenu di suono e musica | C (l'elenco); **W** (come si apre) |
 | Tutto leggibile ai lettori di schermo | Pulsanti veri con etichette; tastiera completa | C; con un lettore vero (Narrator): **W** |
 | Icona del compagno (la testa) | Stessa testa, 32 px | C; **W** |
@@ -105,6 +107,7 @@ circa 200 MB e 0 % di processore. **Le sigle W qui sotto non sono state spuntate
 | Primo avvio: nome e compagno; il nome nei titoli; «Il tuo nome…» | Uguale | S |
 | Preferenze in `UserDefaults` | `impostazioni.json` (valori sbagliati = predefiniti) | ≠ P |
 | Migrazione dalla vecchia app «Bonsy» | Non serve: Windows parte da zero | ≠ |
+| `dafare.json`: voci ripulite alla lettura, fatte tolte dopo 7 giorni, file rovinato messo da parte, versione più nuova in sola lettura; «Cancella tutto» non lo tocca | Uguale | P (`contratto.test.ts`, `ritorno.test.ts`, `dafare.test.ts`) |
 
 ## 8. Sistema
 

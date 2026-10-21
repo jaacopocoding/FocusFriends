@@ -1,0 +1,130 @@
+{
+  "adesso" : "2026-10-14T20:00 Europe/Rome",
+  "cartella" : "dafare",
+  "daFare" : {
+    "avvisi" : [
+
+    ],
+    "daFare" : 13,
+    "fatte" : [
+      {
+        "fattaIl" : "2026-10-14T07:15:00Z",
+        "testo" : "Scaricare le dispense"
+      },
+      {
+        "fattaIl" : "2026-10-13T16:00:00Z",
+        "testo" : "Mandare la mail al prof"
+      }
+    ],
+    "gruppi" : [
+      {
+        "gruppo" : "Scadute",
+        "voci" : [
+          {
+            "etichetta" : "12 ott",
+            "materia" : null,
+            "scadenza" : "2026-10-12",
+            "testo" : "Consegnare il modulo della borsa"
+          }
+        ]
+      },
+      {
+        "gruppo" : "Oggi",
+        "voci" : [
+          {
+            "etichetta" : "oggi",
+            "materia" : "Fisiologia umana",
+            "scadenza" : "2026-10-14",
+            "testo" : "Prenotare l'esame"
+          },
+          {
+            "etichetta" : "oggi",
+            "materia" : "Anatomia",
+            "scadenza" : "2026-10-14",
+            "testo" : "Riassunto del capitolo 7"
+          }
+        ]
+      },
+      {
+        "gruppo" : "Prossime",
+        "voci" : [
+          {
+            "etichetta" : "domani",
+            "materia" : "Analisi",
+            "scadenza" : "2026-10-15",
+            "testo" : "Esercizi di analisi 4–6"
+          },
+          {
+            "etichetta" : "ven 16",
+            "materia" : null,
+            "scadenza" : "2026-10-16",
+            "testo" : "Id in minuscolo"
+          },
+          {
+            "etichetta" : "lun 19",
+            "materia" : "Fisica",
+            "scadenza" : "2026-10-19",
+            "testo" : "Relazione di laboratorio"
+          },
+          {
+            "etichetta" : "3 nov",
+            "materia" : null,
+            "scadenza" : "2026-11-03",
+            "testo" : "Ripasso generale"
+          },
+          {
+            "etichetta" : "8 gen 2027",
+            "materia" : null,
+            "scadenza" : "2027-01-08",
+            "testo" : "Iscrizione al secondo semestre"
+          }
+        ]
+      },
+      {
+        "gruppo" : "Senza data",
+        "voci" : [
+          {
+            "etichetta" : null,
+            "materia" : null,
+            "scadenza" : null,
+            "testo" : "Cercare un libro per Storia"
+          },
+          {
+            "etichetta" : null,
+            "materia" : null,
+            "scadenza" : null,
+            "testo" : "Data che non esiste"
+          },
+          {
+            "etichetta" : null,
+            "materia" : null,
+            "scadenza" : null,
+            "testo" : "rileggere gli appunti di chimica"
+          },
+          {
+            "etichetta" : null,
+            "materia" : null,
+            "scadenza" : null,
+            "testo" : "📚 Comprare i quaderni 🖊️ e la «cancelleria» \"buona\""
+          },
+          {
+            "etichetta" : null,
+            "materia" : null,
+            "scadenza" : null,
+            "testo" : "Scrivere la tesina su un argomento lungo lunghissimo, con accenti à è ì ò ù, virgole, e parole che continuano fino a sup"
+          }
+        ]
+      }
+    ],
+    "promemoria" : {
+      "2026-10-13" : "Domani scadono 2 cose: «Prenotare l'esame» e un'altra.",
+      "2026-10-14" : "Oggi scadono 2 cose: «Prenotare l'esame» e un'altra.",
+      "2026-10-15" : "Oggi scade «Esercizi di analisi 4–6». Un focus adesso?"
+    },
+    "solaLettura" : false,
+    "voci" : 15
+  },
+  "fileDopo" : [
+    "dafare.json"
+  ]
+}

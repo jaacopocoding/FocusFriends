@@ -3,6 +3,7 @@
 // riceve i clic (un clic fuori la chiude) e la tastiera (Esc la chiude).
 
 import type { CardData } from "../../core/card.ts";
+import { subjectColor } from "../../core/colors.ts";
 import { cardPlacement } from "../../core/displays.ts";
 import type { Rating } from "../../core/log.ts";
 import { PETS, petInfo } from "../../core/pets.ts";
@@ -13,13 +14,16 @@ import {
 } from "../../core/rules.ts";
 import type { TimerKind } from "../../core/rules.ts";
 import { duration } from "../../core/stats.ts";
+import { subjectKey } from "../../core/text.ts";
+import { addDays, cleanToDoText, daysBetween, dueLabel, GROUP_TITLES, isValidDay, TODO_TEXT_MAX } from "../../core/todo.ts";
+import type { ToDoItem } from "../../core/todo.ts";
 import type { CardAnchor, CardCommand, CardOpenRequest, FocusFriendsApi } from "../../shared/api.ts";
 import { button, h, icon } from "./dom.ts";
 import type { IconName } from "./icons.generated.ts";
 import { ACCENT, REST_GREEN, RATING_TITLE, createDial, createPostIt, createTomato, cycleDots, faceIcon, sticker } from "./widgets.ts";
 import type { Dial, Tomato } from "./widgets.ts";
 
-type Page = "main" | "timers" | "focus" | "rest";
+type Page = "main" | "timers" | "focus" | "rest" | "todo";
 
 const CARD_WIDTH = 300;
 /** Quanto il compagno esce dal bordo alto della carta (nella scheda e nel quadrante). */
@@ -37,9 +41,11 @@ export interface CardHost {
   urlOf(path: string): string;
   /** La scheda si apre o si chiude (la pagina deve smettere o riprendere di decidere da sola quando lasciar passare i clic). */
   onOpenChange(open: boolean): void;
-  /** Un focus da N minuti: prima si chiede la materia («Cosa studi adesso?»). */
-  askFocus(minutes: number): void;
+  /** Un focus da N minuti: prima si chiede la materia («Cosa studi adesso?»), eventualmente già scritta. */
+  askFocus(minutes: number, subject?: string | null): void;
 }
+
+const MONTH_NAMES = ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", "agosto", "settembre", "ottobre", "novembre", "dicembre"];
 
 const defaultPage = (phase: PomodoroSnapshot["phase"]): Page => (phase === "focus" ? "focus" : phase === "rest" ? "rest" : "main");
 
@@ -57,6 +63,14 @@ export class MenuCard {
   private timerMessage: string | null = null;
   private lockHint: string | null = null;
   private draftNote = "";
+  // La pagina «Da fare»: quello che si sta scrivendo e le scelte fatte, che restano mentre la scheda si ricostruisce.
+  private todoDraft = "";
+  private todoDue: string | null = null;
+  private todoSubject: string | null = null;
+  private todoPicking = false;
+  /** Il mese mostrato dal calendario, «AAAA-MM». */
+  private todoMonth: string | null = null;
+  private todoShowDone = false;
   private dial: Dial | null = null;
   private tomato: Tomato | null = null;
   private clock: HTMLElement | null = null;
@@ -211,7 +225,10 @@ export class MenuCard {
     const focusedKey = document.activeElement instanceof HTMLElement ? document.activeElement.getAttribute("aria-label") : null;
     const draft = root.querySelector<HTMLInputElement>(".postit-input");
     if (draft) this.draftNote = draft.value;
+    const todoInput = root.querySelector<HTMLInputElement>(".todo-input");
+    if (todoInput) this.todoDraft = todoInput.value;
     const scroll = root.scrollTop;
+    const listScroll = root.querySelector<HTMLElement>(".todo-list")?.scrollTop ?? 0;
 
     root.replaceChildren();
     this.dial = null; this.tomato = null; this.clock = null;
@@ -224,13 +241,19 @@ export class MenuCard {
       case "timers": this.buildTimers(root, body, data, state); break;
       case "focus": this.buildFocus(body, data, state); break;
       case "rest": this.buildRest(body, data, state); break;
+      case "todo": this.buildToDo(root, body, data); break;
     }
     root.scrollTop = scroll;
+    const list = root.querySelector<HTMLElement>(".todo-list");
+    if (list) list.scrollTop = listScroll;
     this.reposition();
     if (first) {
       (root.querySelector<HTMLElement>("button, [role=slider]"))?.focus({ preventScroll: true });
     } else if (focusedKey) {
-      Array.from(root.querySelectorAll<HTMLElement>("[aria-label]")).find((el) => el.getAttribute("aria-label") === focusedKey)?.focus({ preventScroll: true });
+      const target = Array.from(root.querySelectorAll<HTMLElement>("[aria-label]")).find((el) => el.getAttribute("aria-label") === focusedKey);
+      target?.focus({ preventScroll: true });
+      // Nel campo di testo il cursore torna in fondo a quello che si stava scrivendo.
+      if (target instanceof HTMLInputElement && target.type === "text") target.setSelectionRange(target.value.length, target.value.length);
     }
   }
 
@@ -350,6 +373,11 @@ export class MenuCard {
     if (data.music !== "off") body.append(this.volumeRow(data.musicVolume, "Volume della musica", (value) => this.api.cardCommand({ name: "setMusicVolume", value })));
     if (pet.walks) body.append(this.option("walk", "Cammina per lo schermo", null, data.movementOn, () => this.command({ name: "toggleMovement" })));
     body.append(this.option("smile", "Chiedi com'è andata", null, data.askOn, () => this.command({ name: "toggleAsk" })));
+    body.append(this.option("listChecks", "Da fare", data.todo.openCount > 0 ? String(data.todo.openCount) : null, null, () => {
+      this.page = "todo";
+      this.rebuild(false);
+      this.root?.querySelector<HTMLInputElement>(".todo-input")?.focus({ preventScroll: true });
+    }));
     body.append(this.option(data.petVisible ? "eyeOff" : "eye", data.petVisible ? `Nascondi ${pet.name}` : `Mostra ${pet.name}`, null, null,
       () => this.command({ name: "toggleVisibility" }, true)));
 
@@ -404,6 +432,162 @@ export class MenuCard {
       h("div", { class: "running-text" }, h("div", { class: "running-title" }, title), this.clock),
       button("pill-button primary", "Ferma il timer", () => this.command({ name: "stopTimer" }), "Ferma"),
     );
+  }
+
+  // ---- la pagina «Da fare» (ToDoPage.swift)
+
+  private buildToDo(root: HTMLElement, body: HTMLElement, data: CardData): void {
+    root.prepend(h("div", { class: "avatar-spacer" }));
+    body.append(h("div", { class: "page-header" },
+      button("back", "Torna alla scheda", () => { this.page = "main"; this.rebuild(false); }, icon("back", 18)),
+      h("div", { class: "page-title" }, "Da fare"),
+    ));
+
+    const input = h("input", {
+      type: "text", class: "todo-input", placeholder: "Aggiungi una cosa…", "aria-label": "Aggiungi una cosa", maxlength: TODO_TEXT_MAX * 2,
+    });
+    input.value = this.todoDraft;
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") { event.preventDefault(); this.addToDo(input.value); }
+    });
+    // Le scelte (scadenza, materia) compaiono quando si comincia a scrivere e spariscono se il campo torna vuoto.
+    input.addEventListener("input", () => {
+      const was = this.todoDraft;
+      this.todoDraft = input.value;
+      if ((was === "") !== (input.value === "")) this.rebuild(false);
+    });
+    body.append(h("div", { class: "todo-input-row" }, input,
+      button("todo-plus", "Aggiungi", () => this.addToDo(input.value), icon("plus", 15))));
+    if (this.todoDraft !== "") body.append(this.todoChoices(data));
+    body.append(this.todoList(data));
+  }
+
+  private todoChoices(data: CardData): HTMLElement {
+    const today = data.todo.today;
+    const tomorrow = addDays(today, 1), nextWeek = addDays(today, 7);
+    const pick = (day: string | null): void => {
+      this.todoDue = this.todoDue === day ? null : day;
+      this.todoPicking = false;
+      this.rebuild(false);
+    };
+    const custom = this.todoDue !== null && this.todoDue !== today && this.todoDue !== tomorrow && this.todoDue !== nextWeek;
+    const chip = (title: string, on: boolean, run: () => void): HTMLButtonElement => {
+      const element = button(`todo-chip${on ? " on" : ""}`, title, run, title);
+      element.setAttribute("aria-pressed", String(on));
+      return element;
+    };
+    const due = h("div", { class: "todo-chips" },
+      chip("Oggi", this.todoDue === today, () => pick(today)),
+      chip("Domani", this.todoDue !== null && this.todoDue === tomorrow, () => pick(tomorrow)),
+      chip("Fra una settimana", this.todoDue !== null && this.todoDue === nextWeek, () => pick(nextWeek)),
+      chip(custom ? dueLabel(this.todoDue!, today) : "Scegli…", custom || this.todoPicking, () => {
+        this.todoPicking = !this.todoPicking;
+        this.todoMonth = (this.todoDue ?? today).slice(0, 7);
+        this.rebuild(false);
+      }),
+    );
+    const block = h("div", { class: "todo-choices" }, h("div", { class: "todo-caption" }, "Per quando"), due);
+    if (this.todoPicking) block.append(this.calendar(today));
+    const subjects = data.recentSubjects.slice(0, 6);
+    if (subjects.length > 0) {
+      block.append(h("div", { class: "todo-caption" }, "Materia"), h("div", { class: "todo-chips" }, ...subjects.map((name) => {
+        const on = this.todoSubject !== null && subjectKey(this.todoSubject) === subjectKey(name);
+        return chip(name, on, () => { this.todoSubject = on ? null : name; this.rebuild(false); });
+      })));
+    }
+    return block;
+  }
+
+  /** Un piccolo calendario (al posto di quello di sistema, che in una finestra trasparente non si apre bene): un mese alla volta, da oggi in poi. */
+  private calendar(today: string): HTMLElement {
+    const month = this.todoMonth ?? today.slice(0, 7);
+    const [year, monthNumber] = month.split("-").map(Number) as [number, number];
+    const first = `${month}-01`;
+    const daysInMonth = new Date(Date.UTC(year, monthNumber, 0)).getUTCDate();
+    const firstWeekday = (new Date(Date.UTC(year, monthNumber - 1, 1)).getUTCDay() + 6) % 7;     // lunedì = 0
+    const shift = (count: number): void => {
+      const moved = new Date(Date.UTC(year, monthNumber - 1 + count, 1));
+      this.todoMonth = `${moved.getUTCFullYear()}-${String(moved.getUTCMonth() + 1).padStart(2, "0")}`;
+      this.rebuild(false);
+    };
+    const canGoBack = month > today.slice(0, 7);
+    const grid = h("div", { class: "calendar-grid", role: "grid" });
+    for (const name of ["L", "M", "M", "G", "V", "S", "D"]) grid.append(h("span", { class: "calendar-weekday", "aria-hidden": "true" }, name));
+    for (let i = 0; i < firstWeekday; i += 1) grid.append(h("span", { class: "calendar-empty" }));
+    for (let day = 1; day <= daysInMonth; day += 1) {
+      const value = addDays(first, day - 1)!;
+      const past = (daysBetween(today, value) ?? 0) < 0;
+      const cell = button(`calendar-day${value === today ? " today" : ""}${value === this.todoDue ? " on" : ""}`,
+        dueLabel(value, today), () => { if (!past) { this.todoDue = value; this.todoPicking = false; this.rebuild(false); } }, String(day));
+      if (past) cell.disabled = true;
+      grid.append(cell);
+    }
+    return h("div", { class: "calendar" },
+      h("div", { class: "calendar-header" },
+        h("span", { class: "calendar-title" }, `${MONTH_NAMES[monthNumber - 1]} ${year}`),
+        button("calendar-arrow", "Mese prima", () => { if (canGoBack) shift(-1); }, icon("back", 14)),
+        button("calendar-arrow", "Mese dopo", () => shift(1), icon("forward", 14))),
+      grid);
+  }
+
+  private todoList(data: CardData): HTMLElement {
+    const todo = data.todo;
+    const list = h("div", { class: `todo-list${this.todoDraft !== "" ? " short" : ""}` });
+    for (const section of todo.sections) {
+      list.append(h("div", { class: `todo-group${section.group === "overdue" ? " overdue" : ""}` }, GROUP_TITLES[section.group]));
+      for (const item of section.items) list.append(this.todoRow(item, todo.today));
+    }
+    if (todo.sections.length === 0) {
+      list.append(h("div", { class: "todo-empty" },
+        icon("listChecks", 30),
+        h("div", { class: "todo-empty-title" }, todo.done.length === 0 ? "Tutto in ordine" : "Tutto fatto"),
+        h("div", { class: "todo-empty-text" }, "Qui puoi segnare le cose da ricordare, con o senza data.")));
+    }
+    if (todo.done.length > 0) {
+      list.append(button("todo-done-toggle", this.todoShowDone ? "Nascondi le fatte" : "Mostra le fatte", () => {
+        this.todoShowDone = !this.todoShowDone;
+        this.rebuild(false);
+      }, icon(this.todoShowDone ? "down" : "forward", 12), `Fatte · ${todo.done.length}`));
+      if (this.todoShowDone) for (const item of todo.done) list.append(this.todoRow(item, todo.today));
+    }
+    return list;
+  }
+
+  private todoRow(item: ToDoItem, today: string): HTMLElement {
+    const done = item.doneAt !== null;
+    const overdue = !done && item.due !== null && (daysBetween(today, item.due) ?? 0) < 0;
+    const subject = item.subject !== null ? h("div", { class: "todo-subject" }, h("span", { class: "todo-dot" }), item.subject) : null;
+    if (subject && item.subject !== null) subject.style.setProperty("--subject", subjectColor(item.subject));
+    return h("div", { class: `todo-row${done ? " done" : ""}` },
+      button(`todo-check${done ? " on" : ""}`, done ? "Rimetti da fare" : "Segna come fatta",
+        () => this.command({ name: "todoToggle", id: item.id }), done ? icon("check", 12) : null),
+      h("div", { class: "todo-text" }, h("div", { class: "todo-title" }, item.text), subject),
+      item.due !== null ? h("span", { class: `todo-due${overdue ? " overdue" : ""}` }, dueLabel(item.due, today)) : null,
+      h("span", { class: "todo-actions" },
+        done ? null : button("todo-play", "Inizia un focus", () => this.startToDoFocus(item), icon("play", 11)),
+        button("todo-remove", "Togli dalla lista", () => this.command({ name: "todoRemove", id: item.id }), icon("close", 14))),
+    );
+  }
+
+  private addToDo(text: string): void {
+    if (cleanToDoText(text) === null) return;
+    const due = this.todoDue !== null && isValidDay(this.todoDue) ? this.todoDue : null;
+    this.api.cardCommand({ name: "todoAdd", text, due, subject: this.todoSubject });
+    this.todoDraft = "";
+    this.todoDue = null;
+    this.todoSubject = null;
+    this.todoPicking = false;
+    const input = this.root?.querySelector<HTMLInputElement>(".todo-input");
+    if (input) input.value = "";
+    this.rebuild(false);
+    this.scheduleRefresh();
+  }
+
+  /** «Inizia un focus» da una voce: si chiude la scheda e «Cosa studi adesso?» ha già la sua materia. */
+  private startToDoFocus(item: ToDoItem): void {
+    const minutes = this.host.timer()?.focusMinutes || 50;
+    this.close();
+    this.host.askFocus(minutes, item.subject);
   }
 
   // ---- la pagina dei timer

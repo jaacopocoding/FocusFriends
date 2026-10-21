@@ -14,6 +14,9 @@ import { analyzeStreak, insights, periodContaining, summarize } from "../src/cor
 import type { PeriodKind, Summary } from "../src/core/stats.ts";
 import { balance, earnedPoints, multiplierToday, pointsForWeightedMinutes, progressToNextPoint, weightedMinutes } from "../src/core/points.ts";
 import { earned, focuses } from "../src/core/rewards.ts";
+import { ToDoList } from "../src/core/todoList.ts";
+import { addDays, dueLabel, GROUP_TITLES, reminderMessage, todayOf } from "../src/core/todo.ts";
+import { isoUtc } from "../src/core/time.ts";
 
 export const ZONE = "Europe/Rome";
 export const NOW = Date.UTC(2026, 9, 14, 18, 0, 0);     // le 20:00 a Roma (CEST, UTC+2)
@@ -125,6 +128,29 @@ export function derive(fixtures: string, name: string): Record<string, unknown> 
       result["profilo"] = part;
     } else if (name.startsWith("profilo")) {
       result["profilo"] = { nota: "nessun file" };
+    }
+
+    if (has("dafare.json")) {
+      const list = new ToDoList(temp, { now: () => NOW });
+      const problems: string[] = [];
+      list.onProblem = (message) => problems.push(normalized(message));
+      const today = todayOf(NOW, ZONE);
+      const reminders: Record<string, string | null> = {};
+      for (const offset of [-1, 0, 1]) {
+        const day = addDays(today, offset)!;
+        reminders[day] = reminderMessage(list.items, day);
+      }
+      result["daFare"] = {
+        voci: list.items.length, daFare: list.openCount, solaLettura: list.isReadOnly, avvisi: problems,
+        gruppi: list.sections(today).map((section) => ({
+          gruppo: GROUP_TITLES[section.group],
+          voci: section.items.map((item) => ({
+            testo: item.text, scadenza: item.due, etichetta: item.due === null ? null : dueLabel(item.due, today), materia: item.subject,
+          })),
+        })),
+        fatte: list.doneItems.map((item) => ({ testo: item.text, fattaIl: isoUtc(item.doneAt!) })),
+        promemoria: reminders,
+      };
     }
 
     result["fileDopo"] = relativeFiles(temp);

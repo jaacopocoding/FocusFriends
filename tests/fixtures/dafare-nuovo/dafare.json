@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "nuovoCampo": true,
+  "items": [
+    {
+      "id": "00000000-0000-4000-8000-000000000101",
+      "text": "Rileggere tutti gli appunti di chimica organica e rifare gli esercizi del capitolo nove",
+      "due": "2026-10-15",
+      "createdAt": "2026-10-12T08:00:00Z"
+    }
+  ]
+}

@@ -1,13 +1,23 @@
-## FocusFriends per Windows 1.0.1
+## FocusFriends per Windows 1.1.0
 
 Il compagno che ti fa compagnia mentre studi, adesso anche su Windows 10 e 11 (Intel/AMD e ARM): un personaggio che cammina sul desktop,
 un timer Pomofocus con la sua schermata del focus, i suoni di sottofondo, le statistiche e i compagni da sbloccare studiando.
 Stessi dati, stesse regole e stesso aspetto dell'[app per Mac](https://github.com/jaacopocoding/FocusFriends#readme): i file di studio si possono
 leggere con l'una e con l'altra.
 
-### Novità della 1.0.1
+### Novità della 1.1
 
-Nessuna funzione nuova e nessun cambio ai dati: si installa sopra la 1.0.0 e tutto resta com'è. Cambia quello che non si vede, per rendere l'app più solida:
+**Da fare.** Nella scheda c'è una riga nuova, *Da fare*: una lista di cose da ricordare, con una scadenza (un giorno) e una materia,
+tutte e due facoltative.
+
+- Si scrive nel campo in alto e si preme Invio; mentre scrivi puoi scegliere *Oggi*, *Domani*, *Fra una settimana* o un giorno dal calendario, e una materia.
+- La lista è divisa in *Scadute*, *Oggi*, *Prossime* e *Senza data*. Il cerchio segna una voce come fatta (sparisce dopo una settimana).
+- Passando sopra una voce compaiono ▶ *Inizia un focus* (con la materia già scritta) e × *Togli*.
+- Il compagno ogni tanto ricorda le scadenze di oggi o di domani, mai durante un focus.
+
+Le voci stanno in `%APPDATA%\FocusFriends\dafare.json`, nello stesso formato dell'app per Mac. Si installa sopra la versione di prima e i dati restano.
+
+Comprende anche le correzioni della 1.0.1 (per chi non l'ha installata), che non si vedono ma rendono l'app più solida:
 
 - **Più chiusa in sé**: le finestre dell'app non aprono mai pagine web né finestre nuove, e non ottengono permessi (microfono, fotocamera, posizione, notifiche): l'app non ne usa nessuno.
 - **Le opzioni di prova non cambiano più l'app**: quelle usate solo per provarla durante lo sviluppo (per esempio saltare la conferma di «Cancella tutto…») hanno effetto soltanto con l'interruttore delle prove.

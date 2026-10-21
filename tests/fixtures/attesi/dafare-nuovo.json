@@ -1,0 +1,36 @@
+{
+  "adesso" : "2026-10-14T20:00 Europe/Rome",
+  "cartella" : "dafare-nuovo",
+  "daFare" : {
+    "avvisi" : [
+      "Il file delle cose da fare è di una versione più nuova dell'app: lo leggo ma non lo modifico."
+    ],
+    "daFare" : 1,
+    "fatte" : [
+
+    ],
+    "gruppi" : [
+      {
+        "gruppo" : "Prossime",
+        "voci" : [
+          {
+            "etichetta" : "domani",
+            "materia" : null,
+            "scadenza" : "2026-10-15",
+            "testo" : "Rileggere tutti gli appunti di chimica organica e rifare gli esercizi del capitolo nove"
+          }
+        ]
+      }
+    ],
+    "promemoria" : {
+      "2026-10-13" : null,
+      "2026-10-14" : "Domani scade «Rileggere tutti gli appunti di…». Un focus adesso?",
+      "2026-10-15" : "Oggi scade «Rileggere tutti gli appunti di…». Un focus adesso?"
+    },
+    "solaLettura" : true,
+    "voci" : 1
+  },
+  "fileDopo" : [
+    "dafare.json"
+  ]
+}

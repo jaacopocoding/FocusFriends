@@ -1105,3 +1105,363 @@ input.volume::-webkit-slider-thumb {
   font-size: 12.5px;
   color: var(--ink-light);
 }
+
+/* ---- la pagina «Da fare» (ToDoPage.swift) */
+
+.page-todo {
+  padding: 14px 16px 14px;
+}
+
+.todo-input-row {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  height: 38px;
+  box-sizing: border-box;
+  border: 1px solid var(--edge);
+  border-radius: 19px;
+  background: rgba(255, 255, 255, 0.6);
+  padding: 0 4px 0 16px;
+}
+
+.todo-input-row:focus-within {
+  border: 1.5px solid var(--accent);
+}
+
+.todo-input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  font: 13px var(--ui);
+  color: var(--ink);
+  outline: none;
+}
+
+.card-root .todo-input:focus-visible {
+  outline: none;
+}
+
+.todo-input::placeholder {
+  color: rgb(150, 130, 80);
+}
+
+.todo-plus {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.todo-plus:active {
+  background: var(--accent-pressed);
+}
+
+.todo-choices {
+  margin-top: 6px;
+}
+
+.todo-caption {
+  font-size: 11.5px;
+  color: var(--ink-light);
+  margin: 8px 0 5px 4px;
+}
+
+.todo-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.todo-chip {
+  height: 26px;
+  box-sizing: border-box;
+  padding: 0 12px;
+  border-radius: 13px;
+  border: 1px solid var(--edge);
+  background: var(--paper);
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+
+.todo-chip:hover {
+  background: rgba(217, 120, 56, 0.14);
+}
+
+.todo-chip.on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+.calendar {
+  margin-top: 8px;
+  width: 200px;
+  box-sizing: border-box;
+  border: 1px solid var(--edge);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.55);
+  padding: 8px;
+}
+
+.calendar-header {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-bottom: 4px;
+}
+
+.calendar-title {
+  flex: 1;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding-left: 2px;
+}
+
+.calendar-arrow {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  color: var(--ink-light);
+}
+
+.calendar-arrow:hover {
+  background: rgba(217, 120, 56, 0.14);
+  color: var(--ink);
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.calendar-weekday {
+  font-size: 10.5px;
+  color: var(--ink-light);
+  text-align: center;
+  padding-bottom: 2px;
+}
+
+.card-root .calendar-day {
+  height: 24px;
+  border-radius: 6px;
+  text-align: center;
+  font-size: 12px;
+}
+
+.calendar-day:hover:not(:disabled) {
+  background: rgba(217, 120, 56, 0.14);
+}
+
+.calendar-day.today {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.calendar-day.on,
+.calendar-day.on:hover {
+  background: var(--accent);
+  color: white;
+}
+
+.card-root .calendar-day:disabled {
+  color: rgba(102, 77, 51, 0.35);
+  cursor: default;
+}
+
+.todo-list {
+  margin-top: 10px;
+  max-height: 420px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.todo-list.short {
+  max-height: 250px;
+}
+
+.todo-group {
+  font: 15px/20px var(--marker);
+  margin: 6px 0 2px 2px;
+}
+
+.todo-group.overdue {
+  color: var(--danger);
+}
+
+.todo-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 32px;
+  padding: 4px 4px 4px 3px;
+  border-radius: 8px;
+}
+
+.todo-row:hover,
+.todo-row:focus-within {
+  background: rgba(41, 26, 15, 0.05);
+}
+
+.card-root .todo-check {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: 1.6px solid var(--ink-light);
+  background: rgba(255, 255, 255, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+.card-root .todo-check:hover {
+  border-color: var(--accent);
+}
+
+.card-root .todo-check.on {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.todo-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.todo-title {
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.todo-row.done .todo-title {
+  text-decoration: line-through;
+  color: var(--ink-light);
+}
+
+.todo-subject {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--ink-light);
+  margin-top: 2px;
+}
+
+.todo-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--subject, var(--ink-light));
+}
+
+.todo-due {
+  flex: none;
+  font-size: 11.5px;
+  color: var(--ink-light);
+}
+
+.todo-due.overdue {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.todo-actions {
+  display: none;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+}
+
+.todo-row:hover .todo-actions,
+.todo-row:focus-within .todo-actions {
+  display: flex;
+}
+
+.todo-row:hover .todo-due,
+.todo-row:focus-within .todo-due {
+  display: none;
+}
+
+.card-root .todo-play {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.todo-play .icon {
+  fill: currentColor;
+  margin-left: 1px;
+}
+
+.card-root .todo-play:active {
+  background: var(--accent-pressed);
+}
+
+.card-root .todo-remove {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-light);
+}
+
+.card-root .todo-remove:hover {
+  color: var(--danger);
+}
+
+.todo-empty {
+  text-align: center;
+  padding: 18px 8px 8px;
+  color: rgb(185, 154, 116);
+}
+
+.todo-empty-title {
+  font: 18px/24px var(--marker);
+  color: var(--ink);
+  margin-top: 6px;
+}
+
+.todo-empty-text {
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--ink-light);
+  margin-top: 4px;
+}
+
+.card-root .todo-done-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 28px;
+  margin-top: 8px;
+  padding-left: 6px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--ink-light);
+}
+
+.card-root .todo-done-toggle:hover {
+  color: var(--ink);
+}

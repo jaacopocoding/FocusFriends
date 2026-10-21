@@ -27,6 +27,10 @@ export const ICONS = {
   forward: "<path d=\"m9 18 6-6-6-6\" />",
   up: "<path d=\"m18 15-6-6-6 6\" />",
   down: "<path d=\"m6 9 6 6 6-6\" />",
+  listChecks: "<path d=\"M13 5h8\" /><path d=\"M13 12h8\" /><path d=\"M13 19h8\" /><path d=\"m3 17 2 2 4-4\" /><path d=\"m3 7 2 2 4-4\" />",
+  check: "<path d=\"M20 6 9 17l-5-5\" />",
+  close: "<path d=\"M18 6 6 18\" /><path d=\"m6 6 12 12\" />",
+  calendar: "<path d=\"M8 2v3\" /><path d=\"M16 2v3\" /><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\" /><path d=\"M3 9h18\" />",
 } as const;
 
 export type IconName = keyof typeof ICONS;

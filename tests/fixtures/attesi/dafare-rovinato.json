@@ -1,0 +1,26 @@
+{
+  "adesso" : "2026-10-14T20:00 Europe/Rome",
+  "cartella" : "dafare-rovinato",
+  "daFare" : {
+    "avvisi" : [
+      "Il file delle cose da fare era rovinato: l'ho messo da parte come dafare.corrotto-<epoch>.json."
+    ],
+    "daFare" : 0,
+    "fatte" : [
+
+    ],
+    "gruppi" : [
+
+    ],
+    "promemoria" : {
+      "2026-10-13" : null,
+      "2026-10-14" : null,
+      "2026-10-15" : null
+    },
+    "solaLettura" : false,
+    "voci" : 0
+  },
+  "fileDopo" : [
+    "dafare.corrotto-<epoch>.json"
+  ]
+}

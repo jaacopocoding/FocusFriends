@@ -13,7 +13,7 @@ strumenti): senza Wine non si mette l'icona dentro il programma, quindi l'instal
 
 ## La versione
 
-La versione sta in `windows/package.json` (`version`; la prima uscita è la `1.0.0`, la seconda la `1.0.1`). Prima della release: alzarla, aggiornare `PIANO_WINDOWS.md` e rivedere le
+La versione sta in `windows/package.json` (`version`; la prima uscita è la `1.0.0`, poi `1.0.1` e `1.1.0` con «Da fare»). Prima della release: alzarla, aggiornare `PIANO_WINDOWS.md` e rivedere le
 note (`windows/NOTE_DI_RILASCIO.md`: il testo della release, scritto per chi scarica).
 
 ## La release, con GitHub

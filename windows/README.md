@@ -8,6 +8,7 @@ in [`../PIANO_WINDOWS.md`](../PIANO_WINDOWS.md) e i formati dei dati, comuni con
 [release `windows-v1.0.0`](https://github.com/jaacopocoding/FocusFriends/releases/tag/windows-v1.0.0). È provata sul Mac con prove automatiche e prove dal vivo, sulla
 CI di GitHub (macchina Windows) e, in modo sommario, su un computer Windows vero. Il confronto con l'app per Mac, funzione per funzione, è in [`PARITA.md`](PARITA.md);
 quello che resta da provare su Windows, punto per punto, in [`PROVE_SU_WINDOWS.md`](PROVE_SU_WINDOWS.md). Il giardino è la seconda uscita.
+Nel codice c'è già la **1.1** (non ancora pubblicata): la pagina **Da fare** della scheda, come sull'app per Mac.
 Clic sull'icona nell'area di notifica = la scheda; tasto destro = il menu.
 
 **Per provarlo** serve Node 24 o più nuovo:

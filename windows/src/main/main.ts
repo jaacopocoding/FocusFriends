@@ -15,6 +15,8 @@ import { Profile } from "../core/profile.ts";
 import type { TimerKind } from "../core/rules.ts";
 import { Settings } from "../core/settings.ts";
 import { refreshSystemZone } from "../core/time.ts";
+import { reminderMessage, todayOf } from "../core/todo.ts";
+import { ToDoList } from "../core/todoList.ts";
 import { createCardService } from "./card.ts";
 import { loginItem } from "./login.ts";
 import { createMusicService } from "./music.ts";
@@ -42,6 +44,9 @@ if (process.env["FF_SELFTEST"] !== undefined) {
 registerScheme();
 
 let visible = true;
+
+/** Ogni quanto, al massimo, un promemoria delle cose da fare prende il posto di una frase a caso. */
+const REMINDER_EVERY_MS = 3 * 3_600_000;
 
 // Una sola copia dell'app: un doppio avvio non deve mai toccare i dati due volte (è già successo sul Mac, per un errore di una prova).
 // (Solo le prove automatiche possono saltare il controllo, per aprire più copie con cartelle di dati diverse.)
@@ -87,6 +92,7 @@ async function start(): Promise<void> {
     music.prepareFolder();
   });
   const profile = new Profile(data, { developer: () => settings.developerMode });
+  const todo = new ToDoList(data);
   const decks = new Map<string, PhraseDeck>();
   const win = createOverlay(primaryDisplay(), app.getAppPath());
   // Se la pagina cade la si ricarica (non più di tre volte in dieci minuti), così il compagno torna.
@@ -119,13 +125,26 @@ async function start(): Promise<void> {
   // I problemi con il profilo li dice il compagno.
   profile.onProblem = say;
   settings.onProblem = say;
+  todo.onProblem = say;
   profile.addObserver(() => statsRef?.refreshTitle());
   // Chi usava già l'app li tiene tutti; per gli altri si guadagnano (silenziosamente: al massimo sono già meritati).
   profile.keepAllCompanions(PET_IDS);
 
   ipcMain.handle(CHANNEL.getSettings, () => snapshot(settings));
   const interactions: string[] = [];
+  // Le scadenze di oggi e domani: ogni tanto il compagno le ricorda al posto di una frase a caso (al massimo ogni tre ore,
+  // mai durante un focus). Come Speaker.reminder sul Mac.
+  let lastReminder = -Infinity;
+  let timerPhase: () => string | null = () => null;
   ipcMain.handle(CHANNEL.nextPhrase, (_event, petId: unknown) => {
+    const now = Date.now();
+    if (now - lastReminder >= REMINDER_EVERY_MS && timerPhase() !== "focus") {
+      const reminder = reminderMessage(todo.items, todayOf(now));
+      if (reminder !== null) {
+        lastReminder = now;
+        return reminder;
+      }
+    }
     const id = typeof petId === "string" ? petId : settings.pet;
     // Il file si rilegge a ogni frase: le modifiche valgono subito.
     const phrases = loadPhrases(id, { userDirectory: data, bundledDirectory: assets });
@@ -137,6 +156,7 @@ async function start(): Promise<void> {
   // Il timer, il menu dell'area di notifica e la scheda si conoscono a vicenda: nascono uno dopo l'altro e si agganciano.
   let tray: ReturnType<typeof createTray> | null = null;
   const service: TimerService = startTimer({ directory: data, settings, send, onChange: () => tray?.refresh() });
+  timerPhase = () => service.engine.snapshot().phase;
 
   const setVisible = (on: boolean): void => {
     visible = on;
@@ -151,7 +171,7 @@ async function start(): Promise<void> {
     onDeleteAll: () => undefined,
   });
   const card = createCardService({
-    settings, profile, window: win, timer: () => service,
+    settings, profile, todo, window: win, timer: () => service,
     isVisible: () => visible, setVisible, say,
     speakNow: () => send(CHANNEL.speakNow),
     reopenCard: () => send(CHANNEL.cardReopen),

@@ -408,7 +408,13 @@ e la firma del codice (SignPath Foundation).
 **1.0.1 (preparata il 20 ottobre 2026, non ancora pubblicata).** Chiude i punti deboli della revisione scritti in `windows/ARCHITECTURE.md` §10: le finestre non
 navigano più altrove, non ne aprono di nuove e non ottengono permessi (`main/security.ts`); le variabili di prova (`FF_NO_LOCK`, `FF_FAKE_DISPLAYS`, `FF_SELFTEST_SAVE`,
 `FF_SELFTEST_CONFIRM`, `FF_DATA_DIR` nell'app installata) valgono solo con `FF_SELFTEST`; i copioni delle prove dal vivo stanno in `windows/test/vivo/`. 259 prove della logica,
-tutte passate. Nessuna funzione nuova e nessun cambio ai dati.
+tutte passate. Nessuna funzione nuova e nessun cambio ai dati. Si pubblica, se serve, con il tag `windows-v1.0.1` sul commit `74bda89`.
+
+**1.1.0 (preparata il 21 ottobre 2026, non ancora pubblicata): «Da fare».** La stessa funzione dell'app per Mac (commit `6bf851c`, `c5c769b`): una riga nella scheda,
+la pagina con la lista divisa per scadenza, le scelte di data (con un calendario disegnato nella scheda) e di materia, «Inizia un focus» con la materia già scritta,
+e il compagno che ricorda le scadenze di oggi o domani. Logica in `core/todo.ts` (pura) e `core/todoList.ts` (il file `dafare.json`, `FORMATI.md` §9); la frase la
+decide il processo principale quando la pagina chiede la prossima. Contratto con il Mac nei due versi (4 cartelle di esempio nuove, `tests/fixtures/dafare*`, e una
+cartella scritta da Windows letta da Swift); 276 prove della logica, tutte passate; provata dal vivo con `test/vivo/dafare.cjs`. Comprende la 1.0.1.
 
 ## Seconda uscita: il giardino (8–12 giorni)
 

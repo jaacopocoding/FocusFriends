@@ -483,10 +483,10 @@ function onStageMoved(next: { x: number; y: number; width: number; height: numbe
 // ---- «Cosa studi adesso?» e benvenuto
 
 /** Prima di avviare un focus si chiede la materia (e si ricorda l'ultima nota). */
-async function askFocus(minutes: number): Promise<void> {
+async function askFocus(minutes: number, prefill: string | null = null): Promise<void> {
   const data = await api.getCardData();
   openSubjectPrompt(modals, {
-    minutes, recent: data.recentSubjects, lastNote: data.lastNote,
+    minutes, recent: data.recentSubjects, lastNote: data.lastNote, prefill,
     onChoice: (choice) => {
       if (choice.kind === "start") api.cardCommand({ name: "startFocus", minutes, subject: choice.subject });
       else if (choice.kind === "back") card.reopen();
@@ -546,7 +546,7 @@ async function start(): Promise<void> {
     api, container: stage, timer: () => timerState, scene: sceneSize, urlOf,
     petBox: () => ({ ...view.position, ...view.size }),
     onOpenChange: (open) => { needs.card = open; syncInput(); if (!open) refreshHover(); },
-    askFocus: (minutes) => { void askFocus(minutes); },
+    askFocus: (minutes, subject) => { void askFocus(minutes, subject ?? null); },
   });
   card.currentPetId = settings.pet;
   await loadPet(settings.pet);

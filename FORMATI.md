@@ -22,7 +22,7 @@ FocusFriends/
 ├── profilo.json               nome, introduzione vista, compagni sbloccati
 ├── giardino.json              il giardino (oggetti, copie, posizioni) — seconda uscita su Windows
 ├── impostazioni.json          le preferenze (solo Windows; sul Mac stanno in UserDefaults)
-├── dafare.json                le cose da fare (per ora solo Mac)
+├── dafare.json                le cose da fare
 ├── registro-app.log           (solo Windows) cosa ha fatto l'app: avvio, chiusura, errori; senza dati personali; l'altro è registro-app.1.log
 ├── frasi_<personaggio>.txt    le frasi dell'utente (facoltative)
 ├── sessioni.corrotto-<epoch>.json   un file di sessioni messo da parte perché rovinato
@@ -285,7 +285,8 @@ le misure della sintesi dei rumori fatta dall'app per Mac (`tests/genera-rumore.
 
 ## 9. `dafare.json` (le cose da fare)
 
-Per ora lo scrive e lo legge **solo l'app per Mac** (dalla pagina «Da fare» della scheda); la versione per Windows lo avrà più avanti.
+Lo scrivono e lo leggono **tutte e due le app** (la pagina «Da fare» della scheda: Mac dalla 0.9, Windows dalla 1.1). Che l'una legga i file
+dell'altra è provato nei due versi: `tests/fixtures/dafare*` con i loro attesi, e `windows/test/ritorno.test.ts`.
 
 ```json
 {
