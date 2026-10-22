@@ -1233,6 +1233,18 @@ check(YearStats.trendSubjects(of: yrSummary) == ["Chimica", "Anatomia"] || YearS
 check(YearStats.trendSubjects(of: StudyStats.summary(sessions: [yrSession(3, 3)], period: yr2026, calendar: cal)).isEmpty, "con una materia sola non c'è da scegliere")
 let yrMany = (0..<8).map { yrSession(3, 1 + $0, seconds: 600 * ($0 + 1), subject: "Materia \($0)") }
 check(YearStats.trendSubjects(of: StudyStats.summary(sessions: yrMany, period: yr2026, calendar: cal)).count == YearStats.maxTrendSubjects, "al massimo cinque materie")
+// i testi
+check(YearStats.dayText(YearStats.Day(start: date(2026, 10, 2), seconds: 0, focusCount: 0, level: 0), calendar: cal) == "Venerdì 2 ottobre · nessun focus", "il testo di un giorno senza studio")
+check(YearStats.dayText(YearStats.Day(start: date(2026, 10, 14), seconds: 7800, focusCount: 3, level: 3), calendar: cal) == "Mercoledì 14 ottobre · 2 h 10 · 3 focus", "il testo di un giorno")
+check(YearStats.dayText(YearStats.Day(start: date(2026, 10, 14), seconds: 1500, focusCount: 1, level: 1), calendar: cal) == "Mercoledì 14 ottobre · 25 min · 1 focus", "un focus solo")
+check(YearStats.weekText(StudyBucket(start: date(2026, 6, 29), seconds: 34_500), calendar: cal) == "Settimana del 29 giu · 9 h 35", "il testo di una settimana")
+check(YearStats.trendCaption(maxSeconds: 55_800) == "al massimo 15 h 30 in una settimana", "la didascalia dell'andamento")
+check(YearStats.tiles(yrHighlights, calendar: cal) == [YearStats.Tile(value: "3 giorni", caption: "la serie più lunga"),
+                                                       YearStats.Tile(value: "2 h", caption: "il giorno più forte · 3 mar"),
+                                                       YearStats.Tile(value: "Marzo", caption: "il mese migliore · 2 h 17")],
+      "le tre caselle (\(YearStats.tiles(yrHighlights, calendar: cal)))")
+check(YearStats.tiles(YearStats.Highlights(longestStreak: 1), calendar: cal) == [YearStats.Tile(value: "1 giorno", caption: "la serie più lunga")], "senza studio, la sola serie")
+check((1...12).map { YearStats.monthLabel($0) }.joined(separator: " ") == "gen feb mar apr mag giu lug ago set ott nov dic", "i nomi dei mesi")
 check(!YearStats.showsTrend([StudyBucket(start: date(2026, 1, 5), seconds: 600), StudyBucket(start: date(2026, 1, 12), seconds: 600), StudyBucket(start: date(2026, 1, 19), seconds: 600),
                              StudyBucket(start: date(2026, 1, 26), seconds: 0)])
       && YearStats.showsTrend((0..<4).map { StudyBucket(start: date(2026, 1, 5 + 7 * $0), seconds: 60) }), "l'andamento si mostra da quattro settimane con studio")

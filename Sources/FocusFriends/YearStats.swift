@@ -170,4 +170,56 @@ enum YearStats {
     static func showsTrend(_ weeks: [StudyBucket]) -> Bool {
         weeks.filter { $0.seconds > 0 }.count >= minimumTrendWeeks
     }
+
+    // MARK: - I testi
+
+    private static func formatted(_ date: Date, _ format: String, _ calendar: Calendar) -> String {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "it_IT")
+        f.timeZone = calendar.timeZone
+        f.dateFormat = format
+        return f.string(from: date)
+    }
+
+    private static let monthLabels = ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"]
+
+    /// Il nome corto del mese (1...12) sopra la mappa e sotto le barre.
+    static func monthLabel(_ month: Int) -> String { monthLabels[max(1, min(12, month)) - 1] }
+
+    /// Cosa si legge passando sopra un giorno: «Venerdì 2 ottobre · 2 h 10 · 3 focus».
+    static func dayText(_ day: Day, calendar: Calendar = StudyPeriod.calendar()) -> String {
+        let title = formatted(day.start, "EEEE d MMMM", calendar)
+        let name = title.prefix(1).uppercased() + title.dropFirst()
+        guard day.seconds > 0 else { return "\(name) · nessun focus" }
+        return "\(name) · \(StudyStats.duration(seconds: day.seconds)) · " + (day.focusCount == 1 ? "1 focus" : "\(day.focusCount) focus")
+    }
+
+    /// Cosa si legge passando sopra una barra: «Settimana del 29 giu · 9 h 35».
+    static func weekText(_ week: StudyBucket, calendar: Calendar = StudyPeriod.calendar()) -> String {
+        "Settimana del \(formatted(week.start, "d MMM", calendar)) · \(StudyStats.duration(seconds: week.seconds))"
+    }
+
+    /// Sopra le barre, a destra: «al massimo 15 h 30 in una settimana».
+    static func trendCaption(maxSeconds: Int) -> String {
+        "al massimo \(StudyStats.duration(seconds: maxSeconds)) in una settimana"
+    }
+
+    struct Tile: Equatable {
+        var value: String
+        var caption: String
+    }
+
+    /// Le caselle sotto la mappa: la serie più lunga, il giorno più forte, il mese migliore (le ultime due solo se c'è stato studio).
+    static func tiles(_ highlights: Highlights, calendar: Calendar = StudyPeriod.calendar()) -> [Tile] {
+        let streak = highlights.longestStreak
+        var tiles = [Tile(value: streak == 1 ? "1 giorno" : "\(streak) giorni", caption: "la serie più lunga")]
+        if let best = highlights.bestDay {
+            tiles.append(Tile(value: StudyStats.duration(seconds: best.seconds), caption: "il giorno più forte · \(formatted(best.start, "d MMM", calendar))"))
+        }
+        if let month = highlights.bestMonth {
+            let name = formatted(month.start, "MMMM", calendar)
+            tiles.append(Tile(value: name.prefix(1).uppercased() + name.dropFirst(), caption: "il mese migliore · \(StudyStats.duration(seconds: month.seconds))"))
+        }
+        return tiles
+    }
 }

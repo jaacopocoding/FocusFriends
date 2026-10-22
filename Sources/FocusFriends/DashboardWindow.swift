@@ -688,7 +688,6 @@ extension DashboardView {
         NSColor(calibratedRed: 0.37, green: 0.66, blue: 0.29, alpha: 1),
         NSColor(calibratedRed: 0.18, green: 0.48, blue: 0.23, alpha: 1),
     ]
-    private static let monthNames = ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"]
 
     fileprivate func loadYear() {
         let today = now()
@@ -742,8 +741,6 @@ extension DashboardView {
         return l
     }
 
-    private func monthName(_ month: Int) -> String { Self.monthNames[max(1, min(12, month)) - 1] }
-
     private func cellRect(_ index: Int, _ layout: YearLayout) -> NSRect {
         let offset = index + layout.firstRow
         let gap = max(1.5, layout.pitch * 0.2)
@@ -759,7 +756,7 @@ extension DashboardView {
         let small = NSFont.systemFont(ofSize: 10.5)
 
         for mark in YearStats.monthStarts(in: period, calendar: calendar) {
-            text(monthName(mark.month), at: NSRect(x: yl.grid.minX + CGFloat(mark.column) * yl.pitch, y: yl.monthsY, width: 40, height: 14),
+            text(YearStats.monthLabel(mark.month), at: NSRect(x: yl.grid.minX + CGFloat(mark.column) * yl.pitch, y: yl.monthsY, width: 40, height: 14),
                  font: small, color: Paper.inkLight)
         }
         for (row, name) in [(0, "lun"), (2, "mer"), (4, "ven")] {
@@ -809,17 +806,7 @@ extension DashboardView {
     }
 
     private func drawYearTiles(_ yl: YearLayout) {
-        let streak = yearHighlights.longestStreak
-        var tiles: [(value: String, caption: String)] = [
-            (streak == 1 ? "1 giorno" : "\(streak) giorni", "la serie più lunga"),
-        ]
-        if let best = yearHighlights.bestDay {
-            tiles.append((StudyStats.duration(seconds: best.seconds), "il giorno più forte · \(formatted(best.start, "d MMM"))"))
-        }
-        if let month = yearHighlights.bestMonth {
-            let name = formatted(month.start, "MMMM")
-            tiles.append((name.prefix(1).uppercased() + name.dropFirst(), "il mese migliore · \(StudyStats.duration(seconds: month.seconds))"))
-        }
+        let tiles = YearStats.tiles(yearHighlights, calendar: calendar)
         let width = (contentWidth - 16) / 3
         for (i, tile) in tiles.enumerated() {
             let rect = NSRect(x: Self.margin + CGFloat(i) * (width + 8), y: yl.tilesY, width: width, height: 54)
@@ -839,7 +826,7 @@ extension DashboardView {
         guard let titleY = yl.trendY else { return }
         text("Andamento per settimana", at: NSRect(x: Self.margin, y: titleY, width: 260, height: 18), font: NSFont.systemFont(ofSize: 13, weight: .medium))
         let most = trendWeeks.map { $0.seconds }.max() ?? 0
-        text("al massimo \(StudyStats.duration(seconds: most)) in una settimana",
+        text(YearStats.trendCaption(maxSeconds: most),
              at: NSRect(x: Self.margin + 250, y: titleY + 1, width: contentWidth - 250, height: 16),
              font: NSFont.systemFont(ofSize: 11.5), color: Paper.inkLight, alignment: .right)
 
@@ -886,7 +873,7 @@ extension DashboardView {
             guard month != previousMonth else { continue }
             let x = bars.minX + slot * CGFloat(i)
             guard x >= lastLabelRight + 4 else { continue }
-            text(monthName(month), at: NSRect(x: x, y: yl.axisY, width: 30, height: 14), font: NSFont.systemFont(ofSize: 10.5), color: Paper.inkLight)
+            text(YearStats.monthLabel(month), at: NSRect(x: x, y: yl.axisY, width: 30, height: 14), font: NSFont.systemFont(ofSize: 10.5), color: Paper.inkLight)
             lastLabelRight = x + 24
         }
     }
@@ -894,15 +881,9 @@ extension DashboardView {
     private var yearHoverText: String {
         switch yearHover {
         case .day(let i)?:
-            guard yearDays.indices.contains(i) else { return "" }
-            let day = yearDays[i]
-            let title = formatted(day.start, "EEEE d MMMM")
-            let name = title.prefix(1).uppercased() + title.dropFirst()
-            guard day.seconds > 0 else { return "\(name) · nessun focus" }
-            return "\(name) · \(StudyStats.duration(seconds: day.seconds)) · " + (day.focusCount == 1 ? "1 focus" : "\(day.focusCount) focus")
+            return yearDays.indices.contains(i) ? YearStats.dayText(yearDays[i], calendar: calendar) : ""
         case .week(let i)?:
-            guard trendWeeks.indices.contains(i) else { return "" }
-            return "Settimana del \(formatted(trendWeeks[i].start, "d MMM")) · \(StudyStats.duration(seconds: trendWeeks[i].seconds))"
+            return trendWeeks.indices.contains(i) ? YearStats.weekText(trendWeeks[i], calendar: calendar) : ""
         case nil:
             return "Clicca un giorno per aprirlo"
         }
