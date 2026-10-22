@@ -1171,5 +1171,71 @@ check(Remarks.milestone(before: [rkSession(1, 31)], after: [rkSession(1, 31), rk
 check(Remarks.milestone(before: [rkSession(1, 31)], after: [rkSession(1, 31), rkSession(4, 30)], now: date(2026, 4, 30, 12), calendar: cal) == "Oggi sono 3 mesi che studiamo insieme.",
       "tre mesi, dal 31 gennaio al 30 aprile")
 
+// ---------------------------------------------------------------- anno
+section("Anno: mappa, numeri e andamento")
+func yrSession(_ m: Int, _ d: Int, _ h: Int = 10, seconds: Int = 3000, y: Int = 2026, subject: String? = "Anatomia") -> StudySession {
+    StudySession(start: date(y, m, d, h), localStart: StudySession.localString(for: date(y, m, d, h), calendar: cal),
+                 seconds: seconds, plannedMinutes: 50, completed: true, subject: subject)
+}
+let yr2026 = StudyPeriod.containing(date(2026, 10, 22, 12), kind: .year, calendar: cal)
+check(PeriodKind.year.rawValue == 3 && yr2026.start == date(2026, 1, 1) && yr2026.end == date(2027, 1, 1), "il periodo «anno»: dal 1 gennaio all'anno dopo")
+check(yr2026.shifted(by: -1, calendar: cal).start == date(2025, 1, 1) && yr2026.shifted(by: 1, calendar: cal).start == date(2027, 1, 1), "l'anno prima e quello dopo")
+check(StudyStats.summary(sessions: [], period: yr2026, calendar: cal).buckets.count == 365
+      && StudyStats.summary(sessions: [], period: StudyPeriod.containing(date(2024, 5, 1), kind: .year, calendar: cal), calendar: cal).buckets.count == 366,
+      "una barra per giorno: 365, o 366 in un anno bisestile")
+
+check([0, 1, 1799, 1800, 5399, 5400, 10799, 10800, 40_000].map { YearStats.level(seconds: $0) } == [0, 1, 1, 2, 2, 3, 3, 4, 4], "i livelli di colore (soglie a 30, 90 e 180 minuti)")
+
+let yrSessions = [yrSession(10, 12, 9, seconds: 1800), yrSession(10, 12, 15, seconds: 3000), yrSession(10, 13, 10, seconds: 600), yrSession(10, 14, 10, seconds: 1500),
+                  yrSession(3, 3, 10, seconds: 7200, subject: "Chimica"), yrSession(3, 4, 10, seconds: 1000, subject: "chimica"),
+                  yrSession(12, 31, 23, seconds: 3000, y: 2025), yrSession(1, 2, 8, seconds: 900, y: 2026, subject: nil)]
+let yrDays = YearStats.days(sessions: yrSessions, period: yr2026, calendar: cal)
+check(yrDays.count == 365 && yrDays.first?.start == date(2026, 1, 1) && yrDays.last?.start == date(2026, 12, 31), "un elemento per ogni giorno dell'anno")
+let yrOct12 = yrDays.first { $0.start == date(2026, 10, 12) }
+check(yrOct12 == YearStats.Day(start: date(2026, 10, 12), seconds: 4800, focusCount: 2, level: 2), "un giorno con due focus: 80 minuti, livello 2 (\(String(describing: yrOct12)))")
+check(yrDays.first { $0.start == date(2026, 1, 2) }?.level == 1 && yrDays.first { $0.start == date(2026, 1, 3) }?.level == 0, "un focus breve è il livello 1; senza studio è 0")
+check(yrDays.reduce(0) { $0 + $1.seconds } == 1800 + 3000 + 600 + 1500 + 7200 + 1000 + 900, "una sessione del 31 dicembre dell'anno prima non conta")
+
+// la griglia: una colonna per settimana (da lunedì), una riga per giorno
+check(YearStats.cell(of: date(2026, 1, 1), in: yr2026, calendar: cal) == (0, 3) && YearStats.cell(of: date(2026, 1, 5), in: yr2026, calendar: cal) == (1, 0),
+      "il 1 gennaio 2026 è un giovedì (colonna 0, riga 3); il lunedì dopo apre la colonna 1")
+check(YearStats.cell(of: date(2026, 12, 31), in: yr2026, calendar: cal) == (52, 3) && YearStats.columns(of: yr2026, calendar: cal) == 53, "53 colonne nel 2026")
+check(YearStats.columns(of: StudyPeriod.containing(date(2012, 6, 1), kind: .year, calendar: cal), calendar: cal) == 54, "54 in un anno bisestile che comincia di domenica (il 2012)")
+check(YearStats.columns(of: StudyPeriod.containing(date(2028, 6, 1), kind: .year, calendar: cal), calendar: cal) == 53, "53 nel 2028 (bisestile, comincia di sabato)")
+let yrMonths = YearStats.monthStarts(in: yr2026, calendar: cal)
+check(yrMonths.count == 12 && yrMonths.first == YearStats.MonthMark(month: 1, column: 0) && yrMonths.last?.month == 12, "dodici mesi")
+check(yrMonths.first { $0.month == 2 }?.column == 4 && yrMonths.first { $0.month == 10 }?.column == 39, "febbraio nella colonna 4, ottobre nella 39")
+
+// i tre numeri
+let yrHighlights = YearStats.highlights(sessions: yrSessions, period: yr2026, now: date(2026, 10, 22, 12), calendar: cal)
+check(yrHighlights.studiedDays == 6, "giorni di studio: 6 (\(yrHighlights.studiedDays))")
+check(yrHighlights.bestDay == StudyBucket(start: date(2026, 3, 3), seconds: 7200), "il giorno più forte")
+check(yrHighlights.bestMonth == StudyBucket(start: date(2026, 3, 1), seconds: 8200), "il mese migliore: marzo (8200 s contro i 6900 di ottobre)")
+check(yrHighlights.longestStreak == 3, "la serie più lunga: 12–14 ottobre (\(yrHighlights.longestStreak))")
+let yrIce = YearStats.highlights(sessions: [yrSession(10, 12), yrSession(10, 13), yrSession(10, 15)], period: yr2026, now: date(2026, 10, 22, 12), calendar: cal)
+check(yrIce.longestStreak == 3, "il giorno di ghiaccio non interrompe la serie")
+let yrTie = YearStats.highlights(sessions: [yrSession(5, 20, seconds: 3600), yrSession(2, 10, seconds: 3600)], period: yr2026, now: date(2026, 10, 22, 12), calendar: cal)
+check(yrTie.bestDay?.start == date(2026, 2, 10) && yrTie.bestMonth?.start == date(2026, 2, 1), "a pari merito, il primo")
+check(YearStats.highlights(sessions: [], period: yr2026, now: date(2026, 10, 22, 12), calendar: cal) == YearStats.Highlights(), "senza studio, niente")
+
+// l'andamento per settimana
+let yrThrough = date(2026, 10, 22, 12)
+let yrAll = YearStats.weeklyTrend(sessions: yrSessions, period: yr2026, subject: nil, through: yrThrough, calendar: cal)
+check(yrAll.count == 43 && yrAll.first?.start == date(2025, 12, 29) && yrAll.last?.start == date(2026, 10, 19), "43 settimane fino a oggi, la prima da lunedì 29 dicembre (\(yrAll.count))")
+check(yrAll.first?.seconds == 900, "la prima settimana prende i giorni dell'anno nuovo (2 gennaio) e non quelli dell'anno prima")
+check(yrAll.first { $0.start == date(2026, 10, 12) }?.seconds == 1800 + 3000 + 600 + 1500, "la settimana del 12 ottobre")
+let yrChemistry = YearStats.weeklyTrend(sessions: yrSessions, period: yr2026, subject: "CHIMICA", through: yrThrough, calendar: cal)
+check(yrChemistry.first { $0.start == date(2026, 3, 2) }?.seconds == 8200 && yrChemistry.reduce(0) { $0 + $1.seconds } == 8200, "una materia: scritture diverse della stessa contano insieme")
+check(YearStats.weeklyTrend(sessions: yrSessions, period: yr2026, subject: "Fisica", through: yrThrough, calendar: cal).allSatisfy { $0.seconds == 0 }, "una materia mai studiata: tutto a zero")
+check(YearStats.weeklyTrend(sessions: yrSessions, period: yr2026, subject: nil, through: date(2030, 1, 1), calendar: cal).count == 53, "un anno passato: tutte le 53 settimane")
+let yrSummary = StudyStats.summary(sessions: yrSessions, period: yr2026, calendar: cal)
+check(YearStats.trendSubjects(of: yrSummary) == ["Chimica", "Anatomia"] || YearStats.trendSubjects(of: yrSummary) == ["chimica", "Anatomia"], "le materie tra cui scegliere, senza «Senza materia» (\(YearStats.trendSubjects(of: yrSummary)))")
+check(YearStats.trendSubjects(of: StudyStats.summary(sessions: [yrSession(3, 3)], period: yr2026, calendar: cal)).isEmpty, "con una materia sola non c'è da scegliere")
+let yrMany = (0..<8).map { yrSession(3, 1 + $0, seconds: 600 * ($0 + 1), subject: "Materia \($0)") }
+check(YearStats.trendSubjects(of: StudyStats.summary(sessions: yrMany, period: yr2026, calendar: cal)).count == YearStats.maxTrendSubjects, "al massimo cinque materie")
+check(!YearStats.showsTrend([StudyBucket(start: date(2026, 1, 5), seconds: 600), StudyBucket(start: date(2026, 1, 12), seconds: 600), StudyBucket(start: date(2026, 1, 19), seconds: 600),
+                             StudyBucket(start: date(2026, 1, 26), seconds: 0)])
+      && YearStats.showsTrend((0..<4).map { StudyBucket(start: date(2026, 1, 5 + 7 * $0), seconds: 60) }), "l'andamento si mostra da quattro settimane con studio")
+
 print("\n\(checks) controlli, \(failures) falliti")
 exit(failures == 0 ? 0 : 1)

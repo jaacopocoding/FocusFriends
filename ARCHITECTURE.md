@@ -54,7 +54,7 @@ Single user per Mac, no accounts, no network: all data is stored locally under
 
 | Item | Value | Source |
 |---|---|---|
-| Language | Swift (one module, `Sources/FocusFriends/*.swift`, 39 files, 12,067 lines by `wc -l`) | `build.sh` |
+| Language | Swift (one module, `Sources/FocusFriends/*.swift`, 40 files, 12,577 lines by `wc -l`) | `build.sh` |
 | UI framework | AppKit, custom-drawn views (no SwiftUI, no storyboards/xibs, no Interface Builder) | all view files |
 | Other Apple frameworks | Foundation, AVFoundation (`AVAudioEngine`, `AVAudioSourceNode`, `AVAudioPlayer`), ServiceManagement (`SMAppService`, launch at login) | `import` lines |
 | Third-party dependencies | None (no Package.swift, no CocoaPods/Carthage, no vendored code) | repository tree |
@@ -64,7 +64,7 @@ Single user per Mac, no accounts, no network: all data is stored locally under
 | App type | Menu-bar "agent": `LSUIElement = true`, activation policy `.accessory` | `build.sh`, `AppDelegate.applicationDidFinishLaunching` |
 | Signing | Ad-hoc (`codesign --force --sign -`; `build.sh` stops with exit 1 if signing fails); not notarised, no hardened runtime or sandbox | `build.sh`, `README.md` "Scaricare e usare" |
 | Asset tooling | Python 3 scripts using Pillow and NumPy (not run at build time) | `tools/*.py` |
-| Tests | One hand-written Swift executable (`tests/main.swift`, 33 sections, 445 checks) that compiles twelve Foundation-only source files; no XCTest | `tests/run.sh` |
+| Tests | One hand-written Swift executable (`tests/main.swift`, 34 sections, 476 checks) that compiles thirteen Foundation-only source files; no XCTest | `tests/run.sh` |
 | License | MIT (`LICENSE`); bundled music is CC0 (`CREDITS.md`) | `LICENSE`, `CREDITS.md` |
 | Swift toolchain version / Python version | Not pinned anywhere in the repository | **[unknown]** |
 
@@ -77,7 +77,7 @@ Network access: a search of `Sources/` for `URLSession`, `http://`, `https://`, 
 ./build.sh                      # compiles both architectures, lipo, copies resources, writes Info.plist, ad-hoc signs
 cp -R build/FocusFriends.app /Applications/
 open /Applications/FocusFriends.app
-./tests/run.sh                  # compiles 10 Foundation-only files + tests/main.swift and runs them
+./tests/run.sh                  # compiles 13 Foundation-only files + tests/main.swift and runs them
 ```
 
 **CI.** `.github/workflows/mac.yml` runs `tests/run.sh` and `build.sh` on a macOS runner for every change to `Sources/`, `tests/`,
@@ -105,7 +105,7 @@ FocusFriends/
 ├── .github/workflows/            mac.yml (tests + build + contract tests) and windows.yml (types, tests, build; installers and a draft release on a `windows-v*` tag)
 ├── windows/                      the Windows app (Electron + TypeScript): src/, test/, tools/, resources/, ARCHITECTURE.md (its architecture), PARITA.md, PROVE_SU_WINDOWS.md, RILASCIO.md
 ├── build.sh                      build script: swiftc ×2 archs → lipo → app bundle, resources, Info.plist, ad-hoc codesign (fails if signing fails)
-├── Sources/FocusFriends/         the whole app (single Swift module, 39 files)
+├── Sources/FocusFriends/         the whole app (single Swift module, 40 files)
 │   ├── main.swift                entry point: NSApplication + AppDelegate
 │   ├── AppDelegate.swift         composition root: creates window, speaker, walker, pomodoro, menu; wires callbacks
 │   ├── Pet.swift                 value type describing a companion (resources, sizes, behaviours) + the 4 definitions
@@ -113,6 +113,7 @@ FocusFriends/
 │   ├── Walker.swift              state machine for walking / eating / sleeping / popcorning (30 Hz, 1 Hz when idle)
 │   ├── Speaker.swift             schedules and shows speech bubbles above the pet
 │   ├── Remarks.swift             context phrases: greetings, spoken numbers (weekly recap, insights), milestones   (Foundation only)
+│   ├── YearStats.swift           the statistics "Anno" tab: heat-map days, three numbers, weekly trend   (Foundation only)
 │   ├── SpeechBubble.swift        OverlayWindow base class, BubbleWindow, BubbleView (bubble.png scaled to text)
 │   ├── Quotes.swift              loads phrase files (user file → legacy dir → bundled → fallback)
 │   ├── PhraseDeck.swift          shuffled-deck phrase picker (no repeats until the deck is used)
@@ -146,7 +147,7 @@ FocusFriends/
 │   ├── MusicLibrary.swift        MusicSource, MusicLibrary (file discovery, shuffle, titles), MusicSettings  (Foundation only)
 │   └── MusicPlayer.swift         AVAudioPlayer-based music playback with queue and fades
 ├── tests/
-│   ├── main.swift                hand-rolled test executable (check()/section()), 33 sections, 445 checks
+│   ├── main.swift                hand-rolled test executable (check()/section()), 34 sections, 476 checks
 │   ├── run.sh                    compiles 12 source files + tests/main.swift into build/tests/stats and runs it
 │   ├── genera-attesi.sh          builds and runs tests/genera-attesi/main.swift: for every folder in tests/fixtures/ writes what this app derives from it (the expected results the Windows port is compared with)
 │   ├── genera-rumore.sh          same idea for the ambient-noise synthesiser (tests/fixtures/rumore.json)
@@ -556,8 +557,8 @@ code. All UI code runs on the main thread; the only other thread is the audio re
     `lipo -create` into `Contents/MacOS/FocusFriends` → copy bubble, phrase files, icon, pet frames (prefixed names),
     music (`music_*`), garden/growth art, Pianty stage frames → write `Info.plist` via heredoc →
     `codesign --force --sign -` (a failure prints an error and exits 1) → print the path.
-  - `tests/run.sh`: `swiftc -O -o build/tests/stats` on twelve source files + `tests/main.swift` →
-    `build/tests/stats` (prints `• <section>` lines and `N controlli, M falliti`, exit code 0/1; 445 checks now).
+  - `tests/run.sh`: `swiftc -O -o build/tests/stats` on thirteen source files + `tests/main.swift` →
+    `build/tests/stats` (prints `• <section>` lines and `N controlli, M falliti`, exit code 0/1; 476 checks now).
   - Tools: described in §5.9; they read `assets/**/*_original.png` / sheets and write processed PNGs or the icon.
 
 ### 3.22 To-do list ("Da fare")
@@ -638,6 +639,24 @@ code. All UI code runs on the main thread; the only other thread is the audio re
   the insight, and all milestones, including their priority and the anniversary rules (also month ends). `tests/genera-attesi/main.swift` writes the same outputs for the sample
   folders (`contesto` in `tests/fixtures/attesi/*.json`) and for 294 invented anniversaries (`_contesto-anniversari.json`); the Windows port (`core/remarks.ts`) must match them
   (`windows/test/contratto.test.ts`, `FORMATI.md` §8).
+
+### 3.24 The "Anno" tab: heat map and weekly trend (`YearStats.swift`, `DashboardWindow.swift`, v0.10.0)
+
+- **What:** a fourth tab in the statistics window (Oggi / Settimana / Mese / **Anno**): the calendar year as a map with one square per day (a column per week from
+  Monday, a row per weekday), three numbers (longest streak of the year, strongest day, best month) and a bar chart of study per week, for all subjects or one. Everything is
+  derived from the log: no new data, no new file.
+- **Execution path:** `PeriodKind.year` (raw value 3) in `SessionLog.swift` (`StudyPeriod.containing/shifted` use `Calendar.Component.year`; `StudyStats.summary` gives one bucket per day, 365/366).
+  `YearStats` (pure, Foundation only): `level(seconds:)` (0, then < 30 min, < 90 min, < 180 min, else 4: fixed limits, not relative to the user's best days), `days` (one `Day` per day of the year with seconds,
+  focus count and level; a session belongs to the day it started), `cell(of:)`/`columns(of:)`/`monthStarts` (53 columns, 54 in a leap year that starts on a Sunday), `highlights` (study days, longest streak reached
+  in the year with the ice-day rule of `StudyStreak`, best day and best month, ties go to the first), `trendSubjects` (the five most studied subjects of the year, none if fewer than two), `weeklyTrend`
+  (weeks from Monday up to `through`, the first and last cut at the year's edges; one subject, matched without case or accents like the rest of the statistics, or all) and `showsTrend` (at least four weeks with study).
+  `DashboardView.reload` calls `loadYear()` for the tab; `buildYearLayout` computes the geometry (grid pitch from the content width and the column count); `drawYear` draws month names, weekday
+  labels, the squares (greens from `heatColors`; future days dashed; today outlined), the legend, the tiles and the trend with its subject chips.
+- **Mouse:** `PageView` has a tracking area and forwards `mouseMoved`/`mouseExited`/`mouseDown`; hovering a day or a week writes its summary under the map (`yearHoverText`), clicking a chip chooses the subject, clicking
+  a day opens that day in the "Oggi" tab. The diary button is hidden for the year (hundreds of sessions).
+- **Rules:** a year with no study shows only "0 min" and "Nessun focus in questo periodo."; the trend is hidden under four weeks with study; the next-year arrow is disabled for the current year.
+- **Tests:** "Anno: mappa, numeri e andamento" in `tests/main.swift` (period, levels, days, grid, month starts, highlights, trend, subjects). Drawing and mouse were checked with a bench of invented data
+  (screenshots of the real view, synthetic mouse events).
 
 ---
 
@@ -828,7 +847,7 @@ and shop cards and objects use the same `Sprite` values.
 ### 4.9 Build and test architecture
 
 `build.sh` compiles `Sources/FocusFriends/*.swift` twice (arm64, x86_64), merges with `lipo`, copies resources by an
-explicit list, writes `Info.plist` with a heredoc, ad-hoc signs. `tests/run.sh` compiles ten Foundation-only files
+explicit list, writes `Info.plist` with a heredoc, ad-hoc signs. `tests/run.sh` compiles thirteen Foundation-only files
 with `tests/main.swift` (no `Pomodoro`, `Speaker`, `Walker`, player or UI classes are compiled into the tests). `build.sh`
 stops with an error if the ad-hoc signature cannot be applied.
 
@@ -1028,9 +1047,9 @@ file/UserDefaults writes, windows, timers, sound, global state.
 
 ### 5.6 `Sources/FocusFriends/` — statistics and garden windows
 
-#### `DashboardWindow.swift` (867)
-- **Responsibility:** `DashboardView` (period state, summary drawing, diary toggle, edit/export/delete actions),
-  private `PageView`, `SummaryLayout`, `LegendItem`, private `DiaryView` (day strip, day headers, session rows,
+#### `DashboardWindow.swift` (1,200)
+- **Responsibility:** `DashboardView` (period state, summary drawing, diary toggle, edit/export/delete actions, the "Anno" tab in an extension, §3.24),
+  private `PageView` (also the mouse for the year map), `SummaryLayout`, `YearLayout`, `YearHover`, `LegendItem`, private `DiaryView` (day strip, day headers, session rows,
   hit-testing), `DashboardController` (lazy window).
 - **Key members:** `reload` (skipped by the log observer while the window is closed), `select`, `buildLayout`, `relayoutPage`, `drawSummary`, `drawMiniChart`,
   `drawSubjectBar`, `drawLegendLine`, `drawStreak`, `drawRatings`, `edit(_:)`, `deleteEverything`, `exportCSV`.
@@ -1142,7 +1161,7 @@ file/UserDefaults writes, windows, timers, sound, global state.
 ### 5.9 Tests, build and tools
 
 #### `tests/main.swift` (1,056) and `tests/run.sh` (7)
-- A single executable: `check(_:_:line:)`, `section(_:)`, 33 sections (445 checks) covering subjects, log persistence,
+- A single executable: `check(_:_:line:)`, `section(_:)`, 34 sections (476 checks) covering subjects, log persistence,
   in-progress recovery, periods, summaries, streaks, texts, garden rules, format versions/migration, subject merging, backups and
   delete-all, time zones, profile, ratings/notes/insights/CSV, timer dial math, seasons, ambient settings, music
   library/settings, focus notes, paused-time recovery, companion rewards (including the developer flag), break cycle,
@@ -1634,7 +1653,7 @@ code is clear. Items without a mark still describe the current code.
 
 ### 7.8 Test coverage as it exists
 
-- Covered (33 sections, 445 checks in `tests/main.swift`): everything in the Foundation-only files listed in §4.1,
+- Covered (34 sections, 476 checks in `tests/main.swift`): everything in the Foundation-only files listed in §4.1,
   including the new damaged-data cases and the developer flag.
 - Not covered by any automated test in the repository: `Pomodoro` (timer, pause, grace, the sleep-gap rule, cycle
   wiring), `Speaker` (including when a to-do reminder replaces a phrase), `Walker`, `PetWindow`/`PetView`, `MenuController`,

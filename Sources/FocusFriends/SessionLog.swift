@@ -643,10 +643,10 @@ final class SessionLog {
 // MARK: - Statistiche
 
 enum PeriodKind: Int {
-    case day, week, month
+    case day, week, month, year
 }
 
-/// Un giorno, una settimana (da lunedì) o un mese, con inizio incluso e fine esclusa.
+/// Un giorno, una settimana (da lunedì), un mese o un anno, con inizio incluso e fine esclusa.
 struct StudyPeriod: Equatable {
     var kind: PeriodKind
     var start: Date
@@ -666,6 +666,7 @@ struct StudyPeriod: Equatable {
         case .day: component = .day
         case .week: component = .weekOfYear
         case .month: component = .month
+        case .year: component = .year
         }
         let interval = calendar.dateInterval(of: component, for: date) ?? DateInterval(start: date, duration: 86_400)
         return StudyPeriod(kind: kind, start: interval.start, end: interval.end)
@@ -678,6 +679,7 @@ struct StudyPeriod: Equatable {
         case .day: component = .day
         case .week: component = .weekOfYear
         case .month: component = .month
+        case .year: component = .year
         }
         let moved = calendar.date(byAdding: component, value: count, to: start) ?? start
         return StudyPeriod.containing(moved, kind: kind, calendar: calendar)

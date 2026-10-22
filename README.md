@@ -139,7 +139,7 @@ per tipo) e uno tuo si può *rimuovere*. *Avvia* parte con i minuti scelti; la p
 | Nascondi / Mostra | Lo toglie dallo schermo o lo rimette |
 | Fai parlare | Mostra subito una frase |
 | Pomofocus ▸ | Timer: *Focus 30/50 min*, *Pausa 5/10 min*, *Personalizza…*, *Ferma timer* |
-| Statistiche e riepilogo… | La finestra con il riepilogo di oggi e le statistiche della settimana e del mese |
+| Statistiche e riepilogo… | La finestra con il riepilogo di oggi e le statistiche della settimana, del mese e dell'anno |
 | Il mio giardino… | Il tuo prato: i punti dello studio, il negozio e i compagni (con il tuo nome: «Il giardino di …») |
 | Il tuo nome… | Cambia il nome che compare nei titoli |
 | Chiedi com'è andata | Se a fine focus compare «Com'è andata?» (spunta = sì) |
@@ -301,8 +301,8 @@ Il formato del file passa alla **versione 2** (voto e nota) e poi alla **3** (le
 un file di una versione precedente si legge e si riscrive nel nuovo, tenendo intatta la copia del vecchio in
 `backup/sessioni-formato<N>.json`.
 
-*Statistiche e riepilogo…* apre una finestra (`DashboardWindow.swift`) con tre schede: **Oggi**, **Settimana**
-(da lunedì) e **Mese**. Con le frecce si va ai periodi precedenti. Il **riepilogo** è fatto per essere calmo:
+*Statistiche e riepilogo…* apre una finestra (`DashboardWindow.swift`) con quattro schede: **Oggi**, **Settimana**
+(da lunedì), **Mese** e **Anno**. Con le frecce si va ai periodi precedenti. Il **riepilogo** è fatto per essere calmo:
 il totale di studio in grande, quanti focus (completi e interrotti), le barre sottili dei giorni (settimana e mese),
 una sola barra a segmenti con le materie e la sua legenda, i giorni di fila e come è andata (con le frasi su
 quando rendi meglio, se ci sono dati sufficienti). Sotto, **Mostra le sessioni** apre una **tendina nella stessa
@@ -311,6 +311,12 @@ l'elenco con ora, materia, nota, faccia e durata; per una settimana o un mese, l
 totale del giorno). La finestra resta della stessa altezza: la pagina scorre con la rotella. Toccando una sessione si
 cambia la materia, la nota, le note del focus e il voto, o la si elimina; *Esporta CSV…* salva tutte le sessioni per un foglio di
 calcolo. I dati restano sul Mac: nessun invio da nessuna parte.
+
+**La scheda Anno** (`YearStats.swift`, con prove) mostra l'anno di calendario come una mappa con **un quadratino per giorno** (una colonna per settimana, da lunedì), nel verde:
+più chiaro per i giorni con poco studio, più scuro per quelli con tanto. Le soglie sono fisse: meno di 30 minuti, meno di 90, meno di 3 ore, 3 ore o più (un giorno da due ore ha lo stesso colore in tutti gli anni).
+I giorni che devono ancora arrivare sono tratteggiati, e oggi ha un contorno. Passando sopra un giorno si legge «Venerdì 2 ottobre · 2 h 10 · 3 focus»; **cliccandolo** si apre quel giorno in *Oggi*, con le sue sessioni.
+Sotto la mappa, tre numeri (la serie di giorni di fila più lunga dell'anno, il giorno più forte, il mese migliore) e **l'andamento per settimana**: barre con le ore di ogni settimana,
+di tutte le materie o di una sola (le materie più studiate dell'anno, scelte con un clic). L'andamento si mostra da quattro settimane con studio in su, e le materie solo se sono almeno due. Si ricava tutto dal registro: nessun dato nuovo.
 
 Le regole di calcolo hanno le loro prove: `./tests/run.sh` (compila `SessionLog.swift` da solo e controlla
 periodi, totali, giorni di fila e serie ghiacciata, punti del giardino, oggetti e copie nel prato, recupero, file
@@ -545,6 +551,7 @@ Sources/FocusFriends/
   PetWindow.swift       finestra trasparente con il personaggio e i suoi stadi
   Speaker.swift         tempi e comparsa dei fumetti
   Remarks.swift         i saluti, i numeri detti a voce e i traguardi (solo Foundation, con prove)
+  YearStats.swift       la scheda «Anno» delle statistiche: giorni della mappa, tre numeri, andamento (solo Foundation, con prove)
   Walker.swift          camminata dei personaggi che camminano
   SpeechBubble.swift    fumetto: immagine scalata sul testo
   Quotes.swift          caricamento delle frasi

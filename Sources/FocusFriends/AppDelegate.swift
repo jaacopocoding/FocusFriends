@@ -92,12 +92,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         })
         // A fine focus: "com'è andata?" (se non l'hai spenta dal menu) e, se il focus era partito da una voce di «Da fare» ancora da fare,
         // «Hai finito «…»?» (anche con «com'è andata» spento). Sparisce da sola quando il timer riparte o si ferma.
-        pomodoro.onFocusRecorded = { [weak self, weak window, weak speaker] session, todoID in
+        pomodoro.onFocusRecorded = { [weak self, weak window, weak speaker, weak pomodoro] session, todoID in
             self?.menu?.evaluateCompanionRewards(announce: true)
             // Un traguardo (giorni di fila, focus, ore, «un mese insieme»): detto dopo la frase di fine focus.
             let all = SessionLog.shared.sessions
             if let text = Remarks.milestone(before: all.filter { $0.id != session.id }, after: all, now: Date()) {
-                speaker?.sayWhenQuiet(text, after: 9, while: { [weak pomodoro] in pomodoro?.phase == .rest })
+                speaker?.sayWhenQuiet(text, after: 9, while: { pomodoro?.phase == .rest })
             }
             guard let self, let window else { return }
             let todo = todoID.flatMap { id in ToDoList.shared.items.first { $0.id == id && !$0.isDone } }
