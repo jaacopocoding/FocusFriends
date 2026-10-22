@@ -64,6 +64,7 @@ perché `FF_SELFTEST` è acceso: in uso normale l'app non le legge.
 | `chiusura.cjs` | chiusura con un focus in corso: in `data/sessioni.json` deve restare come interrotto | ≈ 70 s |
 | `sicurezza.cjs` | niente navigazione verso il web, niente finestre nuove, niente permessi | |
 | `hai-finito.cjs` | «Hai finito «…»?» a fine focus: due focus da 1 minuto partiti da una voce; con le facce e senza; «Fatta» segna la voce, «Non ancora» la lascia | ≈ 2 minuti e mezzo |
+| `anno.cjs` | la scheda «Anno»: la mappa (colonne, livelli, giorni futuri), il passaggio del mouse su un giorno e su una settimana, le caselle, l'andamento con la scelta della materia, il clic su un giorno (si apre in «Oggi») e l'anno prima | sessioni inventate degli ultimi 10 mesi; schermate della finestra |
 | `frasi-contesto.cjs` | le frasi di contesto: il saluto dell'avvio alla prima frase, il risveglio (tace con «Mai», con meno di un'ora e durante un focus), il traguardo «Tre giorni di fila!» detto dopo la frase di fine focus | ≈ 2 minuti |
 | `dafare.cjs` | «Da fare»: pagina vuota, il «+» e «Nuova cosa» (nome, scadenza, materia, calendario, Esc, nome vuoto), «Modifica» toccando una voce con il titolo lungo, riga sotto il mouse, voci fatte, il ▶ che porta al quadrante e fa partire il focus con la materia (e, senza materia, apre «Cosa studi adesso?»), il fumetto del promemoria | schermate della sola scheda |
 | `pacchetto.cjs` | l'app impacchettata: compagno, carattere, scheda e brani si caricano dall'asar | `FF_APP=<…>/app.asar` |

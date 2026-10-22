@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { anniversariesJson, derive, fixtureNames } from "./atteso.ts";
+import { anniversariesJson, derive, fixtureNames, gridsJson, syntheticYearJson } from "./atteso.ts";
 
 const fixtures = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "tests", "fixtures");
 
@@ -26,5 +26,15 @@ describe("contratto con la versione per Mac", () => {
   it("gli anniversari («un mese insieme»…) su date inventate", () => {
     const expected = JSON.parse(readFileSync(join(fixtures, "attesi", "_contesto-anniversari.json"), "utf8")) as unknown;
     assert.deepEqual(JSON.parse(JSON.stringify(anniversariesJson())), expected);
+  });
+
+  it("la mappa dell'anno: le griglie di 41 anni (bisestili, che cominciano di domenica…)", () => {
+    const expected = JSON.parse(readFileSync(join(fixtures, "attesi", "_anno-griglie.json"), "utf8")) as unknown;
+    assert.deepEqual(JSON.parse(JSON.stringify(gridsJson())), expected);
+  });
+
+  it("la scheda «Anno» su un anno e mezzo di studio inventato (materie scritte in modi diversi)", () => {
+    const expected = JSON.parse(readFileSync(join(fixtures, "attesi", "_anno-sintetico.json"), "utf8")) as unknown;
+    assert.deepEqual(JSON.parse(JSON.stringify(syntheticYearJson())), expected);
   });
 });

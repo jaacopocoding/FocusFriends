@@ -64,7 +64,7 @@ Single user per Mac, no accounts, no network: all data is stored locally under
 | App type | Menu-bar "agent": `LSUIElement = true`, activation policy `.accessory` | `build.sh`, `AppDelegate.applicationDidFinishLaunching` |
 | Signing | Ad-hoc (`codesign --force --sign -`; `build.sh` stops with exit 1 if signing fails); not notarised, no hardened runtime or sandbox | `build.sh`, `README.md` "Scaricare e usare" |
 | Asset tooling | Python 3 scripts using Pillow and NumPy (not run at build time) | `tools/*.py` |
-| Tests | One hand-written Swift executable (`tests/main.swift`, 34 sections, 476 checks) that compiles thirteen Foundation-only source files; no XCTest | `tests/run.sh` |
+| Tests | One hand-written Swift executable (`tests/main.swift`, 34 sections, 484 checks) that compiles thirteen Foundation-only source files; no XCTest | `tests/run.sh` |
 | License | MIT (`LICENSE`); bundled music is CC0 (`CREDITS.md`) | `LICENSE`, `CREDITS.md` |
 | Swift toolchain version / Python version | Not pinned anywhere in the repository | **[unknown]** |
 
@@ -147,7 +147,7 @@ FocusFriends/
 │   ├── MusicLibrary.swift        MusicSource, MusicLibrary (file discovery, shuffle, titles), MusicSettings  (Foundation only)
 │   └── MusicPlayer.swift         AVAudioPlayer-based music playback with queue and fades
 ├── tests/
-│   ├── main.swift                hand-rolled test executable (check()/section()), 34 sections, 476 checks
+│   ├── main.swift                hand-rolled test executable (check()/section()), 34 sections, 484 checks
 │   ├── run.sh                    compiles 12 source files + tests/main.swift into build/tests/stats and runs it
 │   ├── genera-attesi.sh          builds and runs tests/genera-attesi/main.swift: for every folder in tests/fixtures/ writes what this app derives from it (the expected results the Windows port is compared with)
 │   ├── genera-rumore.sh          same idea for the ambient-noise synthesiser (tests/fixtures/rumore.json)
@@ -558,7 +558,7 @@ code. All UI code runs on the main thread; the only other thread is the audio re
     music (`music_*`), garden/growth art, Pianty stage frames → write `Info.plist` via heredoc →
     `codesign --force --sign -` (a failure prints an error and exits 1) → print the path.
   - `tests/run.sh`: `swiftc -O -o build/tests/stats` on thirteen source files + `tests/main.swift` →
-    `build/tests/stats` (prints `• <section>` lines and `N controlli, M falliti`, exit code 0/1; 476 checks now).
+    `build/tests/stats` (prints `• <section>` lines and `N controlli, M falliti`, exit code 0/1; 484 checks now).
   - Tools: described in §5.9; they read `assets/**/*_original.png` / sheets and write processed PNGs or the icon.
 
 ### 3.22 To-do list ("Da fare")
@@ -655,8 +655,10 @@ code. All UI code runs on the main thread; the only other thread is the audio re
 - **Mouse:** `PageView` has a tracking area and forwards `mouseMoved`/`mouseExited`/`mouseDown`; hovering a day or a week writes its summary under the map (`yearHoverText`), clicking a chip chooses the subject, clicking
   a day opens that day in the "Oggi" tab. The diary button is hidden for the year (hundreds of sessions).
 - **Rules:** a year with no study shows only "0 min" and "Nessun focus in questo periodo."; the trend is hidden under four weeks with study; the next-year arrow is disabled for the current year.
-- **Tests:** "Anno: mappa, numeri e andamento" in `tests/main.swift` (period, levels, days, grid, month starts, highlights, trend, subjects). Drawing and mouse were checked with a bench of invented data
-  (screenshots of the real view, synthetic mouse events).
+- **Texts:** what is read under the map and the tiles (`dayText`, `weekText`, `trendCaption`, `tiles`, `monthLabel`) live in `YearStats` (not in the view) so that the Windows port can be compared with them.
+- **Tests:** "Anno: mappa, numeri e andamento" in `tests/main.swift` (period, levels, days, grid, month starts, highlights, trend, subjects, texts). Drawing and mouse were checked with a bench of invented data
+  (screenshots of the real view, synthetic mouse events). `tests/genera-attesi/main.swift` writes `anno` for every sample folder, `_anno-griglie.json` (41 years) and `_anno-sintetico.json` (504 invented sessions)
+  for the Windows port (`windows/test/contratto.test.ts`).
 
 ---
 
@@ -1161,7 +1163,7 @@ file/UserDefaults writes, windows, timers, sound, global state.
 ### 5.9 Tests, build and tools
 
 #### `tests/main.swift` (1,056) and `tests/run.sh` (7)
-- A single executable: `check(_:_:line:)`, `section(_:)`, 34 sections (476 checks) covering subjects, log persistence,
+- A single executable: `check(_:_:line:)`, `section(_:)`, 34 sections (484 checks) covering subjects, log persistence,
   in-progress recovery, periods, summaries, streaks, texts, garden rules, format versions/migration, subject merging, backups and
   delete-all, time zones, profile, ratings/notes/insights/CSV, timer dial math, seasons, ambient settings, music
   library/settings, focus notes, paused-time recovery, companion rewards (including the developer flag), break cycle,
@@ -1653,7 +1655,7 @@ code is clear. Items without a mark still describe the current code.
 
 ### 7.8 Test coverage as it exists
 
-- Covered (34 sections, 476 checks in `tests/main.swift`): everything in the Foundation-only files listed in §4.1,
+- Covered (34 sections, 484 checks in `tests/main.swift`): everything in the Foundation-only files listed in §4.1,
   including the new damaged-data cases and the developer flag.
 - Not covered by any automated test in the repository: `Pomodoro` (timer, pause, grace, the sleep-gap rule, cycle
   wiring), `Speaker` (including when a to-do reminder replaces a phrase), `Walker`, `PetWindow`/`PetView`, `MenuController`,

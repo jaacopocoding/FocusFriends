@@ -9,7 +9,7 @@ import { SessionLog } from "../src/core/log.ts";
 import type { StudySession } from "../src/core/log.ts";
 import { Profile } from "../src/core/profile.ts";
 import { csv } from "../src/core/csv.ts";
-import { DAY_MS, dayString, wallOf } from "../src/core/time.ts";
+import { DAY_MS, dayString, localString, wallOf } from "../src/core/time.ts";
 import { analyzeStreak, insights, periodContaining, summarize } from "../src/core/stats.ts";
 import type { PeriodKind, Summary } from "../src/core/stats.ts";
 import { balance, earnedPoints, multiplierToday, pointsForWeightedMinutes, progressToNextPoint, weightedMinutes } from "../src/core/points.ts";
@@ -18,6 +18,9 @@ import { ToDoList } from "../src/core/todoList.ts";
 import { addDays, dueLabel, GROUP_TITLES, reminderMessage, todayOf } from "../src/core/todo.ts";
 import { isoUtc } from "../src/core/time.ts";
 import { insight, launchGreeting, milestone, wakeGreeting, weeklyRecap } from "../src/core/remarks.ts";
+import { dayText, monthLabel, trendCaption, weekText, yearTiles } from "../src/core/dashboard.ts";
+import { cellOf, columnsOf, highlights, monthStarts, showsTrend, trendSubjects, weeklyTrend, yearDays } from "../src/core/yearStats.ts";
+import type { Period } from "../src/core/stats.ts";
 import type { RemarksContext } from "../src/core/remarks.ts";
 
 export const ZONE = "Europe/Rome";
@@ -92,6 +95,83 @@ export function contextJson(sessions: readonly StudySession[]): Record<string, u
     if (text !== null) milestones.push({ dopo: index + 1, frase: text });
   });
   return { momenti: moments, traguardi: milestones };
+}
+
+// ---- la scheda «Anno» (yearStats.ts): gli stessi dati e lo stesso modo di scrivere di tests/genera-attesi/main.swift
+
+export function yearJson(sessions: readonly StudySession[], period: Period, through: number): Record<string, unknown> {
+  const days = yearDays(sessions, period, ZONE);
+  const found = highlights(sessions, period, NOW, ZONE);
+  const summary = summarize(sessions, period, ZONE);
+  const subjects = trendSubjects(summary);
+  const all = weeklyTrend(sessions, period, null, through, ZONE);
+  const perSubject: Record<string, number[]> = {};
+  for (const subject of subjects) perSubject[subject] = weeklyTrend(sessions, period, subject, through, ZONE).map((week) => week.seconds);
+  const bucket = (b: { start: number; seconds: number } | null): unknown => (b === null ? null : { giorno: dayString(b.start), secondi: b.seconds });
+  const studied = days.filter((day) => day.seconds > 0);
+  const marks = monthStarts(period);
+  return {
+    colonne: columnsOf(period),
+    mesi: marks.map((m) => ({ mese: m.month, colonna: m.column })),
+    etichetteMesi: marks.map((m) => monthLabel(m.month)),
+    livelli: days.map((day) => String(day.level)).join(""),
+    focusPerGiorno: days.map((day) => day.focusCount).filter((n) => n > 0),
+    giorniConStudio: found.studiedDays, serieLunga: found.longestStreak,
+    giornoMigliore: bucket(found.bestDay), meseMigliore: bucket(found.bestMonth),
+    caselle: yearTiles(found).map((tile) => ({ valore: tile.value, didascalia: tile.caption })),
+    materie: subjects,
+    andamento: all.map((week) => week.seconds), settimane: all.map((week) => dayString(week.start)),
+    mostraAndamento: showsTrend(all),
+    andamentoPerMateria: perSubject,
+    didascalia: trendCaption(Math.max(0, ...all.map((week) => week.seconds))),
+    testiGiorni: [...studied.slice(0, 4), ...days.filter((day) => day.seconds === 0).slice(0, 1)].map((day) => dayText(day)),
+    testiSettimane: all.filter((week) => week.seconds > 0).slice(0, 3).map((week) => weekText(week)),
+  };
+}
+
+/** Le griglie di molti anni (bisestili, che cominciano di domenica…): quante colonne e dove comincia ogni mese. */
+export function gridsJson(): { anni: Array<Record<string, unknown>> } {
+  const anni = [];
+  for (let year = 2000; year <= 2040; year += 1) {
+    const period = periodContaining(Date.UTC(year, 5, 1), "year");
+    const first = cellOf(period.start, period);
+    anni.push({ anno: year, colonne: columnsOf(period), mesi: monthStarts(period).map((m) => m.column), primaCella: { colonna: first.column, riga: first.row } });
+  }
+  return { anni };
+}
+
+/** Un anno e mezzo di studio inventato (un generatore di numeri semplice, uguale a quello del generatore Swift). */
+export function syntheticYearJson(): Record<string, unknown> {
+  let state = 12345;
+  const next = (count: number): number => {
+    state = (Math.imul(state, 1_664_525) + 1_013_904_223) >>> 0;
+    return (state >>> 8) % count;
+  };
+  const names: Array<string | undefined> = ["Anatomia", "anatomia", "ANATOMIA", "Chimica", "chimica ", "Física", "Fisica", "Fisiologia", undefined, "Storia", "Latino"];
+  const sessions: StudySession[] = [];
+  const last = wallOf(NOW, ZONE);
+  for (let day = Date.UTC(2025, 10, 1); ; day += DAY_MS) {
+    const p = new Date(day);
+    const midnight = romeInstant(p.getUTCFullYear(), p.getUTCMonth() + 1, p.getUTCDate());
+    if (midnight > NOW) break;
+    const weekday = (p.getUTCDay() + 1 + 5) % 7;
+    if (next(10) < (weekday < 5 ? 8 : 4)) {
+      const count = 1 + next(3);
+      for (let k = 0; k < count; k += 1) {
+        const start = midnight + (8 * 3600 + k * 7200 + next(60) * 60) * 1000;
+        const seconds = 600 + next(120) * 60;
+        const subject = names[next(names.length)];
+        sessions.push({
+          id: `S${sessions.length}`, start, localStart: localString(wallOf(start, ZONE)), seconds, plannedMinutes: 50, completed: true,
+          ...(subject !== undefined ? { subject } : {}),
+        });
+      }
+    }
+  }
+  void last;
+  const years: Record<string, unknown> = {};
+  for (const year of [2025, 2026]) years[String(year)] = yearJson(sessions, periodContaining(Date.UTC(year, 5, 1), "year"), wallOf(NOW, ZONE));
+  return { sessioni: sessions.length, anni: years };
 }
 
 /** Gli anniversari su date inventate (come `anniversaryJSON` nel generatore Swift). */
@@ -174,6 +254,7 @@ export function derive(fixtures: string, name: string): Record<string, unknown> 
         stats["csv"] = csv(sessions);
         result["statistiche"] = stats;
         result["contesto"] = contextJson(sessions);
+        result["anno"] = yearJson(sessions, periodContaining(wallOf(NOW, ZONE), "year"), wallOf(NOW, ZONE));
       }
     }
 

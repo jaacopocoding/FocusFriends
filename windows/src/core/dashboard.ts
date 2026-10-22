@@ -8,6 +8,7 @@ import { NO_SUBJECT } from "./text.ts";
 import { DAY_MS, HOUR_MS, partsOf, startOfDay } from "./time.ts";
 import type { Wall } from "./time.ts";
 import type { Rating } from "./log.ts";
+import type { Highlights, WeekBucket, YearDay } from "./yearStats.ts";
 
 const formatters = new Map<string, Intl.DateTimeFormat>();
 
@@ -31,6 +32,7 @@ export function periodTitle(period: Period): string {
     case "day": return capitalized(format(period.start, { weekday: "long", day: "numeric", month: "long", year: "numeric" }));
     case "week": return `${format(period.start, { day: "numeric", month: "short" })} – ${format(period.end - 1000, { day: "numeric", month: "short", year: "numeric" })}`;
     case "month": return capitalized(format(period.start, { month: "long", year: "numeric" }));
+    case "year": return String(partsOf(period.start).year);
   }
 }
 
@@ -143,4 +145,47 @@ export function sessionHeading(session: StudySession, zone?: string): string {
   const at = startTime(session, zone);
   const p = partsOf(at);
   return `${format(at, { weekday: "long", day: "numeric", month: "long" })}, ${pad(p.hour)}:${pad(p.minute)} · ${Math.trunc((session.seconds + 30) / 60)} min`;
+}
+
+// ---- la scheda «Anno» (YearStats.swift)
+
+const MONTH_LABELS = ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"];
+
+/** Il nome corto del mese (1...12) sopra la mappa e sotto le barre. */
+export function monthLabel(month: number): string {
+  return MONTH_LABELS[Math.max(1, Math.min(12, month)) - 1]!;
+}
+
+/** Cosa si legge passando sopra un giorno: «Venerdì 2 ottobre · 2 h 10 · 3 focus». */
+export function dayText(day: Pick<YearDay, "start" | "seconds" | "focusCount">): string {
+  const name = capitalized(format(day.start, { weekday: "long", day: "numeric", month: "long" }));
+  if (day.seconds <= 0) return `${name} · nessun focus`;
+  return `${name} · ${duration(day.seconds)} · ${day.focusCount === 1 ? "1 focus" : `${day.focusCount} focus`}`;
+}
+
+/** Cosa si legge passando sopra una barra: «Settimana del 29 giu · 9 h 35». */
+export function weekText(week: WeekBucket): string {
+  return `Settimana del ${format(week.start, { day: "numeric", month: "short" })} · ${duration(week.seconds)}`;
+}
+
+/** Sopra le barre, a destra: «al massimo 15 h 30 in una settimana». */
+export function trendCaption(maxSeconds: number): string {
+  return `al massimo ${duration(maxSeconds)} in una settimana`;
+}
+
+export interface YearTile {
+  value: string;
+  caption: string;
+}
+
+/** Le caselle sotto la mappa: la serie più lunga, il giorno più forte, il mese migliore (le ultime due solo se c'è stato studio). */
+export function yearTiles(found: Highlights): YearTile[] {
+  const tiles: YearTile[] = [{ value: found.longestStreak === 1 ? "1 giorno" : `${found.longestStreak} giorni`, caption: "la serie più lunga" }];
+  if (found.bestDay !== null) {
+    tiles.push({ value: duration(found.bestDay.seconds), caption: `il giorno più forte · ${format(found.bestDay.start, { day: "numeric", month: "short" })}` });
+  }
+  if (found.bestMonth !== null) {
+    tiles.push({ value: capitalized(format(found.bestMonth.start, { month: "long" })), caption: `il mese migliore · ${duration(found.bestMonth.seconds)}` });
+  }
+  return tiles;
 }

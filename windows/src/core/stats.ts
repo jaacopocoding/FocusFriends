@@ -2,7 +2,7 @@
 // su quando si rende meglio, testi. Stesse regole di SessionLog.swift e GardenPoints.swift (StudyStreak).
 
 import type { Rating, StudySession } from "./log.ts";
-import { DAY_MS, HOUR_MS, addMonths, partsOf, parseLocal, startOfDay, startOfMonth, startOfWeek, wallOf } from "./time.ts";
+import { DAY_MS, HOUR_MS, addMonths, partsOf, parseLocal, startOfDay, startOfMonth, startOfWeek, startOfYear, wallOf } from "./time.ts";
 import type { Wall } from "./time.ts";
 import { NO_SUBJECT, subjectKey } from "./text.ts";
 
@@ -17,9 +17,9 @@ export function startTime(session: StudySession, zone?: string): Wall {
 
 // ---- periodi
 
-export type PeriodKind = "day" | "week" | "month";
+export type PeriodKind = "day" | "week" | "month" | "year";
 
-/** Un giorno, una settimana (da lunedì) o un mese: inizio incluso, fine esclusa, sull'orologio. */
+/** Un giorno, una settimana (da lunedì), un mese o un anno: inizio incluso, fine esclusa, sull'orologio. */
 export interface Period {
   kind: PeriodKind;
   start: Wall;
@@ -40,6 +40,10 @@ export function periodContaining(wall: Wall, kind: PeriodKind): Period {
       const start = startOfMonth(wall);
       return { kind, start, end: addMonths(start, 1) };
     }
+    case "year": {
+      const start = startOfYear(wall);
+      return { kind, start, end: addMonths(start, 12) };
+    }
   }
 }
 
@@ -47,7 +51,8 @@ export function periodContaining(wall: Wall, kind: PeriodKind): Period {
 export function shiftedPeriod(period: Period, count: number): Period {
   const moved = period.kind === "day" ? period.start + count * DAY_MS
     : period.kind === "week" ? period.start + count * 7 * DAY_MS
-    : addMonths(period.start, count);
+    : period.kind === "month" ? addMonths(period.start, count)
+    : addMonths(period.start, 12 * count);
   return periodContaining(moved, period.kind);
 }
 

@@ -440,6 +440,7 @@ meglio»; «Rieccoti!» al risveglio dallo sleep dopo almeno un'ora; i traguardi
 della prossima (`PhraseChooser`) stanno nel processo principale; un nuovo canale `speech:when-quiet` fa aspettare le frasi che non devono coprirne un'altra (anche l'annuncio degli sblocchi). Il fumetto
 sta ora sopra «Com'è andata?». Provata sugli stessi dati del Mac (saluti in 6 momenti fissi, traguardi mano a mano che il registro cresce, 294 anniversari su date inventate: `genera-attesi` e
 `contratto.test.ts`) e dal vivo con `test/vivo/frasi-contesto.cjs`. Nel farlo si è corretto anche il Mac: da un 31 gennaio al 28 febbraio il conteggio dei mesi dava zero. 318 prove su Windows e 445 sul Mac.
+Poi **la scheda «Anno» delle statistiche** (Mac 0.10.0, Windows 1.2.0): l'anno di calendario come mappa con un quadratino per giorno (soglie fisse a 30, 90 e 180 minuti), tre caselle (serie più lunga, giorno più forte, mese migliore) e l'andamento per settimana, di tutte le materie o di una a scelta; passando sopra un giorno si legge il tempo, cliccandolo si apre in «Oggi». Nessun dato nuovo. `YearStats.swift` ↔ `core/yearStats.ts`, con i testi in comune provati sui due lati; il contratto confronta anche un anno e mezzo di studio inventato (504 sessioni) e le griglie di 41 anni. 337 prove su Windows e 484 sul Mac; provata dal vivo con `test/vivo/anno.cjs` (e sul Mac con un banco di prova di dati inventati).
 
 ## Seconda uscita: il giardino (8–12 giorni)
 

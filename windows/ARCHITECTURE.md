@@ -11,7 +11,7 @@
 > history) or **[inferred]** (deduced from the code).
 > UI strings and code comments are in Italian (as on the Mac); identifiers are English. UI strings quoted here are glossed.
 > **What was and was not exercised on a real Windows machine:** the code runs on macOS during development (Electron is
-> cross-platform); the Windows CI job runs the type check, the logic tests (318 now) and the build on a Windows runner, and the author
+> cross-platform); the Windows CI job runs the type check, the logic tests (337 now) and the build on a Windows runner, and the author
 > installed the released installer on a Windows computer for a brief check (see `PARITA.md`, "Prova su Windows"). The parts that
 > only exist on Windows (real click-through, task-bar sides, scale factors, two monitors, sleep, fullscreen apps, virtual
 > desktops) are listed in `PROVE_SU_WINDOWS.md` and have **not** been verified one by one.
@@ -49,7 +49,7 @@ HTTP client in the code **[inferred]**).
 cd windows
 npm install          # Electron, TypeScript, esbuild, electron-builder (devDependencies)
 npm run check        # tsc --noEmit
-npm test             # 318 tests, no dependencies needed
+npm test             # 337 tests, no dependencies needed
 npm start            # builds dist/ and opens the companion (on macOS: data in a test folder)
 npm run pacchetto    # build + stage resources + electron-builder --win → release/*.exe
 ```
@@ -69,21 +69,21 @@ windows/
 ├── resources/                      fine-focus.wav (the end-of-focus chime, generated from scratch), fonts/ (Chewy + licence)
 ├── installer/icon.png              the installer and program icon
 ├── src/
-│   ├── core/       (32 files)      pure logic, no Electron, no DOM: runs in Node tests, in the main process and in the pages
+│   ├── core/       (33 files)      pure logic, no Electron, no DOM: runs in Node tests, in the main process and in the pages
 │   ├── main/       (13 files)      main process: windows, tray, timer service, files, protocol, dialogs, power events, window lock-down
 │   ├── preload/    (2 files)       the secure bridges (`preload.cjs` for the overlay, `preload-stats.cjs` for the statistics window)
 │   ├── shared/     (2 files)       the typed contract between main and pages (`api.ts`, `statsApi.ts`)
 │   └── renderer/                   the overlay page (companion, bubble, clock, card, dialogs, sounds) and the statistics page
-├── test/           (29 files)      27 test files + 2 helpers (`util.ts`, `atteso.ts`); see §7
-│   └── vivo/       (31 files)      scripts for live runs of the real app (`esegui.sh`, `misure.sh`, 28 scenarios and a README); see §5.3
+├── test/           (30 files)      28 test files + 2 helpers (`util.ts`, `atteso.ts`); see §7
+│   └── vivo/       (32 files)      scripts for live runs of the real app (`esegui.sh`, `misure.sh`, 29 scenarios and a README); see §5.3
 └── tools/                          build.mjs, genera-icone.mjs, prepara-risorse.mjs
 ```
 
 | Area | Files (lines) |
 |---|---|
-| `core/` | `log.ts` (637), `pomodoro.ts` (464), `todoList.ts` (229), `todo.ts` (178), `stats.ts` (284), `walker.ts` (275), `profile.ts` (221), `remarks.ts` (204), `settings.ts` (163), `rules.ts` (155), `time.ts` (151), `dashboard.ts` (146), `noise.ts` (146), `card.ts` (144), `pets.ts` (112), `phrases.ts` (92), `phraseChooser.ts` (69), `text.ts` (84), `displays.ts` (86), `audioPlan.ts` (72), `diagnostics.ts` (69), `points.ts` (57), `urls.ts` (21), `environment.ts` (20), `music.ts` (55), `files.ts` (53), `tracks.ts` (40), `rewards.ts` (40), `unlocks.ts` (33), `reflection.ts` (30), `csv.ts` (27), `colors.ts` (22) |
+| `core/` | `log.ts` (637), `pomodoro.ts` (464), `todoList.ts` (229), `todo.ts` (178), `stats.ts` (289), `walker.ts` (275), `profile.ts` (221), `remarks.ts` (204), `yearStats.ts` (158), `settings.ts` (163), `rules.ts` (155), `time.ts` (151), `dashboard.ts` (191), `noise.ts` (146), `card.ts` (144), `pets.ts` (112), `phrases.ts` (92), `phraseChooser.ts` (69), `text.ts` (84), `displays.ts` (86), `audioPlan.ts` (72), `diagnostics.ts` (69), `points.ts` (57), `urls.ts` (21), `environment.ts` (20), `music.ts` (55), `files.ts` (53), `tracks.ts` (40), `rewards.ts` (40), `unlocks.ts` (33), `reflection.ts` (30), `csv.ts` (27), `colors.ts` (22) |
 | `main/` | `main.ts` (355), `card.ts` (233), `tray.ts` (229), `statsWindow.ts` (147), `protocol.ts` (69), `music.ts` (69), `stage.ts` (77), `timer.ts` (79), `remarks.ts` (113), `overlay.ts` (46), `security.ts` (39), `paths.ts` (33), `login.ts` (18) |
-| `renderer/` | `overlay.ts` (664, the page controller), `card/card.ts` (858), `dialogs/reflectionCard.ts` (145), `petView.ts` (380), `stats/stats.ts` (278), `clockView.ts` (255), `card/widgets.ts` (236), `audio/music.ts` (160), `audio/ambient.ts` (159), `speaker.ts` (168), `dialogs/*` (5 files, ≈ 300), `extendPrompt.ts` (71), `card/dom.ts` (60), `bubble.ts` (51), `audio/noiseWorklet.ts` (40), `avatar.ts` (26), `fonts.ts` (14), CSS and HTML |
+| `renderer/` | `overlay.ts` (664, the page controller), `card/card.ts` (858), `dialogs/reflectionCard.ts` (145), `petView.ts` (380), `stats/stats.ts` (397), `clockView.ts` (255), `card/widgets.ts` (236), `audio/music.ts` (160), `audio/ambient.ts` (159), `speaker.ts` (168), `dialogs/*` (5 files, ≈ 300), `extendPrompt.ts` (71), `card/dom.ts` (60), `bubble.ts` (51), `audio/noiseWorklet.ts` (40), `avatar.ts` (26), `fonts.ts` (14), CSS and HTML |
 
 Notes:
 
@@ -323,7 +323,7 @@ Phrases that must not cover another one (unlock announcements, milestones, the w
 
 A normal `BrowserWindow` (560 × 660, not resizable, no menu bar, background `#fff6de`) created on the first request and **destroyed when closed**, so it costs no memory meanwhile; its title follows the profile name.
 The main process sends all sessions, "now", the title and the tab to open; **the page computes everything** (`summarize`, `analyzeStreak`, `insights` and the Italian texts of `dashboard.ts`) from the same pure functions the tests compare with the Mac.
-Tabs Oggi / Settimana (from Monday) / Mese with arrows; the diary ("Mostra le sessioni") with a day strip; editing a session (subject, "apply to all sessions", note, rating, focus notes) or deleting it, CSV export (save dialog, formula-guarded
+Tabs Oggi / Settimana (from Monday) / Mese / **Anno** with arrows (the year tab is §4.18); the diary ("Mostra le sessioni") with a day strip; editing a session (subject, "apply to all sessions", note, rating, focus notes) or deleting it, CSV export (save dialog, formula-guarded
 fields), and "Cancella tutto…" (confirmation; removes sessions, in-progress file, backups and the profile; `onDeleteAll` is the garden's future hook). The window re-sends its data whenever the log changes.
 
 ### 4.14 Companion unlocking (`core/rewards.ts`, `core/unlocks.ts`, `main/card.ts`)
@@ -398,6 +398,25 @@ already said (`lastWeeklyRecap` in `impostazioni.json`, `FORMATI.md` §6). Same 
 - **Tests:** `contesto.test.ts` (the same checks as the Swift section "Frasi di contesto", the chooser, and the main-process service with a real engine and log); the contract compares greetings (6 fixed moments × variants), wake-up, recap, insights and the
   milestones reached as each sample log grows, plus `attesi/_contesto-anniversari.json` (294 anniversaries from invented dates, including month ends and a leap year). Live run: `test/vivo/frasi-contesto.cjs`.
 
+### 4.18 The "Anno" tab: heat map and weekly trend (since 1.2: `core/yearStats.ts`, `core/dashboard.ts`, `renderer/stats/stats.ts`)
+
+A fourth tab in the statistics window (same rules and texts as `YearStats.swift`): the calendar year as a map with one square per day (a column per week from Monday, a row per weekday), three tiles (longest streak
+of the year, strongest day, best month) and a bar chart of study per week, for all subjects or one. Everything is derived from the log in the page; nothing is stored.
+
+- **Logic (`yearStats.ts`):** `PeriodKind` gains `"year"` (`startOfYear` in `time.ts`, `periodContaining`/`shiftedPeriod`, 365/366 daily buckets). `level` (0, then < 30 min, < 90 min, < 180 min, else 4: fixed limits),
+  `yearDays` (a session belongs to the day it started), `cellOf`/`columnsOf`/`monthStarts` (53 columns, 54 in a leap year starting on a Sunday), `highlights` (study days, longest streak reached in the year using
+  `analyzeStreak`'s ice-day rule, best day and best month with ties to the first), `trendSubjects` (the five most studied subjects, none if fewer than two, never "Senza materia"), `weeklyTrend` (weeks from Monday up to
+  "now"; one subject matched with `subjectKey`, so case and accents do not matter, or all) and `showsTrend` (at least four weeks with study). The texts are in `dashboard.ts` (`dayText`, `weekText`, `trendCaption`, `yearTiles`,
+  `monthLabel`), so the contract can compare them with the Mac's.
+- **Page:** the map is a CSS grid with `minmax(0, 1fr)` columns (one square per cell, `aspect-ratio: 1`); the weekday labels use `contain: size` so they do not set the height; hovering a day or a bar writes its text under the map
+  (`mouseover`/`mouseenter`, no re-render), clicking a day opens it in the "Oggi" tab (`openDay`), the subject chips re-render the page keeping the scroll. The diary button is hidden for the year. Class names are prefixed
+  (`year-`, `trend-`) because `card.css` is concatenated into `stats.css` and already has `.tile`, `.chip`, `.chips`.
+- **Contract:** for every sample folder with sessions `attesi/*.json` has `anno` (levels as a string of digits, columns, months, highlights, tiles, subjects, weekly series per subject, texts); `_anno-griglie.json` has the grid of
+  41 years (2000–2040: leap years, Sunday starts); `_anno-sintetico.json` is a year and a half of invented study (504 sessions from a 32-bit linear congruential generator that both sides implement, subjects spelled in different
+  ways, 2025 and 2026). Changing a threshold makes the contract fail (checked).
+- **Tests:** `anno.test.ts` (17, the same checks as the Swift section "Anno: mappa, numeri e andamento"). Live run: `test/vivo/anno.cjs` (hover, subject choice, click on a day, previous year; the hover steps fall back to simulated DOM
+  events because the real pointer does not always reach a window without focus).
+
 ---
 
 ## 5. Contracts, environment and self-test
@@ -429,7 +448,7 @@ metrics at those moments; `FF_SELFTEST_FILE=<script.cjs>` runs a script that rec
 **Live runs (`test/vivo/`, since 1.0.1).** The scenario scripts used during development are in the repository, with a runner: `test/vivo/esegui.sh <script> [seconds]` builds,
 creates a **new** results folder with its own data folder inside it (it never uses real data and never deletes anything: if the folder exists it stops), writes
 `impostazioni.json` / `profilo.json`, opens the real Electron app with `FF_SELFTEST` and `FF_SELFTEST_FILE`, kills it after a time limit (macOS has no `timeout`),
-prints the app's output and shrinks the screenshots. `misure.sh` measures memory and CPU at rest. 28 scenarios cover the timer, the card, the dialogs, sounds, statistics, saving, the to-do list,
+prints the app's output and shrinks the screenshots. `misure.sh` measures memory and CPU at rest. 29 scenarios cover the timer, the card, the dialogs, sounds, statistics, saving, the to-do list,
 displays, sleep and the packaged app; they **print what they observe** and take screenshots, for a person to judge: they are not assertions. `test/vivo/README.md` lists what each one checks and what it needs.
 
 ---
@@ -447,7 +466,7 @@ displays, sleep and the packaged app; they **print what they observe** and take 
 
 ## 7. Tests (`test/`, `npm test`)
 
-318 tests in 27 files, no framework, no dependencies. They run unchanged in the main process's code paths because the logic is pure.
+337 tests in 28 files, no framework, no dependencies. They run unchanged in the main process's code paths because the logic is pure.
 
 | File(s) | What they cover |
 |---|---|
@@ -457,6 +476,7 @@ displays, sleep and the packaged app; they **print what they observe** and take 
 | `statistiche`, `cruscotto`, `colori`, `testo` | periods, summaries, streak with its frozen day, insights, CSV, the dashboard's Italian texts, subject colours (64-bit hash equal to Swift), text cleaning |
 | `timer`, `camminata`, `personaggi`, `sblocchi`, `riflessione`, `scheda` | the timer engine with a fake clock (pause, grace, "+5", discard, sleep gap, long break), the walker, pet stages (compared with Swift), unlock rules, reflection replies, card data |
 | `musica`, `elencomusica`, `suoni`, `rumore` | music queue and listing, audio plan decisions, the noise synthesiser against measurements from the Mac (rain and brown within 1 %, wind within 3 %: the Mac accumulates the phase in Float32) |
+| `anno` | the Anno tab: year period, levels, days, grid (53/54 columns), month starts, highlights (ice day, ties), weekly trend (subject spellings), the texts |
 | `contesto` | context phrases: greetings by day part, wake-up, weekly recap, milestones and anniversaries, the phrase chooser, and the main-process service (a real engine and log, fake clock) |
 | `dafare` | the to-do list: day strings and labels, text cleaning, add/toggle/remove, grouping and order, the file (format, 7-day purge, 200-item limit, newer and damaged files), reminder sentences |
 | `ambiente`, `indirizzi` | the test-variable gating (`FF_*` ignored without `FF_SELFTEST`, `FF_DATA_DIR` ignored in the installed app) and the URL rule of the lock-down (only `ff://app/…`; log lines carry scheme and site only) |

@@ -88,6 +88,79 @@ func contextJSON(sessions: [StudySession]) -> [String: Any] {
     return ["momenti": moments, "traguardi": milestones]
 }
 
+// ---- la scheda «Anno» (YearStats.swift): la mappa, i tre numeri, l'andamento e i testi, per l'anno di «adesso» e con i dati della cartella
+
+func yearJSON(sessions: [StudySession], period: StudyPeriod, through: Date) -> [String: Any] {
+    let days = YearStats.days(sessions: sessions, period: period, calendar: cal)
+    let found = YearStats.highlights(sessions: sessions, period: period, now: now, calendar: cal)
+    let summary = StudyStats.summary(sessions: sessions, period: period, calendar: cal)
+    let subjects = YearStats.trendSubjects(of: summary)
+    let all = YearStats.weeklyTrend(sessions: sessions, period: period, subject: nil, through: through, calendar: cal)
+    var perSubject: [String: Any] = [:]
+    for subject in subjects {
+        perSubject[subject] = YearStats.weeklyTrend(sessions: sessions, period: period, subject: subject, through: through, calendar: cal).map { $0.seconds }
+    }
+    func bucket(_ b: StudyBucket?) -> Any { b.map { ["giorno": dayFormatter.string(from: $0.start), "secondi": $0.seconds] as [String: Any] } ?? NSNull() }
+    let studied = days.filter { $0.seconds > 0 }
+    return [
+        "colonne": YearStats.columns(of: period, calendar: cal),
+        "mesi": YearStats.monthStarts(in: period, calendar: cal).map { ["mese": $0.month, "colonna": $0.column] },
+        "etichetteMesi": YearStats.monthStarts(in: period, calendar: cal).map { YearStats.monthLabel($0.month) },
+        "livelli": days.map { String($0.level) }.joined(),
+        "focusPerGiorno": days.map { $0.focusCount }.filter { $0 > 0 },
+        "giorniConStudio": found.studiedDays, "serieLunga": found.longestStreak,
+        "giornoMigliore": bucket(found.bestDay), "meseMigliore": bucket(found.bestMonth),
+        "caselle": YearStats.tiles(found, calendar: cal).map { ["valore": $0.value, "didascalia": $0.caption] },
+        "materie": subjects,
+        "andamento": all.map { $0.seconds }, "settimane": all.map { dayFormatter.string(from: $0.start) },
+        "mostraAndamento": YearStats.showsTrend(all),
+        "andamentoPerMateria": perSubject,
+        "didascalia": YearStats.trendCaption(maxSeconds: all.map { $0.seconds }.max() ?? 0),
+        "testiGiorni": (Array(studied.prefix(4)) + Array(days.filter { $0.seconds == 0 }.prefix(1))).map { YearStats.dayText($0, calendar: cal) },
+        "testiSettimane": all.filter { $0.seconds > 0 }.prefix(3).map { YearStats.weekText($0, calendar: cal) },
+    ]
+}
+
+/// Un anno e mezzo di studio inventato (con un generatore di numeri semplice, uguale in TypeScript), con materie scritte in modi diversi:
+/// la mappa e l'andamento su dati veri, che le cartelle di esempio (tutte di ottobre) non bastano a provare.
+func syntheticYearJSON() -> [String: Any] {
+    var state: UInt32 = 12345
+    func next(_ count: Int) -> Int {
+        state = state &* 1_664_525 &+ 1_013_904_223
+        return Int(state >> 8) % count
+    }
+    let names: [String?] = ["Anatomia", "anatomia", "ANATOMIA", "Chimica", "chimica ", "Física", "Fisica", "Fisiologia", nil, "Storia", "Latino"]
+    var sessions: [StudySession] = []
+    var day = cal.date(from: DateComponents(year: 2025, month: 11, day: 1))!
+    while day <= now {
+        let weekday = (cal.component(.weekday, from: day) + 5) % 7
+        if next(10) < (weekday < 5 ? 8 : 4) {
+            for k in 0..<(1 + next(3)) {
+                let start = day.addingTimeInterval(Double(8 * 3600 + k * 7200 + next(60) * 60))
+                sessions.append(StudySession(start: start, localStart: StudySession.localString(for: start, calendar: cal),
+                                             seconds: 600 + next(120) * 60, plannedMinutes: 50, completed: true, subject: names[next(names.count)]))
+            }
+        }
+        day = cal.date(byAdding: .day, value: 1, to: day)!
+    }
+    var years: [String: Any] = [:]
+    for year in [2025, 2026] {
+        let period = StudyPeriod.containing(cal.date(from: DateComponents(year: year, month: 6, day: 1))!, kind: .year, calendar: cal)
+        years[String(year)] = yearJSON(sessions: sessions, period: period, through: now)
+    }
+    return ["sessioni": sessions.count, "anni": years]
+}
+
+/// Le griglie di molti anni (bisestili, che cominciano di domenica…): quante colonne e dove comincia ogni mese.
+func gridJSON() -> [[String: Any]] {
+    (2000...2040).map { year in
+        let period = StudyPeriod.containing(cal.date(from: DateComponents(year: year, month: 6, day: 1))!, kind: .year, calendar: cal)
+        return ["anno": year, "colonne": YearStats.columns(of: period, calendar: cal),
+                "mesi": YearStats.monthStarts(in: period, calendar: cal).map { $0.column },
+                "primaCella": ["colonna": YearStats.cell(of: period.start, in: period, calendar: cal).column, "riga": YearStats.cell(of: period.start, in: period, calendar: cal).row]]
+    }
+}
+
 /// Gli anniversari («un mese insieme»…) su date inventate: per ogni primo giorno e ogni giorno dopo, la frase se scatta.
 func anniversaryJSON() -> [[String: Any]] {
     func session(_ y: Int, _ m: Int, _ d: Int) -> StudySession {
@@ -174,6 +247,7 @@ for entry in try fm.contentsOfDirectory(atPath: fixtures.path).sorted() {
             stats["csv"] = SessionCSV.csv(for: sessions)
             result["statistiche"] = stats
             result["contesto"] = contextJSON(sessions: sessions)
+            result["anno"] = yearJSON(sessions: sessions, period: StudyPeriod.containing(now, kind: .year, calendar: cal), through: now)
         }
     }
 
@@ -254,4 +328,8 @@ for entry in try fm.contentsOfDirectory(atPath: fixtures.path).sorted() {
 }
 let anniversaries = try JSONSerialization.data(withJSONObject: ["anniversari": anniversaryJSON()], options: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes])
 try (anniversaries + Data("\n".utf8)).write(to: outputDirectory.appendingPathComponent("_contesto-anniversari.json"))
+let grids = try JSONSerialization.data(withJSONObject: ["anni": gridJSON()], options: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes])
+try (grids + Data("\n".utf8)).write(to: outputDirectory.appendingPathComponent("_anno-griglie.json"))
+let synthetic = try JSONSerialization.data(withJSONObject: syntheticYearJSON(), options: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes])
+try (synthetic + Data("\n".utf8)).write(to: outputDirectory.appendingPathComponent("_anno-sintetico.json"))
 print("Scritti \(written) file in \(outputDirectory.path)")

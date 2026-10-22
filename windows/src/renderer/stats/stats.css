@@ -72,9 +72,9 @@ textarea:focus-visible {
   position: absolute;
   left: 50%;
   top: 18px;
-  width: 260px;
+  width: 320px;
   height: 26px;
-  margin-left: -130px;
+  margin-left: -160px;
   display: flex;
   border-radius: 13px;
   background: rgba(140, 102, 64, 0.18);
@@ -573,4 +573,243 @@ textarea:focus-visible {
 
 .pill-action:active {
   background: var(--accent-pressed);
+}
+
+/* ---- la scheda «Anno»: la mappa, le tre caselle e l'andamento per settimana */
+
+.year-map {
+  margin-top: 22px;
+}
+
+.year-months {
+  display: grid;
+  margin-left: 24px;
+  height: 16px;
+  font-size: 10.5px;
+  line-height: 14px;
+  color: var(--ink-light);
+}
+
+.year-months span {
+  white-space: nowrap;
+}
+
+.year-body {
+  display: flex;
+}
+
+.year-weekdays {
+  flex: none;
+  width: 24px;
+  /* Le sigle non decidono l'altezza della mappa: le righe seguono i quadratini. */
+  contain: size;
+  display: grid;
+  grid-template-rows: repeat(7, 1fr);
+  gap: 1.7px;
+  font-size: 9.5px;
+  line-height: 1;
+  color: var(--ink-light);
+}
+
+.year-weekdays span {
+  display: flex;
+  align-items: center;
+}
+
+.year-grid {
+  flex: 1;
+  min-width: 0;
+  align-content: start;
+  display: grid;
+  grid-template-rows: repeat(7, auto);
+  gap: 1.7px;
+}
+
+.cell {
+  aspect-ratio: 1;
+  box-sizing: border-box;
+  border-radius: 1.8px;
+  background: var(--track);
+}
+
+.cell.l1 { background: rgb(207, 227, 176); }
+.cell.l2 { background: rgb(156, 204, 115); }
+.cell.l3 { background: rgb(94, 168, 74); }
+.cell.l4 { background: rgb(46, 122, 59); }
+
+.cell.future {
+  background: none;
+  border: 0.5px dashed rgba(140, 102, 64, 0.4);
+}
+
+.cell.today {
+  outline: 1.2px solid var(--ink);
+}
+
+.year-grid .cell[data-index] {
+  cursor: pointer;
+}
+
+.year-grid .cell[data-index]:hover {
+  outline: 1.6px solid var(--ink);
+  outline-offset: 0.5px;
+}
+
+.year-legend {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 16px;
+  margin-top: 10px;
+}
+
+.year-tip {
+  font-size: 12.5px;
+  color: var(--ink-light);
+}
+
+.year-tip.hover {
+  color: var(--ink);
+}
+
+.year-scale {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10.5px;
+  color: var(--ink-light);
+}
+
+.year-scale .cell {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.year-scale .cell:first-of-type {
+  margin-left: 4px;
+}
+
+.year-scale .cell:last-of-type {
+  margin-right: 4px;
+}
+
+.year-tiles {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.year-tile {
+  box-sizing: border-box;
+  height: 54px;
+  padding: 7px 6px 0;
+  text-align: center;
+  border-radius: 10px;
+  border: 0.8px solid rgba(140, 102, 64, 0.5);
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.year-tile-value {
+  font: 19px/24px var(--marker);
+}
+
+.year-tile-caption {
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--ink-light);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.trend {
+  margin-top: 26px;
+}
+
+.trend-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.trend-title {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.trend-caption {
+  font-size: 11.5px;
+  color: var(--ink-light);
+}
+
+.trend-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.trend-chip {
+  box-sizing: border-box;
+  height: 22px;
+  padding: 0 11px;
+  border-radius: 11px;
+  border: 0.8px solid var(--edge);
+  background: rgba(255, 255, 255, 0.5);
+  font-size: 12px;
+  line-height: 20px;
+  white-space: nowrap;
+}
+
+.trend-chip.on {
+  border-color: transparent;
+  color: white;
+}
+
+.trend-bars {
+  display: flex;
+  align-items: flex-end;
+  height: 70px;
+  margin-top: 12px;
+  border-bottom: 1px solid rgba(140, 102, 64, 0.6);
+}
+
+.trend-slot {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.trend-bar {
+  width: 70%;
+  border-radius: 2px 2px 0 0;
+  opacity: 0.75;
+}
+
+.trend-bar.none {
+  background: rgba(140, 102, 64, 0.35);
+  opacity: 1;
+}
+
+.trend-slot:hover .trend-bar:not(.none) {
+  opacity: 1;
+}
+
+.trend-axis {
+  position: relative;
+  height: 18px;
+}
+
+.trend-axis span {
+  position: absolute;
+  top: 4px;
+  font-size: 10.5px;
+  color: var(--ink-light);
+  white-space: nowrap;
 }

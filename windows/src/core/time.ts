@@ -126,6 +126,11 @@ export function startOfMonth(wall: Wall): Wall {
   return Date.UTC(p.year, p.month - 1, 1);
 }
 
+/** Il 1 gennaio (alle 00:00) dell'anno che contiene `wall`. */
+export function startOfYear(wall: Wall): Wall {
+  return Date.UTC(partsOf(wall).year, 0, 1);
+}
+
 export function addMonths(wall: Wall, count: number): Wall {
   const p = partsOf(wall);
   return Date.UTC(p.year, p.month - 1 + count, Math.min(p.day, daysInMonth(p.year, p.month + count)), p.hour, p.minute, p.second);

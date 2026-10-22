@@ -27,7 +27,7 @@ punti, i compagni. Un'altra versione dell'app deve dare gli stessi risultati. I 
 da parte sono scritti `<epoch>`.
 
 Per ogni cartella con sessioni c'è anche `contesto`: le frasi di contesto (`Remarks.swift`) in sei momenti fissi (saluti con tutte le varianti, risveglio, riepilogo della settimana, numeri a voce) e i traguardi
-raggiunti man mano che il registro cresce. `attesi/_contesto-anniversari.json` non riguarda una cartella: sono gli anniversari («un mese insieme»…) calcolati su date inventate, 8 primi giorni (fine mese e anno bisestile compresi) fino al 2028.
+raggiunti man mano che il registro cresce. Con `anno` c'è anche la scheda «Anno» delle statistiche (`YearStats.swift`): la mappa dei giorni (i livelli come una stringa di cifre), colonne e mesi, i tre numeri e le caselle, l'andamento per settimana (di tutte le materie e di ognuna) e i testi che si leggono passando sopra un giorno o una barra. `attesi/_anno-griglie.json` ha la griglia di 41 anni (2000–2040), `attesi/_anno-sintetico.json` un anno e mezzo di studio inventato (504 sessioni, con le materie scritte in modi diversi), perché le cartelle di esempio sono tutte di ottobre. `attesi/_contesto-anniversari.json` non riguarda una cartella: sono gli anniversari («un mese insieme»…) calcolati su date inventate, 8 primi giorni (fine mese e anno bisestile compresi) fino al 2028.
 
 Per rifarli (solo se cambiano gli esempi o le regole del Mac): `./tests/genera-attesi.sh`. L'esito è sempre lo stesso
 a parità di codice.
