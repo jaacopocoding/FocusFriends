@@ -1,3 +1,4 @@
+import CoreGraphics
 import Foundation
 
 // Prove del registro e delle statistiche (Sources/FocusFriends/SessionLog.swift).
@@ -1248,6 +1249,70 @@ check((1...12).map { YearStats.monthLabel($0) }.joined(separator: " ") == "gen f
 check(!YearStats.showsTrend([StudyBucket(start: date(2026, 1, 5), seconds: 600), StudyBucket(start: date(2026, 1, 12), seconds: 600), StudyBucket(start: date(2026, 1, 19), seconds: 600),
                              StudyBucket(start: date(2026, 1, 26), seconds: 0)])
       && YearStats.showsTrend((0..<4).map { StudyBucket(start: date(2026, 1, 5 + 7 * $0), seconds: 60) }), "l'andamento si mostra da quattro settimane con studio")
+
+// ---------------------------------------------------------------- fumetto
+section("Fumetto: dove sta")
+let bpScreen = CGRect(x: 0, y: 0, width: 1512, height: 944)
+func bpPet(x: CGFloat, y: CGFloat = 0, width: CGFloat = 84) -> CGRect { CGRect(x: x, y: y, width: width, height: 141) }
+func bpPlace(_ size: CGSize, pet: CGRect, topY: CGFloat? = nil, obstacles: [CGRect] = [], previous: Bool? = nil) -> BubblePlacement.Result {
+    BubblePlacement.place(bubble: size, anchorX: pet.midX, topY: topY ?? pet.minY + 70, pet: pet, screen: bpScreen, obstacles: obstacles, previousTailOnRight: previous)
+}
+let bpBubble = CGSize(width: 213, height: 174)
+let bpCenter = bpPlace(bpBubble, pet: bpPet(x: 600))
+check(bpCenter.layout == .above && bpCenter.tailOnRight && abs(bpCenter.tipX - 642) < 0.001, "al centro: sopra, con la punta sul compagno")
+check(abs(bpCenter.origin.x - (642 - 213 * 0.825)) < 0.001 && bpCenter.origin.y == 64, "…e la punta entra di 6 pt nel disegno")
+let bpLeft = bpPlace(bpBubble, pet: bpPet(x: 10))
+check(bpLeft.layout == .above && !bpLeft.tailOnRight && abs(bpLeft.tipX - 52) <= BubblePlacement.tolerance && bpLeft.origin.x >= 6,
+      "vicino al bordo sinistro il fumetto si specchia e la punta arriva al compagno (\(bpLeft))")
+let bpRight = bpPlace(CGSize(width: 260, height: 174), pet: bpPet(x: 1400))
+check(bpRight.tailOnRight && abs(bpRight.tipX - 1442) <= BubblePlacement.tolerance, "vicino al bordo destro basta la codina a destra")
+check(bpPlace(bpBubble, pet: bpPet(x: 600), previous: false).tailOnRight == false, "se la codina stava a sinistra e va ancora bene, resta lì")
+check(bpPlace(CGSize(width: 260, height: 174), pet: bpPet(x: 1400), previous: false).tailOnRight, "…ma se non arriva più, passa a destra")
+
+// compagno in alto: sopra non c'è posto, il fumetto sta di fianco, intero nello schermo e senza coprirlo
+let bpHigh = bpPet(x: 700, y: 780)
+let bpSide = bpPlace(bpBubble, pet: bpHigh, topY: 780 + 70)
+check(bpSide.layout == .besideLeft || bpSide.layout == .besideRight, "in alto: di fianco (\(bpSide.layout))")
+let bpSideRect = CGRect(origin: bpSide.origin, size: bpBubble)
+check(!bpSideRect.intersects(bpHigh) && bpScreen.insetBy(dx: 5, dy: 3).contains(bpSideRect), "…senza coprirlo e dentro lo schermo")
+check(bpSideRect.minY <= 850 && bpSideRect.maxY >= 850, "…all'altezza della sua testa")
+check(bpSide.tailOnRight == (bpSide.layout == .besideLeft), "…con la codina verso di lui")
+
+// la scheda «Com'è andata?» a sinistra: il fumetto si apre dall'altra parte
+let bpCard = CGRect(x: 600 - 412, y: 0, width: 400, height: 300)
+let bpClear = bpPlace(bpBubble, pet: bpPet(x: 600), obstacles: [bpCard])
+check(bpClear.layout == .above && !bpClear.tailOnRight, "con la scheda a sinistra la codina passa a sinistra")
+check(!CGRect(origin: bpClear.origin, size: bpBubble).intersects(bpCard.insetBy(dx: -BubblePlacement.obstacleMargin, dy: -BubblePlacement.obstacleMargin)), "…e il fumetto non la copre")
+let bpBoxed = bpPlace(bpBubble, pet: bpPet(x: 600), obstacles: [CGRect(x: 0, y: 0, width: 1512, height: 944)])
+check(bpBoxed.origin.x >= 6 && bpBoxed.origin.x + bpBubble.width <= 1512 - 6 && bpBoxed.origin.y.isFinite, "con ingombri dappertutto sceglie comunque una disposizione dentro lo schermo")
+
+// camminando da un bordo all'altro: sempre sopra, la punta sempre sul compagno, mai fuori dallo schermo, e la codina cambia lato una volta sola
+for width in [130, 157, 213, 260] as [CGFloat] {
+    let size = CGSize(width: width, height: 174)
+    var previous: Bool?
+    var changes = 0
+    var ok = true
+    var x: CGFloat = 1400
+    while x >= 6 {
+        let pet = bpPet(x: x)
+        let r = bpPlace(size, pet: pet, previous: previous)
+        let rect = CGRect(origin: r.origin, size: size)
+        if r.layout != .above || abs(r.tipX - pet.midX) > BubblePlacement.tolerance || rect.minX < 5.99 || rect.maxX > 1512 - 5.99 || rect.minY < 64 { ok = false }
+        if let previous, previous != r.tailOnRight { changes += 1 }
+        previous = r.tailOnRight
+        x -= 3
+    }
+    check(ok && changes <= 1, "dal bordo destro al sinistro con un fumetto largo \(Int(width)): sempre sopra, punta sul compagno, \(changes) cambio di lato")
+    var back = 0
+    x = 6
+    while x <= 1400 {
+        let r = bpPlace(size, pet: bpPet(x: x), previous: previous)
+        if let previous, previous != r.tailOnRight { back += 1 }
+        previous = r.tailOnRight
+        x += 3
+    }
+    check(back <= 1, "…e tornando indietro, \(back) cambio di lato")
+}
 
 print("\n\(checks) controlli, \(failures) falliti")
 exit(failures == 0 ? 0 : 1)

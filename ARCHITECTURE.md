@@ -54,7 +54,7 @@ Single user per Mac, no accounts, no network: all data is stored locally under
 
 | Item | Value | Source |
 |---|---|---|
-| Language | Swift (one module, `Sources/FocusFriends/*.swift`, 40 files, 12,577 lines by `wc -l`) | `build.sh` |
+| Language | Swift (one module, `Sources/FocusFriends/*.swift`, 41 files, 12,729 lines by `wc -l`) | `build.sh` |
 | UI framework | AppKit, custom-drawn views (no SwiftUI, no storyboards/xibs, no Interface Builder) | all view files |
 | Other Apple frameworks | Foundation, AVFoundation (`AVAudioEngine`, `AVAudioSourceNode`, `AVAudioPlayer`), ServiceManagement (`SMAppService`, launch at login) | `import` lines |
 | Third-party dependencies | None (no Package.swift, no CocoaPods/Carthage, no vendored code) | repository tree |
@@ -64,7 +64,7 @@ Single user per Mac, no accounts, no network: all data is stored locally under
 | App type | Menu-bar "agent": `LSUIElement = true`, activation policy `.accessory` | `build.sh`, `AppDelegate.applicationDidFinishLaunching` |
 | Signing | Ad-hoc (`codesign --force --sign -`; `build.sh` stops with exit 1 if signing fails); not notarised, no hardened runtime or sandbox | `build.sh`, `README.md` "Scaricare e usare" |
 | Asset tooling | Python 3 scripts using Pillow and NumPy (not run at build time) | `tools/*.py` |
-| Tests | One hand-written Swift executable (`tests/main.swift`, 34 sections, 484 checks) that compiles thirteen Foundation-only source files; no XCTest | `tests/run.sh` |
+| Tests | One hand-written Swift executable (`tests/main.swift`, 35 sections, 505 checks) that compiles fourteen Foundation-only source files; no XCTest | `tests/run.sh` |
 | License | MIT (`LICENSE`); bundled music is CC0 (`CREDITS.md`) | `LICENSE`, `CREDITS.md` |
 | Swift toolchain version / Python version | Not pinned anywhere in the repository | **[unknown]** |
 
@@ -77,7 +77,7 @@ Network access: a search of `Sources/` for `URLSession`, `http://`, `https://`, 
 ./build.sh                      # compiles both architectures, lipo, copies resources, writes Info.plist, ad-hoc signs
 cp -R build/FocusFriends.app /Applications/
 open /Applications/FocusFriends.app
-./tests/run.sh                  # compiles 13 Foundation-only files + tests/main.swift and runs them
+./tests/run.sh                  # compiles 14 Foundation-only files + tests/main.swift and runs them
 ```
 
 **CI.** `.github/workflows/mac.yml` runs `tests/run.sh` and `build.sh` on a macOS runner for every change to `Sources/`, `tests/`,
@@ -105,13 +105,14 @@ FocusFriends/
 ├── .github/workflows/            mac.yml (tests + build + contract tests) and windows.yml (types, tests, build; installers and a draft release on a `windows-v*` tag)
 ├── windows/                      the Windows app (Electron + TypeScript): src/, test/, tools/, resources/, ARCHITECTURE.md (its architecture), PARITA.md, PROVE_SU_WINDOWS.md, RILASCIO.md
 ├── build.sh                      build script: swiftc ×2 archs → lipo → app bundle, resources, Info.plist, ad-hoc codesign (fails if signing fails)
-├── Sources/FocusFriends/         the whole app (single Swift module, 40 files)
+├── Sources/FocusFriends/         the whole app (single Swift module, 41 files)
 │   ├── main.swift                entry point: NSApplication + AppDelegate
 │   ├── AppDelegate.swift         composition root: creates window, speaker, walker, pomodoro, menu; wires callbacks
 │   ├── Pet.swift                 value type describing a companion (resources, sizes, behaviours) + the 4 definitions
 │   ├── PetWindow.swift           PetWindow (transparent floating NSWindow) + PetView (drawing, fade, pick-up, Zzz)
 │   ├── Walker.swift              state machine for walking / eating / sleeping / popcorning (30 Hz, 1 Hz when idle)
 │   ├── Speaker.swift             schedules and shows speech bubbles above the pet
+│   ├── BubblePlacement.swift     where the bubble goes: above the head, mirrored near a screen edge, beside the pet, clear of cards   (Foundation + CoreGraphics only)
 │   ├── Remarks.swift             context phrases: greetings, spoken numbers (weekly recap, insights), milestones   (Foundation only)
 │   ├── YearStats.swift           the statistics "Anno" tab: heat-map days, three numbers, weekly trend   (Foundation only)
 │   ├── SpeechBubble.swift        OverlayWindow base class, BubbleWindow, BubbleView (bubble.png scaled to text)
@@ -147,7 +148,7 @@ FocusFriends/
 │   ├── MusicLibrary.swift        MusicSource, MusicLibrary (file discovery, shuffle, titles), MusicSettings  (Foundation only)
 │   └── MusicPlayer.swift         AVAudioPlayer-based music playback with queue and fades
 ├── tests/
-│   ├── main.swift                hand-rolled test executable (check()/section()), 34 sections, 484 checks
+│   ├── main.swift                hand-rolled test executable (check()/section()), 35 sections, 505 checks
 │   ├── run.sh                    compiles 12 source files + tests/main.swift into build/tests/stats and runs it
 │   ├── genera-attesi.sh          builds and runs tests/genera-attesi/main.swift: for every folder in tests/fixtures/ writes what this app derives from it (the expected results the Windows port is compared with)
 │   ├── genera-rumore.sh          same idea for the ambient-noise synthesiser (tests/fixtures/rumore.json)
@@ -275,8 +276,7 @@ code. All UI code runs on the main thread; the only other thread is the audio re
   exhausted, first phrase of a new deck differs from the last) → `say(_:)`: creates a `BubbleWindow`
   (`OverlayWindow`, ignores mouse), `BubbleView.size(for:)` tries wrap widths 110…260 pt and picks the ellipse closest to
   the image proportions, adds it as a child window of `PetWindow`, fades in 0.25 s, starts a 30 Hz `followTimer`
-  (`followNow` / `bubbleOrigin(dt:)`: above `PetWindow.visibleTopY`, smoothing descent at 140 pt/s, side placement if no
-  room above) and a `hideTimer` of `max(4.5, 2.5 + 0.06·characters)` seconds, after which the next phrase is scheduled
+  (`followNow` / `bubblePlacement(dt:)`: `BubblePlacement.place` with the head at `PetWindow.visibleTopY`, descent smoothed at 140 pt/s or 3× the gap, whichever is faster; see §3.25) and a `hideTimer` of `max(4.5, 2.5 + 0.06·characters)` seconds, after which the next phrase is scheduled
   with `Chattiness.current.interval(whileFocusing: phase == .focus)`.
   `Pomodoro.refreshChatter()` updates `Speaker.interval` on every phase change.
   Before drawing from the deck, `sayRandom` asks `reminder?()` when at least 3 h have passed since the last reminder
@@ -557,8 +557,8 @@ code. All UI code runs on the main thread; the only other thread is the audio re
     `lipo -create` into `Contents/MacOS/FocusFriends` → copy bubble, phrase files, icon, pet frames (prefixed names),
     music (`music_*`), garden/growth art, Pianty stage frames → write `Info.plist` via heredoc →
     `codesign --force --sign -` (a failure prints an error and exits 1) → print the path.
-  - `tests/run.sh`: `swiftc -O -o build/tests/stats` on thirteen source files + `tests/main.swift` →
-    `build/tests/stats` (prints `• <section>` lines and `N controlli, M falliti`, exit code 0/1; 484 checks now).
+  - `tests/run.sh`: `swiftc -O -o build/tests/stats` on fourteen source files + `tests/main.swift` →
+    `build/tests/stats` (prints `• <section>` lines and `N controlli, M falliti`, exit code 0/1; 505 checks now).
   - Tools: described in §5.9; they read `assets/**/*_original.png` / sheets and write processed PNGs or the icon.
 
 ### 3.22 To-do list ("Da fare")
@@ -659,6 +659,20 @@ code. All UI code runs on the main thread; the only other thread is the audio re
 - **Tests:** "Anno: mappa, numeri e andamento" in `tests/main.swift` (period, levels, days, grid, month starts, highlights, trend, subjects, texts). Drawing and mouse were checked with a bench of invented data
   (screenshots of the real view, synthetic mouse events). `tests/genera-attesi/main.swift` writes `anno` for every sample folder, `_anno-griglie.json` (41 years) and `_anno-sintetico.json` (504 invented sessions)
   for the Windows port (`windows/test/contratto.test.ts`).
+
+### 3.25 Where the speech bubble goes (`BubblePlacement.swift`, `Speaker.swift`, v0.10.0)
+
+- **What:** the position and the tail side of the bubble, as a pure function (Foundation + CoreGraphics) so that it is tested and the Windows port gives the same result.
+- **Rules (`BubblePlacement.place`):** candidates in this order, the first without defects wins (otherwise the one with the least): (1) above the head with the tail on the right (as drawn), the tip 6 pt
+  inside the art; (2) above with the tail **mirrored** on the left; (3)–(4) beside the pet window (the side with more room), with the bubble as low as the screen allows, tail towards the pet.
+  A candidate is faulty if the tip would be more than 8 pt from the pet's centre (the bubble is pushed in by a screen edge), if it does not fit above the head, or if it overlaps an obstacle
+  (grown by 6 pt) such as the "Com'è andata?" card. The previous tail side is tried first, so while the pet walks the bubble flips at most once (hysteresis).
+- **Inputs from the app:** `Speaker.bubblePlacement(dt:)` passes the pet window, the centre of the window, the top of the visible art (smoothed: it rises at once, and falls at 140 pt/s or three times
+  the gap per second, so a much shorter picture closes the gap in a third of a second), the visible frame of the pet's screen and `Speaker.obstacles` (set in `AppDelegate` to the reflection card's frame).
+- **Measured with the real code** (bench with invisible windows, not part of the repository): the app's idea of the art's top is exact (all 100 images, mirrored too), the tail tip is where the code says,
+  walking and talking on the ground gives the tip 6–7 pt inside the head in 99 % of the samples; the old placement left the tip up to 100+ pt from the pet near the left edge with long phrases.
+- **Tests:** "Fumetto: dove sta" in `tests/main.swift` (centre, left and right edge, hysteresis, a pet high on the screen, the card on the left, walking from one edge to the other with four bubble widths:
+  always above, tip on the pet, inside the screen, at most one flip each way).
 
 ---
 
@@ -849,7 +863,7 @@ and shop cards and objects use the same `Sprite` values.
 ### 4.9 Build and test architecture
 
 `build.sh` compiles `Sources/FocusFriends/*.swift` twice (arm64, x86_64), merges with `lipo`, copies resources by an
-explicit list, writes `Info.plist` with a heredoc, ad-hoc signs. `tests/run.sh` compiles thirteen Foundation-only files
+explicit list, writes `Info.plist` with a heredoc, ad-hoc signs. `tests/run.sh` compiles fourteen Foundation-only files
 with `tests/main.swift` (no `Pomodoro`, `Speaker`, `Walker`, player or UI classes are compiled into the tests). `build.sh`
 stops with an error if the ad-hoc signature cannot be applied.
 
@@ -918,21 +932,21 @@ file/UserDefaults writes, windows, timers, sound, global state.
 
 ### 5.3 `Sources/FocusFriends/` — speech
 
-#### `Speaker.swift` (233)
+#### `Speaker.swift` (237)
 - **Responsibility:** when and where speech bubbles appear.
 - **Key members:** `interval` (set from `Chattiness`), `enqueue(Occasion)` (context phrases — launch greeting, weekly recap — said at the next
   spontaneous phrase, before anything else), `reminder` (closure; at most every 3 h it replaces a random phrase, `lastReminder`, `markReminderSaid`),
   `insight` (closure; one random phrase in six may be a "when you do better" line), `sayWhenQuiet(_:after:while:tries:)` (a delayed phrase that waits for
   a bubble already on screen, and is dropped if `stillWanted` says no), `start/stop/reschedule/dismissNow`, `sayRandom`, `say`,
-  `scheduleNext`, `bubbleOrigin(dt:)`, `startFollowing/followNow`, `dismissBubble`, `isSpeaking`. Owns a `PhraseDeck`.
+  `scheduleNext`, `bubblePlacement(dt:)`, `obstacles` (what the bubble must not cover: the "Com'è andata?" card), `startFollowing/followNow`, `dismissBubble`, `isSpeaking`. Owns a `PhraseDeck`.
 - **Side effects:** creates `BubbleWindow` child windows, timers, reads phrase files through `Quotes.load` at each phrase.
 
-#### `SpeechBubble.swift` (111)
+#### `SpeechBubble.swift` (124)
 - **Responsibility:** `OverlayWindow` (click-through transparent floating window base class, also used by
   `TimerWindow`), `BubbleWindow`, `BubbleView` (draws `bubble.png` scaled; computes size from text).
 - **Key members:** `BubbleView.size(for:)` (tries wrap widths 110…260 pt, scores ellipse proportion + area),
   `draw`, constants `ellipseHeightFraction = 0.837`, `tailTipFraction = 0.825`, `textWidthFraction = 0.65`,
-  `textHeightFraction = 0.55`, static `image`.
+  `textHeightFraction = 0.55`, static `image`, `tailOnRight` (false draws the image mirrored, the text stays upright).
 - **Side effects:** loads `bubble.png` once (static).
 
 #### `Quotes.swift` (36)
@@ -1163,7 +1177,7 @@ file/UserDefaults writes, windows, timers, sound, global state.
 ### 5.9 Tests, build and tools
 
 #### `tests/main.swift` (1,056) and `tests/run.sh` (7)
-- A single executable: `check(_:_:line:)`, `section(_:)`, 34 sections (484 checks) covering subjects, log persistence,
+- A single executable: `check(_:_:line:)`, `section(_:)`, 35 sections (505 checks) covering subjects, log persistence,
   in-progress recovery, periods, summaries, streaks, texts, garden rules, format versions/migration, subject merging, backups and
   delete-all, time zones, profile, ratings/notes/insights/CSV, timer dial math, seasons, ambient settings, music
   library/settings, focus notes, paused-time recovery, companion rewards (including the developer flag), break cycle,
@@ -1655,7 +1669,7 @@ code is clear. Items without a mark still describe the current code.
 
 ### 7.8 Test coverage as it exists
 
-- Covered (34 sections, 484 checks in `tests/main.swift`): everything in the Foundation-only files listed in §4.1,
+- Covered (35 sections, 505 checks in `tests/main.swift`): everything in the Foundation-only files listed in §4.1,
   including the new damaged-data cases and the developer flag.
 - Not covered by any automated test in the repository: `Pomodoro` (timer, pause, grace, the sleep-gap rule, cycle
   wiring), `Speaker` (including when a to-do reminder replaces a phrase), `Walker`, `PetWindow`/`PetView`, `MenuController`,

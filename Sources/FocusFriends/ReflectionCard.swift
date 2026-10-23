@@ -43,6 +43,8 @@ final class ReflectionCard: NSObject {
     }
 
     var isShowing: Bool { panel != nil }
+    /// Dove sta la scheda sullo schermo, se c'è (il fumetto non ci si mette sopra).
+    var visibleFrame: NSRect? { panel?.frame }
 
     /// `completion` riceve il voto scelto (nil se hai scritto solo la nota o hai saltato). `todo` è la voce di «Da fare» da cui era partito il
     /// focus (ancora da fare): `onTodoAnswer` riceve `true` per *Fatta* e `false` per *Non ancora*. Con `askHowItWent` falso la scheda ha solo

@@ -71,6 +71,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         // Ogni tanto, al posto di una frase a caso, una delle frasi «quando rendi meglio» (mai due volte di fila la stessa, mai durante un focus).
         var lastInsight: String?
+        // Il fumetto non va sopra la scheda «Com'è andata?» (che può anche essere spostata).
+        speaker.obstacles = { [weak self] in self?.reflectionCard.visibleFrame.map { [$0] } ?? [] }
         speaker.insight = { [weak self, weak pomodoro] in
             guard let self, pomodoro?.phase != .focus,
                   let text = Remarks.insight(self.remarksContext(), variant: Int.random(in: 0..<10)), text != lastInsight else { return nil }

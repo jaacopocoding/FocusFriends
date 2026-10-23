@@ -126,7 +126,10 @@ final class Speaker {
         lastFollow = Date()
 
         window.bubbleView.text = text
-        window.setFrame(NSRect(origin: bubbleOrigin(dt: nil), size: size), display: true)
+        let placement = bubblePlacement(dt: nil)
+        tailOnRight = placement.tailOnRight
+        window.bubbleView.tailOnRight = placement.tailOnRight
+        window.setFrame(NSRect(origin: placement.origin, size: size), display: true)
         window.alphaValue = 0
 
         // Figlia della finestra del personaggio: se lo trascini, il fumetto lo segue.
@@ -160,6 +163,10 @@ final class Speaker {
     private static let descendSpeed: CGFloat = 140
 
     private var bubbleSize = NSSize.zero
+    /// Quello che il fumetto non deve coprire (la scheda «Com'è andata?»): chi lo mostra lo dice.
+    var obstacles: () -> [NSRect] = { [] }
+    /// Da che parte sta la codina adesso (si specchia vicino ai bordi dello schermo).
+    private var tailOnRight = true
     /// Quanto sta sopra il bordo basso della finestra del personaggio (smussato): così se si sposta la finestra
     /// il fumetto la segue senza ritardi, e conta solo il cambio di altezza del disegno.
     private var heightAbovePet: CGFloat?
@@ -167,31 +174,23 @@ final class Speaker {
     private var lastFollow = Date()
 
     /// Dove mettere il fumetto: sopra tutto ciò che si vede del personaggio (anche l'immagine che sta svanendo,
-    /// o le ali alzate), con la punta della codina sulla sua testa. Se sopra non c'è posto (il personaggio è
-    /// in alto sullo schermo) sta di fianco, mai sopra il disegno.
-    private func bubbleOrigin(dt: TimeInterval?) -> NSPoint {
+    /// o le ali alzate), con la punta della codina sulla sua testa; vicino ai bordi dello schermo si specchia, di fianco
+    /// se sopra non c'è posto, e mai sopra la scheda «Com'è andata?» (la regola è in BubblePlacement).
+    private func bubblePlacement(dt: TimeInterval?) -> BubblePlacement.Result {
         let anchor = petWindow.frame
         let screen = (petWindow.screen ?? NSScreen.main)?.visibleFrame ?? .zero
-        let size = bubbleSize
 
-        let wanted = petWindow.visibleTopY - 6 - anchor.minY
+        let wanted = petWindow.visibleTopY - BubblePlacement.overlap - anchor.minY
         var height = wanted
         if let previous = heightAbovePet, let dt, wanted < previous {
-            height = max(wanted, previous - Self.descendSpeed * CGFloat(dt))
+            // Scende senza rimbalzare (il passo fa ballare il disegno di qualche punto), ma una differenza grande (un disegno molto
+            // più basso) si richiude in fretta.
+            let speed = max(Self.descendSpeed, (previous - wanted) * 3)
+            height = max(wanted, previous - speed * CGFloat(dt))
         }
         heightAbovePet = height
-
-        var x = anchor.midX - size.width * BubbleView.tailTipFraction
-        x = min(max(x, screen.minX + 6), screen.maxX - size.width - 6)
-        let y = anchor.minY + height
-        if y + size.height <= screen.maxY - 4 {
-            return NSPoint(x: x, y: y)
-        }
-        // Di fianco, dal lato con più spazio, all'altezza più alta che lo schermo permette.
-        let onLeft = anchor.midX > screen.midX
-        var sideX = onLeft ? anchor.minX - size.width - 2 : anchor.maxX + 2
-        sideX = min(max(sideX, screen.minX + 6), screen.maxX - size.width - 6)
-        return NSPoint(x: sideX, y: max(screen.maxY - size.height - 4, screen.minY))
+        return BubblePlacement.place(bubble: bubbleSize, anchorX: anchor.midX, topY: anchor.minY + height + BubblePlacement.overlap,
+                                     pet: anchor, screen: screen, obstacles: obstacles(), previousTailOnRight: dt == nil ? nil : tailOnRight)
     }
 
     private func startFollowing() {
@@ -206,7 +205,12 @@ final class Speaker {
         let now = Date()
         let dt = min(now.timeIntervalSince(lastFollow), 0.1)
         lastFollow = now
-        let origin = bubbleOrigin(dt: dt)
+        let placement = bubblePlacement(dt: dt)
+        if placement.tailOnRight != tailOnRight {
+            tailOnRight = placement.tailOnRight
+            window.bubbleView.tailOnRight = placement.tailOnRight
+        }
+        let origin = placement.origin
         if abs(origin.x - window.frame.minX) > 0.25 || abs(origin.y - window.frame.minY) > 0.25 {
             window.setFrameOrigin(origin)
         }

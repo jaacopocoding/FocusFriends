@@ -60,6 +60,8 @@ final class BubbleView: NSView {
     }()
 
     var text = "" { didSet { needsDisplay = true } }
+    /// La codina sta a destra (come nel disegno) o, specchiata, a sinistra: vicino al bordo sinistro dello schermo il fumetto si apre verso il centro.
+    var tailOnRight = true { didSet { needsDisplay = true } }
 
     private static func textSize(_ text: String, width: CGFloat) -> NSSize {
         let rect = (text as NSString).boundingRect(
@@ -90,7 +92,18 @@ final class BubbleView: NSView {
 
     override func draw(_ dirtyRect: NSRect) {
         if let image = Self.image {
-            image.draw(in: bounds, from: .zero, operation: .sourceOver, fraction: 1)
+            if tailOnRight {
+                image.draw(in: bounds, from: .zero, operation: .sourceOver, fraction: 1)
+            } else {
+                // Solo il disegno si specchia: il testo resta dritto.
+                NSGraphicsContext.saveGraphicsState()
+                let flip = NSAffineTransform()
+                flip.translateX(by: bounds.width, yBy: 0)
+                flip.scaleX(by: -1, yBy: 1)
+                flip.concat()
+                image.draw(in: bounds, from: .zero, operation: .sourceOver, fraction: 1)
+                NSGraphicsContext.restoreGraphicsState()
+            }
         } else {
             NSColor(calibratedRed: 0.97, green: 0.92, blue: 0.80, alpha: 1).setFill()
             NSBezierPath(roundedRect: bounds, xRadius: 16, yRadius: 16).fill()
