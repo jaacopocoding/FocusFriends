@@ -64,7 +64,7 @@ Single user per Mac, no accounts, no network: all data is stored locally under
 | App type | Menu-bar "agent": `LSUIElement = true`, activation policy `.accessory` | `build.sh`, `AppDelegate.applicationDidFinishLaunching` |
 | Signing | Ad-hoc (`codesign --force --sign -`; `build.sh` stops with exit 1 if signing fails); not notarised, no hardened runtime or sandbox | `build.sh`, `README.md` "Scaricare e usare" |
 | Asset tooling | Python 3 scripts using Pillow and NumPy (not run at build time) | `tools/*.py` |
-| Tests | One hand-written Swift executable (`tests/main.swift`, 43 sections, 676 checks) that compiles seventeen Foundation-only source files; no XCTest | `tests/run.sh` |
+| Tests | One hand-written Swift executable (`tests/main.swift`, 43 sections, 687 checks) that compiles seventeen Foundation-only source files; no XCTest | `tests/run.sh` |
 | License | MIT (`LICENSE`); bundled music is CC0 (`CREDITS.md`) | `LICENSE`, `CREDITS.md` |
 | Swift toolchain version / Python version | Not pinned anywhere in the repository | **[unknown]** |
 
@@ -155,7 +155,7 @@ FocusFriends/
 │   ├── MusicLibrary.swift        MusicSource, MusicLibrary (file discovery, shuffle, titles), MusicSettings  (Foundation only)
 │   └── MusicPlayer.swift         AVAudioPlayer-based music playback with queue and fades
 ├── tests/
-│   ├── main.swift                hand-rolled test executable (check()/section()), 43 sections, 676 checks
+│   ├── main.swift                hand-rolled test executable (check()/section()), 43 sections, 687 checks
 │   ├── run.sh                    compiles 17 source files + tests/main.swift into build/tests/stats and runs it
 │   ├── genera-attesi.sh          builds and runs tests/genera-attesi/main.swift: for every folder in tests/fixtures/ writes what this app derives from it (the expected results the Windows port is compared with)
 │   ├── simula-regali.sh          simulates the end-of-focus drops over 30/60/90 days of studying (how long an album takes; used to tune GardenDrops)
@@ -169,9 +169,9 @@ FocusFriends/
 │   ├── cutout_picked.py          "picked up by hands" drawing cut-out (generic, takes paths)
 │   ├── cutout_garden.py          5-stage collection sheet → garden_<pet>_1..5 on the 208×341 canvas (used for the live growth during a focus)
 │   ├── cutout_giardino.py        the three 4×3 object sheets (white or magenta background) → one PNG per object + the 2× meadow
-│   ├── cutout_paesaggio.py       the landscape sheet (house, trees, firs, bushes, hedges, fence, logs on magenta, not in a grid) → paesaggio_<name>.png
-│   ├── prepara_sfondo.py         sfondo_original.png → sfondo.png: 2× upscale, covers the lake islet, composes the cottage and trees; prints the chimney/window positions
-│   ├── cutout_bordo.py           the strips of earth edge (on white) → bordo_1..3.png: background removed, same size, faded ends
+│   ├── cutout_paesaggio.py       the landscape sheets, summer and winter (house, trees, firs, bushes, hedges, fence, logs on magenta, not in a grid) → paesaggio_<name>.png, paesaggio_inverno_<name>.png
+│   ├── prepara_sfondo.py         sfondo_original.png → sfondo.png (2× upscale, covers the lake islet, composes the cottage and trees) and the same for the frozen lake → sfondo_inverno.png; prints the chimney/window positions
+│   ├── cutout_bordo.py           the strips of earth edge (on white), for the grass and for the winter sheet → bordo_1..3.png, bordo_neve_1..3.png: background removed, same size, faded ends
 │   ├── cutout_dettagli.py        the 6×4 sheet of small details on magenta → dettaglio_1..24.png (uses cutout_giardino's magenta removal)
 │   ├── cutout_tessere.py         the terrain sheets (top-down squares in a grid with a dark outline) → 320×160 diamond tiles: crops each cell's centre, squares it, maps it to a 2:1 diamond (affine, antialiased edge)
 │   ├── cutout_album.py           the album's cover and double-page sheets (magenta background; the spread keeps its canvas) → assets/album/*.png
@@ -186,7 +186,7 @@ FocusFriends/
 │   ├── ciccio/                   walk_original.png, flap_original.png, frame1..13.png, picked(.png/_original.png)
 │   ├── gattino/                  idle/walk/eat/sleep/groom_original.png sheets, frame1..23.png, picked(.png/_original.png)
 │   ├── garden/                   garden_<pet>_1..5.png (ciccio, porcellino), growth_porcellino_1..5.png, *_original sheets (live growth)
-│   ├── giardino/                 fiori/compagni/arredi_original.png sheets, prato_original.png, 36 object PNGs, prato.png, erba_original.png and sentiero_original.png (terrain sheets), tessera_erba_1..12.png and tessera_sentiero_1..8.png (diamond tiles), bordo_original.png and bordo_1..3.png (earth edge strips), sfondo_original.png, sfondo.png and paesaggio_original.png with the 12 paesaggio_<name>.png pieces, dettagli_original.png and dettaglio_1..24.png (the scattered details)
+│   ├── giardino/                 fiori/compagni/arredi_original.png sheets, prato_original.png, 36 object PNGs, prato.png, erba_original.png and sentiero_original.png (terrain sheets), tessera_erba_1..12.png, tessera_sentiero_1..8.png, tessera_neve_1..12.png and tessera_sentiero_neve_1..8.png (diamond tiles), bordo_original.png, bordo_1..3.png, bordo_neve_original.png and bordo_neve_1..3.png (earth edge strips), sfondo_original.png, sfondo.png and paesaggio_original.png with the 12 paesaggio_<name>.png pieces, sfondo_inverno_original.png, sfondo_inverno.png and paesaggio_inverno_original.png with the 9 paesaggio_inverno_<name>.png pieces, neve_original.png and sentiero_neve_original.png (the snow sheets), dettagli_original.png and dettaglio_1..24.png (the scattered details)
 │   ├── album/                    copertina(.png/_original.png), doppia_pagina(.png/_original.png), guida_doppia_pagina_original.png (layout guide given to the image generator)
 │   └── music/                    5 AAC (.m4a) tracks: boredom, love, night-driving, old-age, opinions
 ├── docs/images/                  PNG screenshots/logo used only by README.md (sample data); giardino.png and album.png are the garden and the album, da-fare.png the to-do page
@@ -524,24 +524,33 @@ code. All UI code runs on the main thread; the only other thread is the audio re
   the previous one and from the tile above its first tile (after up to four draws), with weights (`grassWeights`, `pathWeights`) that make the plain tiles
   common and the pebbly/mossy ones rare. A choice depends only on `col,row` (or the index along the path) and on earlier choices, never on the island's size,
   so growing the island keeps what was there. `GardenDrops.mixedHash` (the FNV-1a hash plus a MurmurHash3 finaliser) is used so that near texts give unrelated
-  numbers. In autumn the tiles are multiplied by a warm colour; in winter, until there is a drawn snow sheet, the code-drawn white tiles are used; if any
-  image of a set (grass or path) is missing, that set falls back to the code-drawn version.
+  numbers. In autumn the tiles are multiplied by a warm colour. **In winter** the sets are the 12 snow tiles (`tessera_neve_<n>.png`) and the 8 snowy path
+  tiles (`tessera_sentiero_neve_<n>.png`), with their own weights (`snowWeights`, `snowPathWeights`; `GardenTerrain.grassWeights(season:)` /
+  `pathWeights(season:)` pick the set), the same runs, and a separate cached grid (`grassGrids` is keyed by size and winter); `tools/cutout_tessere.py` reads
+  the snow sheets from explicit cell boxes (`CELLS`: the cells do not share borders, and in the path sheet two are too short to square without blur, so
+  they are left out). If any image of a set is missing, that set falls back to the code-drawn version.
 - **Backdrop and scenery** (`MeadowBackdrop`): `giardino_sfondo.png` (2048×1012) is made offline by `tools/prepara_sfondo.py` from Gemini's landscape: it is
   upscaled 2× (Lanczos); the small islet painted in the lake is covered by a harmonic fill (`harmonic_fill`: the masked area is solved as the average of its
   surroundings, coarse to fine); the house, trees and firs cut by `tools/cutout_paesaggio.py` (12 pieces found as groups of nearby opaque pixels and matched to
   names by position on the sheet) are composed on the far shores, blurred 0.7 px and lightened 14 % toward the haze colour. The script prints the chimney and
   window positions as fractions of the image, which are copied to `MeadowBackdrop.chimney`/`windows` (with the old values when only `giardino_prato.png`
   exists) together with `houseScale` (0.5: smoke and window glows are smaller on the small house). `MeadowBackdrop.scenePoint(u:v:in:)` maps them through the
-  same aspect-fill crop used to draw the backdrop. The garden draws it with `blur: 2` (σ in 2× pixels = 4); the album with none.
+  same aspect-fill crop used to draw the backdrop. The garden draws it with `blur: 2` (σ in 2× pixels = 4); the album with none. Every call takes a `Season`:
+  in winter `giardino_sfondo_inverno.png` is used (frozen lake, no islet to cover, the snowy cottage and trees of `paesaggio_inverno_*.png` composed by the
+  same script; its windows are the yellow blobs found by `house_marks()` in the cut-out house and its chimney the highest point, printed as the other numbers),
+  with a cool veil and cool dark edges instead of the warm ones; if the winter picture is missing the usual landscape is used. The season shown is
+  `GardenSky.shownSeason(date:calendar:defaults:)` (the calendar, or the hidden `gardenSeason` value), shared by the garden and the album.
 - **Earth edge** (`GardenTerrain.edgeSequence(face:count:)`, `drawEdgeStrip`): the island's two visible sides are the three strips `bordo_<n>.png`
-  (made by `tools/cutout_bordo.py` from a sheet of strips on white: the white connected to the border is removed, the strips are scaled to the same size —
+  (made by `tools/cutout_bordo.py` from a sheet of strips on white: the white connected to the border is removed — for the winter sheet, whose snow is as white as
+  the paper, first the dark outline is thickened by 3 px so that a tiny gap in it does not let the background into the snow —, the strips are scaled to the same size —
   24 px of grass above the line where the soil starts, 110 px of soil — and the ends fade out over 30 px). They are drawn **after** the tiles, along each
   edge with a shear (`slope ±½`) clipped to the face, one after the other overlapping by the fade width, each different from the previous one and mirrored
-  every other time; the right face uses pre-darkened copies. The height is `Iso.edge` = 26 % of a tile width (so zoom keeps the proportions), while
+  every other time; the right face uses pre-darkened copies. In winter the strips are `bordo_neve_<n>.png` (snow on top, icicles, cold soil). The height is `Iso.edge` = 26 % of a tile width (so zoom keeps the proportions), while
   `Iso.thickness` stays the fixed room reserved below the island in the layout. Without the images the plain brown sides are drawn.
 - **Decals** (`GardenTerrain.decals(col:row:season:onPath:)`, pure): the 24 details of `dettaglio_<n>.png` (`DecalGroup`: tufts 1–4, clover 5–6, flowers 7–10,
   stones 11–13, leaves 14–17, petals 18–20, snow 21–24) are scattered by a table of rules per season (chance, at most N, a size in tile widths) and per
-  kind of tile (the path gets only stones and what falls in the season). Position `(u, v)` inside the tile, image, size and mirroring come from
+  kind of tile (the path gets only stones and what falls in the season). In winter there are fewer (snow 22 %, stones 5 %, no green tufts): the snow tiles already
+  have their tracks, twigs and mounds. Position `(u, v)` inside the tile, image, size and mirroring come from
   `mixedHash` of the tile, group and index, so they never change for the same tile and season. `paintIslandGround` draws them after the tiles, sorted by
   `col + row + u + v`, inside the cached ground image.
 - **Drawing order:** `drawStaticScene` (the backdrop with the season's veil, the island ground — shadow, two sides, tiles, paths, details —, and the light of the
@@ -637,7 +646,7 @@ code. All UI code runs on the main thread; the only other thread is the audio re
     music (`music_*`), garden/growth art, Pianty stage frames → write `Info.plist` via heredoc →
     `codesign --force --sign -` (a failure prints an error and exits 1) → print the path.
   - `tests/run.sh`: `swiftc -O -o build/tests/stats` on fourteen source files + `tests/main.swift` →
-    `build/tests/stats` (prints `• <section>` lines and `N controlli, M falliti`, exit code 0/1; 676 checks now).
+    `build/tests/stats` (prints `• <section>` lines and `N controlli, M falliti`, exit code 0/1; 687 checks now).
   - Tools: described in §5.9; they read `assets/**/*_original.png` / sheets and write processed PNGs or the icon.
 
 ### 3.22 To-do list ("Da fare")
@@ -1314,7 +1323,7 @@ file/UserDefaults writes, windows, timers, sound, global state.
 ### 5.9 Tests, build and tools
 
 #### `tests/main.swift` (1,056) and `tests/run.sh` (7)
-- A single executable: `check(_:_:line:)`, `section(_:)`, 43 sections (676 checks) covering subjects, log persistence,
+- A single executable: `check(_:_:line:)`, `section(_:)`, 43 sections (687 checks) covering subjects, log persistence,
   in-progress recovery, periods, summaries, streaks, texts, garden rules, format versions/migration, subject merging, backups and
   delete-all, time zones, profile, ratings/notes/insights/CSV, timer dial math, seasons, ambient settings, music
   library/settings, focus notes, paused-time recovery, companion rewards (including the developer flag), break cycle,
@@ -1806,7 +1815,7 @@ code is clear. Items without a mark still describe the current code.
 
 ### 7.8 Test coverage as it exists
 
-- Covered (43 sections, 676 checks in `tests/main.swift`): everything in the Foundation-only files listed in §4.1,
+- Covered (43 sections, 687 checks in `tests/main.swift`): everything in the Foundation-only files listed in §4.1,
   including the new damaged-data cases and the developer flag.
 - Not covered by any automated test in the repository: `Pomodoro` (timer, pause, grace, the sleep-gap rule, cycle
   wiring), `Speaker` (including when a to-do reminder replaces a phrase), `Walker`, `PetWindow`/`PetView`, `MenuController`,

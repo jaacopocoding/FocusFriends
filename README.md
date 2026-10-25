@@ -385,14 +385,23 @@ quattro tessere (la panchina 2×1, la casetta del gatto 2×2…), sempre della s
 
 Il terreno è **disegnato**: dodici tessere d'erba (liscia, con ciuffi, trifogli, margheritine, fiorellini, sassi, foglie, muschio, erba alta) e otto
 di sentiero (lastre, ciottoli, pietre irregolari, con l'erba o col muschio). Vanno a **chiazze di 2 o 3 uguali** di seguito, in modo sempre uguale
-per la stessa tessera (`GardenTerrain`, in `GardenGrid.swift`) e senza cambiare quando l'isola si allarga. In autunno prendono una tinta ocra;
-d'inverno, finché non c'è la neve disegnata, si usa il terreno bianco disegnato dal codice.
+per la stessa tessera (`GardenTerrain`, in `GardenGrid.swift`) e senza cambiare quando l'isola si allarga. In autunno prendono una tinta ocra.
+
+**D'inverno** il terreno è un altro, tutto di neve disegnata: dodici tessere (neve liscia, a ondulazioni, a cumuli, con le orme di un uccellino e di un
+gatto, ciuffi secchi, rametti, aghi di pino, ghiaccio, sassi che spuntano, qualche bacca; `tessera_neve_1..12.png`) e otto di sentiero innevato (lastre,
+ciottoli, pietre irregolari con la neve nelle fessure, ghiaccio, neve calpestata; `tessera_sentiero_neve_1..8.png`), sempre a chiazze di 2 o 3 e con i
+loro pesi (`snowWeights`, `snowPathWeights`). I lati diventano zolle con la neve sopra, i ghiaccioli e la terra fredda (`bordo_neve_1..3.png`), e i
+dettagli sparsi sono pochi (le tessere hanno già le loro orme): qualche cumulo di neve e qualche sasso, mai erba verde. Per provarlo fuori stagione:
+`defaults write com.jacopo.focusfriends gardenSeason -string winter` (e `defaults delete com.jacopo.focusfriends gardenSeason` per toglierlo).
 
 Lo **sfondo** è un paesaggio di Gemini (`assets/giardino/sfondo_original.png`: colline, cielo e un lago) preparato da `tools/prepara_sfondo.py`: lo
 ingrandisce a 2048×1012, copre con una sfumatura la piccola isola che Gemini aveva dipinto in mezzo al lago (la nostra ci sta sopra) e compone
 sulle rive lontane il **casale**, gli alberi e gli abeti ritagliati dal foglio del paesaggio (`paesaggio_original.png`, `tools/cutout_paesaggio.py`),
 un po' sfocati e schiariti come le cose lontane. Il fumo del camino e le finestre accese di sera stanno sul casale composto (`MeadowBackdrop.chimney`
-e `windows`). È lo stesso sfondo dell'album. Le siepi, lo steccato e il tronco dello stesso foglio sono già ritagliati (`paesaggio_siepe-…`,
+e `windows`). È lo stesso sfondo dell'album. **D'inverno** c'è un altro paesaggio (`sfondo_inverno_original.png`, `paesaggio_inverno_original.png`):
+il lago è ghiacciato, le colline sono coperte di neve e sulle rive, al posto del casale d'estate, ci sono quello con la neve sul tetto e le finestre già
+accese di giallo, tre alberi spogli, due abeti e dei cespugli innevati (lo stesso script, `prepara_sfondo.py`, lo compone; le finestre e il camino li trova da
+sé nel disegno). Il fumo esce dal camino e di sera le finestre si accendono di più, come nelle altre stagioni. Le siepi, lo steccato e il tronco dello stesso foglio sono già ritagliati (`paesaggio_siepe-…`,
 `paesaggio_steccato`, `paesaggio_tronchi`) e aspettano di diventare oggetti da collezione.
 
 I **lati dell'isola** sono strisce di terra disegnate (`assets/giardino/bordo_1..3.png`): una zolla vista di fronte con il bordo d'erba, radici, sassi e
