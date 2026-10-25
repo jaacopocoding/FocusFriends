@@ -687,6 +687,23 @@ enum MeadowBackdrop {
 
     private static func rgb(_ r: CGFloat, _ g: CGFloat, _ b: CGFloat, _ a: CGFloat = 1) -> NSColor { NSColor(calibratedRed: r, green: g, blue: b, alpha: a) }
 
+    private static let sourcePixels: CGSize? = meadowURL.flatMap { CIImage(contentsOf: $0) }.map { $0.extent.size }
+
+    /// Dove cade, nella scena (origine in alto), un punto del disegno del prato (`u` e `v` da 0 a 1 dall'angolo in alto a sinistra), con lo
+    /// stesso ritaglio con cui si disegna lo sfondo: serve a mettere il fumo sul camino e la luce alle finestre del casale.
+    static func scenePoint(u: Double, v: Double, in size: NSSize) -> NSPoint? {
+        guard let source = sourcePixels else { return nil }
+        let target = CGSize(width: size.width * 2, height: size.height * 2)
+        let scale = max(target.width / source.width, target.height / source.height)
+        let scaled = CGSize(width: source.width * scale, height: source.height * scale)
+        let cropX = (scaled.width - target.width) * 0.40
+        return NSPoint(x: (CGFloat(u) * scaled.width - cropX) / 2, y: (target.height - CGFloat(1 - v) * scaled.height) / 2)
+    }
+
+    /// Dove stanno, nel disegno del prato, la bocca del camino e le finestre del casale (frazioni dell'immagine).
+    static let chimney = (u: 0.305, v: 0.229)
+    static let windows = [(u: 0.376, v: 0.346), (u: 0.310, v: 0.440)]
+
     /// Disegna lo sfondo (nella vista capovolta: l'origine è in alto).
     /// `veil`: il velo di colore che si stende sopra (di norma uno caldo; il giardino ne usa uno per stagione).
     static func draw(in bounds: NSRect, blur: CGFloat = 0, veil: NSColor? = nil) {

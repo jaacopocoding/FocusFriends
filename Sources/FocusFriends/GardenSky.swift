@@ -176,4 +176,65 @@ enum GardenSky {
         let pulse = (sin(time * (0.7 + unit(index, 29) * 0.9) + unit(index, 30) * 6.28) + 1) / 2
         return (x, y, pow(pulse, 2.2))
     }
+
+    // MARK: - Il vento, l'acqua e il fumo (la vita ferma)
+
+    /// Quanto soffia il vento in una stagione (1 = molto, quasi fermo d'estate).
+    static func wind(_ season: Season) -> Double {
+        switch season {
+        case .spring: return 0.8
+        case .summer: return 0.45
+        case .autumn: return 1.0
+        case .winter: return 0.9
+        }
+    }
+
+    /// Di quanto si sposta di lato la cima di una pianta (da −1 a 1, da moltiplicare per i pixel che si vogliono). `height` è dove si guarda,
+    /// da 0 (la base, che sta ferma) a 1 (la cima, che oscilla di più). L'onda attraversa l'isola (dipende da `col` e `row`), `seed` (da 0 a 1)
+    /// è diverso per ogni pianta, e un soffio più forte ogni tanto fa muovere tutto di più.
+    static func sway(time: Double, col: Int, row: Int, seed: Double, height: Double) -> Double {
+        let gust = 0.65 + 0.35 * sin(time * 0.11 + 1.3)
+        let wave = sin(time * 0.95 - Double(col + row) * 0.45 + seed * 6.283) * 0.75 + sin(time * 2.1 + seed * 12.5) * 0.25
+        return wave * gust * pow(min(max(height, 0), 1), 1.6)
+    }
+
+    static let sparkleCount = 3
+
+    /// Un luccichio sull'acqua del bagnetto: dove (da −1 a 1 dentro l'ovale dell'acqua) e quanto brilla (brevi lampi a ritmi diversi).
+    static func sparkle(index: Int, time: Double) -> (x: Double, y: Double, glow: Double) {
+        let angle = unit(index, 41) * 2 * Double.pi, radius = sqrt(unit(index, 42)) * 0.78
+        let flash = max(0, sin(time * (1.1 + unit(index, 43) * 1.3) + unit(index, 44) * 6.28))
+        return (cos(angle) * radius, sin(angle) * radius, pow(flash, 6))
+    }
+
+    /// Il cerchio che si allarga sull'acqua, come per una goccia: ogni 3,4 secondi nasce in un punto (da −0,5 a 0,5 dell'ovale) e svanisce
+    /// crescendo (`phase` da 0 a 1).
+    static func ripple(time: Double, seed: Double) -> (x: Double, y: Double, phase: Double, alpha: Double) {
+        let cycle = 3.4
+        let shifted = time / cycle + seed
+        let number = Int(shifted.rounded(.down))
+        let phase = shifted - Double(number)
+        return (unit(number, 51) - 0.5, (unit(number, 52) - 0.5) * 0.7, phase, (1 - phase) * min(phase * 8, 1) * 0.55)
+    }
+
+    /// Quanto fuma il camino: tanto d'inverno, un filo d'estate.
+    static func smokeAmount(_ season: Season) -> Double {
+        switch season {
+        case .spring: return 0.5
+        case .summer: return 0.15
+        case .autumn: return 0.85
+        case .winter: return 1
+        }
+    }
+
+    static let smokeCount = 9
+
+    /// Uno sbuffo di fumo (a partire dalla bocca del camino, in punti, con l'alto che è negativo): sale, si allarga, si piega col vento e svanisce.
+    static func smoke(index: Int, time: Double, wind: Double) -> (dx: Double, dy: Double, radius: Double, alpha: Double) {
+        let life = 7.0
+        let shifted = (time + Double(index) * life / Double(smokeCount)) / life
+        let t = shifted - shifted.rounded(.down)
+        let dx = sin(t * 2.6 + Double(index) * 1.7) * 7 + t * t * 34 * wind
+        return (dx, -t * 92, 3 + 15 * pow(t, 0.8), min(1, t * 7) * pow(1 - t, 1.3) * 0.6)
+    }
 }

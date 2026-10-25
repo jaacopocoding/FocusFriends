@@ -312,6 +312,11 @@ final class GardenView: NSView, NSViewToolTipOwner {
         var turned: Bool
         /// Chi ha il numero più alto sta davanti.
         var depth: Double
+        /// Quanto ondeggia col vento (0 = fermo), da dove parte l'onda, e dov'è l'acqua nel disegno, se c'è.
+        var sway = 0.0
+        var seed = 0.0
+        var tile = GardenTile(col: 0, row: 0)
+        var water: (u: Double, v: Double, halfWidth: Double, halfHeight: Double)?
     }
 
     private func entity(kind: Kind, resource: String, referenceHeight: Double, feet: NSPoint, shadowWidth: CGFloat?, turned: Bool,
@@ -352,8 +357,12 @@ final class GardenView: NSView, NSViewToolTipOwner {
             let feet = NSPoint(x: ground.x, y: ground.y + iso.tileH * Self.feetOffset)
             let front = Double(placement.col + footprint.cols - 1 + placement.row + footprint.rows - 1)
             let shadowWidth = item.castsShadow ? min(iso.tileW * 0.62 * CGFloat(max(footprint.cols, footprint.rows)), iso.tileW * 1.3) : nil
-            guard let made = entity(kind: .placed(placement.id), resource: item.resource, referenceHeight: item.height, feet: feet,
+            guard var made = entity(kind: .placed(placement.id), resource: item.resource, referenceHeight: item.height, feet: feet,
                                     shadowWidth: shadowWidth, turned: placement.turned, depth: front + 0.5, iso: iso) else { continue }
+            made.sway = item.swayStrength
+            made.seed = Double(GardenDrops.hash(placement.id.uuidString) % 1000) / 1000
+            made.tile = placement.tile
+            made.water = item.waterSpot
             result.append(made)
         }
         for (index, pet) in Pet.all.enumerated() where profile.isCompanionUnlocked(pet.id) {
@@ -386,6 +395,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
     /// Fa fare un passo ai compagni (`dt` secondi): ogni tanto uno si sposta su una tessera libera accanto. Ritorna true se qualcuno si muove.
     @discardableResult
     func advanceWalkers(by dt: TimeInterval) -> Bool {
+        if reduceMotion { return false }
         let size = garden.islandSize
         let occupied = garden.occupiedTiles()
         var moving = false
@@ -424,8 +434,8 @@ final class GardenView: NSView, NSViewToolTipOwner {
     private func startWalking() {
         walkTimer?.invalidate()
         lastWalkTick = Date()
-        let timer = Timer(timeInterval: 1.0 / 30, repeats: true) { [weak self] _ in
-            guard let self, self.window?.isVisible == true else { return }
+        let timer = Timer(timeInterval: 1.0 / 24, repeats: true) { [weak self] _ in
+            guard let self, let window = self.window, window.isVisible, window.occlusionState.contains(.visible) else { return }
             let elapsed = min(Date().timeIntervalSince(self.lastWalkTick), 0.2)
             self.lastWalkTick = Date()
             let walking = self.advanceWalkers(by: elapsed)
@@ -619,13 +629,18 @@ final class GardenView: NSView, NSViewToolTipOwner {
         MeadowBackdrop.draw(in: sceneRect, blur: 5, veil: palette(sky.season).veil)
         let iso = self.iso
         let target = carryTarget()
+        drawChimneySmoke(season: sky.season)
         drawIsland(iso, highlight: target, season: sky.season)
         let laid = entities()
-        for entity in laid { drawEntity(entity) }
+        for entity in laid {
+            drawEntity(entity)
+            if let spot = entity.water { drawWater(entity, spot: spot, light: sky.light) }
+        }
         drawGhost(target, iso: iso)
         drawWeather(sky.season)
         applyLight(sky.light)
         drawLampGlows(laid, iso: iso, light: sky.light)
+        drawCottageWindows(light: sky.light, iso: iso)
         drawFireflies(season: sky.season, light: sky.light)
         if let bubble, let owner = laid.first(where: { $0.kind == .companion(bubble.petID) }) {
             drawBubble(bubble.text, above: owner.rect)
@@ -692,7 +707,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
 
     /// Petali, foglie o neve che cadono, a seconda della stagione.
     private func drawWeather(_ season: Season) {
-        guard let kind = GardenSky.particleKind(season) else { return }
+        guard let kind = GardenSky.particleKind(season), !reduceMotion else { return }
         let time = effectsClock()
         let leafColors = [Self.color(214, 120, 50), Self.color(190, 84, 44), Self.color(226, 168, 60), Self.color(150, 104, 52)]
         for index in 0..<GardenSky.particleCount(kind) {
@@ -764,7 +779,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
     /// Le lucciole: di sera, soprattutto d'estate.
     private func drawFireflies(season: Season, light: GardenLight) {
         let amount = CGFloat(GardenSky.fireflyAmount(season: season, light: light))
-        guard amount > 0.01 else { return }
+        guard amount > 0.01, !reduceMotion else { return }
         let time = effectsClock()
         NSGraphicsContext.saveGraphicsState()
         NSGraphicsContext.current?.cgContext.setBlendMode(.plusLighter)
@@ -782,10 +797,122 @@ final class GardenView: NSView, NSViewToolTipOwner {
         NSGraphicsContext.restoreGraphicsState()
     }
 
-    /// C'è qualcosa che si muove nel cielo (e quindi si ridisegna di continuo)?
-    private func skyIsAnimated() -> Bool {
-        let sky = skyState()
-        return GardenSky.particleKind(sky.season) != nil || GardenSky.fireflyAmount(season: sky.season, light: sky.light) > 0.01
+    /// C'è qualcosa che si muove (le piante nel vento, il fumo, l'acqua, e quello che cade o vola) e quindi si ridisegna di continuo?
+    /// Con «Riduci movimento» no.
+    private func skyIsAnimated() -> Bool { !reduceMotion }
+
+    // MARK: - La vita ferma: piante nel vento, acqua che luccica, fumo dal camino
+
+    /// Chi ha chiesto «Riduci movimento» nelle impostazioni di accessibilità: niente vento, fumo, neve, lucciole né passeggiate.
+    private var reduceMotion: Bool { NSWorkspace.shared.accessibilityDisplayShouldReduceMotion }
+
+    /// Disegna una pianta piegata dal vento: a strisce orizzontali, ognuna spostata di lato un po' di più della sottostante, così la base
+    /// sta ferma e la cima oscilla.
+    private func drawSwaying(_ entity: Entity, rect: NSRect, alpha: CGFloat) {
+        let iso = self.iso
+        let time = effectsClock()
+        let wind = GardenSky.wind(skyState().season)
+        let amplitude = CGFloat(entity.sway * wind) * 2.6 * iso.tileW / 94
+        let strips = 14
+        let source = entity.sprite.source
+        for index in 0..<strips {
+            let top = CGFloat(index) / CGFloat(strips), bottom = CGFloat(index + 1) / CGFloat(strips)
+            let height = 1 - Double(top + bottom) / 2
+            let dx = CGFloat(GardenSky.sway(time: time, col: entity.tile.col, row: entity.tile.row, seed: entity.seed, height: height)) * amplitude
+            let overlap: CGFloat = index == strips - 1 ? 0 : 0.8
+            let target = NSRect(x: rect.minX + dx, y: rect.minY + top * rect.height, width: rect.width, height: (bottom - top) * rect.height + overlap)
+            let overlapInSource = overlap / rect.height * source.height
+            let piece = NSRect(x: source.minX, y: source.minY + (1 - bottom) * source.height - overlapInSource, width: source.width,
+                               height: (bottom - top) * source.height + overlapInSource)
+            entity.sprite.image.draw(in: target, from: piece, operation: .sourceOver, fraction: alpha, respectFlipped: true,
+                                     hints: [.interpolation: NSImageInterpolation.high])
+        }
+    }
+
+    /// I luccichii e il cerchio d'acqua sulla vaschetta del bagnetto.
+    private func drawWater(_ entity: Entity, spot: (u: Double, v: Double, halfWidth: Double, halfHeight: Double), light: GardenLight) {
+        let rect = entity.rect
+        let center = NSPoint(x: rect.minX + CGFloat(spot.u) * rect.width, y: rect.minY + CGFloat(spot.v) * rect.height)
+        let halfW = CGFloat(spot.halfWidth) * rect.width, halfH = CGFloat(spot.halfHeight) * rect.height
+        let time = reduceMotion ? 0 : effectsClock()
+        NSGraphicsContext.saveGraphicsState()
+        NSBezierPath(ovalIn: NSRect(x: center.x - halfW, y: center.y - halfH, width: halfW * 2, height: halfH * 2)).addClip()
+        // il cerchio di una goccia
+        let ripple = GardenSky.ripple(time: time, seed: Double(entity.tile.col * 7 + entity.tile.row * 3) / 31)
+        if !reduceMotion, ripple.alpha > 0.01 {
+            let r = CGFloat(ripple.phase)
+            let ring = NSBezierPath(ovalIn: NSRect(x: center.x + CGFloat(ripple.x) * halfW - r * halfW * 0.5, y: center.y + CGFloat(ripple.y) * halfH - r * halfH * 0.5,
+                                                   width: r * halfW, height: r * halfH))
+            NSColor.white.withAlphaComponent(CGFloat(ripple.alpha)).setStroke()
+            ring.lineWidth = 1
+            ring.stroke()
+        }
+        // i luccichii (di notte più piano)
+        NSGraphicsContext.current?.cgContext.setBlendMode(.plusLighter)
+        let strength: CGFloat = 1 - CGFloat(light.darkness) * 0.8
+        for index in 0..<GardenSky.sparkleCount {
+            let s = GardenSky.sparkle(index: index, time: time)
+            let a = CGFloat(s.glow) * strength
+            guard a > 0.03 else { continue }
+            let c = NSPoint(x: center.x + CGFloat(s.x) * halfW, y: center.y + CGFloat(s.y) * halfH)
+            NSGradient(colors: [NSColor.white.withAlphaComponent(0.8 * a), NSColor.white.withAlphaComponent(0)])?
+                .draw(fromCenter: c, radius: 0, toCenter: c, radius: 4.5, options: [])
+            NSColor.white.withAlphaComponent(min(1, a * 1.2)).setFill()
+            NSBezierPath(ovalIn: NSRect(x: c.x - 1, y: c.y - 1, width: 2, height: 2)).fill()
+        }
+        NSGraphicsContext.restoreGraphicsState()
+    }
+
+    /// Il fumo che esce dal camino del casale (sullo sfondo, dietro l'isola): sbuffi chiari che salgono e si piegano col vento.
+    private func drawChimneySmoke(season: Season) {
+        let amount = GardenSky.smokeAmount(season)
+        guard amount > 0.01, let mouth = MeadowBackdrop.scenePoint(u: MeadowBackdrop.chimney.u, v: MeadowBackdrop.chimney.v, in: Self.sceneSize) else { return }
+        let time = reduceMotion ? 3 : effectsClock()
+        let wind = GardenSky.wind(season)
+        let color = Self.color(226, 222, 224)
+        for index in 0..<GardenSky.smokeCount {
+            let puff = GardenSky.smoke(index: index, time: time, wind: wind)
+            let a = min(CGFloat(puff.alpha * amount) * 1.5, 0.8)
+            guard a > 0.01 else { continue }
+            let c = NSPoint(x: mouth.x + CGFloat(puff.dx), y: mouth.y + CGFloat(puff.dy))
+            NSGradient(colors: [color.withAlphaComponent(a), color.withAlphaComponent(a * 0.55), color.withAlphaComponent(0)])?
+                .draw(fromCenter: c, radius: 0, toCenter: c, radius: CGFloat(puff.radius) * 1.7, options: [])
+        }
+    }
+
+    /// Di sera le finestre del casale si accendono (non sopra l'isola, che sta davanti).
+    private func drawCottageWindows(light: GardenLight, iso: Iso) {
+        let strength = CGFloat(light.lamp)
+        guard strength > 0.02 else { return }
+        NSGraphicsContext.saveGraphicsState()
+        let clip = NSBezierPath(rect: sceneRect.insetBy(dx: -20, dy: -20))
+        clip.append(islandOutline(iso))
+        clip.windingRule = .evenOdd
+        clip.addClip()
+        NSGraphicsContext.current?.cgContext.setBlendMode(.plusLighter)
+        let warm = Self.color(255, 208, 120)
+        for window in MeadowBackdrop.windows {
+            guard let c = MeadowBackdrop.scenePoint(u: window.u, v: window.v, in: Self.sceneSize) else { continue }
+            NSGradient(colors: [warm.withAlphaComponent(0.8 * strength), warm.withAlphaComponent(0.25 * strength), warm.withAlphaComponent(0)])?
+                .draw(fromCenter: c, radius: 0, toCenter: c, radius: 20, options: [])
+        }
+        NSGraphicsContext.restoreGraphicsState()
+    }
+
+    /// Il contorno dell'isola con i suoi lati di terra.
+    private func islandOutline(_ iso: Iso) -> NSBezierPath {
+        let n = Double(iso.size)
+        let top = iso.point(col: 0, row: 0), right = iso.point(col: n, row: 0), front = iso.point(col: n, row: n), left = iso.point(col: 0, row: n)
+        let t = Iso.thickness
+        let path = NSBezierPath()
+        path.move(to: top)
+        path.line(to: right)
+        path.line(to: NSPoint(x: right.x, y: right.y + t))
+        path.line(to: NSPoint(x: front.x, y: front.y + t))
+        path.line(to: NSPoint(x: left.x, y: left.y + t))
+        path.line(to: left)
+        path.close()
+        return path
     }
 
     // MARK: - L'isola
@@ -897,8 +1024,12 @@ final class GardenView: NSView, NSViewToolTipOwner {
             flip.translateX(by: -rect.midX, yBy: 0)
             flip.concat()
         }
-        entity.sprite.image.draw(in: rect, from: entity.sprite.source, operation: .sourceOver, fraction: alpha,
-                                 respectFlipped: true, hints: [.interpolation: NSImageInterpolation.high])
+        if entity.sway > 0, lift == 0, !reduceMotion {
+            drawSwaying(entity, rect: rect, alpha: alpha)
+        } else {
+            entity.sprite.image.draw(in: rect, from: entity.sprite.source, operation: .sourceOver, fraction: alpha,
+                                     respectFlipped: true, hints: [.interpolation: NSImageInterpolation.high])
+        }
         NSGraphicsContext.restoreGraphicsState()
     }
 

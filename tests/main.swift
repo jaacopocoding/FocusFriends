@@ -1152,6 +1152,37 @@ for kind in [GardenParticleKind.petal, .leaf, .snow] {
 }
 check(Set((0..<26).map { GardenSky.particle(kind: .petal, index: $0, time: 0, width: 1000, height: 600).x }).count == 26, "ogni petalo parte da un punto diverso")
 
+// ---------------------------------------------------------------- giardino: la vita ferma
+section("Giardino: vento, acqua e fumo")
+check(Season.allCases.allSatisfy { GardenSky.wind($0) > 0 && GardenSky.wind($0) <= 1 } && GardenSky.wind(.summer) < GardenSky.wind(.autumn), "il vento: d'estate soffia meno che d'autunno")
+let swaySamples = (0..<200).flatMap { i in [0.0, 0.3, 0.7, 1.0].map { GardenSky.sway(time: Double(i) * 0.37, col: i % 10, row: (i / 3) % 10, seed: Double(i % 7) / 7, height: $0) } }
+check(swaySamples.allSatisfy { abs($0) <= 1 }, "l'ondeggiamento sta fra −1 e 1")
+check((0..<100).allSatisfy { GardenSky.sway(time: Double($0) * 0.5, col: 3, row: 4, seed: 0.4, height: 0) == 0 }, "la base di una pianta sta ferma")
+check((0..<100).allSatisfy { abs(GardenSky.sway(time: Double($0) * 0.5, col: 3, row: 4, seed: 0.4, height: 0.4)) <= abs(GardenSky.sway(time: Double($0) * 0.5, col: 3, row: 4, seed: 0.4, height: 1)) + 1e-12 }, "più in alto, più si muove")
+check(GardenSky.sway(time: 7, col: 2, row: 2, seed: 0.1, height: 1) != GardenSky.sway(time: 7, col: 2, row: 2, seed: 0.6, height: 1)
+      && GardenSky.sway(time: 7, col: 1, row: 1, seed: 0.1, height: 1) != GardenSky.sway(time: 7, col: 5, row: 5, seed: 0.1, height: 1), "ogni pianta ha il suo ritmo e l'onda la attraversa")
+check(GardenSky.sway(time: 7, col: 2, row: 2, seed: 0.1, height: 1) == GardenSky.sway(time: 7, col: 2, row: 2, seed: 0.1, height: 1), "sempre uguale per lo stesso istante")
+let sway1 = (0..<300).map { GardenSky.sway(time: Double($0) * 0.1, col: 3, row: 3, seed: 0.2, height: 1) }
+check(zip(sway1, sway1.dropFirst()).allSatisfy { abs($0 - $1) < 0.35 }, "e cambia piano, senza scatti (a 10 fotogrammi al secondo)")
+check(GardenCatalog.item(withID: "lavanda")?.swayStrength == 1 && GardenCatalog.item(withID: "bandierine")?.swayStrength == 1.8
+      && GardenCatalog.item(withID: "funghi")?.swayStrength == 0 && GardenCatalog.item(withID: "panchina")?.swayStrength == 0
+      && GardenCatalog.items.filter { $0.swayStrength > 0 }.count == 12, "ondeggiano i fiori (non i funghi né i vasi), le bandierine e il carillon")
+check(GardenCatalog.items.filter { $0.waterSpot != nil }.map { $0.id } == ["bagnetto"], "l'acqua sta nel bagnetto")
+let water = GardenCatalog.item(withID: "bagnetto")!.waterSpot!
+check(water.u - water.halfWidth > 0 && water.u + water.halfWidth < 1 && water.v - water.halfHeight > 0 && water.v + water.halfHeight < 1, "l'ovale dell'acqua sta dentro il disegno")
+let sparkles = (0..<GardenSky.sparkleCount).flatMap { i in (0..<300).map { GardenSky.sparkle(index: i, time: Double($0) * 0.31) } }
+check(sparkles.allSatisfy { $0.x * $0.x + $0.y * $0.y <= 1 && $0.glow >= 0 && $0.glow <= 1 } && sparkles.contains { $0.glow > 0.8 } && sparkles.contains { $0.glow == 0 }, "i luccichii restano nell'acqua, a volte brillano e a volte no")
+check(Set((0..<GardenSky.sparkleCount).map { GardenSky.sparkle(index: $0, time: 5).x }).count == GardenSky.sparkleCount, "ognuno nel suo punto")
+let ripples = (0..<400).map { GardenSky.ripple(time: Double($0) * 0.23, seed: 0.3) }
+check(ripples.allSatisfy { $0.phase >= 0 && $0.phase < 1 && $0.alpha >= 0 && $0.alpha <= 0.55 && abs($0.x) <= 0.5 && abs($0.y) <= 0.35 }, "il cerchio sull'acqua: nasce, cresce, svanisce, dentro l'acqua")
+check(GardenSky.ripple(time: 1, seed: 0.3) == GardenSky.ripple(time: 1, seed: 0.3) && Set(ripples.map { $0.x }).count > 20, "e ogni volta nasce in un posto diverso")
+check(GardenSky.smokeAmount(.winter) == 1 && GardenSky.smokeAmount(.summer) < GardenSky.smokeAmount(.spring) && GardenSky.smokeAmount(.spring) < GardenSky.smokeAmount(.autumn), "il camino fuma più d'inverno")
+let puffs = (0..<GardenSky.smokeCount).flatMap { i in (0..<400).map { GardenSky.smoke(index: i, time: Double($0) * 0.17, wind: 1) } }
+check(puffs.allSatisfy { $0.dy <= 0 && $0.dy >= -92 && $0.radius >= 3 && $0.radius <= 18 && $0.alpha >= 0 && $0.alpha <= 0.6 && abs($0.dx) < 45 }, "il fumo sale (fino a 92 punti), si allarga fino a 18 e svanisce")
+check(Set((0..<GardenSky.smokeCount).map { GardenSky.smoke(index: $0, time: 3, wind: 1).dy }).count == GardenSky.smokeCount, "gli sbuffi sono a quote diverse")
+check(GardenSky.smoke(index: 2, time: 4, wind: 1.0).dx > GardenSky.smoke(index: 2, time: 4, wind: 0.2).dx, "col vento il fumo si piega di più")
+check(GardenSky.smoke(index: 0, time: 0, wind: 1).alpha < 0.05, "uno sbuffo nasce quasi invisibile")
+
 // ---------------------------------------------------------------- da fare
 section("Da fare: giorni e testi")
 check(ToDoDay.isValid("2026-10-23") && ToDoDay.isValid("2028-02-29"), "giorni che esistono")

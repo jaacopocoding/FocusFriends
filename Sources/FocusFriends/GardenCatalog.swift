@@ -201,3 +201,20 @@ enum GardenAlbum {
         return result
     }
 }
+
+extension GardenItem {
+    /// Quanto ondeggia col vento (0 = sta fermo): i fiori e l'erba un poco, le bandierine e il carillon di più. Funghi e vasi no.
+    var swayStrength: Double {
+        switch id {
+        case "funghi", "erbe": return 0
+        case "bandierine", "carillon": return 1.8
+        default: return category == .flowers ? 1 : 0
+        }
+    }
+
+    /// Dove sta l'acqua nel disegno (centro e mezze misure, in frazioni del disegno): ci si mettono i luccichii.
+    var waterSpot: (u: Double, v: Double, halfWidth: Double, halfHeight: Double)? {
+        id == "bagnetto" ? (0.50, 0.255, 0.30, 0.07) : nil
+    }
+}
+
