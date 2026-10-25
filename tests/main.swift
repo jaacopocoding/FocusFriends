@@ -1256,6 +1256,14 @@ check(GardenTerrain.decals(col: 3, row: 3, season: .summer, onPath: false) == Ga
       && GardenTerrain.decals(col: 3, row: 3, season: .summer, onPath: false) != GardenTerrain.decals(col: 4, row: 3, season: .summer, onPath: false)
       || GardenTerrain.decals(col: 3, row: 3, season: .summer, onPath: false).isEmpty, "ogni tessera ha i suoi")
 
+// ---------------------------------------------------------------- giardino: il bordo di terra
+section("Giardino: il bordo di terra")
+check((1...GardenTerrain.edgeCount).allSatisfy { FileManager.default.fileExists(atPath: "assets/giardino/bordo_\($0).png") }, "le tre strisce del bordo ci sono")
+let edgeLeft = GardenTerrain.edgeSequence(face: 0, count: 60), edgeRight = GardenTerrain.edgeSequence(face: 1, count: 60)
+check(edgeLeft.allSatisfy { (0..<GardenTerrain.edgeCount).contains($0) } && edgeLeft == GardenTerrain.edgeSequence(face: 0, count: 60), "le strisce sono una delle tre, sempre le stesse")
+check(zip(edgeLeft, edgeLeft.dropFirst()).allSatisfy { $0 != $1 } && zip(edgeRight, edgeRight.dropFirst()).allSatisfy { $0 != $1 }, "mai due uguali di seguito")
+check(edgeLeft != edgeRight && Set(edgeLeft).count == 3 && GardenTerrain.edgeSequence(face: 0, count: 5) == Array(edgeLeft.prefix(5)), "i due lati sono diversi, e allungandosi non cambia l'inizio")
+
 // ---------------------------------------------------------------- da fare
 section("Da fare: giorni e testi")
 check(ToDoDay.isValid("2026-10-23") && ToDoDay.isValid("2028-02-29"), "giorni che esistono")

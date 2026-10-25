@@ -176,7 +176,8 @@ final class GardenView: NSView, NSViewToolTipOwner {
         /// Il vertice in alto (in fondo) dell'isola.
         let origin: NSPoint
 
-        static let thickness: CGFloat = 16
+        /// Quanto posto si lascia sotto l'isola per il suo lato di terra (che poi si disegna alto un po' più di un quarto di tessera: `edge`).
+        static let thickness: CGFloat = 24
         /// Dove cominciano l'isola (c'è posto sopra per le cose alte) e quanto resta sotto.
         static let top: CGFloat = 140
         static let bottomMargin: CGFloat = 44
@@ -192,6 +193,8 @@ final class GardenView: NSView, NSViewToolTipOwner {
         }
 
         var tileH: CGFloat { tileW / 2 }
+        /// L'altezza del lato di terra, in proporzione alle tessere.
+        var edge: CGFloat { max(tileW * 0.26, 8) }
         /// Quanto si disegna grande un oggetto: l'altezza del catalogo ÷ 135 per la larghezza di una tessera.
         var scale: CGFloat { tileW / 135 }
 
@@ -904,7 +907,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
     private func islandOutline(_ iso: Iso) -> NSBezierPath {
         let n = Double(iso.size)
         let top = iso.point(col: 0, row: 0), right = iso.point(col: n, row: 0), front = iso.point(col: n, row: n), left = iso.point(col: 0, row: n)
-        let t = Iso.thickness
+        let t = iso.edge
         let path = NSBezierPath()
         path.move(to: top)
         path.line(to: right)
@@ -954,6 +957,62 @@ final class GardenView: NSView, NSViewToolTipOwner {
         return images.count == GardenTerrain.pathCount ? images : nil
     }()
 
+    /// Le tre strisce del bordo di terra (assets/giardino/bordo_<n>.png, da `tools/cutout_bordo.py`): 24 pixel d'erba sopra la linea e 110 di terra sotto.
+    private static let edgeLip: CGFloat = 24, edgeBody: CGFloat = 110, edgeFade: CGFloat = 30
+    private static var edgeImages: [NSImage]? = {
+        let images = (1...GardenTerrain.edgeCount).compactMap { index in
+            Bundle.main.url(forResource: "giardino_bordo_\(index)", withExtension: "png").flatMap { NSImage(contentsOf: $0) }
+        }
+        return images.count == GardenTerrain.edgeCount ? images : nil
+    }()
+
+    /// Le stesse, più scure, per il lato destro (quello all'ombra).
+    private static var darkEdgeImages: [NSImage]? = edgeImages?.map { source in
+        NSImage(size: source.size, flipped: false) { box in
+            source.draw(in: box)
+            NSColor(calibratedWhite: 0, alpha: 0.24).set()
+            box.fill(using: .sourceAtop)
+            return true
+        }
+    }
+
+    /// Mette il bordo di terra su un lato dell'isola, da `from` a `to` (la linea sale o scende di mezzo punto per ogni punto di larghezza): strisce di
+    /// terra ripetute e sovrapposte (le estremità svaniscono), ognuna diversa dalla precedente e specchiata una volta ogni due; la linea dove comincia la terra sta sul bordo delle tessere.
+    private func drawEdgeStrip(from: NSPoint, to: NSPoint, face: Int, images: [NSImage], iso: Iso) {
+        let scale = iso.edge / Self.edgeBody
+        let lip = Self.edgeLip * scale
+        let length = to.x - from.x
+        let slope = (to.y - from.y) / length
+        NSGraphicsContext.saveGraphicsState()
+        let clip = NSBezierPath()
+        clip.move(to: NSPoint(x: from.x, y: from.y - lip - 2)); clip.line(to: NSPoint(x: to.x, y: to.y - lip - 2))
+        clip.line(to: NSPoint(x: to.x, y: to.y + iso.edge + 4)); clip.line(to: NSPoint(x: from.x, y: from.y + iso.edge + 4)); clip.close()
+        clip.addClip()
+        let shear = NSAffineTransform(transform: AffineTransform(m11: 1, m12: slope, m21: 0, m22: 1, tX: from.x, tY: from.y))
+        shear.concat()
+        var x: CGFloat = 0
+        var index = 0
+        let sequence = GardenTerrain.edgeSequence(face: face, count: 12)
+        while x < length, index < sequence.count {
+            let image = images[sequence[index]]
+            let width = image.size.width * scale, height = image.size.height * scale
+            let rect = NSRect(x: x, y: -lip, width: width, height: height)
+            NSGraphicsContext.saveGraphicsState()
+            if index % 2 == 1 {
+                let flip = NSAffineTransform()
+                flip.translateX(by: rect.midX, yBy: 0)
+                flip.scaleX(by: -1, yBy: 1)
+                flip.translateX(by: -rect.midX, yBy: 0)
+                flip.concat()
+            }
+            image.draw(in: rect, from: .zero, operation: .sourceOver, fraction: 1, respectFlipped: true, hints: [.interpolation: NSImageInterpolation.high])
+            NSGraphicsContext.restoreGraphicsState()
+            x += width - Self.edgeFade * scale
+            index += 1
+        }
+        NSGraphicsContext.restoreGraphicsState()
+    }
+
     /// I ventiquattro dettagli da spargere (ciuffi, fiori, sassi, foglie, petali, neve).
     private static var decalImages: [NSImage]? = {
         let images = (1...GardenTerrain.decalCount).compactMap { index in
@@ -972,24 +1031,26 @@ final class GardenView: NSView, NSViewToolTipOwner {
         let pathIndex = Dictionary(uniqueKeysWithValues: pathTiles.enumerated().map { ($1, $0) })
         let pathVariants = GardenTerrain.pathVariants(count: pathTiles.count)
         let n = Double(iso.size)
-        let thickness = Iso.thickness
+        let thickness = iso.edge
         // l'ombra sul prato, sotto l'isola
         let front = iso.point(col: n, row: n)
         let shadow = NSRect(x: iso.origin.x - iso.tileW * CGFloat(n) * 0.46, y: front.y - iso.tileH * 0.5, width: iso.tileW * CGFloat(n) * 0.92, height: iso.tileH * 1.6)
         NSColor(calibratedRed: 0.16, green: 0.22, blue: 0.10, alpha: 0.16).setFill()
         NSBezierPath(ovalIn: shadow).fill()
-        // i lati
+        // i lati (a mano, se non ci sono le strisce disegnate; quelle si mettono dopo le tessere)
         let left = iso.point(col: 0, row: n), right = iso.point(col: n, row: 0)
-        let leftSide = NSBezierPath()
-        leftSide.move(to: left); leftSide.line(to: front)
-        leftSide.line(to: NSPoint(x: front.x, y: front.y + thickness)); leftSide.line(to: NSPoint(x: left.x, y: left.y + thickness)); leftSide.close()
-        Self.color(133, 100, 66).setFill()
-        leftSide.fill()
-        let rightSide = NSBezierPath()
-        rightSide.move(to: right); rightSide.line(to: front)
-        rightSide.line(to: NSPoint(x: front.x, y: front.y + thickness)); rightSide.line(to: NSPoint(x: right.x, y: right.y + thickness)); rightSide.close()
-        Self.color(108, 78, 50).setFill()
-        rightSide.fill()
+        if Self.edgeImages == nil {
+            let leftSide = NSBezierPath()
+            leftSide.move(to: left); leftSide.line(to: front)
+            leftSide.line(to: NSPoint(x: front.x, y: front.y + thickness)); leftSide.line(to: NSPoint(x: left.x, y: left.y + thickness)); leftSide.close()
+            Self.color(133, 100, 66).setFill()
+            leftSide.fill()
+            let rightSide = NSBezierPath()
+            rightSide.move(to: right); rightSide.line(to: front)
+            rightSide.line(to: NSPoint(x: front.x, y: front.y + thickness)); rightSide.line(to: NSPoint(x: right.x, y: right.y + thickness)); rightSide.close()
+            Self.color(108, 78, 50).setFill()
+            rightSide.fill()
+        }
         // le tessere
         for row in 0..<iso.size {
             for col in 0..<iso.size {
@@ -1044,6 +1105,11 @@ final class GardenView: NSView, NSViewToolTipOwner {
                     }
                 }
             }
+        }
+        // i lati di terra disegnati, sopra le tessere (i fili d'erba che sporgono coprono un po' il bordo)
+        if let edges = Self.edgeImages, let dark = Self.darkEdgeImages {
+            drawEdgeStrip(from: left, to: front, face: 0, images: edges, iso: iso)
+            drawEdgeStrip(from: front, to: right, face: 1, images: dark, iso: iso)
         }
         // i dettagli sparsi sul terreno (dal fondo al davanti)
         if let decals = Self.decalImages {

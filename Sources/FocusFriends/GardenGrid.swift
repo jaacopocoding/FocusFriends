@@ -236,6 +236,29 @@ enum GardenTerrain {
         return grid
     }
 
+    // MARK: - Il bordo di terra
+
+    static let edgeCount = 3
+
+    /// Quali delle tre strisce del bordo (da 0) vanno, una dopo l'altra, su un lato dell'isola (`face` 0 = sinistro, 1 = destro): mai due uguali di
+    /// seguito. L'app ne mette una specchiata ogni due, così dove una finisce e l'altra comincia non si vede il taglio.
+    static func edgeSequence(face: Int, count: Int) -> [Int] {
+        var result: [Int] = []
+        for index in 0..<count {
+            func draw(_ salt: Int) -> Int {
+                Int(GardenDrops.mixedHash("bordo-\(face),\(index),\(salt)") % UInt32(edgeCount))
+            }
+            var choice = draw(0)
+            var salt = 1
+            while index > 0 && choice == result[index - 1] && salt <= 4 {
+                choice = draw(salt)
+                salt += 1
+            }
+            result.append(choice)
+        }
+        return result
+    }
+
     // MARK: - I dettagli sparsi sul terreno
 
     static let decalCount = 24
