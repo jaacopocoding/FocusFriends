@@ -1155,7 +1155,12 @@ check(Set((0..<26).map { GardenSky.particle(kind: .petal, index: $0, time: 0, wi
 // ---------------------------------------------------------------- giardino: la vita ferma
 section("Giardino: vento, acqua e fumo")
 check(Season.allCases.allSatisfy { GardenSky.wind($0) > 0 && GardenSky.wind($0) <= 1 } && GardenSky.wind(.summer) < GardenSky.wind(.autumn), "il vento: d'estate soffia meno che d'autunno")
-let swaySamples = (0..<200).flatMap { i in [0.0, 0.3, 0.7, 1.0].map { GardenSky.sway(time: Double(i) * 0.37, col: i % 10, row: (i / 3) % 10, seed: Double(i % 7) / 7, height: $0) } }
+var swaySamples: [Double] = []
+for i in 0..<200 {
+    for height in [0.0, 0.3, 0.7, 1.0] {
+        swaySamples.append(GardenSky.sway(time: Double(i) * 0.37, col: i % 10, row: (i / 3) % 10, seed: Double(i % 7) / 7, height: height))
+    }
+}
 check(swaySamples.allSatisfy { abs($0) <= 1 }, "l'ondeggiamento sta fra −1 e 1")
 check((0..<100).allSatisfy { GardenSky.sway(time: Double($0) * 0.5, col: 3, row: 4, seed: 0.4, height: 0) == 0 }, "la base di una pianta sta ferma")
 check((0..<100).allSatisfy { abs(GardenSky.sway(time: Double($0) * 0.5, col: 3, row: 4, seed: 0.4, height: 0.4)) <= abs(GardenSky.sway(time: Double($0) * 0.5, col: 3, row: 4, seed: 0.4, height: 1)) + 1e-12 }, "più in alto, più si muove")
