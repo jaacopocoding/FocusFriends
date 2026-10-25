@@ -406,6 +406,12 @@ autunno, mai d'inverno). La stagione cambia l'erba e il velo sullo sfondo: in pr
 la neve e l'isola è bianca. Per provare un'ora o una stagione: `defaults write com.jacopo.focusfriends gardenHour -float 21` (l'ora, con
 la virgola) e `gardenSeason -string winter` (`spring`, `summer`, `autumn`, `winter`); `defaults delete …` le toglie.
 
+**Un po' di vita.** Fiori, erba, felci, bandierine e carillon **ondeggiano** col vento (più forte in autunno e in inverno, quasi niente
+d'estate), con un'onda che attraversa l'isola; l'**acqua del bagnetto** luccica e ogni tanto fa un cerchio, come per una goccia; dal
+**camino** del casale sale il fumo (tanto d'inverno, un filo d'estate) e di sera si accendono le sue finestre. Con «Riduci movimento»
+nelle impostazioni di accessibilità tutto sta fermo (anche neve, lucciole e compagni che camminano); il giardino si ridisegna solo con la
+finestra visibile e non coperta.
+
 Sopra l'isola, due etichette: quante figurine hai (N/36) e la serie di giorni. Gli oggetti, le impronte e le rarità stanno
 in `GardenCatalog.swift` (per ora la rarità si ricava dal vecchio prezzo: fino a 3 comune, fino a 6 raro, oltre leggendario).
 

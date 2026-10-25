@@ -64,7 +64,7 @@ Single user per Mac, no accounts, no network: all data is stored locally under
 | App type | Menu-bar "agent": `LSUIElement = true`, activation policy `.accessory` | `build.sh`, `AppDelegate.applicationDidFinishLaunching` |
 | Signing | Ad-hoc (`codesign --force --sign -`; `build.sh` stops with exit 1 if signing fails); not notarised, no hardened runtime or sandbox | `build.sh`, `README.md` "Scaricare e usare" |
 | Asset tooling | Python 3 scripts using Pillow and NumPy (not run at build time) | `tools/*.py` |
-| Tests | One hand-written Swift executable (`tests/main.swift`, 38 sections, 620 checks) that compiles seventeen Foundation-only source files; no XCTest | `tests/run.sh` |
+| Tests | One hand-written Swift executable (`tests/main.swift`, 39 sections, 639 checks) that compiles seventeen Foundation-only source files; no XCTest | `tests/run.sh` |
 | License | MIT (`LICENSE`); bundled music is CC0 (`CREDITS.md`) | `LICENSE`, `CREDITS.md` |
 | Swift toolchain version / Python version | Not pinned anywhere in the repository | **[unknown]** |
 
@@ -155,7 +155,7 @@ FocusFriends/
 │   ├── MusicLibrary.swift        MusicSource, MusicLibrary (file discovery, shuffle, titles), MusicSettings  (Foundation only)
 │   └── MusicPlayer.swift         AVAudioPlayer-based music playback with queue and fades
 ├── tests/
-│   ├── main.swift                hand-rolled test executable (check()/section()), 38 sections, 620 checks
+│   ├── main.swift                hand-rolled test executable (check()/section()), 39 sections, 639 checks
 │   ├── run.sh                    compiles 17 source files + tests/main.swift into build/tests/stats and runs it
 │   ├── genera-attesi.sh          builds and runs tests/genera-attesi/main.swift: for every folder in tests/fixtures/ writes what this app derives from it (the expected results the Windows port is compared with)
 │   ├── simula-regali.sh          simulates the end-of-focus drops over 30/60/90 days of studying (how long an album takes; used to tune GardenDrops)
@@ -532,6 +532,15 @@ code. All UI code runs on the main thread; the only other thread is the audio re
   tint with the CoreGraphics blend mode `.multiply`, plus darker corners at night) → `drawLampGlows` and `drawFireflies` (`.plusLighter`, only on top of
   placed `lampione` copies and on the fireflies' own positions) → bubble → HUD. The 30 Hz timer asks for a redraw only when something walks or moves in
   the sky (`skyIsAnimated`), and every second for a change of light; `effectsClock` lets a bench freeze the time of the effects.
+- **Idle life** (`GardenSky.wind/sway/sparkle/ripple/smoke`, pure functions of time, tested): `GardenItem.swayStrength` (flowers and grass 1, flags and
+  chimes 1.8, mushrooms and pots 0) and `waterSpot` (the bird bath's water oval, as fractions of the sprite) are catalog data. `drawSwaying` draws a plant as
+  14 horizontal strips (1 pt overlap), each shifted by `sway(height:)` so the base stays still and the top bends (2.6 pt × strength × wind × tileW/94; the phase
+  depends on the tile, so a wave crosses the island, and on a per-copy seed); `drawWater` clips to the water oval and draws 3 flashing sparkles (`.plusLighter`,
+  dimmer at night) and a ring from `ripple`; `drawChimneySmoke` puts 9 soft puffs above the chimney, whose position comes from `MeadowBackdrop.scenePoint(u:v:in:)`
+  (the same crop as the backdrop, so it follows the picture) and draws them **before** the island; `drawCottageWindows` lights the cottage windows after the light,
+  clipping out the island outline (even-odd) so the glow never lands on the island. `reduceMotion` (`NSWorkspace.accessibilityDisplayShouldReduceMotion`) stops sway,
+  sparkles, smoke, weather, fireflies and walking. The redraw timer runs at 24 Hz, only when the window is visible and not occluded
+  (`occlusionState`); a full draw takes about 5 ms.
 - **Companions walk** (`advanceWalkers(by:)`, a 30 Hz timer while the window is visible): each `Walker` rests 1.5–5 s, then steps to a free
   neighbouring tile (not taken by another companion) in 1.3 s with a small hop; the saved tile (`Garden.companionTile`) is only their home and is reset
   when the user drops them somewhere.
@@ -586,7 +595,7 @@ code. All UI code runs on the main thread; the only other thread is the audio re
     music (`music_*`), garden/growth art, Pianty stage frames → write `Info.plist` via heredoc →
     `codesign --force --sign -` (a failure prints an error and exits 1) → print the path.
   - `tests/run.sh`: `swiftc -O -o build/tests/stats` on fourteen source files + `tests/main.swift` →
-    `build/tests/stats` (prints `• <section>` lines and `N controlli, M falliti`, exit code 0/1; 620 checks now).
+    `build/tests/stats` (prints `• <section>` lines and `N controlli, M falliti`, exit code 0/1; 639 checks now).
   - Tools: described in §5.9; they read `assets/**/*_original.png` / sheets and write processed PNGs or the icon.
 
 ### 3.22 To-do list ("Da fare")
@@ -1263,7 +1272,7 @@ file/UserDefaults writes, windows, timers, sound, global state.
 ### 5.9 Tests, build and tools
 
 #### `tests/main.swift` (1,056) and `tests/run.sh` (7)
-- A single executable: `check(_:_:line:)`, `section(_:)`, 38 sections (620 checks) covering subjects, log persistence,
+- A single executable: `check(_:_:line:)`, `section(_:)`, 39 sections (639 checks) covering subjects, log persistence,
   in-progress recovery, periods, summaries, streaks, texts, garden rules, format versions/migration, subject merging, backups and
   delete-all, time zones, profile, ratings/notes/insights/CSV, timer dial math, seasons, ambient settings, music
   library/settings, focus notes, paused-time recovery, companion rewards (including the developer flag), break cycle,
@@ -1755,7 +1764,7 @@ code is clear. Items without a mark still describe the current code.
 
 ### 7.8 Test coverage as it exists
 
-- Covered (38 sections, 620 checks in `tests/main.swift`): everything in the Foundation-only files listed in §4.1,
+- Covered (39 sections, 639 checks in `tests/main.swift`): everything in the Foundation-only files listed in §4.1,
   including the new damaged-data cases and the developer flag.
 - Not covered by any automated test in the repository: `Pomodoro` (timer, pause, grace, the sleep-gap rule, cycle
   wiring), `Speaker` (including when a to-do reminder replaces a phrase), `Walker`, `PetWindow`/`PetView`, `MenuController`,
