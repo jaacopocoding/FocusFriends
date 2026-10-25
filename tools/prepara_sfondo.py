@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Prepara lo sfondo del giardino: assets/giardino/sfondo_original.png (il paesaggio di Gemini, 1024x506) -> assets/giardino/sfondo.png (2048x1012)
+(e, d'inverno, sfondo_inverno_original.png -> sfondo_inverno.png: il lago ghiacciato, senza isola da ricoprire, con il casale e gli alberi innevati)
 
 1. Si ingrandisce 2x con una buona interpolazione (come il vecchio prato).
 2. Sul lago Gemini ha disegnato una piccola isola: la nostra isola ci sta sopra, ma rimpicciolendo si vedrebbero due isole. Si ricopre con l'acqua
@@ -27,6 +28,15 @@ HAZE_AMOUNT = 0.14
 # nel casale (349x223): bocca del camino e finestre accese di sera
 CHIMNEY = (226, 12)
 WINDOWS = [(78, 94), (147, 152), (200, 154), (269, 92)]
+
+# lo sfondo d'inverno: il casale e gli alberi innevati (ritagliati da paesaggio_inverno_original.png) sulle due rive; le cose più grandi, perché la
+# neve le schiarisce. Il camino e le finestre accese (gialle, già nel disegno) si trovano guardando il casale ritagliato.
+WINTER_SCENERY = [
+    ("albero-alto", (752, 232), 70, "h"), ("abete-grande", (798, 229), 86, "h"), ("abete-piccolo", (838, 235), 60, "h"),
+    ("cespuglio-grande", (868, 246), 46, "w"), ("cespuglio-rado", (722, 234), 42, "w"),
+    ("albero-tondo", (206, 233), 56, "h"), ("albero-piccolo", (62, 246), 42, "h"), ("cespuglio-piccolo", (172, 240), 30, "w"),
+    ("casale", (118, 228), 100, "w"),
+]
 
 
 # la sagoma della piccola isola del lago, sull'immagine da 1024x506 (la parte di sopra, poi la parte di sotto tornando indietro)
@@ -86,8 +96,8 @@ def cover_islet(canvas):
     return Image.fromarray(blended.clip(0, 255).astype(np.uint8), "RGB")
 
 
-def place(canvas, sprite_name, base, size, along):
-    sprite = Image.open(f"{DIR}/paesaggio_{sprite_name}.png").convert("RGBA")
+def place(canvas, sprite_name, base, size, along, sheet="paesaggio"):
+    sprite = Image.open(f"{DIR}/{sheet}_{sprite_name}.png").convert("RGBA")
     scale = size * K / (sprite.height if along == "h" else sprite.width)
     sprite = sprite.resize((max(1, round(sprite.width * scale)), max(1, round(sprite.height * scale))), Image.LANCZOS)
     # sfocato e schiarito, come le cose lontane
@@ -101,23 +111,67 @@ def place(canvas, sprite_name, base, size, along):
     return left, top, scale
 
 
-def main():
-    original = Image.open(f"{DIR}/sfondo_original.png").convert("RGB")
+def house_marks(sprite_name="casale", sheet="paesaggio_inverno"):
+    """La bocca del camino e il centro di ogni finestra accesa nel casale ritagliato (in pixel del ritaglio): il camino è il punto più alto del
+    casale, le finestre sono le macchie gialle."""
+    sprite = np.asarray(Image.open(f"{DIR}/{sheet}_{sprite_name}.png").convert("RGBA")).astype(np.float32)
+    alpha = sprite[..., 3] > 128
+    ys, xs = np.where(alpha)
+    top = ys.min()
+    chimney = (float(xs[ys <= top + 2].mean()), float(top + 5))
+    r, g, b = sprite[..., 0], sprite[..., 1], sprite[..., 2]
+    yellow = alpha & (r > 215) & (g > 165) & (b < 140) & (r - b > 90)
+    # i vetri sono divisi dai montanti: si uniscono le macchie vicine (un vetro è una sola finestra)
+    joined = np.asarray(Image.fromarray((yellow * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(9))) > 127
+    windows = []
+    seen = np.zeros(yellow.shape, dtype=bool)
+    for y, x in zip(*np.where(joined)):
+        if seen[y, x]:
+            continue
+        stack, blob = [(y, x)], []
+        seen[y, x] = True
+        while stack:
+            cy, cx = stack.pop()
+            blob.append((cy, cx))
+            for ny, nx in ((cy + 1, cx), (cy - 1, cx), (cy, cx + 1), (cy, cx - 1)):
+                if 0 <= ny < joined.shape[0] and 0 <= nx < joined.shape[1] and joined[ny, nx] and not seen[ny, nx]:
+                    seen[ny, nx] = True
+                    stack.append((ny, nx))
+        pixels = [(py, px) for py, px in blob if yellow[py, px]]
+        if len(pixels) >= 30:
+            windows.append((float(np.mean([q[1] for q in pixels])), float(np.mean([q[0] for q in pixels]))))
+    return chimney, sorted(windows)
+
+
+def compose(name, original, scenery, sheet, cover):
+    original = Image.open(f"{DIR}/{original}").convert("RGB")
     canvas = original.resize((original.width * K, original.height * K), Image.LANCZOS)
-    canvas = cover_islet(canvas)
+    if cover:
+        canvas = cover_islet(canvas)
     house = None
-    for name, base, size, along in SCENERY:
-        left, top, scale = place(canvas, name, base, size, along)
-        if name == "casale":
+    for sprite, base, size, along in scenery:
+        left, top, scale = place(canvas, sprite, base, size, along, sheet)
+        if sprite == "casale":
             house = (left, top, scale)
-    canvas.save(f"{DIR}/sfondo.png", optimize=True)
-    w, h = canvas.size
-    left, top, scale = house
-    print(f"sfondo.png: {w}x{h}")
+    canvas.save(f"{DIR}/{name}", optimize=True)
+    print(f"{name}: {canvas.size[0]}x{canvas.size[1]}")
+    return canvas.size, house
+
+
+def main():
+    (w, h), (left, top, scale) = compose("sfondo.png", "sfondo_original.png", SCENERY, "paesaggio", True)
     print("camino   u=%.4f v=%.4f" % ((left + CHIMNEY[0] * scale) / w, (top + CHIMNEY[1] * scale) / h))
     for window in WINDOWS:
         print("finestra u=%.4f v=%.4f" % ((left + window[0] * scale) / w, (top + window[1] * scale) / h))
     print("casale largo (in punti della scena, circa): %.0f" % (349 * scale / K * 2.371 / 2))
+    print()
+    (w, h), (left, top, scale) = compose("sfondo_inverno.png", "sfondo_inverno_original.png", WINTER_SCENERY, "paesaggio_inverno", False)
+    chimney, windows = house_marks()
+    print("inverno, camino   u=%.4f v=%.4f" % ((left + chimney[0] * scale) / w, (top + chimney[1] * scale) / h))
+    for window in windows:
+        print("inverno, finestra u=%.4f v=%.4f" % ((left + window[0] * scale) / w, (top + window[1] * scale) / h))
+    sprite_width = Image.open(f"{DIR}/paesaggio_inverno_casale.png").width
+    print("inverno, casale largo (in punti della scena, circa): %.0f" % (sprite_width * scale / K * 2.371 / 2))
 
 
 if __name__ == "__main__":

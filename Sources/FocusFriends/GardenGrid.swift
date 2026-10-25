@@ -177,6 +177,16 @@ enum GardenTerrain {
     /// Le tessere del sentiero: le lastre e i ciottoli fanno la parte principale; il masso solo, il muschio e la terra liscia sono rari.
     static let pathWeights: [Double] = [0.04, 0.14, 0.16, 0.20, 0.14, 0.08, 0.12, 0.12]
 
+    /// D'inverno le tessere sono quelle con la neve (assets/giardino/tessera_neve_<n>.png, dodici) e quelle del sentiero innevato
+    /// (tessera_sentiero_neve_<n>.png, otto): la neve liscia, lunga a ondulazioni e a cumuli fa da sfondo; le orme, i rametti, il ghiaccio, le bacche e i
+    /// sassi che spuntano sono rari. Nel sentiero le pietre contano più della neve calpestata, e le pietre scure e bagnate sono quasi un'eccezione.
+    static let snowWeights: [Double] = [0.14, 0.13, 0.07, 0.07, 0.07, 0.06, 0.05, 0.04, 0.12, 0.08, 0.04, 0.13]
+    static let snowPathWeights: [Double] = [0.10, 0.16, 0.16, 0.22, 0.12, 0.10, 0.10, 0.04]
+
+    /// I pesi delle tessere (e del sentiero) per una stagione.
+    static func grassWeights(season: Season) -> [Double] { season == .winter ? snowWeights : grassWeights }
+    static func pathWeights(season: Season) -> [Double] { season == .winter ? snowPathWeights : pathWeights }
+
     /// Quante tessere di seguito (da 2 a 3) hanno la stessa immagine, per la corsa che comincia a `index` di una fila (o del sentiero).
     private static func runLength(_ index: Int, _ line: Int) -> Int {
         2 + Int(GardenDrops.mixedHash("corsa-\(line),\(index)") % 2)
@@ -319,7 +329,7 @@ enum GardenTerrain {
             case .spring: return [DecalRule(group: .stones, chance: 0.08, maxCount: 1, size: 0.10...0.14), DecalRule(group: .petals, chance: 0.18, maxCount: 1, size: 0.14...0.18)]
             case .summer: return [DecalRule(group: .stones, chance: 0.10, maxCount: 1, size: 0.10...0.14)]
             case .autumn: return [DecalRule(group: .leaves, chance: 0.45, maxCount: 2, size: 0.13...0.17), DecalRule(group: .stones, chance: 0.06, maxCount: 1, size: 0.10...0.14)]
-            case .winter: return [DecalRule(group: .snow, chance: 0.30, maxCount: 1, size: 0.26...0.36)]
+            case .winter: return [DecalRule(group: .snow, chance: 0.10, maxCount: 1, size: 0.26...0.36)]
             }
         }
         switch season {
@@ -334,8 +344,8 @@ enum GardenTerrain {
             return [DecalRule(group: .tufts, chance: 0.18, maxCount: 1, size: 0.28...0.40), DecalRule(group: .stones, chance: 0.08, maxCount: 1, size: 0.14...0.20),
                     DecalRule(group: .leaves, chance: 0.60, maxCount: 2, size: 0.13...0.17), DecalRule(group: .clover, chance: 0.04, maxCount: 1, size: 0.26...0.34)]
         case .winter:
-            return [DecalRule(group: .snow, chance: 0.35, maxCount: 1, size: 0.30...0.42), DecalRule(group: .stones, chance: 0.06, maxCount: 1, size: 0.14...0.20),
-                    DecalRule(group: .tufts, chance: 0.06, maxCount: 1, size: 0.26...0.34)]
+            // le tessere con la neve disegnata hanno già le loro orme, i loro rametti e i loro cumuli: i dettagli sono pochi, e niente erba verde
+            return [DecalRule(group: .snow, chance: 0.22, maxCount: 1, size: 0.30...0.42), DecalRule(group: .stones, chance: 0.05, maxCount: 1, size: 0.14...0.20)]
         }
     }
 

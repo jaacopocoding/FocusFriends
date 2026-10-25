@@ -103,6 +103,13 @@ enum GardenSky {
         return Double(parts.hour ?? 0) + Double(parts.minute ?? 0) / 60 + Double(parts.second ?? 0) / 3600
     }
 
+    /// La stagione che si vede nel giardino e dietro l'album: quella del calendario, o quella messa a mano con `gardenSeason` (spring, summer, autumn, winter)
+    /// per provarle senza aspettare.
+    static func shownSeason(date: Date, calendar: Calendar, defaults: UserDefaults = .standard) -> Season {
+        if let raw = defaults.string(forKey: "gardenSeason"), let forced = Season(rawValue: raw) { return forced }
+        return Season.of(date, calendar: calendar)
+    }
+
     static func smoothstep(_ x: Double, from low: Double, to high: Double) -> Double {
         let t = min(max((x - low) / (high - low), 0), 1)
         return t * t * (3 - 2 * t)

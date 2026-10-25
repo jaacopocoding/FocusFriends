@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Ritaglia gli elementi del paesaggio: assets/giardino/paesaggio_original.png (su fondo magenta #FF00FF) -> assets/giardino/paesaggio_<nome>.png
 
-Dodici elementi sparsi sul foglio (non in una griglia): si trovano guardando i pezzi staccati (l'elemento fatto di più parti, come lo steccato o il
+Dodici elementi sparsi sul foglio (tredici quello d'inverno, paesaggio_inverno_original.png -> paesaggio_inverno_<nome>.png) (non in una griglia): si trovano guardando i pezzi staccati (l'elemento fatto di più parti, come lo steccato o il
 tronco con il ceppo, si riunisce) e si riconoscono dalla posizione sul foglio. Il fondo si toglie come per gli oggetti del giardino
 (tools/cutout_giardino.py: stessa funzione).
 
@@ -12,11 +12,21 @@ import numpy as np
 from PIL import Image
 
 DIR = "assets/giardino"
-# nome, dove sta il suo centro sul foglio (1024x572) più o meno
-ITEMS = [
-    ("casale", (210, 125)), ("albero-tondo", (670, 120)), ("albero-alto", (895, 120)), ("albero-piccolo", (125, 325)),
-    ("abete-grande", (480, 285)), ("abete-piccolo", (685, 320)), ("cespuglio-grande", (900, 320)),
-    ("cespuglio-piccolo", (115, 490)), ("siepe-arancio", (320, 485)), ("siepe-rosa", (510, 485)), ("steccato", (705, 495)), ("tronchi", (905, 495)),
+# il foglio (assets/giardino/<foglio>_original.png), quanto vicini (in pixel, due volte) possono stare i pezzi di uno stesso elemento e, per ogni elemento, il nome e dove sta il suo centro sul foglio (1024x572) più o meno;
+# escono come <foglio>_<nome>.png
+SHEETS = [
+    ("paesaggio", 12, [
+        ("casale", (210, 125)), ("albero-tondo", (670, 120)), ("albero-alto", (895, 120)), ("albero-piccolo", (125, 325)),
+        ("abete-grande", (480, 285)), ("abete-piccolo", (685, 320)), ("cespuglio-grande", (900, 320)),
+        ("cespuglio-piccolo", (115, 490)), ("siepe-arancio", (320, 485)), ("siepe-rosa", (510, 485)), ("steccato", (705, 495)), ("tronchi", (905, 495)),
+    ]),
+    # d'inverno: il casale con la neve sul tetto e le finestre accese, tre alberi spogli, due abeti, tre cespugli (le siepi, lo steccato e i
+    # tronchi innevati restano sul foglio: finché non servono non si ritagliano)
+    ("paesaggio_inverno", 4, [
+        ("casale", (175, 125)), ("albero-tondo", (447, 130)), ("albero-alto", (650, 135)), ("albero-piccolo", (770, 140)),
+        ("abete-grande", (905, 140)), ("cespuglio-piccolo", (130, 335)), ("abete-piccolo", (345, 315)), ("cespuglio-grande", (620, 345)),
+        ("cespuglio-rado", (870, 345)),
+    ]),
 ]
 
 
@@ -27,10 +37,10 @@ def load_garden_tools():
     return module
 
 
-def components(mask):
-    """Gruppi di pixel pieni vicini (anche a una ventina di pixel di distanza): [(maschera, centro)]."""
+def components(mask, gap):
+    """Gruppi di pixel pieni vicini (anche a una ventina di pixel di distanza: `gap` è la metà): [(maschera, centro)]."""
     garden = load_garden_tools()
-    joined = garden.dilate(mask, 12)
+    joined = garden.dilate(mask, gap)
     seen = np.zeros(mask.shape, dtype=bool)
     groups = []
     for y, x in zip(*np.where(joined)):
@@ -46,19 +56,20 @@ def components(mask):
 
 def main():
     garden = load_garden_tools()
-    rgb = np.asarray(Image.open(f"{DIR}/paesaggio_original.png").convert("RGB")).astype(np.float32)
-    rgba = garden.magenta_object(rgb)
-    groups = components(rgba[..., 3] > 25)
-    print(f"{len(groups)} gruppi trovati")
-    used = set()
-    for name, (cx, cy) in ITEMS:
-        best = min((i for i in range(len(groups)) if i not in used), key=lambda i: (groups[i][1][0] - cx) ** 2 + (groups[i][1][1] - cy) ** 2)
-        used.add(best)
-        region = groups[best][0]
-        piece = np.where(region[..., None], rgba, 0).astype(np.uint8)
-        piece = garden.crop(piece)
-        Image.fromarray(piece, "RGBA").save(f"{DIR}/paesaggio_{name}.png", optimize=True)
-        print(f"{name}: {piece.shape[1]}x{piece.shape[0]} (centro {groups[best][1][0]:.0f},{groups[best][1][1]:.0f})")
+    for sheet, gap, items in SHEETS:
+        rgb = np.asarray(Image.open(f"{DIR}/{sheet}_original.png").convert("RGB")).astype(np.float32)
+        rgba = garden.magenta_object(rgb)
+        groups = components(rgba[..., 3] > 25, gap)
+        print(f"{sheet}: {len(groups)} gruppi trovati")
+        used = set()
+        for name, (cx, cy) in items:
+            best = min((i for i in range(len(groups)) if i not in used), key=lambda i: (groups[i][1][0] - cx) ** 2 + (groups[i][1][1] - cy) ** 2)
+            used.add(best)
+            region = groups[best][0]
+            piece = np.where(region[..., None], rgba, 0).astype(np.uint8)
+            piece = garden.crop(piece)
+            Image.fromarray(piece, "RGBA").save(f"{DIR}/{sheet}_{name}.png", optimize=True)
+            print(f"{name}: {piece.shape[1]}x{piece.shape[0]} (centro {groups[best][1][0]:.0f},{groups[best][1][1]:.0f})")
 
 
 if __name__ == "__main__":

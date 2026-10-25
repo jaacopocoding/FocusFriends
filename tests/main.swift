@@ -1223,6 +1223,27 @@ var gridsAboveEqual = 0, gridsPairs = 0
 for r in 1..<40 { for c in 0..<40 { gridsPairs += 1; if grassGrid[r * 40 + c] == grassGrid[(r - 1) * 40 + c] { gridsAboveEqual += 1 } } }
 check(Double(gridsAboveEqual) / Double(gridsPairs) < 0.2, "e le chiazze non si impilano sempre uguali (\(gridsAboveEqual) su \(gridsPairs))")
 
+// l'inverno: la neve disegnata, a gruppi di 2 o 3 come l'erba
+let snowFiles = (1...GardenTerrain.grassCount).map { "assets/giardino/tessera_neve_\($0).png" } + (1...GardenTerrain.pathCount).map { "assets/giardino/tessera_sentiero_neve_\($0).png" }
+check(snowFiles.allSatisfy { FileManager.default.fileExists(atPath: $0) }, "le dodici tessere di neve e le otto del sentiero innevato ci sono")
+check(GardenTerrain.snowWeights.count == GardenTerrain.grassCount && GardenTerrain.snowPathWeights.count == GardenTerrain.pathCount
+      && (GardenTerrain.snowWeights + GardenTerrain.snowPathWeights).allSatisfy { $0 > 0 }, "un peso per ogni tessera di neve e del sentiero innevato")
+check(GardenTerrain.grassWeights(season: .winter) == GardenTerrain.snowWeights && GardenTerrain.pathWeights(season: .winter) == GardenTerrain.snowPathWeights
+      && GardenTerrain.grassWeights(season: .summer) == GardenTerrain.grassWeights && GardenTerrain.pathWeights(season: .autumn) == GardenTerrain.pathWeights,
+      "d'inverno i pesi sono quelli della neve, nelle altre stagioni quelli di prima")
+let snowGrid = GardenTerrain.grassGrid(size: 40, weights: GardenTerrain.snowWeights)
+let snowTotal = GardenTerrain.snowWeights.reduce(0, +)
+let snowShares = (0..<GardenTerrain.grassCount).map { index in Double(snowGrid.filter { $0 == index }.count) / Double(snowGrid.count) }
+check(snowGrid.allSatisfy { (0..<GardenTerrain.grassCount).contains($0) } && zip(snowShares, GardenTerrain.snowWeights).allSatisfy { abs($0 - $1 / snowTotal) < 0.05 },
+      "la neve: una delle dodici, più o meno come dicono i pesi")
+var snowRuns: [Int] = []
+for r in 0..<40 { snowRuns += runLengths(Array(snowGrid[(r * 40)..<(r * 40 + 40)])).dropLast() }
+check(snowRuns.filter { $0 == 2 || $0 == 3 }.count * 100 >= snowRuns.count * 80 && snowGrid == GardenTerrain.grassGrid(size: 40, weights: GardenTerrain.snowWeights), "la neve a chiazze di 2 o 3 tessere, sempre le stesse")
+let snowPathPicks = GardenTerrain.pathVariants(count: 200, weights: GardenTerrain.snowPathWeights)
+let snowPathRuns = runLengths(snowPathPicks)
+check(snowPathPicks.allSatisfy { (0..<GardenTerrain.pathCount).contains($0) } && snowPathPicks != pathPicks
+      && snowPathRuns.dropLast().filter { $0 == 2 || $0 == 3 }.count * 100 >= snowPathRuns.dropLast().count * 80, "il sentiero innevato: a gruppi di 2 o 3, diverso da quello d'estate")
+
 // ---------------------------------------------------------------- giardino: i dettagli sul terreno
 section("Giardino: i dettagli sul terreno")
 check((1...GardenTerrain.decalCount).allSatisfy { FileManager.default.fileExists(atPath: "assets/giardino/dettaglio_\($0).png") }, "i 24 dettagli ci sono in assets/giardino")
@@ -1241,12 +1262,13 @@ for season in Season.allCases {
         }
     }
     check(inside && determinist, "\(season.title): i dettagli stanno dentro la tessera, scelti nel loro gruppo, sempre gli stessi")
-    check(total >= 40 && total <= 220, "\(season.title): in media fra mezzo e due dettagli per tessera (\(total) su 100)")
+    // d'inverno le tessere hanno già le loro orme e i loro cumuli disegnati: ne servono meno
+    check(total >= (season == .winter ? 20 : 40) && total <= 220, "\(season.title): in media fra mezzo e due dettagli per tessera (\(total) su 100)")
     switch season {
     case .spring: check(counts[.flowers, default: 0] > 15 && counts[.petals, default: 0] > 0 && counts[.leaves] == nil && counts[.snow] == nil, "primavera: fiori e petali, niente foglie né neve")
     case .summer: check(counts[.flowers, default: 0] > 15 && counts[.tufts, default: 0] > 20 && counts[.leaves] == nil && counts[.snow] == nil && counts[.petals] == nil, "estate: fiori e ciuffi")
     case .autumn: check(counts[.leaves, default: 0] > 40 && counts[.flowers] == nil && counts[.snow] == nil, "autunno: tante foglie, niente fiori")
-    case .winter: check(counts[.snow, default: 0] > 20 && counts[.flowers] == nil && counts[.leaves] == nil, "inverno: neve, niente fiori né foglie")
+    case .winter: check(counts[.snow, default: 0] > 15 && counts[.flowers] == nil && counts[.leaves] == nil && counts[.tufts] == nil, "inverno: neve, niente fiori, foglie né erba verde")
     }
 }
 let pathDecals = decalTiles.filter { GardenIsland.isPath($0) }.flatMap { GardenTerrain.decals(col: $0.col, row: $0.row, season: .summer, onPath: true) }
@@ -1262,6 +1284,7 @@ check((1...GardenTerrain.edgeCount).allSatisfy { FileManager.default.fileExists(
 let edgeLeft = GardenTerrain.edgeSequence(face: 0, count: 60), edgeRight = GardenTerrain.edgeSequence(face: 1, count: 60)
 check(edgeLeft.allSatisfy { (0..<GardenTerrain.edgeCount).contains($0) } && edgeLeft == GardenTerrain.edgeSequence(face: 0, count: 60), "le strisce sono una delle tre, sempre le stesse")
 check(zip(edgeLeft, edgeLeft.dropFirst()).allSatisfy { $0 != $1 } && zip(edgeRight, edgeRight.dropFirst()).allSatisfy { $0 != $1 }, "mai due uguali di seguito")
+check((1...GardenTerrain.edgeCount).allSatisfy { FileManager.default.fileExists(atPath: "assets/giardino/bordo_neve_\($0).png") }, "le tre strisce del bordo con la neve ci sono")
 check(edgeLeft != edgeRight && Set(edgeLeft).count == 3 && GardenTerrain.edgeSequence(face: 0, count: 5) == Array(edgeLeft.prefix(5)), "i due lati sono diversi, e allungandosi non cambia l'inizio")
 
 // ---------------------------------------------------------------- giardino: lo sfondo
@@ -1269,6 +1292,16 @@ section("Giardino: lo sfondo")
 check(FileManager.default.fileExists(atPath: "assets/giardino/sfondo.png") && FileManager.default.fileExists(atPath: "assets/giardino/prato.png"), "lo sfondo nuovo e il vecchio prato ci sono")
 check(["abete-grande", "abete-piccolo", "albero-alto", "albero-piccolo", "albero-tondo", "casale", "cespuglio-grande", "cespuglio-piccolo", "siepe-arancio", "siepe-rosa", "steccato", "tronchi"]
         .allSatisfy { FileManager.default.fileExists(atPath: "assets/giardino/paesaggio_\($0).png") }, "i dodici pezzi del paesaggio sono ritagliati")
+check(FileManager.default.fileExists(atPath: "assets/giardino/sfondo_inverno.png")
+      && ["abete-grande", "abete-piccolo", "albero-alto", "albero-piccolo", "albero-tondo", "casale", "cespuglio-grande", "cespuglio-piccolo", "cespuglio-rado"]
+        .allSatisfy { FileManager.default.fileExists(atPath: "assets/giardino/paesaggio_inverno_\($0).png") }, "lo sfondo d'inverno e i nove pezzi innevati ci sono")
+let seasonDefaults = UserDefaults(suiteName: "prove-stagione-\(UUID().uuidString)")!
+check(GardenSky.shownSeason(date: date(2026, 7, 10), calendar: cal, defaults: seasonDefaults) == .summer
+      && GardenSky.shownSeason(date: date(2026, 1, 10), calendar: cal, defaults: seasonDefaults) == .winter, "la stagione che si vede è quella del calendario")
+seasonDefaults.set("winter", forKey: "gardenSeason")
+check(GardenSky.shownSeason(date: date(2026, 7, 10), calendar: cal, defaults: seasonDefaults) == .winter, "…o quella messa a mano per provarla")
+seasonDefaults.set("boh", forKey: "gardenSeason")
+check(GardenSky.shownSeason(date: date(2026, 7, 10), calendar: cal, defaults: seasonDefaults) == .summer, "…ma un nome che non c'è non conta")
 
 // ---------------------------------------------------------------- da fare
 section("Da fare: giorni e testi")

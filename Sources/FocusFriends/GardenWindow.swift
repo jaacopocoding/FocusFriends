@@ -645,6 +645,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
         let iso = self.iso
         let target = carryTarget()
         currentTint = GardenTint(multiplier: sky.light.multiplier)
+        currentSeason = sky.season
         drawStaticScene(iso, season: sky.season, light: sky.light)
         drawChimneySmoke(season: sky.season, iso: iso)
         drawHighlight(target, iso: iso)
@@ -656,7 +657,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
         drawGhost(target, iso: iso)
         drawWeather(sky.season, light: sky.light)
         drawLampGlows(laid, iso: iso, light: sky.light)
-        drawCottageWindows(light: sky.light, iso: iso)
+        drawCottageWindows(light: sky.light, season: sky.season, iso: iso)
         drawFireflies(season: sky.season, light: sky.light)
         if let bubble, let owner = laid.first(where: { $0.kind == .companion(bubble.petID) }) {
             drawBubble(bubble.text, above: owner.rect)
@@ -685,9 +686,8 @@ final class GardenView: NSView, NSViewToolTipOwner {
         let defaults = UserDefaults.standard
         let date = now()
         var hour = GardenSky.hour(of: date, calendar: calendar)
-        var season = Season.of(date, calendar: calendar)
+        let season = GardenSky.shownSeason(date: date, calendar: calendar, defaults: defaults)
         if defaults.object(forKey: "gardenHour") != nil { hour = defaults.double(forKey: "gardenHour") }
-        if let raw = defaults.string(forKey: "gardenSeason"), let forced = Season(rawValue: raw) { season = forced }
         return SkyState(season: season, light: GardenSky.light(hour: hour, season: season))
     }
 
@@ -721,12 +721,18 @@ final class GardenView: NSView, NSViewToolTipOwner {
     /// Prepara in anticipo quello che serve al primo disegno del giardino e dell'album (le immagini del terreno e degli oggetti, già decodificate, e gli
     /// sfondi già finiti): si chiama all'avvio, fuori dal thread principale, così quando si apre la finestra non c'è da aspettare.
     static func warmUp() {
-        _ = grassImages; _ = pathImages; _ = edgeImages; _ = darkEdgeImages; _ = decalImages
+        _ = decalImages
+        if Season.of(Date()) == .winter {
+            _ = snowImages; _ = snowPathImages; _ = snowEdgeImages; _ = darkSnowEdgeImages
+        } else {
+            _ = grassImages; _ = pathImages; _ = edgeImages; _ = darkEdgeImages
+        }
         for item in GardenCatalog.items { _ = GardenSprites.sprite(item.resource) }
         for pet in Pet.all { _ = GardenSprites.sprite(pet.iconResource) }
         let scale = NSScreen.main?.backingScaleFactor ?? 2
-        _ = MeadowBackdrop.rendered(size: sceneSize, scale: scale, blur: 2, veil: palette(Season.of(Date())).veil)
-        _ = MeadowBackdrop.rendered(size: AlbumView.size, scale: scale, blur: 0, veil: nil)
+        let season = Season.of(Date())
+        _ = MeadowBackdrop.rendered(size: sceneSize, scale: scale, blur: 2, veil: palette(season).veil, season: season)
+        _ = MeadowBackdrop.rendered(size: AlbumView.size, scale: scale, blur: 0, veil: nil, season: season)
     }
 
     /// L'ora del cielo e degli effetti, in secondi (un banco di prova la può fissare).
@@ -894,7 +900,8 @@ final class GardenView: NSView, NSViewToolTipOwner {
     /// Il fumo che esce dal camino del casale (sullo sfondo, dietro l'isola): sbuffi chiari che salgono e si piegano col vento.
     private func drawChimneySmoke(season: Season, iso: Iso) {
         let amount = GardenSky.smokeAmount(season)
-        guard amount > 0.01, let mouth = MeadowBackdrop.scenePoint(u: MeadowBackdrop.chimney.u, v: MeadowBackdrop.chimney.v, in: Self.sceneSize) else { return }
+        let chimney = MeadowBackdrop.chimney(season)
+        guard amount > 0.01, let mouth = MeadowBackdrop.scenePoint(u: chimney.u, v: chimney.v, in: Self.sceneSize, season: season) else { return }
         // il fumo sta dietro l'isola: non si disegna sopra di lei
         NSGraphicsContext.saveGraphicsState()
         defer { NSGraphicsContext.restoreGraphicsState() }
@@ -904,12 +911,13 @@ final class GardenView: NSView, NSViewToolTipOwner {
         clip.addClip()
         let time = reduceMotion ? 3 : effectsClock()
         let wind = GardenSky.wind(season)
-        let color = Self.color(226, 222, 224)
+        // sul bianco della neve il fumo chiaro non si vedrebbe: un po' più grigio
+        let color = season == .winter ? Self.color(204, 204, 214) : Self.color(226, 222, 224)
         for index in 0..<GardenSky.smokeCount {
             let puff = GardenSky.smoke(index: index, time: time, wind: wind)
             let a = min(CGFloat(puff.alpha * amount) * 1.5, 0.8)
             guard a > 0.01 else { continue }
-            let k = MeadowBackdrop.houseScale
+            let k = MeadowBackdrop.houseScale(season)
             let c = NSPoint(x: mouth.x + CGFloat(puff.dx) * k, y: mouth.y + CGFloat(puff.dy) * k)
             NSGradient(colors: [color.withAlphaComponent(a), color.withAlphaComponent(a * 0.55), color.withAlphaComponent(0)])?
                 .draw(fromCenter: c, radius: 0, toCenter: c, radius: CGFloat(puff.radius) * 1.7 * k, options: [])
@@ -917,7 +925,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
     }
 
     /// Di sera le finestre del casale si accendono (non sopra l'isola, che sta davanti).
-    private func drawCottageWindows(light: GardenLight, iso: Iso) {
+    private func drawCottageWindows(light: GardenLight, season: Season, iso: Iso) {
         let strength = CGFloat(light.lamp)
         guard strength > 0.02 else { return }
         NSGraphicsContext.saveGraphicsState()
@@ -927,10 +935,10 @@ final class GardenView: NSView, NSViewToolTipOwner {
         clip.addClip()
         NSGraphicsContext.current?.cgContext.setBlendMode(.plusLighter)
         let warm = Self.color(255, 208, 120)
-        for window in MeadowBackdrop.windows {
-            guard let c = MeadowBackdrop.scenePoint(u: window.u, v: window.v, in: Self.sceneSize) else { continue }
+        for window in MeadowBackdrop.windows(season) {
+            guard let c = MeadowBackdrop.scenePoint(u: window.u, v: window.v, in: Self.sceneSize, season: season) else { continue }
             NSGradient(colors: [warm.withAlphaComponent(0.8 * strength), warm.withAlphaComponent(0.25 * strength), warm.withAlphaComponent(0)])?
-                .draw(fromCenter: c, radius: 0, toCenter: c, radius: 20 * MeadowBackdrop.houseScale * 0.55, options: [])
+                .draw(fromCenter: c, radius: 0, toCenter: c, radius: 20 * MeadowBackdrop.houseScale(season) * 0.55, options: [])
         }
         NSGraphicsContext.restoreGraphicsState()
     }
@@ -989,24 +997,47 @@ final class GardenView: NSView, NSViewToolTipOwner {
         return images.count == GardenTerrain.pathCount ? images : nil
     }()
 
-    /// Le tre strisce del bordo di terra (assets/giardino/bordo_<n>.png, da `tools/cutout_bordo.py`): 24 pixel d'erba sopra la linea e 110 di terra sotto.
-    private static let edgeLip: CGFloat = 24, edgeBody: CGFloat = 110, edgeFade: CGFloat = 30
-    private static var edgeImages: [NSImage]? = {
-        let images = (1...GardenTerrain.edgeCount).compactMap { index in
-            GardenSprites.loadImage("giardino_bordo_\(index)")
+    /// D'inverno: le dodici tessere con la neve e le otto del sentiero innevato (da `tools/cutout_tessere.py`); se ne manca una, la neve si disegna a mano.
+    private static var snowImages: [NSImage]? = {
+        let images = (1...GardenTerrain.grassCount).compactMap { index in
+            GardenSprites.loadImage("giardino_tessera_neve_\(index)")
         }
-        return images.count == GardenTerrain.edgeCount ? images : nil
+        return images.count == GardenTerrain.grassCount ? images : nil
     }()
 
-    /// Le stesse, più scure, per il lato destro (quello all'ombra).
-    private static var darkEdgeImages: [NSImage]? = edgeImages?.map { source in
-        NSImage(size: source.size, flipped: false) { box in
-            source.draw(in: box)
-            NSColor(calibratedWhite: 0, alpha: 0.24).set()
-            box.fill(using: .sourceAtop)
-            return true
+    private static var snowPathImages: [NSImage]? = {
+        let images = (1...GardenTerrain.pathCount).compactMap { index in
+            GardenSprites.loadImage("giardino_tessera_sentiero_neve_\(index)")
+        }
+        return images.count == GardenTerrain.pathCount ? images : nil
+    }()
+
+    /// Le tre strisce del bordo di terra (assets/giardino/bordo_<n>.png, da `tools/cutout_bordo.py`): 24 pixel d'erba sopra la linea e 110 di terra sotto.
+    private static let edgeLip: CGFloat = 24, edgeBody: CGFloat = 110, edgeFade: CGFloat = 30
+    private static func loadEdges(_ name: String) -> [NSImage]? {
+        let images = (1...GardenTerrain.edgeCount).compactMap { index in
+            GardenSprites.loadImage("\(name)_\(index)")
+        }
+        return images.count == GardenTerrain.edgeCount ? images : nil
+    }
+
+    /// Le stesse più scure, per il lato destro (quello all'ombra).
+    private static func darkened(_ images: [NSImage]?) -> [NSImage]? {
+        images?.map { source in
+            NSImage(size: source.size, flipped: false) { box in
+                source.draw(in: box)
+                NSColor(calibratedWhite: 0, alpha: 0.24).set()
+                box.fill(using: .sourceAtop)
+                return true
+            }
         }
     }
+
+    private static var edgeImages: [NSImage]? = loadEdges("giardino_bordo")
+    private static var darkEdgeImages: [NSImage]? = darkened(edgeImages)
+    /// D'inverno: la neve sul bordo, i ghiaccioli, la terra fredda (stessa misura: 24 pixel sopra la linea e 110 sotto).
+    private static var snowEdgeImages: [NSImage]? = loadEdges("giardino_bordo_neve")
+    private static var darkSnowEdgeImages: [NSImage]? = darkened(snowEdgeImages)
 
     /// Mette il bordo di terra su un lato dell'isola, da `from` a `to` (la linea sale o scende di mezzo punto per ogni punto di larghezza): strisce di
     /// terra ripetute e sovrapposte (le estremità svaniscono), ognuna diversa dalla precedente e specchiata una volta ogni due; la linea dove comincia la terra sta sul bordo delle tessere.
@@ -1053,25 +1084,36 @@ final class GardenView: NSView, NSViewToolTipOwner {
         return images.count == GardenTerrain.decalCount ? images : nil
     }()
 
+    /// La disposizione delle tessere d'erba (o di neve) per ogni grandezza dell'isola, calcolata una volta: la chiave è la grandezza e se è inverno.
     private static var grassGrids: [Int: [Int]] = [:]
 
     /// Disegna il terreno (ombra, lati, tessere); `carrying`: la griglia si vede di più mentre si trascina.
     private func paintIslandGround(_ iso: Iso, season: Season, carrying: Bool) {
         let pal = Self.palette(season)
-        let grassGrid = Self.grassGrids[iso.size] ?? { let grid = GardenTerrain.grassGrid(size: iso.size); Self.grassGrids[iso.size] = grid; return grid }()
+        let winter = season == .winter
+        let gridKey = iso.size * 2 + (winter ? 1 : 0)
+        let grassGrid = Self.grassGrids[gridKey] ?? {
+            let grid = GardenTerrain.grassGrid(size: iso.size, weights: GardenTerrain.grassWeights(season: season))
+            Self.grassGrids[gridKey] = grid
+            return grid
+        }()
         let pathTiles = GardenIsland.pathTiles(size: iso.size)
         let pathIndex = Dictionary(uniqueKeysWithValues: pathTiles.enumerated().map { ($1, $0) })
-        let pathVariants = GardenTerrain.pathVariants(count: pathTiles.count)
+        let pathVariants = GardenTerrain.pathVariants(count: pathTiles.count, weights: GardenTerrain.pathWeights(season: season))
+        let grassSet = winter ? Self.snowImages : Self.grassImages
+        let pathSet = winter ? Self.snowPathImages : Self.pathImages
+        let edgeSet = winter ? Self.snowEdgeImages : Self.edgeImages
+        let darkEdgeSet = winter ? Self.darkSnowEdgeImages : Self.darkEdgeImages
         let n = Double(iso.size)
         let thickness = iso.edge
         // l'ombra sul prato, sotto l'isola
         let front = iso.point(col: n, row: n)
         let shadow = NSRect(x: iso.origin.x - iso.tileW * CGFloat(n) * 0.46, y: front.y - iso.tileH * 0.5, width: iso.tileW * CGFloat(n) * 0.92, height: iso.tileH * 1.6)
-        NSColor(calibratedRed: 0.16, green: 0.22, blue: 0.10, alpha: 0.16).setFill()
+        (winter ? NSColor(calibratedRed: 0.16, green: 0.22, blue: 0.32, alpha: 0.16) : NSColor(calibratedRed: 0.16, green: 0.22, blue: 0.10, alpha: 0.16)).setFill()
         NSBezierPath(ovalIn: shadow).fill()
         // i lati (a mano, se non ci sono le strisce disegnate; quelle si mettono dopo le tessere)
         let left = iso.point(col: 0, row: n), right = iso.point(col: n, row: 0)
-        if Self.edgeImages == nil {
+        if edgeSet == nil {
             let leftSide = NSBezierPath()
             leftSide.move(to: left); leftSide.line(to: front)
             leftSide.line(to: NSPoint(x: front.x, y: front.y + thickness)); leftSide.line(to: NSPoint(x: left.x, y: left.y + thickness)); leftSide.close()
@@ -1092,12 +1134,10 @@ final class GardenView: NSView, NSViewToolTipOwner {
                 let isPath = GardenIsland.isPath(tile)
                 let base = isPath ? ((col + row) % 2 == 0 ? pal.pathA : pal.pathB) : ((col + row) % 2 == 0 ? pal.grassA : pal.grassB)
                 let path = diamond(tile, iso: iso)
-                // l'erba disegnata (d'inverno, finché non c'è la neve disegnata, si usa quella a mano: bianca)
+                // l'erba (o la neve) disegnata; se manca, a mano
                 var grass: NSImage?
-                if season != .winter {
-                    if isPath, let index = pathIndex[tile] { grass = Self.pathImages?[pathVariants[index]] }
-                    else if !isPath { grass = Self.grassImages?[grassGrid[row * iso.size + col]] }
-                }
+                if isPath, let index = pathIndex[tile] { grass = pathSet?[pathVariants[index]] }
+                else if !isPath { grass = grassSet?[grassGrid[row * iso.size + col]] }
                 if let grass {
                     grass.draw(in: path.bounds.insetBy(dx: -0.6, dy: -0.3), from: .zero, operation: .sourceOver, fraction: 1, respectFlipped: true,
                                hints: [.interpolation: NSImageInterpolation.high])
@@ -1139,7 +1179,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
             }
         }
         // i lati di terra disegnati, sopra le tessere (i fili d'erba che sporgono coprono un po' il bordo)
-        if let edges = Self.edgeImages, let dark = Self.darkEdgeImages {
+        if let edges = edgeSet, let dark = darkEdgeSet {
             drawEdgeStrip(from: left, to: front, face: 0, images: edges, iso: iso)
             drawEdgeStrip(from: front, to: right, face: 1, images: dark, iso: iso)
         }
@@ -1205,7 +1245,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
                 NSGraphicsContext.saveGraphicsState()
                 NSGraphicsContext.current = NSGraphicsContext(cgContext: cg, flipped: true)
                 NSGraphicsContext.current?.imageInterpolation = .high
-                MeadowBackdrop.draw(in: sceneRect, blur: 2, veil: Self.palette(season).veil, scale: scale)
+                MeadowBackdrop.draw(in: sceneRect, blur: 2, veil: Self.palette(season).veil, scale: scale, season: season)
                 drawIslandGround(iso, season: season)
                 applyLight(light)
                 NSGraphicsContext.restoreGraphicsState()
@@ -1215,7 +1255,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
         if let cached = sceneCache {
             GardenBlit.draw(cached.image, in: sceneRect, copy: true)
         } else {
-            MeadowBackdrop.draw(in: sceneRect, blur: 2, veil: Self.palette(season).veil, scale: scale)
+            MeadowBackdrop.draw(in: sceneRect, blur: 2, veil: Self.palette(season).veil, scale: scale, season: season)
             drawIslandGround(iso, season: season)
             applyLight(light)
         }
@@ -1223,6 +1263,8 @@ final class GardenView: NSView, NSViewToolTipOwner {
 
     /// La tinta con cui si disegnano oggetti e compagni in questo momento (la luce è già dentro lo sfondo e il terreno).
     private var currentTint = GardenTint.none
+    /// La stagione del disegno in corso (l'ombra sotto le cose è verde sul prato e azzurra sulla neve).
+    private var currentSeason = Season.spring
 
     /// Il terreno, da un disegno già pronto (solo il rettangolo che lo contiene) finché non cambia niente tranne la posizione: spostarsi non lo rifà,
     /// lo sposta soltanto. Si rifà con l'isola, lo zoom, la stagione o la griglia che si accende. Disegnare le tessere ad ogni fotogramma costerebbe
@@ -1277,7 +1319,8 @@ final class GardenView: NSView, NSViewToolTipOwner {
     private func drawEntity(_ entity: Entity, alpha: CGFloat = 1, lift: CGFloat = 0) {
         let rect = entity.rect.offsetBy(dx: 0, dy: -lift)
         if let shadow = entity.shadow {
-            NSColor(calibratedRed: 0.24, green: 0.32, blue: 0.20, alpha: 0.28 * alpha).setFill()
+            (currentSeason == .winter ? NSColor(calibratedRed: 0.30, green: 0.38, blue: 0.52, alpha: 0.22 * alpha)
+                                      : NSColor(calibratedRed: 0.24, green: 0.32, blue: 0.20, alpha: 0.28 * alpha)).setFill()
             NSBezierPath(ovalIn: shadow).fill()
         }
         NSGraphicsContext.saveGraphicsState()

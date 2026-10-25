@@ -226,7 +226,9 @@ final class AlbumView: NSView {
     }
 
     override func draw(_ dirtyRect: NSRect) {
-        if !capturing { MeadowBackdrop.draw(in: bounds, scale: window?.backingScaleFactor ?? 2) }
+        if !capturing {
+            MeadowBackdrop.draw(in: bounds, scale: window?.backingScaleFactor ?? 2, season: GardenSky.shownSeason(date: Date(), calendar: StudyPeriod.calendar()))
+        }
         switch mode {
         case .cover: drawCover()
         case .opening: break
@@ -666,6 +668,12 @@ enum MeadowBackdrop {
     private static let landscapeURL = Bundle.main.url(forResource: "giardino_sfondo", withExtension: "png")
     private static let meadowURL: URL? = landscapeURL ?? Bundle.main.url(forResource: "giardino_prato", withExtension: "png")
 
+    /// L'inverno ha il suo paesaggio (assets/giardino/sfondo_inverno.png): il lago ghiacciato, il casale con la neve sul tetto. Se manca, resta quello solito.
+    private static let frozenURL = Bundle.main.url(forResource: "giardino_sfondo_inverno", withExtension: "png")
+
+    private static func isFrozen(_ season: Season) -> Bool { season == .winter && frozenURL != nil }
+    private static func pictureURL(_ season: Season) -> URL? { isFrozen(season) ? frozenURL : meadowURL }
+
     /// Dove sta il casale nello sfondo nuovo e quanto è piccolo: il fumo e la luce delle finestre si adattano. Con il vecchio prato dipinto il casale
     /// è più grande, e questi numeri sono quelli di allora.
     private static let hasLandscape = landscapeURL != nil
@@ -678,10 +686,10 @@ enum MeadowBackdrop {
     }
 
     /// Il prato a misura della finestra (al doppio dei punti, per gli schermi retina), preso al 40 % da sinistra, sfocato di `blur` punti.
-    private static func meadow(size: NSSize, blur: CGFloat) -> CGImage? {
-        let key = "\(Int(size.width))x\(Int(size.height))-\(blur)"
+    private static func meadow(size: NSSize, blur: CGFloat, season: Season) -> CGImage? {
+        let key = "\(Int(size.width))x\(Int(size.height))-\(blur)-\(isFrozen(season) ? "inverno" : "prato")"
         if let known = cache[key] { return known }
-        guard let url = meadowURL, let picture = CIImage(contentsOf: url) else { return nil }
+        guard let url = pictureURL(season), let picture = CIImage(contentsOf: url) else { return nil }
         let target = CGSize(width: size.width * 2, height: size.height * 2)
         let scale = max(target.width / picture.extent.width, target.height / picture.extent.height)
         var scaled = picture.transformed(by: CGAffineTransform(scaleX: scale, y: scale))
@@ -696,11 +704,12 @@ enum MeadowBackdrop {
     private static func rgb(_ r: CGFloat, _ g: CGFloat, _ b: CGFloat, _ a: CGFloat = 1) -> NSColor { NSColor(calibratedRed: r, green: g, blue: b, alpha: a) }
 
     private static let sourcePixels: CGSize? = meadowURL.flatMap { CIImage(contentsOf: $0) }.map { $0.extent.size }
+    private static let frozenPixels: CGSize? = frozenURL.flatMap { CIImage(contentsOf: $0) }.map { $0.extent.size }
 
     /// Dove cade, nella scena (origine in alto), un punto del disegno del prato (`u` e `v` da 0 a 1 dall'angolo in alto a sinistra), con lo
     /// stesso ritaglio con cui si disegna lo sfondo: serve a mettere il fumo sul camino e la luce alle finestre del casale.
-    static func scenePoint(u: Double, v: Double, in size: NSSize) -> NSPoint? {
-        guard let source = sourcePixels else { return nil }
+    static func scenePoint(u: Double, v: Double, in size: NSSize, season: Season) -> NSPoint? {
+        guard let source = isFrozen(season) ? frozenPixels : sourcePixels else { return nil }
         let target = CGSize(width: size.width * 2, height: size.height * 2)
         let scale = max(target.width / source.width, target.height / source.height)
         let scaled = CGSize(width: source.width * scale, height: source.height * scale)
@@ -708,23 +717,32 @@ enum MeadowBackdrop {
         return NSPoint(x: (CGFloat(u) * scaled.width - cropX) / 2, y: (target.height - CGFloat(1 - v) * scaled.height) / 2)
     }
 
-    /// Dove stanno, nel disegno del prato, la bocca del camino e le finestre del casale (frazioni dell'immagine).
-    static var chimney: (u: Double, v: Double) { hasLandscape ? (0.1336, 0.3111) : (0.305, 0.229) }
-    static var windows: [(u: Double, v: Double)] {
-        hasLandscape ? [(0.0921, 0.3576), (0.1114, 0.3904), (0.1263, 0.3916), (0.1456, 0.3564)] : [(0.376, 0.346), (0.310, 0.440)]
+    /// Dove stanno, nel disegno del prato, la bocca del camino e le finestre del casale (frazioni dell'immagine; i numeri li stampa `tools/prepara_sfondo.py`).
+    static func chimney(_ season: Season) -> (u: Double, v: Double) {
+        if isFrozen(season) { return (0.1198, 0.3110) }
+        return hasLandscape ? (0.1336, 0.3111) : (0.305, 0.229)
     }
-    /// Quanto è grande il casale rispetto a quello vecchio (fumo e finestre).
-    static var houseScale: CGFloat { hasLandscape ? 0.5 : 1 }
+
+    static func windows(_ season: Season) -> [(u: Double, v: Double)] {
+        if isFrozen(season) { return [(0.0813, 0.3990), (0.0875, 0.3644), (0.0938, 0.3993), (0.1072, 0.4040), (0.1228, 0.4010), (0.1432, 0.3631)] }
+        return hasLandscape ? [(0.0921, 0.3576), (0.1114, 0.3904), (0.1263, 0.3916), (0.1456, 0.3564)] : [(0.376, 0.346), (0.310, 0.440)]
+    }
+
+    /// Quanto è grande il casale rispetto a quello vecchio (fumo e finestre): quello d'inverno ha la stessa larghezza di quello d'estate.
+    static func houseScale(_ season: Season) -> CGFloat { hasLandscape || isFrozen(season) ? 0.5 : 1 }
+
+    /// Il velo che si stende sullo sfondo quando non se ne dà uno: caldo di norma, freddo sul lago ghiacciato.
+    private static func defaultVeil(_ season: Season) -> NSColor { isFrozen(season) ? rgb(0.88, 0.93, 1, 0.20) : rgb(1, 0.96, 0.86, 0.16) }
 
     /// Lo sfondo finito (immagine, velo e bordi scuriti) alla grandezza e alla scala (pixel per punto) volute, già pronto: ridisegnarlo ogni volta
     /// costava più di tutto il resto del giardino. Si può preparare anche in un altro thread (prima che serva), e due richieste uguali non si fanno due volte.
-    static func rendered(size: NSSize, scale: CGFloat, blur: CGFloat, veil: NSColor?, colorSpace: CGColorSpace? = nil) -> CGImage? {
+    static func rendered(size: NSSize, scale: CGFloat, blur: CGFloat, veil: NSColor?, season: Season, colorSpace: CGColorSpace? = nil) -> CGImage? {
         lock.lock()
         defer { lock.unlock() }
         let space = colorSpace ?? GardenDisplay.colorSpace()
-        let veilColor = (veil ?? rgb(1, 0.96, 0.86, 0.16)).usingColorSpace(.deviceRGB)
+        let veilColor = (veil ?? defaultVeil(season)).usingColorSpace(.deviceRGB)
         let veilKey = veilColor.map { "\($0.redComponent),\($0.greenComponent),\($0.blueComponent),\($0.alphaComponent)" } ?? "-"
-        let key = "\(Int(size.width))x\(Int(size.height))@\(scale)-\(blur)-\(veilKey)-\(GardenDisplay.name(space))"
+        let key = "\(Int(size.width))x\(Int(size.height))@\(scale)-\(blur)-\(veilKey)-\(isFrozen(season) ? "inverno" : "prato")-\(GardenDisplay.name(space))"
         if let known = rendered[key] { return known }
         guard let context = CGContext(data: nil, width: Int(size.width * scale), height: Int(size.height * scale), bitsPerComponent: 8, bytesPerRow: 0,
                                       space: space,
@@ -734,7 +752,7 @@ enum MeadowBackdrop {
         NSGraphicsContext.saveGraphicsState()
         NSGraphicsContext.current = NSGraphicsContext(cgContext: context, flipped: true)
         NSGraphicsContext.current?.imageInterpolation = .high
-        paint(in: NSRect(origin: .zero, size: size), blur: blur, veil: veilColor)
+        paint(in: NSRect(origin: .zero, size: size), blur: blur, veil: veilColor, season: season)
         NSGraphicsContext.restoreGraphicsState()
         let image = context.makeImage()
         if let image { rendered[key] = image }
@@ -743,26 +761,28 @@ enum MeadowBackdrop {
 
     /// Disegna lo sfondo (nella vista capovolta: l'origine è in alto).
     /// `veil`: il velo di colore che si stende sopra (di norma uno caldo; il giardino ne usa uno per stagione). `scale`: i pixel per punto dello schermo.
-    static func draw(in bounds: NSRect, blur: CGFloat = 0, veil: NSColor? = nil, scale: CGFloat = 2) {
-        if let image = rendered(size: bounds.size, scale: scale, blur: blur, veil: veil) {
+    static func draw(in bounds: NSRect, blur: CGFloat = 0, veil: NSColor? = nil, scale: CGFloat = 2, season: Season) {
+        if let image = rendered(size: bounds.size, scale: scale, blur: blur, veil: veil, season: season) {
             GardenBlit.draw(image, in: bounds, copy: true)
         } else {
-            paint(in: bounds, blur: blur, veil: veil)
+            paint(in: bounds, blur: blur, veil: veil, season: season)
         }
     }
 
-    private static func paint(in bounds: NSRect, blur: CGFloat, veil: NSColor?) {
+    private static func paint(in bounds: NSRect, blur: CGFloat, veil: NSColor?, season: Season) {
         base.setFill()
         bounds.fill()
-        guard let picture = meadow(size: bounds.size, blur: blur) else {
+        guard let picture = meadow(size: bounds.size, blur: blur, season: season) else {
             NSGradient(colors: [rgb(0.36, 0.26, 0.18), base])?.draw(in: bounds, relativeCenterPosition: NSPoint(x: 0, y: 0.2))
             return
         }
         NSImage(cgImage: picture, size: bounds.size).draw(in: bounds, from: .zero, operation: .sourceOver, fraction: 1, respectFlipped: true,
                                                           hints: [.interpolation: NSImageInterpolation.high])
-        (veil ?? rgb(1, 0.96, 0.86, 0.16)).setFill()
+        (veil ?? defaultVeil(season)).setFill()
         bounds.fill()
-        NSGradient(colors: [rgb(0.15, 0.20, 0.10, 0), rgb(0.15, 0.20, 0.10, 0.30)])?.draw(in: bounds, relativeCenterPosition: NSPoint(x: 0, y: 0))
+        // i bordi scuriti: verdi sul prato, azzurri sul ghiaccio
+        let edge = isFrozen(season) ? (0.14, 0.19, 0.28, 0.26) : (0.15, 0.20, 0.10, 0.30)
+        NSGradient(colors: [rgb(edge.0, edge.1, edge.2, 0), rgb(edge.0, edge.1, edge.2, edge.3)])?.draw(in: bounds, relativeCenterPosition: NSPoint(x: 0, y: 0))
     }
 }
 
