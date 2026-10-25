@@ -450,7 +450,7 @@ Poi **la scheda «Anno» delle statistiche** (Mac 0.10.0, Windows 1.2.0): l'anno
 > deterministico (FNV-1a + Mulberry32) e regole dell'isola (impronte, sentiero, dimensioni, migrazione dal prato libero), `giardino.json` versione 3
 > (`FORMATI.md` §5) e prove di contratto sul blocco `giardino` di `tests/fixtures/attesi/`; interfaccia = isola in proiezione isometrica (`<canvas>` o CSS
 > transform) con anteprima verde/rossa, cassetta, zoom e spostamenti, album come libro in CSS 3D, carta della figurina a fine focus. Le immagini sono già in
-> `assets/giardino/` e `assets/album/`.
+> `assets/giardino/` e `assets/album/`. Anche la luce e le stagioni (`GardenSky.swift`) sono solo numeri e funzioni del tempo: si portano uguali in TypeScript, con le stesse prove.
 
 Si fa dopo, perché riusa tutto il resto (schede, finestre, immagini, dati) e non blocca nessuna delle altre funzioni.
 

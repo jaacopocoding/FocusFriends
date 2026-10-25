@@ -399,6 +399,13 @@ tasti `+` e `−` o coi pulsanti in basso a destra (da 0,6× a 2,5×); `0` o il 
 due tocchi sullo sfondo ingrandiscono o tornano indietro. Ci si sposta con due dita o trascinando lo sfondo; il centro
 della finestra resta sempre sull'isola.
 
+**Luce e stagioni.** Il giardino segue l'orologio e la data (`GardenSky.swift`): alba rosata, giorno, tramonto dorato, crepuscolo e
+notte blu, con il sole che sorge e tramonta a ore diverse (d'inverno alle 17 è già buio, d'estate alle 21 c'è ancora luce). Con il buio
+i **lampioni** si accendono, con un alone in cima e una pozza di luce sul prato, e compaiono le **lucciole** (tante d'estate, poche in
+autunno, mai d'inverno). La stagione cambia l'erba e il velo sullo sfondo: in primavera cadono i petali, in autunno le foglie, in inverno
+la neve e l'isola è bianca. Per provare un'ora o una stagione: `defaults write com.jacopo.focusfriends gardenHour -float 21` (l'ora, con
+la virgola) e `gardenSeason -string winter` (`spring`, `summer`, `autumn`, `winter`); `defaults delete …` le toglie.
+
 Sopra l'isola, due etichette: quante figurine hai (N/36) e la serie di giorni. Gli oggetti, le impronte e le rarità stanno
 in `GardenCatalog.swift` (per ora la rarità si ricava dal vecchio prezzo: fino a 3 comune, fino a 6 raro, oltre leggendario).
 

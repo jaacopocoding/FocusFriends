@@ -64,7 +64,7 @@ Single user per Mac, no accounts, no network: all data is stored locally under
 | App type | Menu-bar "agent": `LSUIElement = true`, activation policy `.accessory` | `build.sh`, `AppDelegate.applicationDidFinishLaunching` |
 | Signing | Ad-hoc (`codesign --force --sign -`; `build.sh` stops with exit 1 if signing fails); not notarised, no hardened runtime or sandbox | `build.sh`, `README.md` "Scaricare e usare" |
 | Asset tooling | Python 3 scripts using Pillow and NumPy (not run at build time) | `tools/*.py` |
-| Tests | One hand-written Swift executable (`tests/main.swift`, 37 sections, 581 checks) that compiles fifteen Foundation-only source files; no XCTest | `tests/run.sh` |
+| Tests | One hand-written Swift executable (`tests/main.swift`, 38 sections, 620 checks) that compiles seventeen Foundation-only source files; no XCTest | `tests/run.sh` |
 | License | MIT (`LICENSE`); bundled music is CC0 (`CREDITS.md`) | `LICENSE`, `CREDITS.md` |
 | Swift toolchain version / Python version | Not pinned anywhere in the repository | **[unknown]** |
 
@@ -145,6 +145,7 @@ FocusFriends/
 │   ├── BreakCycle.swift          four-focus cycle counter for the long break                            (Foundation only)
 │   ├── CompanionRewards.swift    thresholds for unlocking companions                                    (Foundation only)
 │   ├── Garden.swift              giardino.json v3: copies found per object, drop counters, unseen/pending gifts, copies on the island (tile + turned), companion tiles; v1/v2 migration (Foundation only)
+│   ├── GardenSky.swift           the garden's sky: light by hour and season (`GardenSky.light`), lamps and fireflies, the motion of petals, leaves, snow and fireflies (Foundation only)
 │   ├── GardenGrid.swift          the island: GardenTile, GardenFootprint, GardenIsland (size, path), GardenLayout (canPlace, nearest free tile, legacy-spot mapping), legacy GardenSpot/GardenScene (Foundation only)
 │   ├── GardenDrops.swift         the end-of-focus drop: rarities, chances, pity, deterministic roll (FNV-1a + Mulberry32), simulate(), the sentences (Foundation only)
 │   ├── GardenCatalog.swift       the 36 objects (id, name, category, height, footprint, price → rarity), GardenPlacement (tile + turned) + GardenAlbum pages (Foundation only)
@@ -154,8 +155,8 @@ FocusFriends/
 │   ├── MusicLibrary.swift        MusicSource, MusicLibrary (file discovery, shuffle, titles), MusicSettings  (Foundation only)
 │   └── MusicPlayer.swift         AVAudioPlayer-based music playback with queue and fades
 ├── tests/
-│   ├── main.swift                hand-rolled test executable (check()/section()), 37 sections, 581 checks
-│   ├── run.sh                    compiles 15 source files + tests/main.swift into build/tests/stats and runs it
+│   ├── main.swift                hand-rolled test executable (check()/section()), 38 sections, 620 checks
+│   ├── run.sh                    compiles 17 source files + tests/main.swift into build/tests/stats and runs it
 │   ├── genera-attesi.sh          builds and runs tests/genera-attesi/main.swift: for every folder in tests/fixtures/ writes what this app derives from it (the expected results the Windows port is compared with)
 │   ├── simula-regali.sh          simulates the end-of-focus drops over 30/60/90 days of studying (how long an album takes; used to tune GardenDrops)
 │   ├── genera-rumore.sh          same idea for the ambient-noise synthesiser (tests/fixtures/rumore.json)
@@ -522,6 +523,15 @@ code. All UI code runs on the main thread; the only other thread is the audio re
   taken by another companion for companions). `mouseUp` → `Garden.move(_, to:, turned:)` / `place` / `placeSomewhere` (a tap on the tray) /
   `setCompanionTile` / `remove` (dropped on `removeZoneRect`), or, for a companion that did not move, a phrase from `Quotes.load(for:)` for 5 s. **R** while
   dragging turns the copy; right-click → "Gira" / "Togli dal giardino". Scroll = pan (⌘ or ⌥ = zoom), pinch = zoom, `+` `−` `0`.
+- **Sky and seasons** (`GardenSky.swift`, Foundation only, tested; drawn by `GardenView`): `skyState()` takes the hour and the season from
+  `now()` (or from the hidden preferences `gardenHour` / `gardenSeason`). `GardenSky.light(hour:season:)` interpolates between keyframes built
+  from the season's `sunrise`/`sunset` (night 0.55 darkness, dawn, day 0, golden hour, dusk, night) and gives a tint colour, how strongly it tints
+  and `darkness`; `lamp` (smoothstep 0.16–0.40 of darkness) turns the lamps on; `fireflyAmount` is the dark times the season (summer 1, spring 0.7,
+  autumn 0.35, winter 0). In `draw`: the backdrop with a **season veil** and the island with the season's `Palette` → entities → ghost →
+  `drawWeather` (petals, leaves or snow from `GardenSky.particle(kind:index:time:…)`, pure functions of time) → `applyLight` (the scene multiplied by the
+  tint with the CoreGraphics blend mode `.multiply`, plus darker corners at night) → `drawLampGlows` and `drawFireflies` (`.plusLighter`, only on top of
+  placed `lampione` copies and on the fireflies' own positions) → bubble → HUD. The 30 Hz timer asks for a redraw only when something walks or moves in
+  the sky (`skyIsAnimated`), and every second for a change of light; `effectsClock` lets a bench freeze the time of the effects.
 - **Companions walk** (`advanceWalkers(by:)`, a 30 Hz timer while the window is visible): each `Walker` rests 1.5–5 s, then steps to a free
   neighbouring tile (not taken by another companion) in 1.3 s with a small hop; the saved tile (`Garden.companionTile`) is only their home and is reset
   when the user drops them somewhere.
@@ -576,7 +586,7 @@ code. All UI code runs on the main thread; the only other thread is the audio re
     music (`music_*`), garden/growth art, Pianty stage frames → write `Info.plist` via heredoc →
     `codesign --force --sign -` (a failure prints an error and exits 1) → print the path.
   - `tests/run.sh`: `swiftc -O -o build/tests/stats` on fourteen source files + `tests/main.swift` →
-    `build/tests/stats` (prints `• <section>` lines and `N controlli, M falliti`, exit code 0/1; 581 checks now).
+    `build/tests/stats` (prints `• <section>` lines and `N controlli, M falliti`, exit code 0/1; 620 checks now).
   - Tools: described in §5.9; they read `assets/**/*_original.png` / sheets and write processed PNGs or the icon.
 
 ### 3.22 To-do list ("Da fare")
@@ -770,7 +780,7 @@ main.swift ──► AppDelegate  (composition root: creates and wires everythin
                  ├─ IntroCard, ReflectionCard ─► PaperUI, Profile / SessionLog
                  └─ (lazy) DashboardController/GardenController ─► SessionLog.shared, Profile.shared, Garden.shared, PaperUI
 
-Foundation-only core (no AppKit):  SessionLog.swift (StudySession, SessionLog, Season [unused by the app], StudyStats,
+Foundation-only core (no AppKit):  SessionLog.swift (StudySession, SessionLog, Season [used by the garden's sky], StudyStats,
    SessionCSV, Subject, FocusNotes, SessionNote), Profile, CustomTimers (+TimerDialMath), BreakCycle,
    CompanionRewards, Garden, GardenCatalog, GardenGrid (+GardenIsland, GardenLayout), GardenPoints (+StudyStreak), AmbientSound (+AmbientSettings,
    BackgroundChoice), MusicLibrary (+MusicSource, MusicSettings), ToDo (ToDoList, ToDoItem, ToDoDay, ToDoText,
@@ -1253,7 +1263,7 @@ file/UserDefaults writes, windows, timers, sound, global state.
 ### 5.9 Tests, build and tools
 
 #### `tests/main.swift` (1,056) and `tests/run.sh` (7)
-- A single executable: `check(_:_:line:)`, `section(_:)`, 37 sections (581 checks) covering subjects, log persistence,
+- A single executable: `check(_:_:line:)`, `section(_:)`, 38 sections (620 checks) covering subjects, log persistence,
   in-progress recovery, periods, summaries, streaks, texts, garden rules, format versions/migration, subject merging, backups and
   delete-all, time zones, profile, ratings/notes/insights/CSV, timer dial math, seasons, ambient settings, music
   library/settings, focus notes, paused-time recovery, companion rewards (including the developer flag), break cycle,
@@ -1745,7 +1755,7 @@ code is clear. Items without a mark still describe the current code.
 
 ### 7.8 Test coverage as it exists
 
-- Covered (37 sections, 581 checks in `tests/main.swift`): everything in the Foundation-only files listed in §4.1,
+- Covered (38 sections, 620 checks in `tests/main.swift`): everything in the Foundation-only files listed in §4.1,
   including the new damaged-data cases and the developer flag.
 - Not covered by any automated test in the repository: `Pomodoro` (timer, pause, grace, the sleep-gap rule, cycle
   wiring), `Speaker` (including when a to-do reminder replaces a phrase), `Walker`, `PetWindow`/`PetView`, `MenuController`,
