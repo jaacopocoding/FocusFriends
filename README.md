@@ -379,7 +379,7 @@ nelle impostazioni di accessibilità il libro si apre e si sfoglia di colpo.
 ### L'isola e la cassetta
 
 L'isola è una griglia di **tessere** vista di sbieco, con un sentiero che la attraversa (ci camminano i compagni, ma non
-ci si costruisce) e il prato del giardino sfocato dietro. Parte da **8×8** e si allarga di una fila per ogni doppia
+ci si costruisce) e un paesaggio dipinto dietro (un lago fra le colline, con il casale sulla riva lontana). Parte da **8×8** e si allarga di una fila per ogni doppia
 pagina dell'album completata, fino a **10×10** (`GardenIsland`, in `GardenGrid.swift`). Ogni oggetto occupa una, due o
 quattro tessere (la panchina 2×1, la casetta del gatto 2×2…), sempre della stessa misura, quindi niente sovrapposizioni.
 
@@ -387,6 +387,13 @@ Il terreno è **disegnato**: dodici tessere d'erba (liscia, con ciuffi, trifogli
 di sentiero (lastre, ciottoli, pietre irregolari, con l'erba o col muschio). Vanno a **chiazze di 2 o 3 uguali** di seguito, in modo sempre uguale
 per la stessa tessera (`GardenTerrain`, in `GardenGrid.swift`) e senza cambiare quando l'isola si allarga. In autunno prendono una tinta ocra;
 d'inverno, finché non c'è la neve disegnata, si usa il terreno bianco disegnato dal codice.
+
+Lo **sfondo** è un paesaggio di Gemini (`assets/giardino/sfondo_original.png`: colline, cielo e un lago) preparato da `tools/prepara_sfondo.py`: lo
+ingrandisce a 2048×1012, copre con una sfumatura la piccola isola che Gemini aveva dipinto in mezzo al lago (la nostra ci sta sopra) e compone
+sulle rive lontane il **casale**, gli alberi e gli abeti ritagliati dal foglio del paesaggio (`paesaggio_original.png`, `tools/cutout_paesaggio.py`),
+un po' sfocati e schiariti come le cose lontane. Il fumo del camino e le finestre accese di sera stanno sul casale composto (`MeadowBackdrop.chimney`
+e `windows`). È lo stesso sfondo dell'album. Le siepi, lo steccato e il tronco dello stesso foglio sono già ritagliati (`paesaggio_siepe-…`,
+`paesaggio_steccato`, `paesaggio_tronchi`) e aspettano di diventare oggetti da collezione.
 
 I **lati dell'isola** sono strisce di terra disegnate (`assets/giardino/bordo_1..3.png`): una zolla vista di fronte con il bordo d'erba, radici, sassi e
 muschio. Si ripetono sui due lati, sempre diverse dalla precedente e sovrapposte con le estremità che svaniscono (il lato destro, all'ombra, è più scuro),
