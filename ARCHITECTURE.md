@@ -37,8 +37,8 @@ FocusFriends is a macOS desktop-pet / Pomodoro study timer (`README.md`, header 
 A small animated character ("companion") lives in a transparent, always-on-top window on the desktop. The user starts a
 timed "focus" (30 or 50 minutes by default, 1–180 minutes if custom), optionally naming the subject being studied; the
 companion grows or reacts during the focus, a pause follows, and every focus is written to a local JSON log. From that
-log the app derives statistics (day / week / month), a streak counter (with one "frozen" day of tolerance), "garden
-points" (one per hour studied, multiplied by the streak) that are spent in a shop to furnish a personal garden, and
+log the app derives statistics (day / week / month), a streak counter (with one "frozen" day of tolerance), end-of-focus
+"figurine" drops (a collectible album, whose copies furnish a personal garden), and
 unlockable companions. It also offers optional ambient sound (synthesised rain / brown noise /
 wind) or music (bundled tracks or a user folder) during focus, a notes post-it on the focus screen, a "how did it go?"
 rating card, a long break after four completed focuses, and a to-do list with optional due days that the companion
@@ -64,7 +64,7 @@ Single user per Mac, no accounts, no network: all data is stored locally under
 | App type | Menu-bar "agent": `LSUIElement = true`, activation policy `.accessory` | `build.sh`, `AppDelegate.applicationDidFinishLaunching` |
 | Signing | Ad-hoc (`codesign --force --sign -`; `build.sh` stops with exit 1 if signing fails); not notarised, no hardened runtime or sandbox | `build.sh`, `README.md` "Scaricare e usare" |
 | Asset tooling | Python 3 scripts using Pillow and NumPy (not run at build time) | `tools/*.py` |
-| Tests | One hand-written Swift executable (`tests/main.swift`, 35 sections, 505 checks) that compiles fourteen Foundation-only source files; no XCTest | `tests/run.sh` |
+| Tests | One hand-written Swift executable (`tests/main.swift`, 36 sections, 539 checks) that compiles fifteen Foundation-only source files; no XCTest | `tests/run.sh` |
 | License | MIT (`LICENSE`); bundled music is CC0 (`CREDITS.md`) | `LICENSE`, `CREDITS.md` |
 | Swift toolchain version / Python version | Not pinned anywhere in the repository | **[unknown]** |
 
@@ -133,24 +133,30 @@ FocusFriends/
 │   ├── SubjectPrompt.swift       "What are you studying now?" card shown when a focus starts
 │   ├── ReflectionCard.swift      "How did it go?" card after a completed focus
 │   ├── DashboardWindow.swift     statistics window: DashboardView, DiaryView, DashboardController
-│   ├── GardenWindow.swift        garden window: GardenView (meadow, placed objects, companions, shop panel, drag), GardenController
+│   ├── GardenWindow.swift        garden window: GardenView (meadow, placed objects, companions, the "Da mettere" tray, drag), GardenController
+│   ├── AlbumWindow.swift         the album: AlbumView (cover, double pages, 3D opening and page turns on Core Animation layers), AlbumBackdrop (meadow behind the book), AlbumController
+│   ├── Sticker.swift             the figurina card (cream card, rarity border, number, name, ×N, NUOVA), drawn in a flipped view
+│   ├── GiftCard.swift            the figurina that appears beside the pet at the end of a focus (flip, shine), click-through panel
+│   ├── GardenSprites.swift       GardenSprite: a cut-out object image with its opaque rectangle and hit mask (shared by the garden and the stickers)
 │   ├── SessionLog.swift          StudySession model, SessionLog store, Season, notes/subject cleaning, StudyStats, SessionCSV  (Foundation only)
 │   ├── Profile.swift             profilo.json: name, intro-seen flag, unlocked companions, developer flag   (Foundation only)
 │   ├── ToDo.swift                dafare.json: ToDoList store, ToDoItem, ToDoDay (day strings), ToDoText, ToDoReminder  (Foundation only)
 │   ├── CustomTimers.swift        user-defined timer durations + TimerDialMath                           (Foundation only)
 │   ├── BreakCycle.swift          four-focus cycle counter for the long break                            (Foundation only)
 │   ├── CompanionRewards.swift    thresholds for unlocking companions                                    (Foundation only)
-│   ├── Garden.swift              giardino.json: unlocked objects, points spent, placed copies, companion spots (Foundation only)
-│   ├── GardenCatalog.swift       the 36 shop objects (id, name, category, height, price) + GardenScene geometry (Foundation only)
+│   ├── Garden.swift              giardino.json v2: copies found per object, drop counters, unseen/pending gifts, placed copies, companion spots; v1 migration (Foundation only)
+│   ├── GardenDrops.swift         the end-of-focus drop: rarities, chances, pity, deterministic roll (FNV-1a + Mulberry32), simulate(), the sentences (Foundation only)
+│   ├── GardenCatalog.swift       the 36 objects (id, name, category, height, price → rarity) + GardenScene geometry + GardenAlbum pages (Foundation only)
 │   ├── GardenPoints.swift        StudyStreak (streak with one frozen day) + GardenPoints (hours × multiplier)  (Foundation only)
 │   ├── AmbientSound.swift        AmbientSound, AmbientSettings, BackgroundChoice                        (Foundation only)
 │   ├── AmbientPlayer.swift       NoiseSynth (real-time synthesis) + AmbientPlayer (AVAudioEngine wrapper)
 │   ├── MusicLibrary.swift        MusicSource, MusicLibrary (file discovery, shuffle, titles), MusicSettings  (Foundation only)
 │   └── MusicPlayer.swift         AVAudioPlayer-based music playback with queue and fades
 ├── tests/
-│   ├── main.swift                hand-rolled test executable (check()/section()), 35 sections, 505 checks
-│   ├── run.sh                    compiles 12 source files + tests/main.swift into build/tests/stats and runs it
+│   ├── main.swift                hand-rolled test executable (check()/section()), 36 sections, 539 checks
+│   ├── run.sh                    compiles 15 source files + tests/main.swift into build/tests/stats and runs it
 │   ├── genera-attesi.sh          builds and runs tests/genera-attesi/main.swift: for every folder in tests/fixtures/ writes what this app derives from it (the expected results the Windows port is compared with)
+│   ├── simula-regali.sh          simulates the end-of-focus drops over 30/60/90 days of studying (how long an album takes; used to tune GardenDrops)
 │   ├── genera-rumore.sh          same idea for the ambient-noise synthesiser (tests/fixtures/rumore.json)
 │   └── fixtures/                 18 sample data folders (sessions v0–v3, damaged, newer, in-progress, profile, garden, settings), `attesi/` (expected results) and a README
 ├── tools/                        offline Python (Pillow/NumPy) image-processing scripts used to produce the PNG assets; `genera-pets.sh` writes `windows/data/pets.json` from `Pet.swift`
@@ -160,7 +166,8 @@ FocusFriends/
 │   ├── cutout_gattino.py         Gattino sheets (idle, walk, eat, sleep, groom) → frame1..23 on a common canvas
 │   ├── cutout_picked.py          "picked up by hands" drawing cut-out (generic, takes paths)
 │   ├── cutout_garden.py          5-stage collection sheet → garden_<pet>_1..5 on the 208×341 canvas (used for the live growth during a focus)
-│   ├── cutout_giardino.py        the three 4×3 object sheets (white or magenta background) → one PNG per shop object + the 2× meadow
+│   ├── cutout_giardino.py        the three 4×3 object sheets (white or magenta background) → one PNG per object + the 2× meadow
+│   ├── cutout_album.py           the album's cover and double-page sheets (magenta background; the spread keeps its canvas) → assets/album/*.png
 │   ├── compose_porcellino_growth.py  composes growth_porcellino_1..5 (pig + growing carrot) from frame1 and garden carrots
 │   ├── cutout_bubble.py          speech-bubble cut-out; prints the geometry constants used by BubbleView
 │   └── make_icon.py              builds AppIcon.png/.icns and docs/images/logo.png from assets/logo_original.png
@@ -173,8 +180,9 @@ FocusFriends/
 │   ├── gattino/                  idle/walk/eat/sleep/groom_original.png sheets, frame1..23.png, picked(.png/_original.png)
 │   ├── garden/                   garden_<pet>_1..5.png (ciccio, porcellino), growth_porcellino_1..5.png, *_original sheets (live growth)
 │   ├── giardino/                 fiori/compagni/arredi_original.png sheets, prato_original.png, 36 object PNGs, prato.png
+│   ├── album/                    copertina(.png/_original.png), doppia_pagina(.png/_original.png), guida_doppia_pagina_original.png (layout guide given to the image generator)
 │   └── music/                    5 AAC (.m4a) tracks: boredom, love, night-driving, old-age, opinions
-├── docs/images/                  PNG screenshots/logo used only by README.md (sample data); giardino.png and giardino-negozio.png are the garden, da-fare.png the to-do page
+├── docs/images/                  PNG screenshots/logo used only by README.md (sample data); giardino.png and album.png are the garden and the album, da-fare.png the to-do page
 └── build/                        generated output (git-ignored): FocusFriends.app, zips, release notes, tests/ binary
 ```
 
@@ -328,8 +336,9 @@ code. All UI code runs on the main thread; the only other thread is the audio re
   `ExtendPrompt.show(near:seconds:extraMinutes:onExtend:)` (a non-activating `NSPanel` child of the pet window, 30 Hz
   timer for the bar and position) → on click `extendFocus()` (adds 5 min from now, `log.beginInProgress` rewrite,
   say a variant). If not tapped: `tick` → `finish()`: `BreakCycle` decision (§3.9), `recordFocus(completed: true)`,
-  `lastFocus = (minutes, subject, sessionID)`, builds the garden sentence from the weighted minutes before and after
-  this focus (`GardenPoints.weightedMinutes`, `StudyStreak.analyze`, `GardenPoints.finishLine`),
+  `lastFocus = (minutes, subject, sessionID)`, rolls the figurine (`Garden.rollGift`, §3.26; streak days from
+  `StudyStreak.perDay`) and builds its sentence (`GardenDrops.line(for:)`, empty if the focus did not roll) while
+  `onGift` shows the card,
   `begin(.rest, minutes: breakLength)`, sets `isLongBreak`,
   `speaker.say(focusFinishedMessage(...))`, then `onFocusCompleted?()` (Porcellino eats) and
   `onFocusRecorded?(recorded, finishedTodo)` (rewards + reflection card; `todoID` is the to-do item the focus started from, kept only in memory). Rest end: `finish()` `.rest` → `stop()` +
@@ -482,33 +491,31 @@ code. All UI code runs on the main thread; the only other thread is the audio re
   `setSubject`, `setReflection`, `setNotes`, or `remove`. `exportCSV` → `SessionCSV.csv` (a write failure shows an `NSAlert`). `deleteEverything` →
   `SessionLog.deleteAll()` + `Profile.shared.reset()` + `Garden.shared.reset()`. The view registers `log.addObserver { reload() }`.
 
-### 3.17 Garden window (points, shop, free placement)
+### 3.17 Garden window (the "Da mettere" tray, free placement)
 
-- **What:** a personal meadow (one painted scene) that the user furnishes. Points are earned by studying (one per hour,
-  every minute weighted by the streak reached that day), spent in a side shop to **unlock** an object type once, and
-  any number of copies of an unlocked type can then be dragged onto the lawn, moved, or dropped back on the shop to
-  remove them (no refund: nothing was spent per copy). Unlocked companions live on the lawn and speak when tapped.
-- **Entry point:** `MenuController.showGarden` → `GardenController.show()` → `GardenView.reload()`.
+- **What:** a personal meadow (one painted scene) that the user furnishes with the copies of the figurine found at the end
+  of focuses (§3.26). A copy found and not yet placed is "available" (`Garden.available(id)` = found − placed); the
+  collapsible tray at the bottom left ("Da mettere · N", `trayOpen`, `trayLayout`, `drawTray`) lists them, and any of them
+  can be dragged onto the lawn, moved, or dropped back on the tray to remove it (it becomes available again). Unlocked
+  companions live on the lawn and speak when tapped. The album is a separate window, opened by the "Album" button
+  (`onShowAlbum`).
+- **Entry point:** `MenuController.showGarden` → `GardenController.show()` (which first calls `Garden.openPendingGifts()`
+  and announces what the migration gave, `announceGifts`) → `GardenView.reload()`.
 - **Execution path:**
-  - Points: `GardenView.reload()` → `StudyStreak.analyze(sessions:now:)` (per-day streak counts, current streak,
-    frozen flag) → `GardenPoints.weightedMinutes` → `points(forWeightedMinutes:)` → balance = earned − `Garden.spent`
-    (never below zero). The top row shows the multiplier chip (only when > 1 or frozen), the balance and the shop button;
-    tooltips explain both.
+  - HUD: a chip "N/36 figurine" (`Garden.foundCount`) and the streak chip ("serie di N" / "ghiacciata") from
+    `StudyStreak.analyze`; no balance, no multiplier.
   - Scene: `giardino_prato.png` drawn full-width; every placed copy and unlocked companion becomes an `Entity` (sprite,
     feet point, rect). Height = catalog height × `GardenScene.depthScale(y:)`; entities are sorted by feet `y` (lower on
-    screen = in front); the carried one is drawn last, slightly raised. Sprites are measured once (`analyze`): the
+    screen = in front); the carried one is drawn last, slightly raised. Sprites come from `GardenSprites.sprite(_:)`: the
     opaque rectangle (so feet sit where the lawn says) and a 64-cell coarse mask used for hit-testing.
-  - Mouse: `mouseDown` → shop tab / card, or the front-most entity whose **drawn** pixels (mask, ±1 cell) contain the
-    point; `mouseDragged` moves the carried thing (`carryFeet`); `mouseUp` → `Garden.move` / `Garden.place` /
-    `Garden.setCompanionSpot` / `Garden.remove` (dropped over the shop panel), or, for a companion that did not move,
-    a phrase from `Quotes.load(for:)` in a bubble for 5 s. Right-click on a copy → "Togli dal giardino".
-  - Shop: tabs from `GardenCategory`, 3-column cards from `GardenCatalog.items(in:)`; free or unlocked → "Tuo" and a
-    click places a copy / a drag places it where dropped; locked and affordable → first tap shows the price, second tap
-    `Garden.unlock` and places the first copy; not affordable → a line says how many points are missing.
-    `setShopOpen` widens the window by `shopWidth` (`onShopToggle`); on screens narrower than 1370 pt the controller
-    scales the whole view with `setBoundsSize` (`GardenController.scale(forScreenWidth:)`) and does not animate.
+  - Mouse: `mouseDown` → the tray pill / a tray cell (taking one opens a `.fresh` carry and collapses the tray so the
+    front of the lawn is free) or the front-most entity whose **drawn** pixels (mask, ±1 cell) contain the point;
+    `mouseDragged` moves the carried thing (`carryFeet`); `mouseUp` → `Garden.move` / `Garden.place` (needs an available
+    copy unless developer mode) / `Garden.setCompanionSpot` / `Garden.remove` (dropped over the tray), or, for a companion
+    that did not move, a phrase from `Quotes.load(for:)` in a bubble for 5 s. Right-click on a copy → "Togli dal giardino".
+  - The window scales the whole view with `setBoundsSize` on narrow screens (`GardenController.scale(forScreenWidth:)`).
   - Observers: `SessionLog.addObserver` (ignored while the window is closed) and `Garden.addObserver` both call
-    `reload()`. Esc closes the shop (`cancelOperation`) or drops what is being carried.
+    `reload()`. Esc drops what is being carried or closes the tray.
 
 ### 3.18 Companion unlocking
 
@@ -558,7 +565,7 @@ code. All UI code runs on the main thread; the only other thread is the audio re
     music (`music_*`), garden/growth art, Pianty stage frames → write `Info.plist` via heredoc →
     `codesign --force --sign -` (a failure prints an error and exits 1) → print the path.
   - `tests/run.sh`: `swiftc -O -o build/tests/stats` on fourteen source files + `tests/main.swift` →
-    `build/tests/stats` (prints `• <section>` lines and `N controlli, M falliti`, exit code 0/1; 505 checks now).
+    `build/tests/stats` (prints `• <section>` lines and `N controlli, M falliti`, exit code 0/1; 539 checks now).
   - Tools: described in §5.9; they read `assets/**/*_original.png` / sheets and write processed PNGs or the icon.
 
 ### 3.22 To-do list ("Da fare")
@@ -674,6 +681,58 @@ code. All UI code runs on the main thread; the only other thread is the audio re
 - **Tests:** "Fumetto: dove sta" in `tests/main.swift` (centre, left and right edge, hysteresis, a pet high on the screen, the card on the left, walking from one edge to the other with four bubble widths:
   always above, tip on the pet, inside the screen, at most one flip each way).
 
+### 3.26 End-of-focus figurine drops, the album and its animations (`GardenDrops.swift`, `Garden.swift`, `AlbumWindow.swift`, v0.10.0)
+
+- **What:** every completed focus of at least 20 studied minutes can give a figurina (an object of the catalog); copies are
+  kept in `Garden.drops.found`, shown in the album and placed from the garden tray. An interrupted or shorter focus gives
+  nothing and costs nothing. Replaces the points-and-shop design of 0.9.
+- **The roll** (`GardenDrops.roll(sessionID:streakDays:seconds:state:pool:allowNothing:)`, Foundation only, tested): one
+  `Stream` (Mulberry32) seeded by FNV-1a of the **upper-cased** session UUID gives four numbers in this order: nothing,
+  rarity, "prefer a new one", pick. Nothing: 20 %, never more than two in a row (`nothingInARow`). Rarity: legendary
+  3 % (+0.5/+1 % from 7/14 streak days), rare 22 % (+4/+8/+12 % from 3/7/14 days, +4 % for 45+ minutes), with the
+  guarantees `rarePity` (10) and `legendaryPity` (40) counted in `sinceRare`/`sinceLegendary`; an empty rarity falls back
+  downwards. Inside the rarity a not-yet-found object is picked 80 % of the time. The same session never rolls twice
+  (`Garden.lastRolled`). `GardenItem.rarity` is derived from the old price (≤3 common, ≤6 rare, else legendary) and the
+  starters (`price == 0`) are the album's initial content. `simulate(sessions:now:)` replays a log (used by
+  `tests/simula-regali.sh` to tune the numbers and by the contract fixtures).
+- **Where it runs:** `Pomodoro.finish()` → `Garden.shared.rollGift(for:streakDays:)` (streak days from
+  `StudyStreak.perDay`) → `.notEligible` / `.nothing` / `.found(drop)`; `GardenDrops.line(for:)` builds the sentence that
+  `focusFinishedMessage` appends (empty when not eligible) and `Pomodoro.onGift` makes `AppDelegate` show a `GiftCard`
+  beside the pet (its frame is also a `Speaker.obstacle`, §3.25). Hidden preferences: `developerMode` (everything found,
+  unlimited copies), `quickGifts` (1-minute focuses roll).
+- **Migration:** a version-1 `giardino.json` is read (`unlocked` → found, copies = max(placed, 1)), copied once to
+  `giardino-formato1.json`, and rewritten in version 2. `AppDelegate` calls `Garden.convertLegacyPoints(earned:)` with the
+  points the old rules would have earned (`GardenPoints.earned`); unspent points become `pendingGifts`, which
+  `Garden.openPendingGifts()` rolls as gifts with the ids `REGALO-<n>` the first time the garden or the album is shown.
+- **The album** (`AlbumWindow.swift`): `GardenAlbum.spreads()` lays the catalog out in double pages (a category = a
+  spread, six per page). `AlbumView` has three modes: `.cover` (closed book), `.opening` (the animation) and `.open`.
+  Drawn by the app on top of two pictures: `assets/album/copertina.png` (title, owner, count and "nuove" on the plaque and
+  leather) and `doppia_pagina.png` (titles in the two bands, six `Sticker`s per page placed from the fractions of the
+  picture — found ones slightly tilted by `GardenDrops.hash(id)`, missing ones dashed with the silhouette —, page numbers
+  in the blobs, the "completa" seal at the gutter). Without the pictures it falls back to a hand-drawn leather and paper
+  book. The window is 980×730; `AlbumBackdrop` draws `giardino_prato.png` behind the book (aspect-fill, centred at 40 %,
+  a warm veil and darker corners) or a brown table if it is missing; the controls under the book switch ink with it.
+- **Animations** (extension of `AlbumView`): `snapshot(mode:spread:content:)` renders the view with `capturing = true` (no
+  backdrop, shadow, controls or message) into a bitmap (`bitmapImageRepForCachingDisplay`) and `crop`s halves from it;
+  the pieces become `CALayer`s on a `BookStage` subview (click-through, layer-backed, **not flipped**: layer y is up, see
+  `layerRect`) under a container with `sublayerTransform.m34 = -1/3200`. A turning sheet is a `CATransformLayer` whose
+  front and back faces are `isDoubleSided = false` layers (the back rotated π), hung on the spine (`anchorPoint` 0 or 1)
+  and animated with `transform.rotation.y` (0 → ∓π) plus a darkening layer on each face and a cast shadow on the covered
+  page. *Opening* (≈1 s): the closed book slides so that its hinge (10 % of the cover width) reaches the middle, the cover
+  board turns with the left half of the open picture as its back, the right page is revealed through a mask that grows
+  from the cover's footprint, the spine strip fades, the table shadow morphs from the closed to the open shape; when the
+  completion block fires the view draws the open book, removes the stage and fades titles, stickers and controls in
+  (`contentAlpha`, 0.3 s). *Page turn* (0.6 s): the same sheet with the page photos of the old and new spread, forwards
+  or backwards; a click during an animation is queued (`queuedSpread`, only the last). With *Reduce motion* or missing
+  pictures `openImmediately()` and plain redraws are used. `cancelAnimation()` runs from `prepare()`.
+- **Checking it without a screen:** a bench (not in the repository) builds the view in an invisible window, takes the stage
+  layer's sublayers and draws them frame by frame with `CARenderer` into a Metal texture (1:1, root layer
+  `anchorPoint = .zero`, `renderer.layer` set **before** `CATransaction.flush()`, output flipped vertically), which
+  needs neither Screen Recording permission nor a visible window.
+- **Tests:** "Regali di fine focus" and "Giardino: file e sviluppatore" in `tests/main.swift` (rules, determinism, pity,
+  nothing streak, drop frequencies, album pages, migration from version 1, reopening, writes that fail, developer mode)
+  and the `giardino` block of `tests/fixtures/attesi/*.json` for the Windows port.
+
 ---
 
 ## 4. Architecture and data flow
@@ -767,7 +826,8 @@ builds the same path independently).
 | `backup/sessioni-formato<N>.json` | `SessionLog.load` | untouched copy of the previous-format file made when migrating (N = 0, 1, 2) |
 | `sessioni.corrotto-<epoch>.json` | `SessionLog.load` | an undecodable file moved aside, or the original kept when only some sessions could be read |
 | `profilo.corrotto-<epoch>.json` | `Profile.init` | a malformed profile moved aside |
-| `giardino.json` | `Garden.save` (atomic) | `{"version": 1, "unlocked": [ids], "spent": N, "placements": [{id, item, x, y}], "companions": {petID: {x, y}}}`; `x`/`y` are fractions of the scene (feet), clamped to the lawn; points are not stored, only what was spent |
+| `giardino.json` | `Garden.save` (atomic) | `{"version": 2, "drops": {found: {id: copies}, nothingInARow, sinceRare, sinceLegendary}, "lastRolled", "unseen": [ids], "pendingGifts", "legacySpent", "placements": [{id, item, x, y}], "companions": {petID: {x, y}}}`; `x`/`y` are fractions of the scene (feet), clamped to the lawn; a version-1 file (`unlocked`, `spent`) is migrated (see §3.26); only `version`, `placements` and `companions` are required |
+| `giardino-formato1.json` | `Garden.save` | untouched copy of the last version-1 garden file, made once before the first rewrite in version 2 |
 | `giardino.corrotto-<epoch>.json` | `Garden.init` | a malformed garden file moved aside (a newer version is read-only; at most 150 copies are kept) |
 | `profilo.json` | `Profile.save` | `{"version":1,"name"?,"introSeen","unlocked"?:[ids],"firstCompanion"?}` |
 | `dafare.json` | `ToDoList.save` (atomic) | `{"version": 1, "items": [{id, text, due?, subject?, createdAt, doneAt?}]}`; `due` is a day string `AAAA-MM-GG`, dates ISO-8601; done items older than 7 days are dropped |
@@ -1177,7 +1237,7 @@ file/UserDefaults writes, windows, timers, sound, global state.
 ### 5.9 Tests, build and tools
 
 #### `tests/main.swift` (1,056) and `tests/run.sh` (7)
-- A single executable: `check(_:_:line:)`, `section(_:)`, 35 sections (505 checks) covering subjects, log persistence,
+- A single executable: `check(_:_:line:)`, `section(_:)`, 36 sections (539 checks) covering subjects, log persistence,
   in-progress recovery, periods, summaries, streaks, texts, garden rules, format versions/migration, subject merging, backups and
   delete-all, time zones, profile, ratings/notes/insights/CSV, timer dial math, seasons, ambient settings, music
   library/settings, focus notes, paused-time recovery, companion rewards (including the developer flag), break cycle,
@@ -1669,7 +1729,7 @@ code is clear. Items without a mark still describe the current code.
 
 ### 7.8 Test coverage as it exists
 
-- Covered (35 sections, 505 checks in `tests/main.swift`): everything in the Foundation-only files listed in §4.1,
+- Covered (36 sections, 539 checks in `tests/main.swift`): everything in the Foundation-only files listed in §4.1,
   including the new damaged-data cases and the developer flag.
 - Not covered by any automated test in the repository: `Pomodoro` (timer, pause, grace, the sleep-gap rule, cycle
   wiring), `Speaker` (including when a to-do reminder replaces a phrase), `Walker`, `PetWindow`/`PetView`, `MenuController`,

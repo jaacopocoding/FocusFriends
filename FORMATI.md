@@ -210,11 +210,17 @@ personaggi** (`pianty`, `porcellino`, `ciccio`, `gattino`). Soglie per posizione
 
 ## 5. `giardino.json` (seconda uscita su Windows)
 
+Versione 2 (Mac 0.10.0). Il giardino non ha più punti né negozio: si riempie con le figurine trovate a fine focus
+(`GardenDrops.swift`), ognuna con le sue copie.
+
 ```json
 {
-  "version" : 1,
-  "unlocked" : ["lavanda", "tulipani"],
-  "spent" : 5,
+  "version" : 2,
+  "drops" : { "found" : { "margherite" : 2, "lavanda" : 1 }, "nothingInARow" : 0, "sinceRare" : 3, "sinceLegendary" : 11 },
+  "lastRolled" : "5B0C2A4E-6D1F-4C8B-9E27-3A7D41C0F8B2",
+  "unseen" : ["lavanda"],
+  "pendingGifts" : 0,
+  "legacySpent" : null,
   "placements" : [
     { "id" : "00000000-0000-4000-8000-0000000000A1", "item" : "margherite", "x" : 0.41, "y" : 0.72 }
   ],
@@ -222,14 +228,23 @@ personaggi** (`pianty`, `porcellino`, `ciccio`, `gattino`). Soglie per posizione
 }
 ```
 
-- **Tutti i campi sono obbligatori** (se ne manca uno il file è rovinato: si sposta in `giardino.corrotto-<epoch>.json` e si riparte da vuoto).
-- `unlocked`: gli oggetti sbloccati con i punti (quelli che costano 0 ci sono sempre e non stanno qui). `spent`: i punti spesi in tutto.
-- `placements`: le copie nel prato (al massimo **150**; le altre si scartano). `x`, `y`: frazioni della scena da 0 a 1, dove stanno i **piedi**; in lettura si
-  riportano dentro il prato (`x` da 0,03 a 0,97, `y` da 0,56 a 0,99).
+- `drops.found`: quante copie si sono trovate di ogni oggetto (chi non c'è non è stato trovato); la «dotazione» (gli oggetti con prezzo 0 nel catalogo) c'è
+  fin dall'inizio, con una copia. `nothingInARow`, `sinceRare`, `sinceLegendary`: i contatori delle garanzie.
+- `lastRolled`: l'identificativo dell'ultimo focus che ha tirato (lo stesso focus non tira due volte). `unseen`: gli oggetti trovati e non ancora visti nell'album.
+- `pendingGifts`: i regali da aprire che vengono dalla conversione dei punti. `legacySpent`: i punti spesi nel formato 1, finché i punti non sono stati
+  convertiti (poi `null`).
+- `placements`: le copie nel prato (al massimo **150**; le altre si scartano). Di un oggetto se ne possono mettere **al massimo quante copie si sono trovate**.
+  `x`, `y`: frazioni della scena da 0 a 1, dove stanno i **piedi**; in lettura si riportano dentro il prato (`x` da 0,03 a 0,97, `y` da 0,56 a 0,99).
 - `companions`: dove l'utente ha messo i compagni (gli altri stanno nel loro posto di partenza).
-- **I punti non si salvano**: si ricavano dal registro (un punto per ora di studio, con il moltiplicatore della serie di quel
-  giorno). Si salva solo quello che si è speso.
-- `version` maggiore di 1: si legge e si lavora in sola lettura (con un avviso). Illeggibile: sola lettura.
+- **Il tiro è deterministico**: FNV-1a a 32 bit sull'identificativo della sessione in **maiuscolo** (byte UTF-8) come seme di un Mulberry32; i quattro numeri
+  (niente, rarità, nuovo, scelta) si estraggono in quest'ordine. Mac e Windows devono dare gli stessi regali sugli stessi dati
+  (il blocco `giardino` dei file in `tests/fixtures/attesi/`).
+- Il formato 1 (`"version": 1`, con `unlocked` e `spent`) si legge ancora: gli oggetti sbloccati diventano trovati (con tante copie quante ne erano nel prato,
+  almeno una), `spent` va in `legacySpent`, e al primo avvio i punti guadagnati meno quelli spesi diventano `pendingGifts`. L'ultimo file in formato 1 si copia
+  in `giardino-formato1.json` prima di riscrivere.
+- **Obbligatori**: `version`, `placements` e `companions` (se ne manca uno il file è rovinato: si sposta in `giardino.corrotto-<epoch>.json` e si riparte
+  da vuoto). Il resto è facoltativo; senza `drops` si tratta come il formato 1.
+- `version` maggiore di 2: si legge e si lavora in sola lettura (con un avviso). Illeggibile: sola lettura.
 - «Cancella tutto» toglie il file.
 
 ## 6. `impostazioni.json` (solo Windows)

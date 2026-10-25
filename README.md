@@ -6,7 +6,7 @@
 
 <p align="center">
   Un compagno che vive sul desktop del Mac, ti tiene compagnia mentre studi e cresce con il tuo tempo di focus.<br>
-  Pomodoro, materie, statistiche e un giardino tutto tuo, che arredi con i punti che guadagni studiando.
+  Pomodoro, materie, statistiche e un giardino tutto tuo, che si riempie con le figurine di un album: ne puoi trovare una a ogni focus completato.
 </p>
 
 <p align="center">
@@ -65,12 +65,15 @@ e, da «Mostra le sessioni», una tendina sotto il riepilogo con la nota e la fa
   <img src="docs/images/statistiche-sessioni.png" width="360" alt="Le sessioni di un giorno">
 </p>
 
-**Il giardino**: un prato tuo, da arredare. Per ogni ora di studio guadagni un punto (di più se hai una serie di
-giorni di fila) e con i punti sblocchi nel negozio fiori, case per i compagni e arredi, che metti dove vuoi. I
-compagni sbloccati ci vivono, e se li tocchi parlano.
+**Il giardino e l'album**: ogni focus completato (almeno 20 minuti di studio) può regalarti una figurina, che appare
+accanto al personaggio. Le figurine stanno in un **album** da collezionare, un libro antico in una finestra tutta sua, e
+le copie che trovi le metti dove vuoi nel prato del **giardino**, che è tuo. I compagni sbloccati ci vivono, e se li
+tocchi parlano.
 
 <p align="center">
-  <img src="docs/images/giardino.png" width="760" alt="Il giardino con i quattro compagni e gli oggetti sbloccati">
+  <img src="docs/images/album.png" width="560" alt="L'album delle figurine, aperto su una doppia pagina">
+  &nbsp;&nbsp;
+  <img src="docs/images/giardino.png" width="560" alt="Il giardino con i compagni e gli oggetti trovati">
 </p>
 
 > Le schermate usano dati di esempio.
@@ -140,7 +143,8 @@ per tipo) e uno tuo si può *rimuovere*. *Avvia* parte con i minuti scelti; la p
 | Fai parlare | Mostra subito una frase |
 | Pomofocus ▸ | Timer: *Focus 30/50 min*, *Pausa 5/10 min*, *Personalizza…*, *Ferma timer* |
 | Statistiche e riepilogo… | La finestra con il riepilogo di oggi e le statistiche della settimana, del mese e dell'anno |
-| Il mio giardino… | Il tuo prato: i punti dello studio, il negozio e i compagni (con il tuo nome: «Il giardino di …») |
+| Il mio giardino… | Il tuo prato: le figurine da mettere, gli oggetti e i compagni (con il tuo nome: «Il giardino di …») |
+| Album | L'album delle figurine, con quante ne hai trovate e quante sono nuove |
 | Il tuo nome… | Cambia il nome che compare nei titoli |
 | Chiedi com'è andata | Se a fine focus compare «Com'è andata?» (spunta = sì) |
 | Pausa lunga dopo 4 focus | Dopo quattro focus completati di fila la pausa dura 15 minuti (spunta = sì) |
@@ -319,34 +323,33 @@ Sotto la mappa, tre numeri (la serie di giorni di fila più lunga dell'anno, il 
 di tutte le materie o di una sola (le materie più studiate dell'anno, scelte con un clic). L'andamento si mostra da quattro settimane con studio in su, e le materie solo se sono almeno due. Si ricava tutto dal registro: nessun dato nuovo.
 
 Le regole di calcolo hanno le loro prove: `./tests/run.sh` (compila `SessionLog.swift` da solo e controlla
-periodi, totali, giorni di fila e serie ghiacciata, punti del giardino, oggetti e copie nel prato, recupero, file
+periodi, totali, giorni di fila e serie ghiacciata, regali di fine focus e album, copie nel prato, recupero, file
 rovinato, migrazione, materie unite, copie di sicurezza, fuso orario…).
 
-## Il giardino
+## Il giardino e l'album
 
-*Il mio giardino…* (`GardenWindow.swift`) è un prato **tuo**: un posto calmo, da arredare con i punti che guadagni
-studiando. Non conta i focus e non misura niente: le cifre dello studio stanno nelle *Statistiche*.
+*Il mio giardino…* (`GardenWindow.swift`) è un prato **tuo**: un posto calmo, da riempire con quello che trovi. Non
+conta i focus e non misura niente: le cifre dello studio stanno nelle *Statistiche*. Il giardino e l'album sono due
+finestre diverse: il libro serve a collezionare e a guardare, il prato a mettere le cose dove vuoi.
 
 <p align="center">
   <img src="docs/images/giardino.png" width="760" alt="Il giardino">
 </p>
 
-### I punti
+### I regali di fine focus
 
-Un punto ogni **ora di studio** (`GardenPoints.swift`): contano tutti i minuti, anche quelli dei focus interrotti,
-e un timer da 5 minuti non dà più punti. Ogni minuto vale di più se hai studiato più giorni di fila:
+A ogni focus **completato** con almeno **20 minuti** di studio (`GardenDrops.minimumSeconds`) il personaggio dice se hai
+trovato una figurina, e questa compare accanto a lui per qualche secondo (`GiftCard.swift`). Un focus interrotto o più
+corto non dà e non toglie niente. Le regole, tutte in `GardenDrops.swift` (solo Foundation, con prove):
 
-| Giorni di fila | Quanto vale un minuto |
-|---|---|
-| 1–2 | ×1 |
-| 3–6 | ×1,25 |
-| 7–13 | ×1,5 |
-| 14 o più | ×2 |
-
-Un minuto vale il moltiplicatore che la serie aveva **in quel giorno**: 50 minuti al settimo giorno di fila
-sono 75 minuti di giardino. I punti si ricavano dal registro (compaiono subito anche per i focus già fatti) e quelli
-spesi sono l'unica cosa che il giardino ricorda. A fine focus il personaggio dice quanti punti sono arrivati, o
-quanto manca al prossimo. Passando il mouse sul numero dei punti si legge come funziona.
+- **Qualche volta non esce niente**: una volta su cinque, ma mai più di due di fila.
+- **Tre rarità**: comune, raro (bordo d'argento) e leggendario (bordo d'oro con le stelline). Parti dal 22 % di raro e dal
+  3 % di leggendario; con la serie salgono (da 3, 7 e 14 giorni di fila) e un focus da 45 minuti in su dà un po' più di
+  raro. Le garanzie: al massimo 10 regali senza un raro e 40 senza un leggendario.
+- **Di norma esce qualcosa che non hai** (4 volte su 5, se ce n'è ancora). Un doppione non si perde: è una **copia** in
+  più, da mettere nel prato.
+- **Il tiro non si ripete chiudendo l'app**: dipende solo dall'identificativo del focus e da quello che hai già trovato
+  (FNV-1a e Mulberry32, uguali in TypeScript per quando arriverà su Windows). Lo stesso focus non tira due volte.
 
 **La serie ghiacciata.** Un giorno senza studio non azzera la serie: la **ghiaccia**. Il numero resta fermo
 (nella scheda del menu, nelle statistiche e nel giardino compare un fiocco di neve) e, se studi il giorno dopo,
@@ -354,25 +357,46 @@ continua da dov'era. Due giorni di fila senza studio la azzerano, e il ghiaccio 
 giorni** (`StudyStreak` in `GardenPoints.swift`), altrimenti basterebbe studiare a giorni alterni. Se oggi non hai
 ancora studiato non si giudica niente: la giornata non è finita.
 
-### Il negozio
+### L'album
 
-Il pulsante *Negozio* apre un pannello a destra, con tre schede: **Fiori**, **Per i compagni** (case, ceste,
-tiragraffi…) e **Arredi** (panchina, altalena, lampione…). Ci sono 36 oggetti; qualcuno c'è fin dall'inizio.
-
-- **Un oggetto si sblocca una volta** (un tocco dice quanto costa, il secondo lo sblocca e ne mette subito una copia
-  nel prato) e poi **ne puoi mettere quanti ne vuoi**: dieci margherite, tre panchine.
-- **Si trascina tutto**: dal negozio al prato per metterlo, nel prato per spostarlo, sul negozio per toglierlo (o
-  tasto destro → *Togli dal giardino*). Togliere una copia non rende niente, perché per la copia non hai speso
-  niente: l'oggetto resta tuo.
-- Le cose più lontane (verso la casetta) sono più piccole, quelle davanti più grandi; chi sta più in basso sta
-  davanti. Il prato è lo stesso in ogni stagione.
-- Quello che hai sbloccato **non si richiude**, anche se poi cancelli delle sessioni.
-
-I prezzi sono provvisori e stanno tutti in `GardenCatalog.swift`, insieme alle altezze degli oggetti.
+Si apre dalla riga **Album** del menu (sotto «Da fare») o dal pulsante nel giardino (`AlbumWindow.swift`). Si vede
+prima la copertina, che dice quante figurine hai e quante sono nuove; un tocco la apre, girando attorno al dorso, sulla
+doppia pagina delle figurine nuove. Ogni sezione del catalogo (**Fiori**, **Per i compagni**, **Arredi**: 36 figurine
+in tutto, per ora) occupa una doppia pagina da sei per lato. Le figurine trovate sono incollate un po' storte, con il
+numero, il nome e un ×2 se ne hai due copie; le altre sono caselle tratteggiate con la sagoma e la rarità. Si sfoglia con
+le frecce, le linguette delle sezioni, la tastiera o due dita sul trackpad; un tocco su una figurina dice quante copie hai.
+Quando una doppia pagina è tutta trovata compare un sigillo «completa».
 
 <p align="center">
-  <img src="docs/images/giardino-negozio.png" width="760" alt="Il negozio del giardino, scheda Per i compagni">
+  <img src="docs/images/album.png" width="760" alt="L'album, aperto su una doppia pagina">
 </p>
+
+Il libro è disegnato (`assets/album/copertina.png` e `doppia_pagina.png`, fatti con un generatore di immagini) e sopra ci
+vanno titoli, figurine e numeri, scritti dall'app. Dietro c'è il prato del giardino. Le animazioni (la copertina che si
+apre, la pagina che gira) sono fogli in 3D con un davanti e un dietro, fatti da foto del libro; con *Riduci movimento*
+nelle impostazioni di accessibilità il libro si apre e si sfoglia di colpo.
+
+### Il giardino e la cassetta
+
+In basso a sinistra, **Da mettere · N** apre la cassetta con le copie che hai trovato e non hai ancora messo nel prato:
+
+- un tocco ne mette una nel prato, trascinandola la metti dove vuoi; **ne puoi mettere quante sono le copie che hai**
+  (con un solo girasole, un solo girasole nel prato);
+- si trascina tutto: dalla cassetta al prato per metterlo, nel prato per spostarlo, sulla cassetta per toglierlo (o
+  tasto destro → *Togli dal giardino*): la copia torna tra quelle da mettere;
+- le cose più lontane (verso la casetta) sono più piccole, quelle davanti più grandi; chi sta più in basso sta
+  davanti. Il prato è lo stesso in ogni stagione.
+
+Sopra il prato, due etichette: quante figurine hai (N/36) e la serie di giorni. Gli oggetti e le rarità stanno in
+`GardenCatalog.swift` (per ora la rarità si ricava dal vecchio prezzo: fino a 3 comune, fino a 6 raro, oltre leggendario).
+
+### Chi veniva dal negozio
+
+Fino alla 0.9 il giardino si riempiva con i **punti** (uno per ora di studio) spesi in un negozio. Alla prima apertura
+della 0.10 il file passa al formato nuovo e **non si perde niente**: gli oggetti già sbloccati diventano figurine trovate
+(con tante copie quante ne avevi nel prato, almeno una) e i punti non spesi diventano **regali da aprire** (uno per
+punto), che si aprono come i regali di fine focus, la prima volta che apri il giardino o l'album. L'ultimo file in formato
+vecchio resta accanto, come `giardino-formato1.json`. La 0.9 non legge il formato nuovo.
 
 ### I compagni nel giardino
 
@@ -381,12 +405,15 @@ delle sue frasi. Non si comprano e non si tolgono: sono casa loro.
 
 ### Dove sta
 
-`giardino.json`, accanto a `sessioni.json`: `{"version": 1, "unlocked": […], "spent": 12, "placements": [{"id",
-"item", "x", "y"}], "companions": {"gattino": {"x", "y"}}}`. `x` e `y` sono frazioni della scena (da 0 a 1) e
-dicono dove stanno i piedi; si tengono dentro il prato. Un file rovinato viene messo da parte
-(`giardino.corrotto-….json`), uno di una versione più nuova si legge ma non si riscrive, e *Cancella tutto…* lo
-toglie con il resto. Le regole stanno in `Garden.swift`, `GardenCatalog.swift` e `GardenPoints.swift` (solo
-Foundation, con prove). Con `developerMode` (vedi sopra) è tutto sbloccato.
+`giardino.json`, accanto a `sessioni.json`: `{"version": 2, "drops": {"found": {"margherite": 2, …}, "nothingInARow",
+"sinceRare", "sinceLegendary"}, "lastRolled", "unseen": […], "pendingGifts", "legacySpent", "placements": [{"id", "item",
+"x", "y"}], "companions": {"gattino": {"x", "y"}}}`. `found` dice quante copie hai di ogni cosa; `x` e `y` sono frazioni
+della scena (da 0 a 1) e dicono dove stanno i piedi, e si tengono dentro il prato. Un file rovinato viene messo da parte
+(`giardino.corrotto-….json`), uno di una versione più nuova si legge ma non si riscrive, e *Cancella tutto…* lo toglie
+con il resto (e il giardino riparte dalla dotazione: 4 figurine, già nel prato). Le regole stanno in `Garden.swift`,
+`GardenDrops.swift`, `GardenCatalog.swift` e `GardenPoints.swift` (solo Foundation, con prove). Con `developerMode` (vedi
+sopra) è tutto trovato e le copie sono illimitate; con `quickGifts` (`defaults write com.jacopo.focusfriends quickGifts -bool true`)
+anche un focus da un minuto fa tirare, per provare.
 
 ### Aggiungere oggetti
 
@@ -394,7 +421,8 @@ Si chiede a un generatore di immagini un foglio di 12 oggetti in una griglia di 
 sfondo **magenta pieno** (`#FF00FF`: si toglie senza intaccare petali o campanule bianche), senza ombre e con la base
 di ogni oggetto sul fondo della sua cella. Poi: il foglio in `assets/giardino/<nome>_original.png`, una riga in
 `SHEETS` di `tools/cutout_giardino.py` (che scrive `assets/giardino/<id>.png`), una riga per oggetto in
-`GardenCatalog.swift`. `./tests/run.sh` controlla che ogni oggetto del catalogo abbia il suo disegno.
+`GardenCatalog.swift`. `./tests/run.sh` controlla che ogni oggetto del catalogo abbia il suo disegno. Il libro dell'album
+si rifà allo stesso modo: i fogli `assets/album/*_original.png` su sfondo magenta e `tools/cutout_album.py`.
 
 ### La crescita durante un focus
 

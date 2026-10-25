@@ -23,7 +23,7 @@ sono in [`../../FORMATI.md`](../../FORMATI.md).
 
 Per ogni cartella (tranne `impostazioni-*`) un file con **quello che la versione per Mac ne ricava** con un «adesso»
 fisso (14 ottobre 2026, ore 20:00, Europe/Rome): quante sessioni, quali file nascono, quali avvisi, le statistiche, la serie, i
-punti, i compagni. Un'altra versione dell'app deve dare gli stessi risultati. I numeri di tempo dei nomi dei file messi
+regali di fine focus e l'album, i compagni. Un'altra versione dell'app deve dare gli stessi risultati. I numeri di tempo dei nomi dei file messi
 da parte sono scritti `<epoch>`.
 
 Per ogni cartella con sessioni c'è anche `contesto`: le frasi di contesto (`Remarks.swift`) in sei momenti fissi (saluti con tutte le varianti, risveglio, riepilogo della settimana, numeri a voce) e i traguardi
