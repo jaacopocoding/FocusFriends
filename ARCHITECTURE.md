@@ -64,7 +64,7 @@ Single user per Mac, no accounts, no network: all data is stored locally under
 | App type | Menu-bar "agent": `LSUIElement = true`, activation policy `.accessory` | `build.sh`, `AppDelegate.applicationDidFinishLaunching` |
 | Signing | Ad-hoc (`codesign --force --sign -`; `build.sh` stops with exit 1 if signing fails); not notarised, no hardened runtime or sandbox | `build.sh`, `README.md` "Scaricare e usare" |
 | Asset tooling | Python 3 scripts using Pillow and NumPy (not run at build time) | `tools/*.py` |
-| Tests | One hand-written Swift executable (`tests/main.swift`, 36 sections, 539 checks) that compiles fifteen Foundation-only source files; no XCTest | `tests/run.sh` |
+| Tests | One hand-written Swift executable (`tests/main.swift`, 37 sections, 581 checks) that compiles fifteen Foundation-only source files; no XCTest | `tests/run.sh` |
 | License | MIT (`LICENSE`); bundled music is CC0 (`CREDITS.md`) | `LICENSE`, `CREDITS.md` |
 | Swift toolchain version / Python version | Not pinned anywhere in the repository | **[unknown]** |
 
@@ -133,8 +133,8 @@ FocusFriends/
 │   ├── SubjectPrompt.swift       "What are you studying now?" card shown when a focus starts
 │   ├── ReflectionCard.swift      "How did it go?" card after a completed focus
 │   ├── DashboardWindow.swift     statistics window: DashboardView, DiaryView, DashboardController
-│   ├── GardenWindow.swift        garden window: GardenView (meadow, placed objects, companions, the "Da mettere" tray, drag), GardenController
-│   ├── AlbumWindow.swift         the album: AlbumView (cover, double pages, 3D opening and page turns on Core Animation layers), AlbumBackdrop (meadow behind the book), AlbumController
+│   ├── GardenWindow.swift        garden window: GardenView (isometric island, placed objects, walking companions, the "Da mettere" tray, drag, zoom and pan), GardenController
+│   ├── AlbumWindow.swift         the album: AlbumView (cover, double pages, 3D opening and page turns on Core Animation layers), MeadowBackdrop (the meadow behind the book and the island), AlbumController
 │   ├── Sticker.swift             the figurina card (cream card, rarity border, number, name, ×N, NUOVA), drawn in a flipped view
 │   ├── GiftCard.swift            the figurina that appears beside the pet at the end of a focus (flip, shine), click-through panel
 │   ├── GardenSprites.swift       GardenSprite: a cut-out object image with its opaque rectangle and hit mask (shared by the garden and the stickers)
@@ -144,16 +144,17 @@ FocusFriends/
 │   ├── CustomTimers.swift        user-defined timer durations + TimerDialMath                           (Foundation only)
 │   ├── BreakCycle.swift          four-focus cycle counter for the long break                            (Foundation only)
 │   ├── CompanionRewards.swift    thresholds for unlocking companions                                    (Foundation only)
-│   ├── Garden.swift              giardino.json v2: copies found per object, drop counters, unseen/pending gifts, placed copies, companion spots; v1 migration (Foundation only)
+│   ├── Garden.swift              giardino.json v3: copies found per object, drop counters, unseen/pending gifts, copies on the island (tile + turned), companion tiles; v1/v2 migration (Foundation only)
+│   ├── GardenGrid.swift          the island: GardenTile, GardenFootprint, GardenIsland (size, path), GardenLayout (canPlace, nearest free tile, legacy-spot mapping), legacy GardenSpot/GardenScene (Foundation only)
 │   ├── GardenDrops.swift         the end-of-focus drop: rarities, chances, pity, deterministic roll (FNV-1a + Mulberry32), simulate(), the sentences (Foundation only)
-│   ├── GardenCatalog.swift       the 36 objects (id, name, category, height, price → rarity) + GardenScene geometry + GardenAlbum pages (Foundation only)
+│   ├── GardenCatalog.swift       the 36 objects (id, name, category, height, footprint, price → rarity), GardenPlacement (tile + turned) + GardenAlbum pages (Foundation only)
 │   ├── GardenPoints.swift        StudyStreak (streak with one frozen day) + GardenPoints (hours × multiplier)  (Foundation only)
 │   ├── AmbientSound.swift        AmbientSound, AmbientSettings, BackgroundChoice                        (Foundation only)
 │   ├── AmbientPlayer.swift       NoiseSynth (real-time synthesis) + AmbientPlayer (AVAudioEngine wrapper)
 │   ├── MusicLibrary.swift        MusicSource, MusicLibrary (file discovery, shuffle, titles), MusicSettings  (Foundation only)
 │   └── MusicPlayer.swift         AVAudioPlayer-based music playback with queue and fades
 ├── tests/
-│   ├── main.swift                hand-rolled test executable (check()/section()), 36 sections, 539 checks
+│   ├── main.swift                hand-rolled test executable (check()/section()), 37 sections, 581 checks
 │   ├── run.sh                    compiles 15 source files + tests/main.swift into build/tests/stats and runs it
 │   ├── genera-attesi.sh          builds and runs tests/genera-attesi/main.swift: for every folder in tests/fixtures/ writes what this app derives from it (the expected results the Windows port is compared with)
 │   ├── simula-regali.sh          simulates the end-of-focus drops over 30/60/90 days of studying (how long an album takes; used to tune GardenDrops)
@@ -491,31 +492,41 @@ code. All UI code runs on the main thread; the only other thread is the audio re
   `setSubject`, `setReflection`, `setNotes`, or `remove`. `exportCSV` → `SessionCSV.csv` (a write failure shows an `NSAlert`). `deleteEverything` →
   `SessionLog.deleteAll()` + `Profile.shared.reset()` + `Garden.shared.reset()`. The view registers `log.addObserver { reload() }`.
 
-### 3.17 Garden window (the "Da mettere" tray, free placement)
+### 3.17 Garden window (the island, the "Da mettere" tray, zoom and pan)
 
-- **What:** a personal meadow (one painted scene) that the user furnishes with the copies of the figurine found at the end
-  of focuses (§3.26). A copy found and not yet placed is "available" (`Garden.available(id)` = found − placed); the
-  collapsible tray at the bottom left ("Da mettere · N", `trayOpen`, `trayLayout`, `drawTray`) lists them, and any of them
-  can be dragged onto the lawn, moved, or dropped back on the tray to remove it (it becomes available again). Unlocked
-  companions live on the lawn and speak when tapped. The album is a separate window, opened by the "Album" button
-  (`onShowAlbum`).
-- **Entry point:** `MenuController.showGarden` → `GardenController.show()` (which first calls `Garden.openPendingGifts()`
-  and announces what the migration gave, `announceGifts`) → `GardenView.reload()`.
-- **Execution path:**
-  - HUD: a chip "N/36 figurine" (`Garden.foundCount`) and the streak chip ("serie di N" / "ghiacciata") from
-    `StudyStreak.analyze`; no balance, no multiplier.
-  - Scene: `giardino_prato.png` drawn full-width; every placed copy and unlocked companion becomes an `Entity` (sprite,
-    feet point, rect). Height = catalog height × `GardenScene.depthScale(y:)`; entities are sorted by feet `y` (lower on
-    screen = in front); the carried one is drawn last, slightly raised. Sprites come from `GardenSprites.sprite(_:)`: the
-    opaque rectangle (so feet sit where the lawn says) and a 64-cell coarse mask used for hit-testing.
-  - Mouse: `mouseDown` → the tray pill / a tray cell (taking one opens a `.fresh` carry and collapses the tray so the
-    front of the lawn is free) or the front-most entity whose **drawn** pixels (mask, ±1 cell) contain the point;
-    `mouseDragged` moves the carried thing (`carryFeet`); `mouseUp` → `Garden.move` / `Garden.place` (needs an available
-    copy unless developer mode) / `Garden.setCompanionSpot` / `Garden.remove` (dropped over the tray), or, for a companion
-    that did not move, a phrase from `Quotes.load(for:)` in a bubble for 5 s. Right-click on a copy → "Togli dal giardino".
-  - The window scales the whole view with `setBoundsSize` on narrow screens (`GardenController.scale(forScreenWidth:)`).
-  - Observers: `SessionLog.addObserver` (ignored while the window is closed) and `Garden.addObserver` both call
-    `reload()`. Esc drops what is being carried or closes the tray.
+- **What:** the copies of the figurine found at the end of focuses (§3.26) are put on an **island of tiles** seen at an angle
+  (`GardenView`, `GardenGrid.swift`). A copy found and not yet placed is "available" (`Garden.available(id)` = found − placed); the
+  collapsible tray at the bottom left ("Da mettere · N", `trayOpen`, `trayLayout`, `drawTray`) lists them. Copies are dragged onto
+  tiles, moved, turned, or dropped on a dashed zone at the bottom left to remove them (they become available again). Unlocked
+  companions walk on the free tiles and speak when tapped. The album is a separate window, opened by the "Album" button (`onShowAlbum`).
+- **Entry point:** `MenuController.showGarden` → `GardenController.show()` (which first calls `Garden.openPendingGifts()`, announces
+  what the migration gave, `announceGifts`, and resets the camera) → `GardenView.reload()`.
+- **The rules** (`GardenGrid.swift`, Foundation only, tested): `GardenTile(col,row)` with `col` towards the bottom right and `row`
+  towards the bottom left, (0,0) the back corner. `GardenIsland.size(completedSpreads:)` = 8 + completed double pages of the album, at
+  most 10 (`Garden.islandSize` also never goes below what is already placed); `GardenIsland.isPath` is a fixed path (row 3 cols 0–3,
+  col 3 rows 3–5, row 5 cols ≥ 3) that is walkable but not buildable and does not move when the island grows. Each `GardenItem` has a
+  `footprint` (1×1 mostly, 2×1, 2×2); `turned` swaps it. `GardenLayout.canPlace` = inside the island, not on the path, not over another
+  footprint; `nearestOrigin`/`nearestWalkable` search rings by Manhattan distance, ties by (row, col); `tile(fromLegacy:size:)` maps a point of
+  the old free lawn (`u`, `v` of the lawn rectangle) to `col = n(v+u−½)`, `row = n(v−u+½)`.
+- **Projection** (`GardenView.Iso`): a tile is a diamond `tileW` wide and `tileW/2` high; `point(col:row:)` and `grid(at:)` convert both ways;
+  `tileW` fits the island to the window (`Iso.top` 140, bottom margin 44) times the **zoom**, and the origin is moved by the **pan**
+  (zoom is about the window centre; `zoom(by:at:)` keeps the point under the mouse fixed). An object is drawn `item.height × tileW/135` high with its
+  feet at the centre of its footprint, slightly below. `clampCamera` keeps the window centre within one tile of the island, in grid space.
+- **Drawing order:** backdrop (`MeadowBackdrop.draw(in:blur: 5)`) → island (shadow, two sides, tiles with a deterministic variation by hash of
+  `col,row`, grass tufts, path stones, faint grid that gets stronger while dragging, green/red tiles under the dragged thing) → entities sorted by
+  `depth` (items: sum of the front-most tile + ½; companions: `col + row` of their current position) → the ghost of what is dragged → bubble →
+  HUD, tray or its pill, zoom buttons, the removal zone, hints. Items that are `turned` are mirrored.
+- **Mouse:** `mouseDown` → zoom buttons, the tray pill/cell (taking one opens a `.fresh` carry and collapses the tray), the front-most entity whose
+  **drawn** pixels (mask, ±1 cell) contain the point, or the background (double click: zoom in / back; drag: pan). While dragging, `carryTarget()` gives
+  the origin tile (`round(grid − footprint/2)`), the tiles and whether it is valid (`Garden.canPlace`, an available copy for `.fresh`, a walkable tile not
+  taken by another companion for companions). `mouseUp` → `Garden.move(_, to:, turned:)` / `place` / `placeSomewhere` (a tap on the tray) /
+  `setCompanionTile` / `remove` (dropped on `removeZoneRect`), or, for a companion that did not move, a phrase from `Quotes.load(for:)` for 5 s. **R** while
+  dragging turns the copy; right-click → "Gira" / "Togli dal giardino". Scroll = pan (⌘ or ⌥ = zoom), pinch = zoom, `+` `−` `0`.
+- **Companions walk** (`advanceWalkers(by:)`, a 30 Hz timer while the window is visible): each `Walker` rests 1.5–5 s, then steps to a free
+  neighbouring tile (not taken by another companion) in 1.3 s with a small hop; the saved tile (`Garden.companionTile`) is only their home and is reset
+  when the user drops them somewhere.
+- **Observers:** `SessionLog.addObserver` (ignored while the window is closed) and `Garden.addObserver` both call `reload()`. Esc drops what is
+  being carried.
 
 ### 3.18 Companion unlocking
 
@@ -565,7 +576,7 @@ code. All UI code runs on the main thread; the only other thread is the audio re
     music (`music_*`), garden/growth art, Pianty stage frames → write `Info.plist` via heredoc →
     `codesign --force --sign -` (a failure prints an error and exits 1) → print the path.
   - `tests/run.sh`: `swiftc -O -o build/tests/stats` on fourteen source files + `tests/main.swift` →
-    `build/tests/stats` (prints `• <section>` lines and `N controlli, M falliti`, exit code 0/1; 539 checks now).
+    `build/tests/stats` (prints `• <section>` lines and `N controlli, M falliti`, exit code 0/1; 581 checks now).
   - Tools: described in §5.9; they read `assets/**/*_original.png` / sheets and write processed PNGs or the icon.
 
 ### 3.22 To-do list ("Da fare")
@@ -701,7 +712,7 @@ code. All UI code runs on the main thread; the only other thread is the audio re
   beside the pet (its frame is also a `Speaker.obstacle`, §3.25). Hidden preferences: `developerMode` (everything found,
   unlimited copies), `quickGifts` (1-minute focuses roll).
 - **Migration:** a version-1 `giardino.json` is read (`unlocked` → found, copies = max(placed, 1)), copied once to
-  `giardino-formato1.json`, and rewritten in version 2. `AppDelegate` calls `Garden.convertLegacyPoints(earned:)` with the
+  `giardino-formato1.json`, and rewritten in version 3 (a version-2 file, with the free lawn, is copied to `giardino-formato2.json`; its `x`/`y` become tiles through `Garden.settle`, in file order, and what does not fit goes back to the available copies). `AppDelegate` calls `Garden.convertLegacyPoints(earned:)` with the
   points the old rules would have earned (`GardenPoints.earned`); unspent points become `pendingGifts`, which
   `Garden.openPendingGifts()` rolls as gifts with the ids `REGALO-<n>` the first time the garden or the album is shown.
 - **The album** (`AlbumWindow.swift`): `GardenAlbum.spreads()` lays the catalog out in double pages (a category = a
@@ -710,7 +721,7 @@ code. All UI code runs on the main thread; the only other thread is the audio re
   leather) and `doppia_pagina.png` (titles in the two bands, six `Sticker`s per page placed from the fractions of the
   picture — found ones slightly tilted by `GardenDrops.hash(id)`, missing ones dashed with the silhouette —, page numbers
   in the blobs, the "completa" seal at the gutter). Without the pictures it falls back to a hand-drawn leather and paper
-  book. The window is 980×730; `AlbumBackdrop` draws `giardino_prato.png` behind the book (aspect-fill, centred at 40 %,
+  book. The window is 980×730; `MeadowBackdrop` draws `giardino_prato.png` behind the book (aspect-fill, centred at 40 %,
   a warm veil and darker corners) or a brown table if it is missing; the controls under the book switch ink with it.
 - **Animations** (extension of `AlbumView`): `snapshot(mode:spread:content:)` renders the view with `capturing = true` (no
   backdrop, shadow, controls or message) into a bitmap (`bitmapImageRepForCachingDisplay`) and `crop`s halves from it;
@@ -761,7 +772,7 @@ main.swift ──► AppDelegate  (composition root: creates and wires everythin
 
 Foundation-only core (no AppKit):  SessionLog.swift (StudySession, SessionLog, Season [unused by the app], StudyStats,
    SessionCSV, Subject, FocusNotes, SessionNote), Profile, CustomTimers (+TimerDialMath), BreakCycle,
-   CompanionRewards, Garden, GardenCatalog (+GardenScene), GardenPoints (+StudyStreak), AmbientSound (+AmbientSettings,
+   CompanionRewards, Garden, GardenCatalog, GardenGrid (+GardenIsland, GardenLayout), GardenPoints (+StudyStreak), AmbientSound (+AmbientSettings,
    BackgroundChoice), MusicLibrary (+MusicSource, MusicSettings), ToDo (ToDoList, ToDoItem, ToDoDay, ToDoText,
    ToDoReminder)
 Audio:  AmbientPlayer.shared ⇄ MusicPlayer.shared   (each calls the other to enforce "one background at a time")
@@ -826,8 +837,8 @@ builds the same path independently).
 | `backup/sessioni-formato<N>.json` | `SessionLog.load` | untouched copy of the previous-format file made when migrating (N = 0, 1, 2) |
 | `sessioni.corrotto-<epoch>.json` | `SessionLog.load` | an undecodable file moved aside, or the original kept when only some sessions could be read |
 | `profilo.corrotto-<epoch>.json` | `Profile.init` | a malformed profile moved aside |
-| `giardino.json` | `Garden.save` (atomic) | `{"version": 2, "drops": {found: {id: copies}, nothingInARow, sinceRare, sinceLegendary}, "lastRolled", "unseen": [ids], "pendingGifts", "legacySpent", "placements": [{id, item, x, y}], "companions": {petID: {x, y}}}`; `x`/`y` are fractions of the scene (feet), clamped to the lawn; a version-1 file (`unlocked`, `spent`) is migrated (see §3.26); only `version`, `placements` and `companions` are required |
-| `giardino-formato1.json` | `Garden.save` | untouched copy of the last version-1 garden file, made once before the first rewrite in version 2 |
+| `giardino.json` | `Garden.save` (atomic) | `{"version": 3, "drops": {found: {id: copies}, nothingInARow, sinceRare, sinceLegendary}, "lastRolled", "unseen": [ids], "pendingGifts", "legacySpent", "placements": [{id, item, col, row, turned}], "companions": {petID: {col, row}}}`; a version-1 file (`unlocked`, `spent`) or a version-2 one (`x`/`y` on the free lawn) is migrated (see §3.17, §3.26); only `version`, `placements` and `companions` are required |
+| `giardino-formato1.json`, `giardino-formato2.json` | `Garden.save` | untouched copy of the last version-1 or version-2 garden file, made once before the first rewrite in version 3 |
 | `giardino.corrotto-<epoch>.json` | `Garden.init` | a malformed garden file moved aside (a newer version is read-only; at most 150 copies are kept) |
 | `profilo.json` | `Profile.save` | `{"version":1,"name"?,"introSeen","unlocked"?:[ids],"firstCompanion"?}` |
 | `dafare.json` | `ToDoList.save` (atomic) | `{"version": 1, "items": [{id, text, due?, subject?, createdAt, doneAt?}]}`; `due` is a day string `AAAA-MM-GG`, dates ISO-8601; done items older than 7 days are dropped |
@@ -1185,17 +1196,22 @@ file/UserDefaults writes, windows, timers, sound, global state.
 - **Responsibility:** `struct BreakCycle` (`focusCompleted(at:)`, `done(at:)`, `reset`), constants (4 focuses, 15 min,
   2 h reset), static `isEnabled` (UserDefaults `longBreakEnabled`).
 
-#### `Garden.swift` (184)
-- **Responsibility:** `final class Garden` — what the user owns and where it is: `unlocked` (types bought with points),
-  `spent`, `placements`, `companionSpots`. `isUnlocked` (free price, bought, or `Profile.isDeveloper`), `unlock(_:balance:)`,
-  `place/move/remove`, `count(of:)`, `companionSpot/setCompanionSpot`, `reset`, `addObserver`, `onProblem`.
+#### `Garden.swift`
+- **Responsibility:** `final class Garden` — what the user owns and where it is: `drops` (copies found, counters), `unseen`,
+  `pendingGifts`, `placements` (tile + turned), `companionTiles`. `copies/available/isFound` (`Profile.isDeveloper` = all found),
+  `islandSize`, `canPlace/place/placeSomewhere/move/rotate/remove`, `count(of:)`, `companionTile/setCompanionTile`, `rollGift`,
+  `convertLegacyPoints`, `openPendingGifts`, `reset`, `addObserver`, `onProblem`.
 - **Side effects:** reads in `init` (unreadable → read-only + message; malformed → moved aside; newer version → read-only),
   atomic writes of `giardino.json` (a failure is reported once and the copies stay in memory), `reset` deletes the file.
 
-#### `GardenCatalog.swift` (152)
-- **Responsibility:** `GardenCategory`, `GardenItem` (id, name, category, reference height, price, shadow flag,
-  `resource`), `GardenSpot`, `GardenPlacement`, `GardenScene` (reference size 1024×506, horizon, lawn limits,
-  `depthScale`, `clamped`, default spots) and `GardenCatalog.items` (36 objects, prices provisional).
+#### `GardenCatalog.swift`
+- **Responsibility:** `GardenCategory`, `GardenItem` (id, name, category, reference height, price, shadow flag, `footprint`,
+  `resource`), `GardenPlacement` (tile + turned; reads the old `x`/`y`), `GardenCompanionPlace`, `GardenAlbum` (pages, completed
+  spreads) and `GardenCatalog.items` (36 objects, prices provisional).
+
+#### `GardenGrid.swift`
+- **Responsibility:** `GardenTile`, `GardenFootprint`, `GardenIsland` (8…10, the path), `GardenLayout` (see §3.17) and the legacy
+  `GardenSpot`/`GardenScene.lawn` kept only to read version-1/2 files.
 
 #### `GardenPoints.swift` (142)
 - **Responsibility:** `StudyStreak.analyze` (per-day streak counts; a missed day freezes the streak once every
@@ -1237,7 +1253,7 @@ file/UserDefaults writes, windows, timers, sound, global state.
 ### 5.9 Tests, build and tools
 
 #### `tests/main.swift` (1,056) and `tests/run.sh` (7)
-- A single executable: `check(_:_:line:)`, `section(_:)`, 36 sections (539 checks) covering subjects, log persistence,
+- A single executable: `check(_:_:line:)`, `section(_:)`, 37 sections (581 checks) covering subjects, log persistence,
   in-progress recovery, periods, summaries, streaks, texts, garden rules, format versions/migration, subject merging, backups and
   delete-all, time zones, profile, ratings/notes/insights/CSV, timer dial math, seasons, ambient settings, music
   library/settings, focus notes, paused-time recovery, companion rewards (including the developer flag), break cycle,
@@ -1729,7 +1745,7 @@ code is clear. Items without a mark still describe the current code.
 
 ### 7.8 Test coverage as it exists
 
-- Covered (36 sections, 539 checks in `tests/main.swift`): everything in the Foundation-only files listed in §4.1,
+- Covered (37 sections, 581 checks in `tests/main.swift`): everything in the Foundation-only files listed in §4.1,
   including the new damaged-data cases and the developer flag.
 - Not covered by any automated test in the repository: `Pomodoro` (timer, pause, grace, the sleep-gap rule, cycle
   wiring), `Speaker` (including when a to-do reminder replaces a phrase), `Walker`, `PetWindow`/`PetView`, `MenuController`,

@@ -444,11 +444,13 @@ Poi **la scheda «Anno» delle statistiche** (Mac 0.10.0, Windows 1.2.0): l'anno
 
 ## Seconda uscita: il giardino (8–12 giorni)
 
-> **Cambio di progetto (ottobre 2026, Mac 0.10.0).** Sul Mac il giardino non ha più punti né negozio: si riempie con le **figurine** che escono a fine
-> focus (`GardenDrops.swift`) e si raccolgono in un **album** (`AlbumWindow.swift`), con la cassetta «Da mettere» nel prato. I punti qui sotto (G1, G3)
-> vanno quindi riletti così: logica = tiro deterministico (FNV-1a + Mulberry32, già descritti in `FORMATI.md` §5), `giardino.json` versione 2 e prove di
-> contratto sul blocco `giardino` di `tests/fixtures/attesi/`; interfaccia = giardino con la cassetta, album come libro in CSS 3D, carta della figurina a
-> fine focus. Le immagini sono già in `assets/giardino/` e `assets/album/`.
+> **Cambio di progetto (ottobre 2026, Mac 0.10.0).** Sul Mac il giardino non ha più punti né negozio né prato libero: si riempie con le **figurine** che
+> escono a fine focus (`GardenDrops.swift`) e si raccolgono in un **album** (`AlbumWindow.swift`); le copie stanno sulle tessere di un'**isola** vista di
+> sbieco (`GardenGrid.swift`, con zoom e spostamenti), con la cassetta «Da mettere». I punti qui sotto (G1, G3) vanno quindi riletti così: logica = tiro
+> deterministico (FNV-1a + Mulberry32) e regole dell'isola (impronte, sentiero, dimensioni, migrazione dal prato libero), `giardino.json` versione 3
+> (`FORMATI.md` §5) e prove di contratto sul blocco `giardino` di `tests/fixtures/attesi/`; interfaccia = isola in proiezione isometrica (`<canvas>` o CSS
+> transform) con anteprima verde/rossa, cassetta, zoom e spostamenti, album come libro in CSS 3D, carta della figurina a fine focus. Le immagini sono già in
+> `assets/giardino/` e `assets/album/`.
 
 Si fa dopo, perché riusa tutto il resto (schede, finestre, immagini, dati) e non blocca nessuna delle altre funzioni.
 

@@ -67,8 +67,8 @@ e, da «Mostra le sessioni», una tendina sotto il riepilogo con la nota e la fa
 
 **Il giardino e l'album**: ogni focus completato (almeno 20 minuti di studio) può regalarti una figurina, che appare
 accanto al personaggio. Le figurine stanno in un **album** da collezionare, un libro antico in una finestra tutta sua, e
-le copie che trovi le metti dove vuoi nel prato del **giardino**, che è tuo. I compagni sbloccati ci vivono, e se li
-tocchi parlano.
+le copie che trovi le metti sull'**isola** del giardino, che è tua: una griglia di tessere vista di sbieco, da 8×8 che si
+allarga completando le pagine dell'album. I compagni sbloccati ci camminano, e se li tocchi parlano.
 
 <p align="center">
   <img src="docs/images/album.png" width="560" alt="L'album delle figurine, aperto su una doppia pagina">
@@ -143,7 +143,7 @@ per tipo) e uno tuo si può *rimuovere*. *Avvia* parte con i minuti scelti; la p
 | Fai parlare | Mostra subito una frase |
 | Pomofocus ▸ | Timer: *Focus 30/50 min*, *Pausa 5/10 min*, *Personalizza…*, *Ferma timer* |
 | Statistiche e riepilogo… | La finestra con il riepilogo di oggi e le statistiche della settimana, del mese e dell'anno |
-| Il mio giardino… | Il tuo prato: le figurine da mettere, gli oggetti e i compagni (con il tuo nome: «Il giardino di …») |
+| Il mio giardino… | La tua isola: le figurine da mettere, gli oggetti e i compagni (con il tuo nome: «Il giardino di …») |
 | Album | L'album delle figurine, con quante ne hai trovate e quante sono nuove |
 | Il tuo nome… | Cambia il nome che compare nei titoli |
 | Chiedi com'è andata | Se a fine focus compare «Com'è andata?» (spunta = sì) |
@@ -328,12 +328,12 @@ rovinato, migrazione, materie unite, copie di sicurezza, fuso orario…).
 
 ## Il giardino e l'album
 
-*Il mio giardino…* (`GardenWindow.swift`) è un prato **tuo**: un posto calmo, da riempire con quello che trovi. Non
+*Il mio giardino…* (`GardenWindow.swift`) è un'**isola tua**: un posto calmo, da riempire con quello che trovi. Non
 conta i focus e non misura niente: le cifre dello studio stanno nelle *Statistiche*. Il giardino e l'album sono due
-finestre diverse: il libro serve a collezionare e a guardare, il prato a mettere le cose dove vuoi.
+finestre diverse: il libro serve a collezionare e a guardare, l'isola a mettere le cose dove vuoi.
 
 <p align="center">
-  <img src="docs/images/giardino.png" width="760" alt="Il giardino">
+  <img src="docs/images/giardino.png" width="760" alt="Il giardino: l'isola a tessere">
 </p>
 
 ### I regali di fine focus
@@ -376,27 +376,41 @@ vanno titoli, figurine e numeri, scritti dall'app. Dietro c'è il prato del giar
 apre, la pagina che gira) sono fogli in 3D con un davanti e un dietro, fatti da foto del libro; con *Riduci movimento*
 nelle impostazioni di accessibilità il libro si apre e si sfoglia di colpo.
 
-### Il giardino e la cassetta
+### L'isola e la cassetta
 
-In basso a sinistra, **Da mettere · N** apre la cassetta con le copie che hai trovato e non hai ancora messo nel prato:
+L'isola è una griglia di **tessere** vista di sbieco, con un sentiero che la attraversa (ci camminano i compagni, ma non
+ci si costruisce) e il prato del giardino sfocato dietro. Parte da **8×8** e si allarga di una fila per ogni doppia
+pagina dell'album completata, fino a **10×10** (`GardenIsland`, in `GardenGrid.swift`). Ogni oggetto occupa una, due o
+quattro tessere (la panchina 2×1, la casetta del gatto 2×2…), sempre della stessa misura, quindi niente sovrapposizioni.
 
-- un tocco ne mette una nel prato, trascinandola la metti dove vuoi; **ne puoi mettere quante sono le copie che hai**
-  (con un solo girasole, un solo girasole nel prato);
-- si trascina tutto: dalla cassetta al prato per metterlo, nel prato per spostarlo, sulla cassetta per toglierlo (o
-  tasto destro → *Togli dal giardino*): la copia torna tra quelle da mettere;
-- le cose più lontane (verso la casetta) sono più piccole, quelle davanti più grandi; chi sta più in basso sta
-  davanti. Il prato è lo stesso in ogni stagione.
+In basso a sinistra, **Da mettere · N** apre la cassetta con le copie che hai trovato e non hai ancora messo:
 
-Sopra il prato, due etichette: quante figurine hai (N/36) e la serie di giorni. Gli oggetti e le rarità stanno in
-`GardenCatalog.swift` (per ora la rarità si ricava dal vecchio prezzo: fino a 3 comune, fino a 6 raro, oltre leggendario).
+- un tocco ne mette una su una tessera libera, trascinandola la metti dove vuoi: **le tessere sotto il mouse diventano
+  verdi se ci sta, rosse se no** (sentiero, fuori dall'isola, sopra un'altra cosa) e la copia si appoggia sulla tessera
+  più vicina; **ne puoi mettere quante sono le copie che hai** (con un solo girasole, un solo girasole sull'isola);
+- si trascina tutto: dalla cassetta all'isola per metterlo, sull'isola per spostarlo; **R** mentre lo trascini (o il tasto
+  destro → *Gira*) lo gira, e per toglierlo lo si lascia nella zona tratteggiata che compare in basso a sinistra (o tasto
+  destro → *Togli dal giardino*): la copia torna tra quelle da mettere;
+- i **compagni** camminano da soli, ogni tanto, sulle tessere libere accanto; se li trascini dove vuoi, lì è casa loro, e
+  se li tocchi parlano.
+
+**Zoom e spostamenti.** Si ingrandisce con il pizzico sul trackpad (attorno al mouse), con ⌘ o ⌥ e la rotellina, coi
+tasti `+` e `−` o coi pulsanti in basso a destra (da 0,6× a 2,5×); `0` o il pulsante in mezzo rimettono tutta l'isola, e
+due tocchi sullo sfondo ingrandiscono o tornano indietro. Ci si sposta con due dita o trascinando lo sfondo; il centro
+della finestra resta sempre sull'isola.
+
+Sopra l'isola, due etichette: quante figurine hai (N/36) e la serie di giorni. Gli oggetti, le impronte e le rarità stanno
+in `GardenCatalog.swift` (per ora la rarità si ricava dal vecchio prezzo: fino a 3 comune, fino a 6 raro, oltre leggendario).
 
 ### Chi veniva dal negozio
 
 Fino alla 0.9 il giardino si riempiva con i **punti** (uno per ora di studio) spesi in un negozio. Alla prima apertura
 della 0.10 il file passa al formato nuovo e **non si perde niente**: gli oggetti già sbloccati diventano figurine trovate
 (con tante copie quante ne avevi nel prato, almeno una) e i punti non spesi diventano **regali da aprire** (uno per
-punto), che si aprono come i regali di fine focus, la prima volta che apri il giardino o l'album. L'ultimo file in formato
-vecchio resta accanto, come `giardino-formato1.json`. La 0.9 non legge il formato nuovo.
+punto), che si aprono come i regali di fine focus, la prima volta che apri il giardino o l'album. Le cose che avevi messo
+nel prato libero vanno sulla tessera libera più vicina a dove stavano, e quelle che non ci stanno (l'isola è piena)
+tornano tra le copie da mettere. L'ultimo file in formato vecchio resta accanto, come `giardino-formato1.json` o
+`giardino-formato2.json`. La 0.9 non legge il formato nuovo.
 
 ### I compagni nel giardino
 
@@ -405,15 +419,15 @@ delle sue frasi. Non si comprano e non si tolgono: sono casa loro.
 
 ### Dove sta
 
-`giardino.json`, accanto a `sessioni.json`: `{"version": 2, "drops": {"found": {"margherite": 2, …}, "nothingInARow",
+`giardino.json`, accanto a `sessioni.json`: `{"version": 3, "drops": {"found": {"margherite": 2, …}, "nothingInARow",
 "sinceRare", "sinceLegendary"}, "lastRolled", "unseen": […], "pendingGifts", "legacySpent", "placements": [{"id", "item",
-"x", "y"}], "companions": {"gattino": {"x", "y"}}}`. `found` dice quante copie hai di ogni cosa; `x` e `y` sono frazioni
-della scena (da 0 a 1) e dicono dove stanno i piedi, e si tengono dentro il prato. Un file rovinato viene messo da parte
+"col", "row", "turned"}], "companions": {"gattino": {"col", "row"}}}`. `found` dice quante copie hai di ogni cosa; `col` e
+`row` sono la tessera dove sta l'angolo in fondo dell'oggetto. Un file rovinato viene messo da parte
 (`giardino.corrotto-….json`), uno di una versione più nuova si legge ma non si riscrive, e *Cancella tutto…* lo toglie
-con il resto (e il giardino riparte dalla dotazione: 4 figurine, già nel prato). Le regole stanno in `Garden.swift`,
-`GardenDrops.swift`, `GardenCatalog.swift` e `GardenPoints.swift` (solo Foundation, con prove). Con `developerMode` (vedi
-sopra) è tutto trovato e le copie sono illimitate; con `quickGifts` (`defaults write com.jacopo.focusfriends quickGifts -bool true`)
-anche un focus da un minuto fa tirare, per provare.
+con il resto (e il giardino riparte dalla dotazione: 4 figurine, già sull'isola). Le regole stanno in `Garden.swift`,
+`GardenGrid.swift`, `GardenDrops.swift`, `GardenCatalog.swift` e `GardenPoints.swift` (solo Foundation, con prove). Con
+`developerMode` (vedi sopra) è tutto trovato e le copie sono illimitate; con `quickGifts`
+(`defaults write com.jacopo.focusfriends quickGifts -bool true`) anche un focus da un minuto fa tirare, per provare.
 
 ### Aggiungere oggetti
 

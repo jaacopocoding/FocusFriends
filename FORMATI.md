@@ -210,21 +210,21 @@ personaggi** (`pianty`, `porcellino`, `ciccio`, `gattino`). Soglie per posizione
 
 ## 5. `giardino.json` (seconda uscita su Windows)
 
-Versione 2 (Mac 0.10.0). Il giardino non ha più punti né negozio: si riempie con le figurine trovate a fine focus
-(`GardenDrops.swift`), ognuna con le sue copie.
+Versione 3 (Mac 0.10.0). Il giardino non ha più punti né negozio né prato libero: si riempie con le figurine trovate a fine focus
+(`GardenDrops.swift`), ognuna con le sue copie, che stanno sulle tessere di un'isola (`GardenGrid.swift`).
 
 ```json
 {
-  "version" : 2,
+  "version" : 3,
   "drops" : { "found" : { "margherite" : 2, "lavanda" : 1 }, "nothingInARow" : 0, "sinceRare" : 3, "sinceLegendary" : 11 },
   "lastRolled" : "5B0C2A4E-6D1F-4C8B-9E27-3A7D41C0F8B2",
   "unseen" : ["lavanda"],
   "pendingGifts" : 0,
   "legacySpent" : null,
   "placements" : [
-    { "id" : "00000000-0000-4000-8000-0000000000A1", "item" : "margherite", "x" : 0.41, "y" : 0.72 }
+    { "id" : "00000000-0000-4000-8000-0000000000A1", "item" : "margherite", "col" : 4, "row" : 1, "turned" : false }
   ],
-  "companions" : { "gattino" : { "x" : 0.55, "y" : 0.95 } }
+  "companions" : { "gattino" : { "col" : 3, "row" : 4 } }
 }
 ```
 
@@ -233,18 +233,30 @@ Versione 2 (Mac 0.10.0). Il giardino non ha più punti né negozio: si riempie c
 - `lastRolled`: l'identificativo dell'ultimo focus che ha tirato (lo stesso focus non tira due volte). `unseen`: gli oggetti trovati e non ancora visti nell'album.
 - `pendingGifts`: i regali da aprire che vengono dalla conversione dei punti. `legacySpent`: i punti spesi nel formato 1, finché i punti non sono stati
   convertiti (poi `null`).
-- `placements`: le copie nel prato (al massimo **150**; le altre si scartano). Di un oggetto se ne possono mettere **al massimo quante copie si sono trovate**.
-  `x`, `y`: frazioni della scena da 0 a 1, dove stanno i **piedi**; in lettura si riportano dentro il prato (`x` da 0,03 a 0,97, `y` da 0,56 a 0,99).
-- `companions`: dove l'utente ha messo i compagni (gli altri stanno nel loro posto di partenza).
+- **L'isola**: una griglia quadrata di `n × n` tessere, `col` verso destra e in basso, `row` verso sinistra e in basso, (0, 0) l'angolo in fondo. `n` è
+  **8** più il numero di doppie pagine dell'album complete (tutte le figurine trovate), al massimo **10** (e mai meno di quanto serve a quello che c'è già sopra).
+  Il **sentiero** sono le tessere `row = 3` con `col` da 0 a 3, `col = 3` con `row` da 3 a 5, e `row = 5` con `col ≥ 3`: non cambia quando l'isola si
+  allarga (si allunga soltanto l'ultimo pezzo) e non ci si mette niente sopra.
+- `placements`: le copie sull'isola (al massimo **150**). `col`, `row`: la tessera dove sta l'angolo in fondo dell'oggetto; `turned`: se è girato (larghezza e
+  profondità si scambiano). Un oggetto occupa `cols × rows` tessere del catalogo (`footprint`: 1×1 quasi sempre; 2×1 panchina, bandierine, cancelletto,
+  ponticello, aiuola, arco di rose; 2×2 casette del gatto e del porcellino, altalena, amaca, tappeto da picnic). Di un oggetto se ne possono mettere
+  **al massimo quante copie si sono trovate**. In lettura, una copia fuori dall'isola, sul sentiero o sopra un'altra si toglie (torna tra quelle da mettere);
+  una di un oggetto sconosciuto si tiene.
+- `companions`: la tessera di «casa» dei compagni (gli altri stanno sul sentiero, a posti fissi); camminando si spostano di una tessera alla volta, ma non si
+  salva.
+- **La dotazione** (le quattro cose a prezzo 0) parte su tessere fisse: margherite (5, 3), trifoglio (2, 5), erba alta (1, 1), mughetti (6, 6).
 - **Il tiro è deterministico**: FNV-1a a 32 bit sull'identificativo della sessione in **maiuscolo** (byte UTF-8) come seme di un Mulberry32; i quattro numeri
   (niente, rarità, nuovo, scelta) si estraggono in quest'ordine. Mac e Windows devono dare gli stessi regali sugli stessi dati
-  (il blocco `giardino` dei file in `tests/fixtures/attesi/`).
-- Il formato 1 (`"version": 1`, con `unlocked` e `spent`) si legge ancora: gli oggetti sbloccati diventano trovati (con tante copie quante ne erano nel prato,
-  almeno una), `spent` va in `legacySpent`, e al primo avvio i punti guadagnati meno quelli spesi diventano `pendingGifts`. L'ultimo file in formato 1 si copia
-  in `giardino-formato1.json` prima di riscrivere.
+  (il blocco `giardino` dei file in `tests/fixtures/attesi/`). Anche **dove cade** la copia trovata è deterministico (FNV-1a di «posto-» più
+  l'identificativo, sulle tessere libere in ordine di riga e colonna).
+- **Versioni vecchie**: si leggono ancora. La **2** aveva il prato libero: `placements` con `x`, `y` (frazioni della scena) e `companions` con `x`, `y`; ogni
+  cosa va sulla tessera libera più vicina (`GardenLayout.tile(fromLegacy:size:)`, poi `nearestOrigin`), nell'ordine del file, e quello che non ci sta torna
+  tra le copie da mettere. La **1** (`unlocked`, `spent`): gli oggetti sbloccati diventano trovati (con tante copie quante ne erano nel prato, almeno una),
+  `spent` va in `legacySpent`, e al primo avvio i punti guadagnati meno quelli spesi diventano `pendingGifts`. L'ultimo file di una versione vecchia si
+  copia in `giardino-formato1.json` o `giardino-formato2.json` prima di riscriverlo.
 - **Obbligatori**: `version`, `placements` e `companions` (se ne manca uno il file è rovinato: si sposta in `giardino.corrotto-<epoch>.json` e si riparte
   da vuoto). Il resto è facoltativo; senza `drops` si tratta come il formato 1.
-- `version` maggiore di 2: si legge e si lavora in sola lettura (con un avviso). Illeggibile: sola lettura.
+- `version` maggiore di 3: si legge e si lavora in sola lettura (con un avviso). Illeggibile: sola lettura.
 - «Cancella tutto» toglie il file.
 
 ## 6. `impostazioni.json` (solo Windows)
