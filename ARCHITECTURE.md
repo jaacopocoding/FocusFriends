@@ -544,10 +544,21 @@ code. All UI code runs on the main thread; the only other thread is the audio re
   kind of tile (the path gets only stones and what falls in the season). Position `(u, v)` inside the tile, image, size and mirroring come from
   `mixedHash` of the tile, group and index, so they never change for the same tile and season. `paintIslandGround` draws them after the tiles, sorted by
   `col + row + u + v`, inside the cached ground image.
-- **Drawing order:** backdrop (`MeadowBackdrop.draw(in:blur: 5)`) → island (`drawIslandGround`: shadow, two sides and the tiles, **cached as one image** and redrawn only when the island size, zoom, pan, season or
-  the "dragging" state change; then `drawHighlight`: green/red tiles under the dragged thing) → entities sorted by
-  `depth` (items: sum of the front-most tile + ½; companions: `col + row` of their current position) → the ghost of what is dragged → bubble →
-  HUD, tray or its pill, zoom buttons, the removal zone, hints. Items that are `turned` are mirrored.
+- **Drawing order:** `drawStaticScene` (the backdrop with the season's veil, the island ground — shadow, two sides, tiles, paths, details —, and the light of the
+  moment: one image, see "Speed" below) → `drawChimneySmoke` (clipped outside the island outline) → `drawHighlight` (green/red tiles under the dragged thing) →
+  entities sorted by `depth` (items: sum of the front-most tile + ½; companions: `col + row` of their current position) → the ghost of what is dragged →
+  weather → lamp glows, cottage windows, fireflies → bubble → HUD, tray or its pill, zoom buttons, the removal zone, hints. Items that are `turned` are mirrored.
+- **Speed** (a bench measured the first version at 62 ms a frame by day and 110 ms at night, so the window crawled at ~10 fps; now about 10 ms in every season, and
+  the first draw after launch about 140 ms instead of 430): (1) `MeadowBackdrop.rendered(size:scale:blur:veil:colorSpace:)` makes the finished backdrop (image + veil +
+  vignette) once per size, scale, blur, veil and colour space, under a lock, and `GardenBlit` copies it with no interpolation (`.copy`); (2) the ground is rendered once
+  into an image of its bounding box (`GroundCache`, which does not depend on the position, so panning only moves it) and `drawStaticScene` composes backdrop +
+  ground + `applyLight` (the multiply tint and the dark corners) into **one** screen-sized image keyed by size, zoom, position, season, dragging, scale, colour space and the
+  quantised light; (3) objects come from `GardenSprites.scaled` (the visible part at the exact pixel size, **pre-tinted** by the light — `GardenTint`, steps of 6, a per-pixel
+  multiply of the premultiplied colours — so the night needs no full-screen blend) and the wind strips from `GardenSprites.strips` (12 cached slices), all copied with
+  `GardenBlit`; (4) every cache is built in the destination colour space (`GardenDisplay.colorSpace`, from the window or the main screen), because copying an image of another
+  space converts every pixel every frame; (5) `GardenView.warmUp()` (called from `AppDelegate` on a utility queue at launch) decodes all terrain/edge/detail images
+  (`GardenSprites.loadImage`, `kCGImageSourceShouldCacheImmediately`), analyses all sprites and renders the garden's and the album's backdrops; (6) the timer runs at 30 Hz, but
+  the screen is redrawn at 15 Hz when only the air moves (wind, smoke, snow) and at 30 Hz when a companion walks or something is dragged.
 - **Mouse:** `mouseDown` → zoom buttons, the tray pill/cell (taking one opens a `.fresh` carry and collapses the tray), the front-most entity whose
   **drawn** pixels (mask, ±1 cell) contain the point, or the background (double click: zoom in / back; drag: pan). While dragging, `carryTarget()` gives
   the origin tile (`round(grid − footprint/2)`), the tiles and whether it is valid (`Garden.canPlace`, an available copy for `.fresh`, a walkable tile not
@@ -568,10 +579,10 @@ code. All UI code runs on the main thread; the only other thread is the audio re
   14 horizontal strips (1 pt overlap), each shifted by `sway(height:)` so the base stays still and the top bends (2.6 pt × strength × wind × tileW/94; the phase
   depends on the tile, so a wave crosses the island, and on a per-copy seed); `drawWater` clips to the water oval and draws 3 flashing sparkles (`.plusLighter`,
   dimmer at night) and a ring from `ripple`; `drawChimneySmoke` puts 9 soft puffs above the chimney, whose position comes from `MeadowBackdrop.scenePoint(u:v:in:)`
-  (the same crop as the backdrop, so it follows the picture) and draws them **before** the island; `drawCottageWindows` lights the cottage windows after the light,
+  (the same crop as the backdrop, so it follows the picture) and draws them behind the island (clipped outside its outline); `drawCottageWindows` lights the cottage windows after the light,
   clipping out the island outline (even-odd) so the glow never lands on the island. `reduceMotion` (`NSWorkspace.accessibilityDisplayShouldReduceMotion`) stops sway,
-  sparkles, smoke, weather, fireflies and walking. The redraw timer runs at 24 Hz, only when the window is visible and not occluded
-  (`occlusionState`); a full draw takes about 5 ms.
+  sparkles, smoke, weather, fireflies and walking. The redraw timer runs only when the window is visible and not occluded
+  (`occlusionState`).
 - **Companions walk** (`advanceWalkers(by:)`, a 30 Hz timer while the window is visible): each `Walker` rests 1.5–5 s, then steps to a free
   neighbouring tile (not taken by another companion) in 1.3 s with a small hop; the saved tile (`Garden.companionTile`) is only their home and is reset
   when the user drops them somewhere.
