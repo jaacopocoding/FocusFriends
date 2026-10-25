@@ -383,6 +383,11 @@ ci si costruisce) e il prato del giardino sfocato dietro. Parte da **8×8** e si
 pagina dell'album completata, fino a **10×10** (`GardenIsland`, in `GardenGrid.swift`). Ogni oggetto occupa una, due o
 quattro tessere (la panchina 2×1, la casetta del gatto 2×2…), sempre della stessa misura, quindi niente sovrapposizioni.
 
+Il terreno è **disegnato**: dodici tessere d'erba (liscia, con ciuffi, trifogli, margheritine, fiorellini, sassi, foglie, muschio, erba alta) e otto
+di sentiero (lastre, ciottoli, pietre irregolari, con l'erba o col muschio). Vanno a **chiazze di 2 o 3 uguali** di seguito, in modo sempre uguale
+per la stessa tessera (`GardenTerrain`, in `GardenGrid.swift`) e senza cambiare quando l'isola si allarga. In autunno prendono una tinta ocra;
+d'inverno, finché non c'è la neve disegnata, si usa il terreno bianco disegnato dal codice.
+
 In basso a sinistra, **Da mettere · N** apre la cassetta con le copie che hai trovato e non hai ancora messo:
 
 - un tocco ne mette una su una tessera libera, trascinandola la metti dove vuoi: **le tessere sotto il mouse diventano
@@ -450,6 +455,11 @@ di ogni oggetto sul fondo della sua cella. Poi: il foglio in `assets/giardino/<n
 `SHEETS` di `tools/cutout_giardino.py` (che scrive `assets/giardino/<id>.png`), una riga per oggetto in
 `GardenCatalog.swift`. `./tests/run.sh` controlla che ogni oggetto del catalogo abbia il suo disegno. Il libro dell'album
 si rifà allo stesso modo: i fogli `assets/album/*_original.png` su sfondo magenta e `tools/cutout_album.py`.
+
+Anche il terreno viene da fogli di Gemini, ma **senza magenta**: quadrati visti esattamente dall'alto, in una griglia con un contorno scuro intorno a
+ogni cella (`assets/giardino/erba_original.png`, 4×3, e `sentiero_original.png`, 4×2). `tools/cutout_tessere.py` ritaglia il centro di ogni cella
+(via il contorno), lo rende quadrato e lo schiaccia in un rombo 2:1 (`assets/giardino/tessera_erba_<n>.png`, `tessera_sentiero_<n>.png`, 320×160),
+come lo vede l'isola; si aggiunge una riga in `SHEETS` con i bordi della griglia. `build.sh` le copia come `giardino_tessera_…`.
 
 ### La crescita durante un focus
 
