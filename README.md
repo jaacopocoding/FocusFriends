@@ -388,6 +388,10 @@ di sentiero (lastre, ciottoli, pietre irregolari, con l'erba o col muschio). Van
 per la stessa tessera (`GardenTerrain`, in `GardenGrid.swift`) e senza cambiare quando l'isola si allarga. In autunno prendono una tinta ocra;
 d'inverno, finché non c'è la neve disegnata, si usa il terreno bianco disegnato dal codice.
 
+Sopra il terreno si spargono **dettagli** disegnati (`assets/giardino/dettaglio_1..24.png`, da un foglio su magenta): ciuffi d'erba, trifogli, fiorellini
+bianchi, rosa, gialli e azzurri, sassi, e secondo la stagione petali (primavera), foglie (autunno) e ciuffi di neve (inverno). Quali e dove dipende solo
+dalla tessera e dalla stagione (`GardenTerrain.decals`), quindi non cambiano a ogni apertura; sul sentiero ce ne sono pochi.
+
 In basso a sinistra, **Da mettere · N** apre la cassetta con le copie che hai trovato e non hai ancora messo:
 
 - un tocco ne mette una su una tessera libera, trascinandola la metti dove vuoi: **le tessere sotto il mouse diventano
@@ -460,6 +464,7 @@ Anche il terreno viene da fogli di Gemini, ma **senza magenta**: quadrati visti 
 ogni cella (`assets/giardino/erba_original.png`, 4×3, e `sentiero_original.png`, 4×2). `tools/cutout_tessere.py` ritaglia il centro di ogni cella
 (via il contorno), lo rende quadrato e lo schiaccia in un rombo 2:1 (`assets/giardino/tessera_erba_<n>.png`, `tessera_sentiero_<n>.png`, 320×160),
 come lo vede l'isola; si aggiunge una riga in `SHEETS` con i bordi della griglia. `build.sh` le copia come `giardino_tessera_…`.
+I dettagli (`dettagli_original.png`, 6×4 su magenta) li ritaglia `tools/cutout_dettagli.py`, che scrive `dettaglio_<n>.png`.
 
 ### La crescita durante un focus
 
