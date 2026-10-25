@@ -64,7 +64,7 @@ Single user per Mac, no accounts, no network: all data is stored locally under
 | App type | Menu-bar "agent": `LSUIElement = true`, activation policy `.accessory` | `build.sh`, `AppDelegate.applicationDidFinishLaunching` |
 | Signing | Ad-hoc (`codesign --force --sign -`; `build.sh` stops with exit 1 if signing fails); not notarised, no hardened runtime or sandbox | `build.sh`, `README.md` "Scaricare e usare" |
 | Asset tooling | Python 3 scripts using Pillow and NumPy (not run at build time) | `tools/*.py` |
-| Tests | One hand-written Swift executable (`tests/main.swift`, 41 sections, 670 checks) that compiles seventeen Foundation-only source files; no XCTest | `tests/run.sh` |
+| Tests | One hand-written Swift executable (`tests/main.swift`, 42 sections, 674 checks) that compiles seventeen Foundation-only source files; no XCTest | `tests/run.sh` |
 | License | MIT (`LICENSE`); bundled music is CC0 (`CREDITS.md`) | `LICENSE`, `CREDITS.md` |
 | Swift toolchain version / Python version | Not pinned anywhere in the repository | **[unknown]** |
 
@@ -155,7 +155,7 @@ FocusFriends/
 │   ├── MusicLibrary.swift        MusicSource, MusicLibrary (file discovery, shuffle, titles), MusicSettings  (Foundation only)
 │   └── MusicPlayer.swift         AVAudioPlayer-based music playback with queue and fades
 ├── tests/
-│   ├── main.swift                hand-rolled test executable (check()/section()), 41 sections, 670 checks
+│   ├── main.swift                hand-rolled test executable (check()/section()), 42 sections, 674 checks
 │   ├── run.sh                    compiles 17 source files + tests/main.swift into build/tests/stats and runs it
 │   ├── genera-attesi.sh          builds and runs tests/genera-attesi/main.swift: for every folder in tests/fixtures/ writes what this app derives from it (the expected results the Windows port is compared with)
 │   ├── simula-regali.sh          simulates the end-of-focus drops over 30/60/90 days of studying (how long an album takes; used to tune GardenDrops)
@@ -169,6 +169,7 @@ FocusFriends/
 │   ├── cutout_picked.py          "picked up by hands" drawing cut-out (generic, takes paths)
 │   ├── cutout_garden.py          5-stage collection sheet → garden_<pet>_1..5 on the 208×341 canvas (used for the live growth during a focus)
 │   ├── cutout_giardino.py        the three 4×3 object sheets (white or magenta background) → one PNG per object + the 2× meadow
+│   ├── cutout_bordo.py           the strips of earth edge (on white) → bordo_1..3.png: background removed, same size, faded ends
 │   ├── cutout_dettagli.py        the 6×4 sheet of small details on magenta → dettaglio_1..24.png (uses cutout_giardino's magenta removal)
 │   ├── cutout_tessere.py         the terrain sheets (top-down squares in a grid with a dark outline) → 320×160 diamond tiles: crops each cell's centre, squares it, maps it to a 2:1 diamond (affine, antialiased edge)
 │   ├── cutout_album.py           the album's cover and double-page sheets (magenta background; the spread keeps its canvas) → assets/album/*.png
@@ -183,7 +184,7 @@ FocusFriends/
 │   ├── ciccio/                   walk_original.png, flap_original.png, frame1..13.png, picked(.png/_original.png)
 │   ├── gattino/                  idle/walk/eat/sleep/groom_original.png sheets, frame1..23.png, picked(.png/_original.png)
 │   ├── garden/                   garden_<pet>_1..5.png (ciccio, porcellino), growth_porcellino_1..5.png, *_original sheets (live growth)
-│   ├── giardino/                 fiori/compagni/arredi_original.png sheets, prato_original.png, 36 object PNGs, prato.png, erba_original.png and sentiero_original.png (terrain sheets), tessera_erba_1..12.png and tessera_sentiero_1..8.png (diamond tiles), dettagli_original.png and dettaglio_1..24.png (the scattered details)
+│   ├── giardino/                 fiori/compagni/arredi_original.png sheets, prato_original.png, 36 object PNGs, prato.png, erba_original.png and sentiero_original.png (terrain sheets), tessera_erba_1..12.png and tessera_sentiero_1..8.png (diamond tiles), bordo_original.png and bordo_1..3.png (earth edge strips), dettagli_original.png and dettaglio_1..24.png (the scattered details)
 │   ├── album/                    copertina(.png/_original.png), doppia_pagina(.png/_original.png), guida_doppia_pagina_original.png (layout guide given to the image generator)
 │   └── music/                    5 AAC (.m4a) tracks: boredom, love, night-driving, old-age, opinions
 ├── docs/images/                  PNG screenshots/logo used only by README.md (sample data); giardino.png and album.png are the garden and the album, da-fare.png the to-do page
@@ -523,6 +524,12 @@ code. All UI code runs on the main thread; the only other thread is the audio re
   so growing the island keeps what was there. `GardenDrops.mixedHash` (the FNV-1a hash plus a MurmurHash3 finaliser) is used so that near texts give unrelated
   numbers. In autumn the tiles are multiplied by a warm colour; in winter, until there is a drawn snow sheet, the code-drawn white tiles are used; if any
   image of a set (grass or path) is missing, that set falls back to the code-drawn version.
+- **Earth edge** (`GardenTerrain.edgeSequence(face:count:)`, `drawEdgeStrip`): the island's two visible sides are the three strips `bordo_<n>.png`
+  (made by `tools/cutout_bordo.py` from a sheet of strips on white: the white connected to the border is removed, the strips are scaled to the same size —
+  24 px of grass above the line where the soil starts, 110 px of soil — and the ends fade out over 30 px). They are drawn **after** the tiles, along each
+  edge with a shear (`slope ±½`) clipped to the face, one after the other overlapping by the fade width, each different from the previous one and mirrored
+  every other time; the right face uses pre-darkened copies. The height is `Iso.edge` = 26 % of a tile width (so zoom keeps the proportions), while
+  `Iso.thickness` stays the fixed room reserved below the island in the layout. Without the images the plain brown sides are drawn.
 - **Decals** (`GardenTerrain.decals(col:row:season:onPath:)`, pure): the 24 details of `dettaglio_<n>.png` (`DecalGroup`: tufts 1–4, clover 5–6, flowers 7–10,
   stones 11–13, leaves 14–17, petals 18–20, snow 21–24) are scattered by a table of rules per season (chance, at most N, a size in tile widths) and per
   kind of tile (the path gets only stones and what falls in the season). Position `(u, v)` inside the tile, image, size and mirroring come from
@@ -610,7 +617,7 @@ code. All UI code runs on the main thread; the only other thread is the audio re
     music (`music_*`), garden/growth art, Pianty stage frames → write `Info.plist` via heredoc →
     `codesign --force --sign -` (a failure prints an error and exits 1) → print the path.
   - `tests/run.sh`: `swiftc -O -o build/tests/stats` on fourteen source files + `tests/main.swift` →
-    `build/tests/stats` (prints `• <section>` lines and `N controlli, M falliti`, exit code 0/1; 670 checks now).
+    `build/tests/stats` (prints `• <section>` lines and `N controlli, M falliti`, exit code 0/1; 674 checks now).
   - Tools: described in §5.9; they read `assets/**/*_original.png` / sheets and write processed PNGs or the icon.
 
 ### 3.22 To-do list ("Da fare")
@@ -1287,7 +1294,7 @@ file/UserDefaults writes, windows, timers, sound, global state.
 ### 5.9 Tests, build and tools
 
 #### `tests/main.swift` (1,056) and `tests/run.sh` (7)
-- A single executable: `check(_:_:line:)`, `section(_:)`, 41 sections (670 checks) covering subjects, log persistence,
+- A single executable: `check(_:_:line:)`, `section(_:)`, 42 sections (674 checks) covering subjects, log persistence,
   in-progress recovery, periods, summaries, streaks, texts, garden rules, format versions/migration, subject merging, backups and
   delete-all, time zones, profile, ratings/notes/insights/CSV, timer dial math, seasons, ambient settings, music
   library/settings, focus notes, paused-time recovery, companion rewards (including the developer flag), break cycle,
@@ -1779,7 +1786,7 @@ code is clear. Items without a mark still describe the current code.
 
 ### 7.8 Test coverage as it exists
 
-- Covered (41 sections, 670 checks in `tests/main.swift`): everything in the Foundation-only files listed in §4.1,
+- Covered (42 sections, 674 checks in `tests/main.swift`): everything in the Foundation-only files listed in §4.1,
   including the new damaged-data cases and the developer flag.
 - Not covered by any automated test in the repository: `Pomodoro` (timer, pause, grace, the sleep-gap rule, cycle
   wiring), `Speaker` (including when a to-do reminder replaces a phrase), `Walker`, `PetWindow`/`PetView`, `MenuController`,
