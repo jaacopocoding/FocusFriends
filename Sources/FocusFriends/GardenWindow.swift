@@ -954,6 +954,14 @@ final class GardenView: NSView, NSViewToolTipOwner {
         return images.count == GardenTerrain.pathCount ? images : nil
     }()
 
+    /// I ventiquattro dettagli da spargere (ciuffi, fiori, sassi, foglie, petali, neve).
+    private static var decalImages: [NSImage]? = {
+        let images = (1...GardenTerrain.decalCount).compactMap { index in
+            Bundle.main.url(forResource: "giardino_dettaglio_\(index)", withExtension: "png").flatMap { NSImage(contentsOf: $0) }
+        }
+        return images.count == GardenTerrain.decalCount ? images : nil
+    }()
+
     private static var grassGrids: [Int: [Int]] = [:]
 
     /// Disegna il terreno (ombra, lati, tessere); `carrying`: la griglia si vede di più mentre si trascina.
@@ -1035,6 +1043,36 @@ final class GardenView: NSView, NSViewToolTipOwner {
                         blade.stroke()
                     }
                 }
+            }
+        }
+        // i dettagli sparsi sul terreno (dal fondo al davanti)
+        if let decals = Self.decalImages {
+            var placed: [(depth: Double, tile: GardenTile, decal: GardenTerrain.Decal)] = []
+            for row in 0..<iso.size {
+                for col in 0..<iso.size {
+                    let tile = GardenTile(col: col, row: row)
+                    for decal in GardenTerrain.decals(col: col, row: row, season: season, onPath: GardenIsland.isPath(tile)) {
+                        placed.append((Double(col + row) + decal.u + decal.v, tile, decal))
+                    }
+                }
+            }
+            placed.sort { $0.depth < $1.depth }
+            for entry in placed {
+                let image = decals[entry.decal.image]
+                let point = iso.point(col: Double(entry.tile.col) + entry.decal.u, row: Double(entry.tile.row) + entry.decal.v)
+                let width = CGFloat(entry.decal.size) * iso.tileW
+                let height = width * image.size.height / image.size.width
+                let rect = NSRect(x: point.x - width / 2, y: point.y - height * CGFloat(entry.decal.anchor), width: width, height: height)
+                NSGraphicsContext.saveGraphicsState()
+                if entry.decal.flipped {
+                    let flip = NSAffineTransform()
+                    flip.translateX(by: rect.midX, yBy: 0)
+                    flip.scaleX(by: -1, yBy: 1)
+                    flip.translateX(by: -rect.midX, yBy: 0)
+                    flip.concat()
+                }
+                image.draw(in: rect, from: .zero, operation: .sourceOver, fraction: 1, respectFlipped: true, hints: [.interpolation: NSImageInterpolation.high])
+                NSGraphicsContext.restoreGraphicsState()
             }
         }
     }

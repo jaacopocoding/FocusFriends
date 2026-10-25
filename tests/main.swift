@@ -1223,6 +1223,39 @@ var gridsAboveEqual = 0, gridsPairs = 0
 for r in 1..<40 { for c in 0..<40 { gridsPairs += 1; if grassGrid[r * 40 + c] == grassGrid[(r - 1) * 40 + c] { gridsAboveEqual += 1 } } }
 check(Double(gridsAboveEqual) / Double(gridsPairs) < 0.2, "e le chiazze non si impilano sempre uguali (\(gridsAboveEqual) su \(gridsPairs))")
 
+// ---------------------------------------------------------------- giardino: i dettagli sul terreno
+section("Giardino: i dettagli sul terreno")
+check((1...GardenTerrain.decalCount).allSatisfy { FileManager.default.fileExists(atPath: "assets/giardino/dettaglio_\($0).png") }, "i 24 dettagli ci sono in assets/giardino")
+check(GardenTerrain.DecalGroup.allCases.flatMap { Array($0.images) }.sorted() == Array(0..<GardenTerrain.decalCount), "i gruppi coprono i 24 dettagli, ognuno una volta")
+let decalTiles = (0..<10).flatMap { c in (0..<10).map { GardenTile(col: c, row: $0) } }
+for season in Season.allCases {
+    var counts: [GardenTerrain.DecalGroup: Int] = [:], total = 0, inside = true, determinist = true
+    for tile in decalTiles {
+        let onPath = GardenIsland.isPath(tile)
+        let decals = GardenTerrain.decals(col: tile.col, row: tile.row, season: season, onPath: onPath)
+        determinist = determinist && decals == GardenTerrain.decals(col: tile.col, row: tile.row, season: season, onPath: onPath)
+        for decal in decals {
+            counts[decal.group, default: 0] += 1
+            total += 1
+            if !(0.14...0.86).contains(decal.u) || !(0.14...0.86).contains(decal.v) || !decal.group.images.contains(decal.image) || decal.size <= 0.09 || decal.size >= 0.43 { inside = false }
+        }
+    }
+    check(inside && determinist, "\(season.title): i dettagli stanno dentro la tessera, scelti nel loro gruppo, sempre gli stessi")
+    check(total >= 40 && total <= 220, "\(season.title): in media fra mezzo e due dettagli per tessera (\(total) su 100)")
+    switch season {
+    case .spring: check(counts[.flowers, default: 0] > 15 && counts[.petals, default: 0] > 0 && counts[.leaves] == nil && counts[.snow] == nil, "primavera: fiori e petali, niente foglie né neve")
+    case .summer: check(counts[.flowers, default: 0] > 15 && counts[.tufts, default: 0] > 20 && counts[.leaves] == nil && counts[.snow] == nil && counts[.petals] == nil, "estate: fiori e ciuffi")
+    case .autumn: check(counts[.leaves, default: 0] > 40 && counts[.flowers] == nil && counts[.snow] == nil, "autunno: tante foglie, niente fiori")
+    case .winter: check(counts[.snow, default: 0] > 20 && counts[.flowers] == nil && counts[.leaves] == nil, "inverno: neve, niente fiori né foglie")
+    }
+}
+let pathDecals = decalTiles.filter { GardenIsland.isPath($0) }.flatMap { GardenTerrain.decals(col: $0.col, row: $0.row, season: .summer, onPath: true) }
+check(pathDecals.allSatisfy { $0.group == .stones }, "sul sentiero d'estate al massimo qualche sasso")
+check(Set(decalTiles.flatMap { GardenTerrain.decals(col: $0.col, row: $0.row, season: .summer, onPath: false).map { $0.image } }).count >= 10, "escono immagini diverse")
+check(GardenTerrain.decals(col: 3, row: 3, season: .summer, onPath: false) == GardenTerrain.decals(col: 3, row: 3, season: .summer, onPath: false)
+      && GardenTerrain.decals(col: 3, row: 3, season: .summer, onPath: false) != GardenTerrain.decals(col: 4, row: 3, season: .summer, onPath: false)
+      || GardenTerrain.decals(col: 3, row: 3, season: .summer, onPath: false).isEmpty, "ogni tessera ha i suoi")
+
 // ---------------------------------------------------------------- da fare
 section("Da fare: giorni e testi")
 check(ToDoDay.isValid("2026-10-23") && ToDoDay.isValid("2028-02-29"), "giorni che esistono")

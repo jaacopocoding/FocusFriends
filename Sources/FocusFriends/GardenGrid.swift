@@ -235,5 +235,105 @@ enum GardenTerrain {
         }
         return grid
     }
+
+    // MARK: - I dettagli sparsi sul terreno
+
+    static let decalCount = 24
+
+    /// Quali dei 24 dettagli (assets/giardino/dettaglio_<n>.png, da `tools/cutout_dettagli.py`) sono ciuffi, trifogli, fiori, sassi, foglie, petali e neve.
+    enum DecalGroup: Int, CaseIterable {
+        case tufts, clover, flowers, stones, leaves, petals, snow
+
+        /// Gli indici (da 0) delle immagini di questo gruppo.
+        var images: Range<Int> {
+            switch self {
+            case .tufts: return 0..<4
+            case .clover: return 4..<6
+            case .flowers: return 6..<10
+            case .stones: return 10..<13
+            case .leaves: return 13..<17
+            case .petals: return 17..<20
+            case .snow: return 20..<24
+            }
+        }
+
+        /// Dove poggia sul terreno: 0 = il centro dell'immagine sta sul punto, 1 = il bordo in basso.
+        var anchor: Double {
+            switch self {
+            case .tufts, .clover, .flowers: return 0.9
+            case .stones: return 0.75
+            case .snow: return 0.7
+            case .leaves, .petals: return 0.5
+            }
+        }
+    }
+
+    /// Un dettaglio su una tessera: quale immagine, dove (`u` e `v` da 0 a 1 dentro la tessera, come per le colonne e le righe), quanto largo (in
+    /// larghezze di tessera), e se è specchiato.
+    struct Decal: Equatable {
+        var image: Int
+        var group: DecalGroup
+        var u: Double
+        var v: Double
+        var size: Double
+        var flipped: Bool
+
+        var anchor: Double { group.anchor }
+    }
+
+    private struct DecalRule {
+        var group: DecalGroup
+        /// La probabilità di ogni dettaglio, e quanti al massimo.
+        var chance: Double
+        var maxCount: Int
+        var size: ClosedRange<Double>
+    }
+
+    private static func decalRules(season: Season, onPath: Bool) -> [DecalRule] {
+        if onPath {
+            // Sul sentiero quasi niente: qualche sasso e quello che cade con la stagione.
+            switch season {
+            case .spring: return [DecalRule(group: .stones, chance: 0.08, maxCount: 1, size: 0.10...0.14), DecalRule(group: .petals, chance: 0.18, maxCount: 1, size: 0.14...0.18)]
+            case .summer: return [DecalRule(group: .stones, chance: 0.10, maxCount: 1, size: 0.10...0.14)]
+            case .autumn: return [DecalRule(group: .leaves, chance: 0.45, maxCount: 2, size: 0.13...0.17), DecalRule(group: .stones, chance: 0.06, maxCount: 1, size: 0.10...0.14)]
+            case .winter: return [DecalRule(group: .snow, chance: 0.30, maxCount: 1, size: 0.26...0.36)]
+            }
+        }
+        switch season {
+        case .spring:
+            return [DecalRule(group: .tufts, chance: 0.40, maxCount: 1, size: 0.28...0.40), DecalRule(group: .clover, chance: 0.10, maxCount: 1, size: 0.26...0.34),
+                    DecalRule(group: .flowers, chance: 0.30, maxCount: 2, size: 0.10...0.13), DecalRule(group: .stones, chance: 0.06, maxCount: 1, size: 0.14...0.20),
+                    DecalRule(group: .petals, chance: 0.12, maxCount: 1, size: 0.14...0.18)]
+        case .summer:
+            return [DecalRule(group: .tufts, chance: 0.40, maxCount: 1, size: 0.28...0.40), DecalRule(group: .clover, chance: 0.10, maxCount: 1, size: 0.26...0.34),
+                    DecalRule(group: .flowers, chance: 0.28, maxCount: 2, size: 0.10...0.13), DecalRule(group: .stones, chance: 0.06, maxCount: 1, size: 0.14...0.20)]
+        case .autumn:
+            return [DecalRule(group: .tufts, chance: 0.18, maxCount: 1, size: 0.28...0.40), DecalRule(group: .stones, chance: 0.08, maxCount: 1, size: 0.14...0.20),
+                    DecalRule(group: .leaves, chance: 0.60, maxCount: 2, size: 0.13...0.17), DecalRule(group: .clover, chance: 0.04, maxCount: 1, size: 0.26...0.34)]
+        case .winter:
+            return [DecalRule(group: .snow, chance: 0.35, maxCount: 1, size: 0.30...0.42), DecalRule(group: .stones, chance: 0.06, maxCount: 1, size: 0.14...0.20),
+                    DecalRule(group: .tufts, chance: 0.06, maxCount: 1, size: 0.26...0.34)]
+        }
+    }
+
+    private static func decalUnit(_ col: Int, _ row: Int, _ group: DecalGroup, _ index: Int, _ salt: Int) -> Double {
+        Double(GardenDrops.mixedHash("dettaglio-\(col),\(row),\(group.rawValue),\(index),\(salt)")) / 4_294_967_296
+    }
+
+    /// I dettagli sulla tessera (col, row): sempre gli stessi per la stessa tessera, stagione e tipo di tessera (sentiero o no).
+    static func decals(col: Int, row: Int, season: Season, onPath: Bool) -> [Decal] {
+        var result: [Decal] = []
+        for rule in decalRules(season: season, onPath: onPath) {
+            for index in 0..<rule.maxCount where decalUnit(col, row, rule.group, index, 0) < rule.chance {
+                let images = rule.group.images
+                let image = images.lowerBound + min(Int(decalUnit(col, row, rule.group, index, 1) * Double(images.count)), images.count - 1)
+                result.append(Decal(image: image, group: rule.group, u: 0.14 + decalUnit(col, row, rule.group, index, 2) * 0.72,
+                                    v: 0.14 + decalUnit(col, row, rule.group, index, 3) * 0.72,
+                                    size: rule.size.lowerBound + decalUnit(col, row, rule.group, index, 4) * (rule.size.upperBound - rule.size.lowerBound),
+                                    flipped: decalUnit(col, row, rule.group, index, 5) < 0.5))
+            }
+        }
+        return result
+    }
 }
 
