@@ -1,13 +1,14 @@
 import Foundation
 
-/// Il giardino di chi usa l'app: l'album delle figurine trovate (quante copie di ogni oggetto), quante ne ha messe nel prato e dove,
-/// dove stanno i compagni. Sta in `giardino.json` accanto ai dati (e "Cancella tutto…" lo toglie con il resto).
-/// Le figurine arrivano a fine focus (GardenDrops): si trovano, non si comprano. Una copia si può mettere nel prato, spostare e togliere
-/// (torna nell'album); il numero di copie nel prato non supera quello delle copie trovate.
+/// Il giardino di chi usa l'app: l'album delle figurine trovate (quante copie di ogni oggetto), quante ne ha messe sull'isola e su quale
+/// tessera, dove stanno i compagni. Sta in `giardino.json` accanto ai dati (e "Cancella tutto…" lo toglie con il resto).
+/// Le figurine arrivano a fine focus (GardenDrops): si trovano, non si comprano. Una copia si può mettere sull'isola, spostare, girare e
+/// togliere (torna tra quelle da mettere); il numero di copie sull'isola non supera quello delle copie trovate. Le regole di dove ci
+/// stanno le cose sono in GardenGrid.swift.
 /// Solo Foundation: si collauda da solo (tests/main.swift).
 final class Garden {
-    /// 2: l'album e i regali (la versione 1 aveva i punti spesi e gli oggetti sbloccati: si porta a 2 al primo salvataggio).
-    static let formatVersion = 2
+    /// 3: l'isola a tessere (la 2 aveva l'album e il prato libero, la 1 i punti spesi e gli oggetti sbloccati: si portano a 3 al primo salvataggio).
+    static let formatVersion = 3
     /// Un tetto di sicurezza alle copie nel prato (un file a mano non deve poter riempire la memoria).
     static let maxPlacements = 150
 
@@ -27,7 +28,7 @@ final class Garden {
         var pendingGifts: Int?
         var legacySpent: Int?
         var placements: [GardenPlacement]
-        var companions: [String: GardenSpot]
+        var companions: [String: GardenCompanionPlace]
     }
 
     private let file: URL
@@ -44,14 +45,14 @@ final class Garden {
     private var legacySpent: Int?
     /// Le copie messe nel prato, dalla prima all'ultima.
     private(set) var placements: [GardenPlacement] = []
-    /// Dove l'utente ha messo i compagni; chi non c'è sta dove dice `GardenScene.defaultCompanionSpot`.
-    private(set) var companionSpots: [String: GardenSpot] = [:]
+    /// Dove l'utente ha messo i compagni; chi non c'è sta dove dice `GardenLayout.defaultCompanionTile`.
+    private(set) var companionTiles: [String: GardenTile] = [:]
     private var observers: [() -> Void] = []
     /// Il file c'è ma non si legge (o è di una versione più nuova, o non si riesce a metterlo da parte): non lo
     /// sovrascrivo. Le modifiche valgono finché l'app resta aperta.
     private var isReadOnly = false
-    /// Il file letto era della versione 1: prima di riscriverlo se ne tiene una copia.
-    private var needsLegacyBackup = false
+    /// Il file letto era di una versione vecchia: prima di riscriverlo se ne tiene una copia con questo nome.
+    private var legacyBackupName: String?
 
     /// Chiamata quando qualcosa non va con il file: il testo è per chi usa l'app. I problemi che nascono in `init`
     /// arrivano appena ci si registra.
@@ -87,15 +88,18 @@ final class Garden {
                 isReadOnly = true
                 report("Il giardino è di una versione più nuova di questa app: lo leggo ma non lo modifico.")
             }
-            placements = contents.placements.prefix(Self.maxPlacements).map { placement in
-                var fixed = placement
-                fixed.spot = GardenScene.clamped(placement.spot)
-                return fixed
+            placements = Array(contents.placements.prefix(Self.maxPlacements))
+            var legacyCompanions: [String: GardenSpot] = [:]
+            for (petID, place) in contents.companions {
+                if let col = place.col, let row = place.row {
+                    companionTiles[petID] = GardenTile(col: col, row: row)
+                } else if let x = place.x, let y = place.y {
+                    legacyCompanions[petID] = GardenSpot(x: x, y: y)
+                }
             }
-            companionSpots = contents.companions.mapValues { GardenScene.clamped($0) }
             if contents.version >= 2, let saved = contents.drops {
                 drops = saved
-                // Mai meno copie trovate di quante ne stanno nel prato.
+                // Mai meno copie trovate di quante ne stanno sull'isola.
                 for (item, count) in Dictionary(grouping: placements, by: { $0.item }).mapValues({ $0.count }) where (drops.found[item] ?? 0) < count {
                     drops.found[item] = count
                 }
@@ -111,8 +115,9 @@ final class Garden {
                     drops.found[item] = max(drops.found[item] ?? 0, count)
                 }
                 legacySpent = max(contents.spent ?? 0, 0)
-                needsLegacyBackup = true
             }
+            if contents.version < Self.formatVersion { legacyBackupName = "giardino-formato\(max(contents.version, 1)).json" }
+            settle(legacyCompanions: legacyCompanions)
         } else {
             // Rovinato: lo metto da parte invece di sovrascriverlo alla prossima modifica.
             let aside = directory.appendingPathComponent("giardino.corrotto-\(Int(Date().timeIntervalSince1970)).json")
@@ -127,19 +132,48 @@ final class Garden {
         }
     }
 
-    /// Un giardino nuovo: l'album parte con gli oggetti della dotazione, già nel prato.
+    /// Un giardino nuovo: l'album parte con gli oggetti della dotazione, già sull'isola.
     private func startFresh() {
         drops = GardenDropState.starting()
         lastRolled = nil
         unseen = []
         pendingGifts = 0
         legacySpent = nil
-        companionSpots = [:]
+        companionTiles = [:]
         placements = []
-        for (index, item) in GardenCatalog.items.filter({ $0.isStarter }).enumerated() {
-            var made = GardenPlacement(id: UUID(), item: item.id, x: 0, y: 0)
-            made.spot = GardenScene.clamped(GardenScene.defaultPlacementSpot(salt: index * 4 + 1))
-            placements.append(made)
+        for item in GardenCatalog.items.filter({ $0.isStarter }) {
+            guard let origin = GardenLayout.starterOrigins[item.id] else { continue }
+            placements.append(GardenPlacement(item: item.id, tile: origin))
+        }
+    }
+
+    /// Dopo aver letto un file: le posizioni del prato libero (versioni 1 e 2) diventano tessere, e quello che non ci sta (fuori
+    /// dall'isola, sul sentiero, sopra un'altra cosa) torna tra le copie da mettere.
+    private func settle(legacyCompanions: [String: GardenSpot]) {
+        let size = islandSize
+        var occupied: Set<GardenTile> = []
+        var settled: [GardenPlacement] = []
+        for var placement in placements {
+            guard let item = GardenCatalog.item(withID: placement.item) else {
+                settled.append(placement)
+                continue
+            }
+            let footprint = item.footprint.applying(turned: placement.turned)
+            if let spot = placement.legacy {
+                placement.legacy = nil
+                let desired = GardenLayout.tile(fromLegacy: spot, size: size)
+                guard let origin = GardenLayout.nearestOrigin(to: desired, footprint: footprint, size: size, occupied: occupied) else { continue }
+                placement.tile = origin
+            } else if !GardenLayout.canPlace(footprint, at: placement.tile, size: GardenIsland.maxSize, occupied: occupied) {
+                continue
+            }
+            occupied.formUnion(GardenLayout.tiles(of: footprint, at: placement.tile))
+            settled.append(placement)
+        }
+        placements = settled
+        for (petID, spot) in legacyCompanions {
+            let desired = GardenLayout.tile(fromLegacy: spot, size: size)
+            companionTiles[petID] = GardenLayout.nearestWalkable(to: desired, size: size, occupied: occupied) ?? desired
         }
     }
 
@@ -228,33 +262,80 @@ final class Garden {
         return opened
     }
 
-    /// Mette una copia appena trovata in un punto del prato scelto dal numero (sempre lo stesso per lo stesso regalo).
+    /// Mette una copia appena trovata su una tessera libera scelta dal numero (sempre la stessa per lo stesso regalo). Se non c'è posto
+    /// resta tra le copie da mettere.
     private func autoPlace(_ id: String, salt: String) {
-        guard placements.count < Self.maxPlacements, available(id) > 0 else { return }
+        guard placements.count < Self.maxPlacements, available(id) > 0, let item = GardenCatalog.item(withID: id) else { return }
+        let origins = GardenLayout.freeOrigins(for: item.footprint, size: islandSize, occupied: GardenLayout.occupiedTiles(placements))
+        guard !origins.isEmpty else { return }
         var stream = GardenDrops.Stream(seed: GardenDrops.hash("posto-" + salt.uppercased()))
-        let spot = GardenSpot(x: 0.10 + 0.80 * stream.next(), y: 0.60 + 0.35 * stream.next())
-        var made = GardenPlacement(id: UUID(), item: id, x: 0, y: 0)
-        made.spot = GardenScene.clamped(spot)
-        placements.append(made)
+        placements.append(GardenPlacement(item: id, tile: origins[min(Int(stream.next() * Double(origins.count)), origins.count - 1)]))
     }
 
-    // MARK: - Le copie nel prato
+    // MARK: - L'isola e le copie
 
-    /// Mette una copia dell'oggetto (se ce n'è una da mettere). Ritorna la copia, o nil se non si può.
+    /// Quante tessere per lato: 8, e una in più per ogni doppia pagina dell'album completata, fino a 10 (e mai meno di quanto serve
+    /// a quello che c'è già sopra).
+    var islandSize: Int {
+        let completed = GardenAlbum.completedSpreads(isFound: { isFound($0) })
+        var size = GardenIsland.size(completedSpreads: completed)
+        for placement in placements {
+            guard let item = GardenCatalog.item(withID: placement.item) else { continue }
+            let footprint = item.footprint.applying(turned: placement.turned)
+            size = max(size, placement.col + footprint.cols, placement.row + footprint.rows)
+        }
+        return min(size, GardenIsland.maxSize)
+    }
+
+    /// Le tessere coperte dalle copie (senza contare `ignoring`, quella che si sta spostando).
+    func occupiedTiles(ignoring: UUID? = nil) -> Set<GardenTile> {
+        GardenLayout.occupiedTiles(placements, skipping: ignoring)
+    }
+
+    /// Ci sta una copia di `id` con l'angolo in fondo su `tile`?
+    func canPlace(_ id: String, at tile: GardenTile, turned: Bool = false, ignoring: UUID? = nil) -> Bool {
+        guard let item = GardenCatalog.item(withID: id) else { return false }
+        return GardenLayout.canPlace(item.footprint.applying(turned: turned), at: tile, size: islandSize, occupied: occupiedTiles(ignoring: ignoring))
+    }
+
+    /// Mette una copia dell'oggetto (se ce n'è una da mettere e ci sta). Ritorna la copia, o nil se non si può.
     @discardableResult
-    func place(_ id: String, at spot: GardenSpot) -> GardenPlacement? {
-        guard isFound(id), available(id) > 0 || Profile.isDeveloper, placements.count < Self.maxPlacements else { return nil }
-        var made = GardenPlacement(id: UUID(), item: id, x: 0, y: 0)
-        made.spot = GardenScene.clamped(spot)
+    func place(_ id: String, at tile: GardenTile, turned: Bool = false) -> GardenPlacement? {
+        guard isFound(id), available(id) > 0 || Profile.isDeveloper, placements.count < Self.maxPlacements,
+              canPlace(id, at: tile, turned: turned) else { return nil }
+        let made = GardenPlacement(item: id, tile: tile, turned: turned)
         placements.append(made)
         save()
         return made
     }
 
-    func move(_ placementID: UUID, to spot: GardenSpot) {
-        guard let index = placements.firstIndex(where: { $0.id == placementID }) else { return }
-        placements[index].spot = GardenScene.clamped(spot)
+    /// Mette una copia su una tessera libera qualunque (un tocco sulla cassetta): sempre la stessa per lo stesso numero di copie.
+    @discardableResult
+    func placeSomewhere(_ id: String) -> GardenPlacement? {
+        guard let item = GardenCatalog.item(withID: id) else { return nil }
+        let origins = GardenLayout.freeOrigins(for: item.footprint, size: islandSize, occupied: occupiedTiles())
+        guard !origins.isEmpty else { return nil }
+        var stream = GardenDrops.Stream(seed: GardenDrops.hash("tocco-\(placements.count)-" + id))
+        return place(id, at: origins[min(Int(stream.next() * Double(origins.count)), origins.count - 1)])
+    }
+
+    /// Sposta una copia (e la gira, se `turned` c'è). Ritorna false se lì non ci sta: resta dov'era.
+    @discardableResult
+    func move(_ placementID: UUID, to tile: GardenTile, turned: Bool? = nil) -> Bool {
+        guard let index = placements.firstIndex(where: { $0.id == placementID }) else { return false }
+        let newTurned = turned ?? placements[index].turned
+        guard canPlace(placements[index].item, at: tile, turned: newTurned, ignoring: placementID) else { return false }
+        placements[index].tile = tile
+        placements[index].turned = newTurned
         save()
+        return true
+    }
+
+    /// Gira una copia di un quarto, se così ci sta ancora.
+    @discardableResult
+    func rotate(_ placementID: UUID) -> Bool {
+        guard let placement = placements.first(where: { $0.id == placementID }) else { return false }
+        return move(placementID, to: placement.tile, turned: !placement.turned)
     }
 
     func remove(_ placementID: UUID) {
@@ -269,14 +350,15 @@ final class Garden {
 
     // MARK: - I compagni
 
-    /// Dove sta un compagno: dove l'ha messo l'utente, o il suo posto di partenza (`index` è la sua posizione
+    /// Dove sta un compagno: dove l'ha messo l'utente, o il suo posto di partenza sul sentiero (`index` è la sua posizione
     /// nell'elenco dei compagni).
-    func companionSpot(_ petID: String, index: Int) -> GardenSpot {
-        companionSpots[petID] ?? GardenScene.defaultCompanionSpot(index: index)
+    func companionTile(_ petID: String, index: Int) -> GardenTile {
+        companionTiles[petID] ?? GardenLayout.defaultCompanionTile(index: index)
     }
 
-    func setCompanionSpot(_ petID: String, to spot: GardenSpot) {
-        companionSpots[petID] = GardenScene.clamped(spot)
+    func setCompanionTile(_ petID: String, to tile: GardenTile) {
+        guard GardenIsland.contains(tile, size: islandSize) else { return }
+        companionTiles[petID] = tile
         save()
     }
 
@@ -287,21 +369,22 @@ final class Garden {
         startFresh()
         try? FileManager.default.removeItem(at: file)
         isReadOnly = false      // "Cancella tutto" è una scelta esplicita: da qui si riparte
-        needsLegacyBackup = false
+        legacyBackupName = nil
         observers.forEach { $0() }
     }
 
     private func save() {
         if !isReadOnly {
-            if needsLegacyBackup {
-                needsLegacyBackup = false
-                // Il file della versione 1 si tiene com'era, prima di riscriverlo nella 2.
-                let backup = directory.appendingPathComponent("giardino-formato1.json")
+            if let name = legacyBackupName {
+                legacyBackupName = nil
+                // Il file di una versione vecchia si tiene com'era, prima di riscriverlo nella 3.
+                let backup = directory.appendingPathComponent(name)
                 if !FileManager.default.fileExists(atPath: backup.path) { try? FileManager.default.copyItem(at: file, to: backup) }
             }
             let contents = Contents(version: Self.formatVersion, unlocked: nil, spent: nil, drops: drops, lastRolled: lastRolled,
                                     unseen: unseen.sorted(), pendingGifts: pendingGifts, legacySpent: legacySpent,
-                                    placements: placements, companions: companionSpots)
+                                    placements: placements,
+                                    companions: companionTiles.mapValues { GardenCompanionPlace(col: $0.col, row: $0.row, x: nil, y: nil) })
             let encoder = JSONEncoder()
             encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
             do {

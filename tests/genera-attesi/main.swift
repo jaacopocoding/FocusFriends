@@ -277,7 +277,7 @@ for entry in try fm.contentsOfDirectory(atPath: fixtures.path).sorted() {
     }
     _ = profile
 
-    // ---- giardino (versione 2: l'album; un file della versione 1 si porta avanti, e i punti non spesi diventano regali)
+    // ---- giardino (versione 3: l'album e l'isola a tessere; un file della versione 1 o 2 si porta avanti, e i punti non spesi diventano regali)
     if has("giardino.json") {
         // Su una copia: il giardino della versione 1 si riscrive (e tiene da parte l'originale), e i file dopo non devono cambiare.
         let gardenTmp = fm.temporaryDirectory.appendingPathComponent("ff-attesi-giardino-\(UUID().uuidString)")
@@ -296,8 +296,9 @@ for entry in try fm.contentsOfDirectory(atPath: fixtures.path).sorted() {
             "trovati": g.drops.found, "regaliAperti": pending, "regaliTrovati": opened.map { $0.item },
             "contatori": ["niente": g.drops.nothingInARow, "dalRaro": g.drops.sinceRare, "dalLeggendario": g.drops.sinceLegendary],
             "avvisi": problems,
-            "copie": g.placements.map { ["oggetto": $0.item, "x": r($0.x), "y": r($0.y)] as [String: Any] },
-            "compagni": g.companionSpots.mapValues { ["x": r($0.x), "y": r($0.y)] },
+            "isola": g.islandSize,
+            "copie": g.placements.map { ["oggetto": $0.item, "col": $0.col, "row": $0.row, "girata": $0.turned] as [String: Any] },
+            "compagni": g.companionTiles.mapValues { ["col": $0.col, "row": $0.row] },
             "oggettiUsabili": GardenCatalog.items.filter { g.isFound($0.id) }.map { $0.id },
         ]
         part["daMettere"] = GardenCatalog.items.reduce(into: [String: Int]()) { if g.available($1.id) > 0 { $0[$1.id] = g.available($1.id) } }

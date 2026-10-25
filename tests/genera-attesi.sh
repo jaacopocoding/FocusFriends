@@ -7,6 +7,6 @@ mkdir -p build/fixtures
 swiftc -O -o build/fixtures/genera-attesi \
     Sources/FocusFriends/SessionLog.swift Sources/FocusFriends/Profile.swift Sources/FocusFriends/GardenCatalog.swift \
     Sources/FocusFriends/Garden.swift Sources/FocusFriends/GardenPoints.swift Sources/FocusFriends/CompanionRewards.swift \
-    Sources/FocusFriends/ToDo.swift Sources/FocusFriends/Remarks.swift Sources/FocusFriends/YearStats.swift Sources/FocusFriends/GardenDrops.swift \
+    Sources/FocusFriends/ToDo.swift Sources/FocusFriends/Remarks.swift Sources/FocusFriends/YearStats.swift Sources/FocusFriends/GardenDrops.swift Sources/FocusFriends/GardenGrid.swift \
     tests/genera-attesi/main.swift
 build/fixtures/genera-attesi tests/fixtures tests/fixtures/attesi

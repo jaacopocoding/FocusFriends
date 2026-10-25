@@ -621,8 +621,8 @@
     ],
     "compagni" : {
       "gattino" : {
-        "x" : 0.55000000000000004,
-        "y" : 0.94999999999999996
+        "col" : 7,
+        "row" : 6
       }
     },
     "contatori" : {
@@ -632,54 +632,64 @@
     },
     "copie" : [
       {
+        "col" : 2,
+        "girata" : false,
         "oggetto" : "margherite",
-        "x" : 0.40999999999999998,
-        "y" : 0.71999999999999997
+        "row" : 2
       },
       {
+        "col" : 0,
+        "girata" : false,
         "oggetto" : "lavanda",
-        "x" : 0.20000000000000001,
-        "y" : 0.65000000000000002
+        "row" : 4
       },
       {
+        "col" : 4,
+        "girata" : false,
         "oggetto" : "panchina",
-        "x" : 0.96999999999999997,
-        "y" : 0.56000000000000005
+        "row" : 0
       },
       {
+        "col" : 1,
+        "girata" : false,
         "oggetto" : "casetta-porcellino",
-        "x" : 0.64800000000000002,
-        "y" : 0.93899999999999995
+        "row" : 5
       },
       {
+        "col" : 1,
+        "girata" : false,
         "oggetto" : "tiragraffi",
-        "x" : 0.78700000000000003,
-        "y" : 0.75900000000000001
+        "row" : 7
       },
       {
+        "col" : 3,
+        "girata" : false,
         "oggetto" : "cesto-cuscino",
-        "x" : 0.27200000000000002,
-        "y" : 0.63700000000000001
+        "row" : 1
       },
       {
+        "col" : 1,
+        "girata" : false,
         "oggetto" : "lampione",
-        "x" : 0.23999999999999999,
-        "y" : 0.751
+        "row" : 1
       },
       {
+        "col" : 4,
+        "girata" : false,
         "oggetto" : "erbe",
-        "x" : 0.26000000000000001,
-        "y" : 0.82799999999999996
+        "row" : 1
       },
       {
+        "col" : 3,
+        "girata" : false,
         "oggetto" : "bandierine",
-        "x" : 0.80700000000000005,
-        "y" : 0.80800000000000005
+        "row" : 7
       },
       {
+        "col" : 4,
+        "girata" : false,
         "oggetto" : "cancelletto",
-        "x" : 0.5,
-        "y" : 0.66000000000000003
+        "row" : 3
       }
     ],
     "daMettere" : {
@@ -688,6 +698,7 @@
       "trifoglio" : 1,
       "tulipani" : 1
     },
+    "isola" : 8,
     "oggettiUsabili" : [
       "margherite",
       "trifoglio",

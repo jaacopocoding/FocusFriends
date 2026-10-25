@@ -5,5 +5,5 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 mkdir -p build/simula
 swiftc -O -o build/simula/regali Sources/FocusFriends/SessionLog.swift Sources/FocusFriends/GardenPoints.swift \
-    Sources/FocusFriends/GardenCatalog.swift Sources/FocusFriends/GardenDrops.swift tests/simula-regali/main.swift
+    Sources/FocusFriends/GardenCatalog.swift Sources/FocusFriends/GardenGrid.swift Sources/FocusFriends/GardenDrops.swift tests/simula-regali/main.swift
 build/simula/regali "$@"

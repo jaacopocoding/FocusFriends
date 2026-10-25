@@ -133,8 +133,8 @@ final class AlbumView: NSView {
     // MARK: - Geometria
 
     /// Il colore dei comandi sotto il libro (frecce, sezioni, messaggi) e quello del testo sul pulsante scelto: dipendono dallo sfondo.
-    private var deskInk: NSColor { AlbumBackdrop.isDark ? Self.goldInk : Self.leatherDark }
-    private var deskInkOn: NSColor { AlbumBackdrop.isDark ? Self.leatherDark : Self.paperLight }
+    private var deskInk: NSColor { MeadowBackdrop.isDark ? Self.goldInk : Self.leatherDark }
+    private var deskInkOn: NSColor { MeadowBackdrop.isDark ? Self.leatherDark : Self.paperLight }
     private static let leather = NSColor(calibratedRed: 0.42, green: 0.25, blue: 0.14, alpha: 1)
     private static let leatherDark = NSColor(calibratedRed: 0.29, green: 0.16, blue: 0.08, alpha: 1)
     private static let goldInk = NSColor(calibratedRed: 0.90, green: 0.73, blue: 0.34, alpha: 1)
@@ -226,7 +226,7 @@ final class AlbumView: NSView {
     }
 
     override func draw(_ dirtyRect: NSRect) {
-        if !capturing { AlbumBackdrop.draw(in: bounds) }
+        if !capturing { MeadowBackdrop.draw(in: bounds) }
         switch mode {
         case .cover: drawCover()
         case .opening: break
@@ -654,9 +654,9 @@ final class AlbumView: NSView {
     }
 }
 
-/// Lo sfondo dietro il libro: il prato del giardino (assets/giardino/prato.png), che riempie la finestra centrato sul casale, con una luce
-/// calda sopra e i bordi appena scuriti perché il libro resti il protagonista. Se il disegno manca, un tavolo marrone.
-enum AlbumBackdrop {
+/// Lo sfondo dietro il libro e dietro l'isola del giardino: il prato (assets/giardino/prato.png) che riempie la finestra centrato sul casale,
+/// con una luce calda sopra e i bordi appena scuriti perché il resto resti il protagonista. Se il disegno manca, un tavolo marrone.
+enum MeadowBackdrop {
     private static var cache: [String: NSImage] = [:]
 
     private static var meadowURL: URL? { Bundle.main.url(forResource: "giardino_prato", withExtension: "png") }
@@ -668,15 +668,16 @@ enum AlbumBackdrop {
         isDark ? NSColor(calibratedRed: 0.24, green: 0.17, blue: 0.12, alpha: 1) : NSColor(calibratedRed: 0.62, green: 0.75, blue: 0.55, alpha: 1)
     }
 
-    /// Il prato a misura della finestra (al doppio dei punti, per gli schermi retina), preso al 40 % da sinistra.
-    private static func meadow(size: NSSize) -> NSImage? {
-        let key = "\(Int(size.width))x\(Int(size.height))"
+    /// Il prato a misura della finestra (al doppio dei punti, per gli schermi retina), preso al 40 % da sinistra, sfocato di `blur` punti.
+    private static func meadow(size: NSSize, blur: CGFloat) -> NSImage? {
+        let key = "\(Int(size.width))x\(Int(size.height))-\(blur)"
         if let known = cache[key] { return known }
         guard let url = meadowURL, let source = NSImage(contentsOf: url), let tiff = source.tiffRepresentation, let picture = CIImage(data: tiff) else { return nil }
         let target = CGSize(width: size.width * 2, height: size.height * 2)
         let scale = max(target.width / picture.extent.width, target.height / picture.extent.height)
-        let scaled = picture.transformed(by: CGAffineTransform(scaleX: scale, y: scale))
+        var scaled = picture.transformed(by: CGAffineTransform(scaleX: scale, y: scale))
         let crop = CGRect(x: (scaled.extent.width - target.width) * 0.40, y: 0, width: target.width, height: target.height)
+        if blur > 0 { scaled = scaled.clampedToExtent().applyingGaussianBlur(sigma: Double(blur * 2)) }
         let image = scaled.cropped(to: crop).transformed(by: CGAffineTransform(translationX: -crop.minX, y: -crop.minY))
         guard let cg = CIContext().createCGImage(image, from: CGRect(origin: .zero, size: target)) else { return nil }
         let result = NSImage(cgImage: cg, size: size)
@@ -687,10 +688,10 @@ enum AlbumBackdrop {
     private static func rgb(_ r: CGFloat, _ g: CGFloat, _ b: CGFloat, _ a: CGFloat = 1) -> NSColor { NSColor(calibratedRed: r, green: g, blue: b, alpha: a) }
 
     /// Disegna lo sfondo (nella vista capovolta: l'origine è in alto).
-    static func draw(in bounds: NSRect) {
+    static func draw(in bounds: NSRect, blur: CGFloat = 0) {
         base.setFill()
         bounds.fill()
-        guard let picture = meadow(size: bounds.size) else {
+        guard let picture = meadow(size: bounds.size, blur: blur) else {
             NSGradient(colors: [rgb(0.36, 0.26, 0.18), base])?.draw(in: bounds, relativeCenterPosition: NSPoint(x: 0, y: 0.2))
             return
         }
@@ -1021,7 +1022,7 @@ final class AlbumController {
                                   backing: .buffered, defer: false)
             window.contentView = view
             window.isReleasedWhenClosed = false
-            window.backgroundColor = AlbumBackdrop.base
+            window.backgroundColor = MeadowBackdrop.base
             window.appearance = NSAppearance(named: .aqua)
             view.onBack = { [weak self, weak window] in
                 window?.orderOut(nil)

@@ -19,70 +19,78 @@ struct GardenItem: Equatable {
     let id: String
     let name: String
     let category: GardenCategory
-    /// Quanto è alto in primo piano, nelle unità del disegno del prato (`GardenScene.size`).
+    /// Quanto è alto, nelle unità del disegno: sull'isola si disegna alto `height × larghezza di una tessera ÷ 115`.
     let height: Double
     /// Quanti punti costa sbloccarlo; 0 = c'è fin dall'inizio. I prezzi sono provvisori: stanno tutti qui.
     let price: Int
     /// Si disegna l'ombra sul prato (no per le cose piatte, come il tappeto).
     var castsShadow = true
+    /// Quante tessere occupa (da girato, larghezza e profondità si scambiano).
+    var footprint = GardenFootprint(cols: 1, rows: 1)
 
     /// Il nome dell'immagine nel bundle (`assets/giardino/<id>.png`, copiata da build.sh).
     var resource: String { "giardino_" + id }
 }
 
-/// Dove sta una cosa nel prato: frazioni della scena (x da sinistra, y dall'alto), con i piedi in quel punto.
-struct GardenSpot: Codable, Equatable {
-    var x: Double
-    var y: Double
-}
-
-/// Una copia di un oggetto messa nel prato.
+/// Una copia di un oggetto messa sull'isola: la tessera dove sta il suo angolo in fondo, e se è girata.
 struct GardenPlacement: Codable, Equatable {
     var id: UUID
     var item: String
-    var x: Double
-    var y: Double
+    var col: Int
+    var row: Int
+    var turned: Bool
+    /// Solo leggendo un file delle versioni 1 e 2: dov'era nel prato libero. `Garden` lo trasforma in una tessera e lo toglie.
+    var legacy: GardenSpot?
 
-    var spot: GardenSpot {
-        get { GardenSpot(x: x, y: y) }
-        set { x = newValue.x; y = newValue.y }
+    var tile: GardenTile {
+        get { GardenTile(col: col, row: row) }
+        set { col = newValue.col; row = newValue.row }
+    }
+
+    init(id: UUID = UUID(), item: String, tile: GardenTile, turned: Bool = false) {
+        self.id = id
+        self.item = item
+        col = tile.col
+        row = tile.row
+        self.turned = turned
+        legacy = nil
+    }
+
+    private enum CodingKeys: String, CodingKey { case id, item, col, row, turned, x, y }
+
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        id = try values.decode(UUID.self, forKey: .id)
+        item = try values.decode(String.self, forKey: .item)
+        turned = try values.decodeIfPresent(Bool.self, forKey: .turned) ?? false
+        if let col = try values.decodeIfPresent(Int.self, forKey: .col), let row = try values.decodeIfPresent(Int.self, forKey: .row) {
+            self.col = col
+            self.row = row
+            legacy = nil
+        } else {
+            // Un file delle versioni 1 e 2: la posizione nel prato libero.
+            col = 0
+            row = 0
+            legacy = GardenSpot(x: try values.decode(Double.self, forKey: .x), y: try values.decode(Double.self, forKey: .y))
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var values = encoder.container(keyedBy: CodingKeys.self)
+        try values.encode(id, forKey: .id)
+        try values.encode(item, forKey: .item)
+        try values.encode(col, forKey: .col)
+        try values.encode(row, forKey: .row)
+        try values.encode(turned, forKey: .turned)
     }
 }
 
-/// La scena del giardino: il disegno del prato e le regole di dove e quanto grandi stanno le cose.
-enum GardenScene {
-    /// Le dimensioni del disegno di riferimento: le altezze degli oggetti sono in queste unità.
-    static let size = (width: 1024.0, height: 506.0)
-    /// Dove comincia il prato, come frazione dell'altezza: sopra ci sono la casetta, la siepe e le colline.
-    static let horizon = 265.0 / 506.0
-    /// Il prato dove si possono mettere le cose (frazioni della scena).
-    static let lawn = (minX: 0.03, maxX: 0.97, minY: 0.56, maxY: 0.99)
-    /// Quanto sono piccole le cose in fondo al prato rispetto a quelle davanti.
-    static let farScale = 0.55
-
-    /// La scala per la profondità: `farScale` all'orizzonte, 1 in primo piano.
-    static func depthScale(y: Double) -> Double {
-        let t = min(max((y - horizon) / (1 - horizon), 0), 1)
-        return farScale + (1 - farScale) * t
-    }
-
-    /// Riporta un punto dentro il prato.
-    static func clamped(_ spot: GardenSpot) -> GardenSpot {
-        GardenSpot(x: min(max(spot.x, lawn.minX), lawn.maxX), y: min(max(spot.y, lawn.minY), lawn.maxY))
-    }
-
-    /// Il punto dove sta un compagno finché non lo si sposta: in fila sul prato, davanti.
-    static func defaultCompanionSpot(index: Int) -> GardenSpot {
-        let row = index / 4, column = index % 4
-        return GardenSpot(x: 0.34 + 0.11 * Double(column), y: min(0.82 + 0.07 * Double(row), lawn.maxY))
-    }
-
-    /// Dove cade un oggetto appena preso dal negozio senza trascinarlo: verso il centro, un po' sfalsato ogni volta
-    /// (`salt` è un numero qualunque, per non mettere due copie nello stesso punto).
-    static func defaultPlacementSpot(salt: Int) -> GardenSpot {
-        let n = abs(salt) % 9
-        return clamped(GardenSpot(x: 0.40 + 0.05 * Double(n % 5), y: 0.72 + 0.045 * Double(n / 5 + n % 3)))
-    }
+/// Dove sta un compagno nel file: una tessera (versione 3) o un punto del prato libero (versioni 1 e 2).
+struct GardenCompanionPlace: Codable, Equatable {
+    var col: Int?
+    var row: Int?
+    var x: Double?
+    var y: Double?
 }
 
 /// Gli oggetti del negozio e le dimensioni dei compagni nel giardino.
@@ -95,8 +103,9 @@ enum GardenCatalog {
     static func companionHeight(for petID: String) -> Double { companionHeights[petID] ?? 100 }
 
     private static func item(_ id: String, _ name: String, _ category: GardenCategory, height: Double, price: Int,
-                             shadow: Bool = true) -> GardenItem {
-        GardenItem(id: id, name: name, category: category, height: height, price: price, castsShadow: shadow)
+                             shadow: Bool = true, cols: Int = 1, rows: Int = 1) -> GardenItem {
+        GardenItem(id: id, name: name, category: category, height: height, price: price, castsShadow: shadow,
+                   footprint: GardenFootprint(cols: cols, rows: rows))
     }
 
     /// Tutti gli oggetti, nell'ordine in cui compaiono nel negozio. I prezzi sono provvisori.
@@ -122,24 +131,24 @@ enum GardenCatalog {
         item("altalena-uccelli", "Altalena uccelli", .companions, height: 85, price: 3),
         item("vaso-grande", "Vaso grande", .companions, height: 70, price: 3),
         item("bagnetto", "Bagnetto uccelli", .companions, height: 75, price: 4),
-        item("aiuola", "Aiuola rialzata", .companions, height: 75, price: 4),
+        item("aiuola", "Aiuola rialzata", .companions, height: 75, price: 4, cols: 2),
         item("tiragraffi", "Tiragraffi", .companions, height: 115, price: 5),
         item("casetta-uccelli", "Casa per uccelli", .companions, height: 95, price: 5),
-        item("casetta-gatto", "Casa del gatto", .companions, height: 115, price: 6),
-        item("casetta-porcellino", "Casa porcellino", .companions, height: 100, price: 6),
+        item("casetta-gatto", "Casa del gatto", .companions, height: 115, price: 6, cols: 2, rows: 2),
+        item("casetta-porcellino", "Casa porcellino", .companions, height: 100, price: 6, cols: 2, rows: 2),
         // Arredi
-        item("picnic", "Tappeto da picnic", .furniture, height: 70, price: 4, shadow: false),
-        item("bandierine", "Bandierine", .furniture, height: 110, price: 4),
-        item("cancelletto", "Cancelletto", .furniture, height: 95, price: 4),
+        item("picnic", "Tappeto da picnic", .furniture, height: 70, price: 4, shadow: false, cols: 2, rows: 2),
+        item("bandierine", "Bandierine", .furniture, height: 110, price: 4, cols: 2),
+        item("cancelletto", "Cancelletto", .furniture, height: 95, price: 4, cols: 2),
         item("tavolino", "Tavolino da tè", .furniture, height: 95, price: 5),
         item("sdraio", "Sdraio", .furniture, height: 110, price: 5),
         item("carillon", "Carillon a vento", .furniture, height: 120, price: 5),
-        item("panchina", "Panchina", .furniture, height: 95, price: 6),
+        item("panchina", "Panchina", .furniture, height: 95, price: 6, cols: 2),
         item("lampione", "Lampione", .furniture, height: 170, price: 6),
-        item("ponticello", "Ponticello", .furniture, height: 110, price: 8),
-        item("amaca", "Amaca", .furniture, height: 150, price: 9),
-        item("altalena", "Altalena", .furniture, height: 190, price: 10),
-        item("arco-rose", "Arco di rose", .furniture, height: 210, price: 12),
+        item("ponticello", "Ponticello", .furniture, height: 110, price: 8, cols: 2),
+        item("amaca", "Amaca", .furniture, height: 150, price: 9, cols: 2, rows: 2),
+        item("altalena", "Altalena", .furniture, height: 190, price: 10, cols: 2, rows: 2),
+        item("arco-rose", "Arco di rose", .furniture, height: 210, price: 12, cols: 2),
     ]
 
     static func item(withID id: String) -> GardenItem? {
@@ -168,6 +177,14 @@ enum GardenAlbum {
     }
 
     static let perPage = 6
+
+    /// Quante doppie pagine sono complete (tutte le figurine trovate): ognuna allarga l'isola del giardino.
+    static func completedSpreads(isFound: (String) -> Bool, catalog: [GardenItem] = GardenCatalog.items) -> Int {
+        spreads(catalog: catalog).filter { spread in
+            let items = spread.left.items + (spread.right?.items ?? [])
+            return !items.isEmpty && items.allSatisfy { isFound($0.id) }
+        }.count
+    }
 
     /// Le doppie pagine (se una sezione ha un numero dispari di pagine, l'ultima pagina di destra manca).
     static func spreads(catalog: [GardenItem] = GardenCatalog.items) -> [(left: Page, right: Page?)] {

@@ -1,14 +1,15 @@
 import AppKit
 
-/// Il giardino: un prato tuo, che si riempie con le figurine che trovi a fine focus (GardenDrops). L'album delle figurine è un'altra
-/// finestra (AlbumWindow); qui, in basso, c'è la cassetta con le copie ancora da mettere: si trascinano nel prato, si spostano, e per
-/// toglierne una dal prato la si trascina sulla cassetta. I compagni sbloccati stanno qui, e se li tocchi parlano.
+/// Il giardino: un'isola a tessere, vista di sbieco, che si riempie con le figurine che trovi a fine focus (GardenDrops). L'album delle
+/// figurine è un'altra finestra (AlbumWindow); qui, in basso, c'è la cassetta con le copie ancora da mettere: si trascinano sull'isola
+/// (le tessere libere si fanno verdi, quelle dove non ci sta diventano rosse), si spostano, si girano con R o dal tasto destro, e per
+/// toglierne una la si trascina sulla cassetta. I compagni sbloccati camminano sulle tessere libere, e se li tocchi parlano.
 ///
-/// La scena è un disegno solo; gli oggetti e i compagni si disegnano sopra, più piccoli verso il fondo.
+/// Le regole di dove ci stanno le cose sono in GardenGrid.swift; qui c'è solo il disegno e il mouse.
 final class GardenView: NSView, NSViewToolTipOwner {
-    /// La scena (senza il negozio): la proporzione è quella del disegno del prato (1024×506).
-    static let sceneSize = NSSize(width: 1000, height: 494)
-        private static let pad: CGFloat = 14
+    /// La scena: l'isola sta al centro, in alto c'è posto per le cose alte (il lampione, l'altalena).
+    static let sceneSize = NSSize(width: 1000, height: 600)
+    private static let pad: CGFloat = 14
 
     override var isFlipped: Bool { true }
     override var acceptsFirstResponder: Bool { true }
@@ -23,7 +24,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
     // La serie di giorni (dal registro, in reload): più è lunga, più le figurine rare sono probabili.
     private var streak = StudyStreak.Result(perDay: [:], days: 0, isFrozen: false, studiedToday: false)
 
-    // La cassetta delle copie da mettere: chiusa (una pillola in basso a sinistra, per non coprire il davanti del prato) finché non la apri.
+    // La cassetta delle copie da mettere: chiusa (una pillola in basso a sinistra, per non coprire il davanti dell'isola) finché non la apri.
     private var trayOpen = false
     private var trayScroll: CGFloat = 0
     /// Una riga di spiegazione in basso, per qualche secondo.
@@ -41,10 +42,23 @@ final class GardenView: NSView, NSViewToolTipOwner {
     private var carryGrab = NSSize.zero
     private var carryStart = NSPoint.zero
     private var carryMoved = false
+    /// Se la copia che si trascina è girata (R, o il tasto destro).
+    private var carryTurned = false
 
     // Il fumetto di un compagno toccato.
     private var bubble: (petID: String, text: String)?
     private var bubbleTimer: Timer?
+
+    // I compagni che camminano.
+    private struct Walker {
+        var from: GardenTile
+        var to: GardenTile
+        var progress: Double
+        var rest: Double
+    }
+    private var walkers: [String: Walker] = [:]
+    private var walkTimer: Timer?
+    private var lastWalkTick = Date()
 
     private let albumButton: PillIconButton
     /// Chiamata dal pulsante «‹ Menu»: la finestra si chiude e si torna alla scheda del menu.
@@ -95,6 +109,25 @@ final class GardenView: NSView, NSViewToolTipOwner {
     }
 
     override func keyDown(with event: NSEvent) {
+        // R: gira quello che si sta trascinando
+        if event.charactersIgnoringModifiers?.lowercased() == "r", let current = carry, carryMoved {
+            switch current {
+            case .placed, .fresh:
+                carryTurned.toggle()
+                needsDisplay = true
+                return
+            case .companion:
+                break
+            }
+        }
+        if carry == nil {
+            switch event.charactersIgnoringModifiers {
+            case "+", "=": zoom(by: 1.3); return
+            case "-": zoom(by: 1 / 1.3); return
+            case "0": resetCamera(); return
+            default: break
+            }
+        }
         interpretKeyEvents([event])
     }
 
@@ -134,78 +167,203 @@ final class GardenView: NSView, NSViewToolTipOwner {
     private var sceneRect: NSRect { NSRect(origin: .zero, size: Self.sceneSize) }
     private var trayRect: NSRect { NSRect(x: 0, y: sceneH - Self.trayHeight, width: sceneW, height: Self.trayHeight) }
 
-    private func point(for spot: GardenSpot) -> NSPoint {
-        NSPoint(x: CGFloat(spot.x) * sceneW, y: CGFloat(spot.y) * sceneH)
+    /// L'isola vista di sbieco: ogni tessera è un rombo largo `tileW` e alto la metà.
+    struct Iso {
+        let size: Int
+        let tileW: CGFloat
+        /// Il vertice in alto (in fondo) dell'isola.
+        let origin: NSPoint
+
+        static let thickness: CGFloat = 16
+        /// Dove cominciano l'isola (c'è posto sopra per le cose alte) e quanto resta sotto.
+        static let top: CGFloat = 140
+        static let bottomMargin: CGFloat = 44
+
+        /// `zoom` e `pan`: la vista (1 e zero = tutta l'isola, a misura della finestra). Lo zoom è attorno al centro della scena.
+        init(size: Int, scene: NSSize, zoom: CGFloat = 1, pan: NSPoint = .zero) {
+            self.size = size
+            let availableHeight = scene.height - Self.top - Self.bottomMargin - Self.thickness
+            let fit = min((scene.width - 60) / CGFloat(size), 2 * availableHeight / CGFloat(size))
+            tileW = fit * zoom
+            let center = NSPoint(x: scene.width / 2, y: scene.height / 2)
+            origin = NSPoint(x: center.x + (scene.width / 2 - center.x) * zoom + pan.x, y: center.y + (Self.top - center.y) * zoom + pan.y)
+        }
+
+        var tileH: CGFloat { tileW / 2 }
+        /// Quanto si disegna grande un oggetto: l'altezza del catalogo ÷ 135 per la larghezza di una tessera.
+        var scale: CGFloat { tileW / 135 }
+
+        /// L'angolo della griglia (`col`, `row` interi sono gli angoli delle tessere).
+        func point(col: Double, row: Double) -> NSPoint {
+            NSPoint(x: origin.x + CGFloat(col - row) * tileW / 2, y: origin.y + CGFloat(col + row) * tileH / 2)
+        }
+
+        func center(of tile: GardenTile) -> NSPoint { point(col: Double(tile.col) + 0.5, row: Double(tile.row) + 0.5) }
+
+        /// La griglia sotto un punto dello schermo (frazioni di tessera).
+        func grid(at p: NSPoint) -> (col: Double, row: Double) {
+            let a = Double((p.x - origin.x) / (tileW / 2)), b = Double((p.y - origin.y) / (tileH / 2))
+            return ((a + b) / 2, (b - a) / 2)
+        }
     }
 
-    private func spot(for point: NSPoint) -> GardenSpot {
-        GardenScene.clamped(GardenSpot(x: Double(point.x / sceneW), y: Double(point.y / sceneH)))
+    private var iso: Iso { Iso(size: garden.islandSize, scene: Self.sceneSize, zoom: zoom, pan: pan) }
+
+    // MARK: - La vista: zoom e spostamenti
+
+    static let zoomRange: ClosedRange<CGFloat> = 0.6...2.5
+    /// Quanto è ingrandita la vista (1 = tutta l'isola) e di quanto è spostata.
+    private(set) var zoom: CGFloat = 1
+    private(set) var pan = NSPoint.zero
+    private var panning = false
+    private var panLast = NSPoint.zero
+
+    /// Ingrandisce o rimpicciolisce di `factor` attorno a un punto della scena (quello sotto il mouse resta dov'è).
+    func zoom(by factor: CGFloat, at point: NSPoint? = nil) {
+        let target = min(max(zoom * factor, Self.zoomRange.lowerBound), Self.zoomRange.upperBound)
+        guard target != zoom else { return }
+        let center = NSPoint(x: sceneW / 2, y: sceneH / 2)
+        let at = point ?? center
+        let ratio = target / zoom
+        pan = NSPoint(x: at.x - center.x - (at.x - center.x - pan.x) * ratio, y: at.y - center.y - (at.y - center.y - pan.y) * ratio)
+        zoom = target
+        clampCamera()
+        needsDisplay = true
     }
 
-    /// L'altezza a cui si disegna un oggetto con i piedi in `spot`: più piccolo verso il fondo del prato.
-    private func displayHeight(_ referenceHeight: Double, at spot: GardenSpot) -> CGFloat {
-        CGFloat(referenceHeight * GardenScene.depthScale(y: spot.y)) * sceneH / CGFloat(GardenScene.size.height)
+    /// Tutta l'isola, a misura della finestra.
+    func resetCamera() {
+        zoom = 1
+        pan = .zero
+        needsDisplay = true
     }
 
-    // MARK: - Le immagini
+    private func movePan(by delta: NSPoint) {
+        pan = NSPoint(x: pan.x + delta.x, y: pan.y + delta.y)
+        clampCamera()
+        needsDisplay = true
+    }
 
+    /// Il centro della finestra resta sempre su un punto dell'isola (o a una tessera dal bordo): non si può perderla di vista.
+    private func clampCamera() {
+        let i = iso
+        let n = Double(i.size)
+        let center = NSPoint(x: sceneW / 2, y: sceneH / 2)
+        let g = i.grid(at: center)
+        let col = min(max(g.col, -1), n + 1), row = min(max(g.row, -1), n + 1)
+        guard col != g.col || row != g.row else { return }
+        let inside = i.point(col: col, row: row)
+        pan = NSPoint(x: pan.x + center.x - inside.x, y: pan.y + center.y - inside.y)
+    }
 
-    private lazy var meadow: NSImage? = {
-        Bundle.main.url(forResource: "giardino_prato", withExtension: "png").flatMap { NSImage(contentsOf: $0) }
-    }()
+    private var zoomControlsRect: NSRect {
+        NSRect(x: sceneW - 16 - 114, y: sceneH - 50 - (trayVisible ? Self.trayHeight : 0), width: 114, height: 34)
+    }
 
-    // MARK: - Cosa c'è nel prato
+    private func zoomButtonRects() -> [(symbol: String, rect: NSRect, action: () -> Void)] {
+        let box = zoomControlsRect
+        let width = box.width / 3
+        return [
+            ("minus", NSRect(x: box.minX, y: box.minY, width: width, height: box.height), { [weak self] in self?.zoom(by: 1 / 1.3) }),
+            ("arrow.up.left.and.arrow.down.right", NSRect(x: box.minX + width, y: box.minY, width: width, height: box.height), { [weak self] in self?.resetCamera() }),
+            ("plus", NSRect(x: box.minX + 2 * width, y: box.minY, width: width, height: box.height), { [weak self] in self?.zoom(by: 1.3) }),
+        ]
+    }
+
+    private func drawZoomControls() {
+        let box = zoomControlsRect
+        drawChip(box, fill: NSColor(calibratedRed: 1, green: 0.99, blue: 0.94, alpha: 0.95), stroke: Paper.paperEdge)
+        for (index, button) in zoomButtonRects().enumerated() {
+            if index > 0 {
+                Paper.paperEdge.withAlphaComponent(0.5).setStroke()
+                let divider = NSBezierPath()
+                divider.move(to: NSPoint(x: button.rect.minX, y: button.rect.minY + 8))
+                divider.line(to: NSPoint(x: button.rect.minX, y: button.rect.maxY - 8))
+                divider.lineWidth = 1
+                divider.stroke()
+            }
+            let enabled = button.symbol == "minus" ? zoom > Self.zoomRange.lowerBound + 0.001
+                : button.symbol == "plus" ? zoom < Self.zoomRange.upperBound - 0.001 : (zoom != 1 || pan != .zero)
+            if let icon = tinted(button.symbol, size: 13, color: enabled ? Paper.ink : Paper.inkLight.withAlphaComponent(0.4)) {
+                icon.draw(in: NSRect(x: button.rect.midX - icon.size.width / 2, y: button.rect.midY - icon.size.height / 2, width: icon.size.width, height: icon.size.height))
+            }
+        }
+    }
+
+    /// I piedi di un oggetto stanno un po' sotto il centro della sua tessera.
+    private static let feetOffset: CGFloat = 0.22
+
+    // MARK: - Cosa c'è sull'isola
 
     private enum Kind: Equatable {
         case placed(UUID)
         case companion(String)
     }
 
-    /// Una cosa nel prato, con dove cade a schermo.
+    /// Una cosa sull'isola, con dove cade a schermo.
     private struct Entity {
         var kind: Kind
         var sprite: GardenSprite
-        var spot: GardenSpot
         var feet: NSPoint
         var rect: NSRect
-        var shadow: Bool
+        var shadow: NSRect?
+        var turned: Bool
+        /// Chi ha il numero più alto sta davanti.
+        var depth: Double
     }
 
-    private func entity(kind: Kind, resource: String, referenceHeight: Double, spot: GardenSpot, shadow: Bool) -> Entity? {
+    private func entity(kind: Kind, resource: String, referenceHeight: Double, feet: NSPoint, shadowWidth: CGFloat?, turned: Bool,
+                        depth: Double, iso: Iso) -> Entity? {
         guard let sprite = GardenSprites.sprite(resource) else { return nil }
-        let feet = point(for: spot)
-        let height = displayHeight(referenceHeight, at: spot)
+        let height = CGFloat(referenceHeight) * iso.scale
         let width = height * sprite.aspect
         let rect = NSRect(x: feet.x - width / 2, y: feet.y - height, width: width, height: height)
-        return Entity(kind: kind, sprite: sprite, spot: spot, feet: feet, rect: rect, shadow: shadow)
+        var shadow: NSRect?
+        if let shadowWidth {
+            let shadowHeight = max(shadowWidth * 0.34, 5)
+            shadow = NSRect(x: feet.x - shadowWidth / 2, y: feet.y - shadowHeight * 0.55, width: shadowWidth, height: shadowHeight)
+        }
+        return Entity(kind: kind, sprite: sprite, feet: feet, rect: rect, shadow: shadow, turned: turned, depth: depth)
     }
 
-    /// Gli oggetti e i compagni sbloccati, dal fondo al davanti. Quello che si sta trascinando sta dove lo tiene il
-    /// mouse (e va per ultimo, sopra a tutto).
+    /// Dove sta un compagno in questo momento (cammina da una tessera all'altra).
+    private func companionGround(_ petID: String, home: GardenTile, iso: Iso) -> (point: NSPoint, depth: Double) {
+        let walker = walkers[petID] ?? Walker(from: home, to: home, progress: 1, rest: 2)
+        let from = iso.center(of: walker.from), to = iso.center(of: walker.to)
+        let t = CGFloat(walker.progress * walker.progress * (3 - 2 * walker.progress))
+        let hop = CGFloat(sin(walker.progress * .pi)) * iso.tileH * (walker.progress < 1 ? 0.18 : 0)
+        let point = NSPoint(x: from.x + (to.x - from.x) * t, y: from.y + (to.y - from.y) * t - hop)
+        let cols = Double(walker.from.col) + (Double(walker.to.col) - Double(walker.from.col)) * Double(t)
+        let rows = Double(walker.from.row) + (Double(walker.to.row) - Double(walker.from.row)) * Double(t)
+        return (point, cols + rows + 1)
+    }
+
+    /// Gli oggetti e i compagni sbloccati, dal fondo al davanti. Quello che si sta trascinando non c'è: si disegna a parte (`drawGhost`).
     private func entities() -> [Entity] {
+        let iso = self.iso
         var result: [Entity] = []
-        var lifted: Entity?
         for placement in garden.placements {
             guard let item = GardenCatalog.item(withID: placement.item) else { continue }
-            let kind = Kind.placed(placement.id)
-            var at = placement.spot
-            let isCarried = carry == .placed(placement.id)
-            if isCarried { at = spot(for: carryFeet) }
-            guard let made = entity(kind: kind, resource: item.resource, referenceHeight: item.height, spot: at, shadow: item.castsShadow)
-            else { continue }
-            if isCarried { lifted = made } else { result.append(made) }
+            if carryMoved, carry == .placed(placement.id) { continue }
+            let footprint = item.footprint.applying(turned: placement.turned)
+            let ground = iso.point(col: Double(placement.col) + Double(footprint.cols) / 2, row: Double(placement.row) + Double(footprint.rows) / 2)
+            let feet = NSPoint(x: ground.x, y: ground.y + iso.tileH * Self.feetOffset)
+            let front = Double(placement.col + footprint.cols - 1 + placement.row + footprint.rows - 1)
+            let shadowWidth = item.castsShadow ? min(iso.tileW * 0.62 * CGFloat(max(footprint.cols, footprint.rows)), iso.tileW * 1.3) : nil
+            guard let made = entity(kind: .placed(placement.id), resource: item.resource, referenceHeight: item.height, feet: feet,
+                                    shadowWidth: shadowWidth, turned: placement.turned, depth: front + 0.5, iso: iso) else { continue }
+            result.append(made)
         }
         for (index, pet) in Pet.all.enumerated() where profile.isCompanionUnlocked(pet.id) {
-            var at = garden.companionSpot(pet.id, index: index)
-            let isCarried = carry == .companion(pet.id)
-            if isCarried { at = spot(for: carryFeet) }
-            guard let made = entity(kind: .companion(pet.id), resource: pet.iconResource,
-                                    referenceHeight: GardenCatalog.companionHeight(for: pet.id), spot: at, shadow: true)
-            else { continue }
-            if isCarried { lifted = made } else { result.append(made) }
+            if carryMoved, carry == .companion(pet.id) { continue }
+            let home = garden.companionTile(pet.id, index: index)
+            let ground = companionGround(pet.id, home: home, iso: iso)
+            let feet = NSPoint(x: ground.point.x, y: ground.point.y + iso.tileH * Self.feetOffset)
+            guard let made = entity(kind: .companion(pet.id), resource: pet.iconResource, referenceHeight: GardenCatalog.companionHeight(for: pet.id),
+                                    feet: feet, shadowWidth: iso.tileW * 0.5, turned: false, depth: ground.depth, iso: iso) else { continue }
+            result.append(made)
         }
-        result.sort { $0.feet.y < $1.feet.y }
-        if let lifted { result.append(lifted) }
+        result.sort { $0.depth < $1.depth }
         return result
     }
 
@@ -213,11 +371,111 @@ final class GardenView: NSView, NSViewToolTipOwner {
     /// così si può toccare un compagno che sta dietro le bandierine o sotto l'arco.
     private func entity(at point: NSPoint) -> Entity? {
         for entity in entities().reversed() where entity.rect.contains(point) {
-            let u = (point.x - entity.rect.minX) / entity.rect.width
+            var u = (point.x - entity.rect.minX) / entity.rect.width
             let v = (point.y - entity.rect.minY) / entity.rect.height
+            if entity.turned { u = 1 - u }
             if entity.sprite.isDrawn(u: u, v: v) { return entity }
         }
         return nil
+    }
+
+    // MARK: - I compagni camminano
+
+    /// Fa fare un passo ai compagni (`dt` secondi): ogni tanto uno si sposta su una tessera libera accanto. Ritorna true se qualcuno si muove.
+    @discardableResult
+    func advanceWalkers(by dt: TimeInterval) -> Bool {
+        let size = garden.islandSize
+        let occupied = garden.occupiedTiles()
+        var moving = false
+        let pets = Pet.all.enumerated().filter { profile.isCompanionUnlocked($0.element.id) }
+        for (index, pet) in pets {
+            if carry == .companion(pet.id) { continue }
+            let home = garden.companionTile(pet.id, index: index)
+            var walker = walkers[pet.id] ?? Walker(from: home, to: home, progress: 1, rest: 1 + Double.random(in: 0...3))
+            if !GardenLayout.isWalkable(walker.from, size: size, occupied: occupied) || !GardenLayout.isWalkable(walker.to, size: size, occupied: occupied) {
+                // Gli hanno messo un oggetto sotto i piedi (o l'isola è cambiata): torna a casa.
+                walker = Walker(from: home, to: home, progress: 1, rest: 1)
+            }
+            if walker.progress < 1 {
+                walker.progress = min(1, walker.progress + dt / 1.3)
+                moving = true
+            } else {
+                walker.from = walker.to
+                walker.rest -= dt
+                if walker.rest <= 0 {
+                    let taken = Set(walkers.filter { $0.key != pet.id }.flatMap { [$0.value.from, $0.value.to] })
+                    let around = [(1, 0), (-1, 0), (0, 1), (0, -1)].map { GardenTile(col: walker.from.col + $0.0, row: walker.from.row + $0.1) }
+                    let free = around.filter { GardenLayout.isWalkable($0, size: size, occupied: occupied) && !taken.contains($0) }
+                    if let next = free.randomElement() {
+                        walker.to = next
+                        walker.progress = 0
+                        moving = true
+                    }
+                    walker.rest = 1.5 + Double.random(in: 0...3.5)
+                }
+            }
+            walkers[pet.id] = walker
+        }
+        return moving
+    }
+
+    private func startWalking() {
+        walkTimer?.invalidate()
+        lastWalkTick = Date()
+        let timer = Timer(timeInterval: 1.0 / 30, repeats: true) { [weak self] _ in
+            guard let self, self.window?.isVisible == true else { return }
+            let elapsed = min(Date().timeIntervalSince(self.lastWalkTick), 0.2)
+            self.lastWalkTick = Date()
+            if self.advanceWalkers(by: elapsed) { self.needsDisplay = true }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        walkTimer = timer
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        if window == nil {
+            walkTimer?.invalidate()
+            walkTimer = nil
+        } else {
+            startWalking()
+        }
+    }
+
+    /// Dove cadrebbe la cosa che si sta trascinando, e se ci sta.
+    private struct CarryTarget {
+        var origin: GardenTile
+        var tiles: [GardenTile]
+        var valid: Bool
+    }
+
+    private func carryTarget() -> CarryTarget? {
+        guard let current = carry, carryMoved else { return nil }
+        let iso = self.iso
+        let ground = NSPoint(x: carryFeet.x, y: carryFeet.y - iso.tileH * Self.feetOffset)
+        let g = iso.grid(at: ground)
+        switch current {
+        case .companion(let petID):
+            let tile = GardenTile(col: Int(g.col.rounded(.down)), row: Int(g.row.rounded(.down)))
+            let others = Pet.all.enumerated().filter { $0.element.id != petID && profile.isCompanionUnlocked($0.element.id) }
+                .map { garden.companionTile($0.element.id, index: $0.offset) }
+            let valid = GardenLayout.isWalkable(tile, size: iso.size, occupied: garden.occupiedTiles()) && !others.contains(tile)
+            return CarryTarget(origin: tile, tiles: [tile], valid: valid)
+        case .placed(let id):
+            guard let placement = garden.placements.first(where: { $0.id == id }), let item = GardenCatalog.item(withID: placement.item) else { return nil }
+            return itemTarget(item, grid: g, ignoring: id, needsCopy: false)
+        case .fresh(let id):
+            guard let item = GardenCatalog.item(withID: id) else { return nil }
+            return itemTarget(item, grid: g, ignoring: nil, needsCopy: true)
+        }
+    }
+
+    private func itemTarget(_ item: GardenItem, grid g: (col: Double, row: Double), ignoring: UUID?, needsCopy: Bool) -> CarryTarget {
+        let footprint = item.footprint.applying(turned: carryTurned)
+        let origin = GardenTile(col: Int((g.col - Double(footprint.cols) / 2).rounded()), row: Int((g.row - Double(footprint.rows) / 2).rounded()))
+        var valid = garden.canPlace(item.id, at: origin, turned: carryTurned, ignoring: ignoring)
+        if needsCopy && !(garden.available(item.id) > 0 || Profile.isDeveloper) { valid = false }
+        return CarryTarget(origin: origin, tiles: GardenLayout.tiles(of: footprint, at: origin), valid: valid)
     }
 
     // MARK: - La cassetta: disposizione
@@ -233,15 +491,35 @@ final class GardenView: NSView, NSViewToolTipOwner {
         }
     }
 
-    /// La fascia si vede aperta, oppure trascinando una copia del prato (per toglierla).
-    private var trayVisible: Bool {
-        (trayOpen && !trayItems().isEmpty) || (carryMoved && { if case .placed? = carry { return true } else { return false } }())
+    /// La fascia si vede solo aperta (toglierne una dall'isola è un'altra cosa: `removeZoneRect`).
+    private var trayVisible: Bool { trayOpen && !trayItems().isEmpty }
+
+    /// Trascinando una copia dell'isola, in basso a sinistra compare dove lasciarla per toglierla (fuori dall'isola, che sta più in alto).
+    private var removeZoneRect: NSRect { NSRect(x: 16, y: sceneH - 64, width: 236, height: 46) }
+
+    private var isCarryingPlaced: Bool {
+        if case .placed? = carry, carryMoved { return true }
+        return false
     }
 
     /// La pillola «Da mettere · 7», quando la cassetta è chiusa e c'è qualcosa dentro.
     private var trayPillRect: NSRect { NSRect(x: 16, y: sceneH - 46, width: 156, height: 30) }
 
     private var showsTrayPill: Bool { !trayVisible && !trayItems().isEmpty && !(carry != nil && carryMoved) }
+
+    private func drawRemoveZone() {
+        let rect = removeZoneRect
+        let hovering = rect.contains(carryPointer)
+        let path = NSBezierPath(roundedRect: rect, xRadius: 14, yRadius: 14)
+        (hovering ? Paper.accent.withAlphaComponent(0.30) : Paper.paper.withAlphaComponent(0.92)).setFill()
+        path.fill()
+        Paper.accent.setStroke()
+        path.lineWidth = hovering ? 2.4 : 1.4
+        path.setLineDash([6, 4], count: 2, phase: 0)
+        path.stroke()
+        text("Rilascia qui per toglierla", in: NSRect(x: rect.minX, y: rect.minY + 12, width: rect.width, height: 22),
+             font: Paper.markerFont(18), color: Paper.accentPressed, alignment: .center)
+    }
 
     private struct TrayLayout {
         var area: NSRect
@@ -326,51 +604,176 @@ final class GardenView: NSView, NSViewToolTipOwner {
 
     override func draw(_ dirtyRect: NSRect) {
         NSGraphicsContext.current?.imageInterpolation = .high
-        if let meadow {
-            meadow.draw(in: sceneRect, from: .zero, operation: .sourceOver, fraction: 1, respectFlipped: true, hints: nil)
-        } else {
-            Paper.paper.setFill()
-            sceneRect.fill()
-        }
+        MeadowBackdrop.draw(in: sceneRect, blur: 5)
+        let iso = self.iso
+        let target = carryTarget()
+        drawIsland(iso, highlight: target)
         let laid = entities()
-        for entity in laid { drawEntity(entity, lifted: carry != nil && entity.kind == carryKind && carryMoved) }
-        if let bubble, let target = laid.first(where: { $0.kind == .companion(bubble.petID) }) {
-            drawBubble(bubble.text, above: target.rect)
+        for entity in laid { drawEntity(entity) }
+        drawGhost(target, iso: iso)
+        if let bubble, let owner = laid.first(where: { $0.kind == .companion(bubble.petID) }) {
+            drawBubble(bubble.text, above: owner.rect)
         }
         drawHUD()
         if trayVisible { drawTray() } else if showsTrayPill { drawTrayPill() }
+        drawZoomControls()
+        if isCarryingPlaced { drawRemoveZone() }
         if let message {
             drawHint(message)
         } else if garden.placements.isEmpty && carry == nil {
             drawHint("Trova le figurine a fine focus: si mettono qui da sole.")
         }
-        // Una copia presa dall'album: si vede sotto al mouse.
-        if case .fresh(let id)? = carry, carryMoved, let item = GardenCatalog.item(withID: id),
-           let made = entity(kind: .placed(UUID()), resource: item.resource, referenceHeight: item.height,
-                             spot: spot(for: carryFeet), shadow: item.castsShadow) {
-            drawEntity(made, lifted: true)
+    }
+
+    // MARK: - L'isola
+
+    private static func color(_ r: CGFloat, _ g: CGFloat, _ b: CGFloat, _ a: CGFloat = 1) -> NSColor {
+        NSColor(calibratedRed: r / 255, green: g / 255, blue: b / 255, alpha: a)
+    }
+
+    private func diamond(_ tile: GardenTile, iso: Iso, inset: CGFloat = 0) -> NSBezierPath {
+        let top = iso.point(col: Double(tile.col), row: Double(tile.row))
+        let right = iso.point(col: Double(tile.col + 1), row: Double(tile.row))
+        let bottom = iso.point(col: Double(tile.col + 1), row: Double(tile.row + 1))
+        let left = iso.point(col: Double(tile.col), row: Double(tile.row + 1))
+        let path = NSBezierPath()
+        path.move(to: NSPoint(x: top.x, y: top.y + inset * 0.5))
+        path.line(to: NSPoint(x: right.x - inset, y: right.y))
+        path.line(to: NSPoint(x: bottom.x, y: bottom.y - inset * 0.5))
+        path.line(to: NSPoint(x: left.x + inset, y: left.y))
+        path.close()
+        return path
+    }
+
+    /// Il terreno: i lati di terra, le tessere d'erba e di sentiero, la griglia (più visibile mentre si trascina) e, se si sta
+    /// trascinando qualcosa, le tessere dove cadrebbe (verdi se ci sta, rosse se no).
+    private func drawIsland(_ iso: Iso, highlight: CarryTarget?) {
+        let n = Double(iso.size)
+        let thickness = Iso.thickness
+        // l'ombra sul prato, sotto l'isola
+        let front = iso.point(col: n, row: n)
+        let shadow = NSRect(x: iso.origin.x - iso.tileW * CGFloat(n) * 0.46, y: front.y - iso.tileH * 0.5, width: iso.tileW * CGFloat(n) * 0.92, height: iso.tileH * 1.6)
+        NSColor(calibratedRed: 0.16, green: 0.22, blue: 0.10, alpha: 0.16).setFill()
+        NSBezierPath(ovalIn: shadow).fill()
+        // i lati
+        let left = iso.point(col: 0, row: n), right = iso.point(col: n, row: 0)
+        let leftSide = NSBezierPath()
+        leftSide.move(to: left); leftSide.line(to: front)
+        leftSide.line(to: NSPoint(x: front.x, y: front.y + thickness)); leftSide.line(to: NSPoint(x: left.x, y: left.y + thickness)); leftSide.close()
+        Self.color(133, 100, 66).setFill()
+        leftSide.fill()
+        let rightSide = NSBezierPath()
+        rightSide.move(to: right); rightSide.line(to: front)
+        rightSide.line(to: NSPoint(x: front.x, y: front.y + thickness)); rightSide.line(to: NSPoint(x: right.x, y: right.y + thickness)); rightSide.close()
+        Self.color(108, 78, 50).setFill()
+        rightSide.fill()
+        // le tessere
+        let carrying = carry != nil && carryMoved
+        for row in 0..<iso.size {
+            for col in 0..<iso.size {
+                let tile = GardenTile(col: col, row: row)
+                let seed = GardenDrops.hash("\(col),\(row)")
+                let variation = CGFloat(Int(seed % 11)) - 5
+                let isPath = GardenIsland.isPath(tile)
+                let base: (CGFloat, CGFloat, CGFloat) = isPath ? ((col + row) % 2 == 0 ? (226, 208, 170) : (218, 199, 160))
+                                                              : ((col + row) % 2 == 0 ? (158, 198, 122) : (150, 191, 115))
+                let path = diamond(tile, iso: iso)
+                Self.color(base.0 + variation, base.1 + variation, base.2 + variation).setFill()
+                path.fill()
+                NSColor.white.withAlphaComponent(carrying ? 0.34 : 0.14).setStroke()
+                path.lineWidth = 1
+                path.stroke()
+                let center = iso.center(of: tile)
+                if isPath {
+                    // qualche sasso
+                    for k in 0..<3 {
+                        let h = GardenDrops.hash("sasso\(col),\(row),\(k)")
+                        let dx = (CGFloat(h % 41) - 20) * iso.tileW / 140, dy = (CGFloat((h >> 8) % 21) - 10) * iso.tileH / 60
+                        Self.color(196, 176, 138, 0.8).setFill()
+                        NSBezierPath(ovalIn: NSRect(x: center.x + dx - 4, y: center.y + dy - 2, width: 8, height: 4)).fill()
+                    }
+                } else if seed % 3 == 0 {
+                    // un ciuffo d'erba
+                    Self.color(104, 154, 80).setStroke()
+                    for k in 0..<3 {
+                        let h = GardenDrops.hash("erba\(col),\(row),\(k)")
+                        let x = center.x + (CGFloat(h % 45) - 22) * iso.tileW / 140, y = center.y + (CGFloat((h >> 8) % 17) - 8) * iso.tileH / 60
+                        let blade = NSBezierPath()
+                        blade.move(to: NSPoint(x: x, y: y)); blade.line(to: NSPoint(x: x + CGFloat(k - 1) * 1.5, y: y - 5))
+                        blade.lineWidth = 1.2
+                        blade.stroke()
+                    }
+                }
+            }
+        }
+        // dove cadrebbe quello che si trascina
+        if let highlight {
+            let good = highlight.valid
+            for tile in highlight.tiles where GardenIsland.contains(tile, size: iso.size) {
+                let path = diamond(tile, iso: iso, inset: 2)
+                (good ? Self.color(80, 200, 105, 0.5) : Self.color(226, 80, 66, 0.5)).setFill()
+                path.fill()
+                (good ? Self.color(60, 160, 85) : Self.color(190, 56, 46)).setStroke()
+                path.lineWidth = 2
+                path.stroke()
+            }
         }
     }
 
-    private var carryKind: Kind? {
-        switch carry {
-        case .placed(let id)?: return .placed(id)
-        case .companion(let id)?: return .companion(id)
-        default: return nil
-        }
-    }
-
-    private func drawEntity(_ entity: Entity, lifted: Bool) {
-        let rect = lifted ? entity.rect.offsetBy(dx: 0, dy: -4) : entity.rect
-        if entity.shadow {
-            let width = entity.rect.width * 0.7
-            let height = max(entity.rect.height * 0.09, 5)
-            let shadow = NSRect(x: entity.feet.x - width / 2, y: entity.feet.y - height * 0.45, width: width, height: height)
-            NSColor(calibratedRed: 0.24, green: 0.32, blue: 0.20, alpha: lifted ? 0.18 : 0.26).setFill()
+    private func drawEntity(_ entity: Entity, alpha: CGFloat = 1, lift: CGFloat = 0) {
+        let rect = entity.rect.offsetBy(dx: 0, dy: -lift)
+        if let shadow = entity.shadow {
+            NSColor(calibratedRed: 0.24, green: 0.32, blue: 0.20, alpha: 0.28 * alpha).setFill()
             NSBezierPath(ovalIn: shadow).fill()
         }
-        entity.sprite.image.draw(in: rect, from: entity.sprite.source, operation: .sourceOver, fraction: 1,
+        NSGraphicsContext.saveGraphicsState()
+        if entity.turned {
+            let flip = NSAffineTransform()
+            flip.translateX(by: rect.midX, yBy: 0)
+            flip.scaleX(by: -1, yBy: 1)
+            flip.translateX(by: -rect.midX, yBy: 0)
+            flip.concat()
+        }
+        entity.sprite.image.draw(in: rect, from: entity.sprite.source, operation: .sourceOver, fraction: alpha,
                                  respectFlipped: true, hints: [.interpolation: NSImageInterpolation.high])
+        NSGraphicsContext.restoreGraphicsState()
+    }
+
+    /// Quello che si sta trascinando: sulla tessera dove cadrebbe (se ci sta), altrimenti sotto il mouse, più trasparente.
+    private func drawGhost(_ target: CarryTarget?, iso: Iso) {
+        guard let current = carry, carryMoved, let target else { return }
+        var resource: String?
+        var height: Double = 100
+        var shadowWidth: CGFloat? = iso.tileW * 0.5
+        var footprint = GardenFootprint(cols: 1, rows: 1)
+        switch current {
+        case .placed(let id):
+            if let placement = garden.placements.first(where: { $0.id == id }), let item = GardenCatalog.item(withID: placement.item) {
+                resource = item.resource; height = item.height; footprint = item.footprint.applying(turned: carryTurned)
+                shadowWidth = item.castsShadow ? min(iso.tileW * 0.62 * CGFloat(max(footprint.cols, footprint.rows)), iso.tileW * 1.3) : nil
+            }
+        case .fresh(let id):
+            if let item = GardenCatalog.item(withID: id) {
+                resource = item.resource; height = item.height; footprint = item.footprint.applying(turned: carryTurned)
+                shadowWidth = item.castsShadow ? min(iso.tileW * 0.62 * CGFloat(max(footprint.cols, footprint.rows)), iso.tileW * 1.3) : nil
+            }
+        case .companion(let petID):
+            if let pet = Pet.all.first(where: { $0.id == petID }) {
+                resource = pet.iconResource; height = GardenCatalog.companionHeight(for: petID)
+            }
+        }
+        guard let resource else { return }
+        let feet: NSPoint
+        if target.valid {
+            let ground = iso.point(col: Double(target.origin.col) + Double(footprint.cols) / 2, row: Double(target.origin.row) + Double(footprint.rows) / 2)
+            feet = NSPoint(x: ground.x, y: ground.y + iso.tileH * Self.feetOffset)
+        } else {
+            feet = carryFeet
+        }
+        guard let made = entity(kind: .placed(UUID()), resource: resource, referenceHeight: height, feet: feet, shadowWidth: shadowWidth,
+                                turned: carryTurned && { if case .companion = current { return false } else { return true } }(),
+                                depth: 0, iso: iso) else { return }
+        drawEntity(made, alpha: target.valid ? 0.95 : 0.6, lift: 6)
     }
 
     private func drawChip(_ rect: NSRect, fill: NSColor, stroke: NSColor) {
@@ -468,7 +871,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
         edge.stroke()
         text("Da mettere", in: NSRect(x: 18, y: band.minY + 14, width: 100, height: 26), font: Paper.markerFont(19))
         let items = trayItems()
-        text(items.isEmpty ? "niente per ora" : "trascina nel prato", in: NSRect(x: 18, y: band.minY + 42, width: 100, height: 28),
+        text(items.isEmpty ? "niente per ora" : "trascina sull'isola", in: NSRect(x: 18, y: band.minY + 42, width: 100, height: 28),
              font: NSFont.systemFont(ofSize: 11), color: Paper.inkLight)
         let layout = trayLayout()
         NSGraphicsContext.saveGraphicsState()
@@ -477,13 +880,6 @@ final class GardenView: NSView, NSViewToolTipOwner {
             drawTrayCell(cell.item, count: cell.count, in: cell.rect)
         }
         NSGraphicsContext.restoreGraphicsState()
-        // trascinando una copia del prato sulla cassetta: la si toglie (torna qui)
-        if case .placed? = carry, carryMoved, band.contains(carryPointer) {
-            Paper.accent.withAlphaComponent(0.16).setFill()
-            band.fill()
-            text("Rilascia per toglierla", in: NSRect(x: band.minX, y: band.midY - 14, width: band.width, height: 28),
-                 font: Paper.markerFont(22), color: Paper.accentPressed, alignment: .center)
-        }
     }
 
     private func drawTrayPill() {
@@ -555,13 +951,29 @@ final class GardenView: NSView, NSViewToolTipOwner {
             trayMouseDown(at: p)
             return
         }
+        if let button = zoomButtonRects().first(where: { $0.rect.contains(p) }) {
+            button.action()
+            return
+        }
         guard sceneRect.contains(p), let found = entity(at: p) else {
+            // sullo sfondo: due tocchi ingrandiscono (o, già ingrandita, rimettono tutta l'isola), trascinando ci si sposta
+            if event.clickCount == 2 {
+                if zoom > 1.05 { resetCamera() } else { zoom(by: 1.8, at: p) }
+            } else {
+                panning = true
+                panLast = p
+                NSCursor.closedHand.set()
+            }
             needsDisplay = true
             return
         }
         switch found.kind {
-        case .placed(let id): carry = .placed(id)
-        case .companion(let petID): carry = .companion(petID)
+        case .placed(let id):
+            carry = .placed(id)
+            carryTurned = garden.placements.first(where: { $0.id == id })?.turned ?? false
+        case .companion(let petID):
+            carry = .companion(petID)
+            carryTurned = false
         }
         carryGrab = NSSize(width: found.feet.x - p.x, height: found.feet.y - p.y)
         carryFeet = found.feet
@@ -575,20 +987,27 @@ final class GardenView: NSView, NSViewToolTipOwner {
             needsDisplay = true
             return
         }
-        // Si prende una copia: un tocco la mette nel prato, trascinando la si mette dove si lascia.
+        // Si prende una copia: un tocco la mette sull'isola, trascinando la si mette dove si lascia.
         carry = .fresh(cell.item.id)
+        carryTurned = false
         carryGrab = .zero
         carryFeet = p
         needsDisplay = true
     }
 
     override func mouseDragged(with event: NSEvent) {
+        if panning {
+            let q = convert(event.locationInWindow, from: nil)
+            movePan(by: NSPoint(x: q.x - panLast.x, y: q.y - panLast.y))
+            panLast = q
+            return
+        }
         guard carry != nil else { return }
         let p = convert(event.locationInWindow, from: nil)
         carryPointer = p
         if !carryMoved, hypot(p.x - carryStart.x, p.y - carryStart.y) > 4 {
             carryMoved = true
-            if case .fresh? = carry { trayOpen = false }      // presa una copia, la fascia si toglie di mezzo: il davanti del prato è libero
+            if case .fresh? = carry { trayOpen = false }      // presa una copia, la fascia si toglie di mezzo: il davanti dell'isola è libero
         }
         if carryMoved {
             NSCursor.closedHand.set()
@@ -598,60 +1017,99 @@ final class GardenView: NSView, NSViewToolTipOwner {
     }
 
     override func mouseUp(with event: NSEvent) {
+        if panning {
+            panning = false
+            NSCursor.arrow.set()
+            return
+        }
         guard let current = carry else { return }
         let p = convert(event.locationInWindow, from: nil)
-        let overTray = trayVisible && trayRect.contains(p)
-        let landing = spot(for: carryFeet)
+        let overTray = removeZoneRect.contains(p) && isCarryingPlaced
+        let target = carryTarget()
+        let wasMoved = carryMoved
         carry = nil
+        carryMoved = false
         NSCursor.arrow.set()
         switch current {
         case .placed(let id):
-            if carryMoved {
-                if overTray { garden.remove(id) } else { garden.move(id, to: landing) }
+            if wasMoved {
+                if overTray {
+                    garden.remove(id)
+                } else if let target, target.valid {
+                    garden.move(id, to: target.origin, turned: carryTurned)
+                } else if sceneRect.contains(p) {
+                    flash("Lì non ci sta: serve una tessera libera, fuori dal sentiero.")
+                }
             }
         case .companion(let petID):
-            if carryMoved {
-                if !overTray { garden.setCompanionSpot(petID, to: landing) }
+            if wasMoved {
+                if !overTray, let target, target.valid {
+                    garden.setCompanionTile(petID, to: target.origin)
+                    walkers[petID] = Walker(from: target.origin, to: target.origin, progress: 1, rest: 3)
+                }
             } else {
                 speak(petID)
             }
         case .fresh(let id):
-            if !carryMoved {
-                garden.place(id, at: GardenScene.defaultPlacementSpot(salt: garden.placements.count + id.count))
-            } else if sceneRect.contains(p) {
-                garden.place(id, at: landing)
+            if !wasMoved {
+                if garden.placeSomewhere(id) == nil { flash("Non c'è più posto sull'isola: togli qualcosa, o completa una doppia pagina dell'album per allargarla.") }
+            } else if let target, target.valid {
+                garden.place(id, at: target.origin, turned: carryTurned)
+            } else if sceneRect.contains(p), !overTray {
+                flash("Lì non ci sta: serve una tessera libera, fuori dal sentiero.")
             }
         }
-        carryMoved = false
+        carryTurned = false
         needsDisplay = true
     }
 
     override func scrollWheel(with event: NSEvent) {
         let p = convert(event.locationInWindow, from: nil)
-        guard trayVisible, trayRect.contains(p), maxTrayScroll > 0 else {
-            super.scrollWheel(with: event)
+        if trayVisible, trayRect.contains(p) {
+            guard maxTrayScroll > 0 else { return }
+            let delta = abs(event.scrollingDeltaX) > abs(event.scrollingDeltaY) ? event.scrollingDeltaX : -event.scrollingDeltaY
+            trayScroll = min(max(trayScroll + delta * (event.hasPreciseScrollingDeltas ? 1 : 8), 0), maxTrayScroll)
+            needsDisplay = true
             return
         }
-        let delta = abs(event.scrollingDeltaX) > abs(event.scrollingDeltaY) ? event.scrollingDeltaX : -event.scrollingDeltaY
-        trayScroll = min(max(trayScroll + delta * (event.hasPreciseScrollingDeltas ? 1 : 8), 0), maxTrayScroll)
-        needsDisplay = true
+        let factor: CGFloat = event.hasPreciseScrollingDeltas ? 1 : 8
+        if event.modifierFlags.contains(.command) || event.modifierFlags.contains(.option) {
+            // con ⌘ (o ⌥) la rotella ingrandisce
+            zoom(by: exp(event.scrollingDeltaY * factor * 0.01), at: p)
+        } else {
+            movePan(by: NSPoint(x: event.scrollingDeltaX * factor, y: event.scrollingDeltaY * factor))
+        }
     }
 
-    /// Un clic con il tasto destro su una copia: toglierla dal prato.
+    /// Il pizzico sul trackpad ingrandisce attorno al mouse.
+    override func magnify(with event: NSEvent) {
+        zoom(by: 1 + event.magnification, at: convert(event.locationInWindow, from: nil))
+    }
+
+    /// Un clic con il tasto destro su una copia: girarla o toglierla dall'isola.
     override func menu(for event: NSEvent) -> NSMenu? {
         let p = convert(event.locationInWindow, from: nil)
         guard sceneRect.contains(p), let found = entity(at: p), case .placed(let id) = found.kind else { return nil }
         let menu = NSMenu()
-        let item = NSMenuItem(title: "Togli dal giardino", action: #selector(removeFromMenu(_:)), keyEquivalent: "")
-        item.representedObject = id
-        item.target = self
-        menu.addItem(item)
+        let turn = NSMenuItem(title: "Gira", action: #selector(turnFromMenu(_:)), keyEquivalent: "")
+        turn.representedObject = id
+        turn.target = self
+        menu.addItem(turn)
+        let remove = NSMenuItem(title: "Togli dal giardino", action: #selector(removeFromMenu(_:)), keyEquivalent: "")
+        remove.representedObject = id
+        remove.target = self
+        menu.addItem(remove)
         return menu
     }
 
     @objc private func removeFromMenu(_ sender: NSMenuItem) {
         guard let id = sender.representedObject as? UUID else { return }
         garden.remove(id)
+    }
+
+    @objc private func turnFromMenu(_ sender: NSMenuItem) {
+        guard let id = sender.representedObject as? UUID else { return }
+        if !garden.rotate(id) { flash("Girata non ci sta: c'è qualcosa accanto.") }
     }
 
     private func speak(_ petID: String) {
@@ -676,13 +1134,13 @@ final class GardenController {
     var onShowAlbum: (() -> Void)?
 
     /// Quanto rimpicciolire il giardino perché ci stia nello schermo (1 = a grandezza piena).
-    static func scale(forScreenWidth width: CGFloat) -> CGFloat {
-        min(1, max((width - 40) / GardenView.sceneSize.width, 0.5))
+    static func scale(forScreenWidth width: CGFloat, height: CGFloat = .greatestFiniteMagnitude) -> CGFloat {
+        min(1, max(min((width - 40) / GardenView.sceneSize.width, (height - 90) / GardenView.sceneSize.height), 0.5))
     }
 
     func show() {
         if window == nil {
-            let scale = Self.scale(forScreenWidth: NSScreen.main?.visibleFrame.width ?? 1440)
+            let scale = Self.scale(forScreenWidth: NSScreen.main?.visibleFrame.width ?? 1440, height: NSScreen.main?.visibleFrame.height ?? 900)
             let size = NSSize(width: GardenView.sceneSize.width * scale, height: GardenView.sceneSize.height * scale)
             let view = GardenView(log: .shared, garden: .shared, profile: .shared)
             let window = NSWindow(
@@ -711,6 +1169,7 @@ final class GardenController {
         window?.title = Profile.shared.gardenTitle      // se nel frattempo è cambiato il nome
         // Chi aveva il giardino della versione 1: i punti non spesi diventano figurine, e l'album si apre a mostrarle.
         let gifts = Garden.shared.openPendingGifts()
+        view?.resetCamera()
         view?.reload()
         view?.announceGifts(gifts.count)
         NSApp.activate(ignoringOtherApps: true)
