@@ -659,7 +659,14 @@ final class AlbumView: NSView {
 enum MeadowBackdrop {
     private static var cache: [String: NSImage] = [:]
 
-    private static var meadowURL: URL? { Bundle.main.url(forResource: "giardino_prato", withExtension: "png") }
+    /// Lo sfondo: il paesaggio con il lago (assets/giardino/sfondo.png, da `tools/prepara_sfondo.py`); in mancanza, il vecchio prato dipinto.
+    private static var meadowURL: URL? {
+        Bundle.main.url(forResource: "giardino_sfondo", withExtension: "png") ?? Bundle.main.url(forResource: "giardino_prato", withExtension: "png")
+    }
+
+    /// Dove sta il casale nello sfondo nuovo e quanto è piccolo: il fumo e la luce delle finestre si adattano. Con il vecchio prato dipinto il casale
+    /// è più grande, e questi numeri sono quelli di allora.
+    private static var hasLandscape: Bool { Bundle.main.url(forResource: "giardino_sfondo", withExtension: "png") != nil }
 
     /// Sul tavolo marrone i comandi sotto il libro sono dorati, sul prato scuri.
     static var isDark: Bool { meadowURL == nil }
@@ -701,8 +708,12 @@ enum MeadowBackdrop {
     }
 
     /// Dove stanno, nel disegno del prato, la bocca del camino e le finestre del casale (frazioni dell'immagine).
-    static let chimney = (u: 0.305, v: 0.229)
-    static let windows = [(u: 0.376, v: 0.346), (u: 0.310, v: 0.440)]
+    static var chimney: (u: Double, v: Double) { hasLandscape ? (0.1336, 0.3111) : (0.305, 0.229) }
+    static var windows: [(u: Double, v: Double)] {
+        hasLandscape ? [(0.0921, 0.3576), (0.1114, 0.3904), (0.1263, 0.3916), (0.1456, 0.3564)] : [(0.376, 0.346), (0.310, 0.440)]
+    }
+    /// Quanto è grande il casale rispetto a quello vecchio (fumo e finestre).
+    static var houseScale: CGFloat { hasLandscape ? 0.5 : 1 }
 
     /// Disegna lo sfondo (nella vista capovolta: l'origine è in alto).
     /// `veil`: il velo di colore che si stende sopra (di norma uno caldo; il giardino ne usa uno per stagione).

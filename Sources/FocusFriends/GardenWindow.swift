@@ -629,7 +629,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
     override func draw(_ dirtyRect: NSRect) {
         NSGraphicsContext.current?.imageInterpolation = .high
         let sky = skyState()
-        MeadowBackdrop.draw(in: sceneRect, blur: 5, veil: palette(sky.season).veil)
+        MeadowBackdrop.draw(in: sceneRect, blur: 2, veil: palette(sky.season).veil)
         let iso = self.iso
         let target = carryTarget()
         drawChimneySmoke(season: sky.season)
@@ -878,9 +878,10 @@ final class GardenView: NSView, NSViewToolTipOwner {
             let puff = GardenSky.smoke(index: index, time: time, wind: wind)
             let a = min(CGFloat(puff.alpha * amount) * 1.5, 0.8)
             guard a > 0.01 else { continue }
-            let c = NSPoint(x: mouth.x + CGFloat(puff.dx), y: mouth.y + CGFloat(puff.dy))
+            let k = MeadowBackdrop.houseScale
+            let c = NSPoint(x: mouth.x + CGFloat(puff.dx) * k, y: mouth.y + CGFloat(puff.dy) * k)
             NSGradient(colors: [color.withAlphaComponent(a), color.withAlphaComponent(a * 0.55), color.withAlphaComponent(0)])?
-                .draw(fromCenter: c, radius: 0, toCenter: c, radius: CGFloat(puff.radius) * 1.7, options: [])
+                .draw(fromCenter: c, radius: 0, toCenter: c, radius: CGFloat(puff.radius) * 1.7 * k, options: [])
         }
     }
 
@@ -898,7 +899,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
         for window in MeadowBackdrop.windows {
             guard let c = MeadowBackdrop.scenePoint(u: window.u, v: window.v, in: Self.sceneSize) else { continue }
             NSGradient(colors: [warm.withAlphaComponent(0.8 * strength), warm.withAlphaComponent(0.25 * strength), warm.withAlphaComponent(0)])?
-                .draw(fromCenter: c, radius: 0, toCenter: c, radius: 20, options: [])
+                .draw(fromCenter: c, radius: 0, toCenter: c, radius: 20 * MeadowBackdrop.houseScale * 0.55, options: [])
         }
         NSGraphicsContext.restoreGraphicsState()
     }

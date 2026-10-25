@@ -1264,6 +1264,12 @@ check(edgeLeft.allSatisfy { (0..<GardenTerrain.edgeCount).contains($0) } && edge
 check(zip(edgeLeft, edgeLeft.dropFirst()).allSatisfy { $0 != $1 } && zip(edgeRight, edgeRight.dropFirst()).allSatisfy { $0 != $1 }, "mai due uguali di seguito")
 check(edgeLeft != edgeRight && Set(edgeLeft).count == 3 && GardenTerrain.edgeSequence(face: 0, count: 5) == Array(edgeLeft.prefix(5)), "i due lati sono diversi, e allungandosi non cambia l'inizio")
 
+// ---------------------------------------------------------------- giardino: lo sfondo
+section("Giardino: lo sfondo")
+check(FileManager.default.fileExists(atPath: "assets/giardino/sfondo.png") && FileManager.default.fileExists(atPath: "assets/giardino/prato.png"), "lo sfondo nuovo e il vecchio prato ci sono")
+check(["abete-grande", "abete-piccolo", "albero-alto", "albero-piccolo", "albero-tondo", "casale", "cespuglio-grande", "cespuglio-piccolo", "siepe-arancio", "siepe-rosa", "steccato", "tronchi"]
+        .allSatisfy { FileManager.default.fileExists(atPath: "assets/giardino/paesaggio_\($0).png") }, "i dodici pezzi del paesaggio sono ritagliati")
+
 // ---------------------------------------------------------------- da fare
 section("Da fare: giorni e testi")
 check(ToDoDay.isValid("2026-10-23") && ToDoDay.isValid("2028-02-29"), "giorni che esistono")
