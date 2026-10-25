@@ -26,6 +26,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         Migration.run()
 
+        // Il giardino e l'album si preparano in silenzio (decodificare le immagini e finire gli sfondi costa qualche secondo): quando si aprono è già pronto.
+        DispatchQueue.global(qos: .utility).async { GardenView.warmUp() }
+
         // Nessuna icona nel Dock, nessuna finestra "normale".
         NSApp.setActivationPolicy(.accessory)
 

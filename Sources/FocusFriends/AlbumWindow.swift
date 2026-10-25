@@ -226,7 +226,7 @@ final class AlbumView: NSView {
     }
 
     override func draw(_ dirtyRect: NSRect) {
-        if !capturing { MeadowBackdrop.draw(in: bounds) }
+        if !capturing { MeadowBackdrop.draw(in: bounds, scale: window?.backingScaleFactor ?? 2) }
         switch mode {
         case .cover: drawCover()
         case .opening: break
@@ -657,39 +657,40 @@ final class AlbumView: NSView {
 /// Lo sfondo dietro il libro e dietro l'isola del giardino: il prato (assets/giardino/prato.png) che riempie la finestra centrato sul casale,
 /// con una luce calda sopra e i bordi appena scuriti perché il resto resti il protagonista. Se il disegno manca, un tavolo marrone.
 enum MeadowBackdrop {
-    private static var cache: [String: NSImage] = [:]
+    private static let lock = NSLock()
+    private static var cache: [String: CGImage] = [:]
+    private static var rendered: [String: CGImage] = [:]
+    private static let ciContext = CIContext()
 
     /// Lo sfondo: il paesaggio con il lago (assets/giardino/sfondo.png, da `tools/prepara_sfondo.py`); in mancanza, il vecchio prato dipinto.
-    private static var meadowURL: URL? {
-        Bundle.main.url(forResource: "giardino_sfondo", withExtension: "png") ?? Bundle.main.url(forResource: "giardino_prato", withExtension: "png")
-    }
+    private static let landscapeURL = Bundle.main.url(forResource: "giardino_sfondo", withExtension: "png")
+    private static let meadowURL: URL? = landscapeURL ?? Bundle.main.url(forResource: "giardino_prato", withExtension: "png")
 
     /// Dove sta il casale nello sfondo nuovo e quanto è piccolo: il fumo e la luce delle finestre si adattano. Con il vecchio prato dipinto il casale
     /// è più grande, e questi numeri sono quelli di allora.
-    private static var hasLandscape: Bool { Bundle.main.url(forResource: "giardino_sfondo", withExtension: "png") != nil }
+    private static let hasLandscape = landscapeURL != nil
 
     /// Sul tavolo marrone i comandi sotto il libro sono dorati, sul prato scuri.
-    static var isDark: Bool { meadowURL == nil }
+    static let isDark = meadowURL == nil
 
     static var base: NSColor {
         isDark ? NSColor(calibratedRed: 0.24, green: 0.17, blue: 0.12, alpha: 1) : NSColor(calibratedRed: 0.62, green: 0.75, blue: 0.55, alpha: 1)
     }
 
     /// Il prato a misura della finestra (al doppio dei punti, per gli schermi retina), preso al 40 % da sinistra, sfocato di `blur` punti.
-    private static func meadow(size: NSSize, blur: CGFloat) -> NSImage? {
+    private static func meadow(size: NSSize, blur: CGFloat) -> CGImage? {
         let key = "\(Int(size.width))x\(Int(size.height))-\(blur)"
         if let known = cache[key] { return known }
-        guard let url = meadowURL, let source = NSImage(contentsOf: url), let tiff = source.tiffRepresentation, let picture = CIImage(data: tiff) else { return nil }
+        guard let url = meadowURL, let picture = CIImage(contentsOf: url) else { return nil }
         let target = CGSize(width: size.width * 2, height: size.height * 2)
         let scale = max(target.width / picture.extent.width, target.height / picture.extent.height)
         var scaled = picture.transformed(by: CGAffineTransform(scaleX: scale, y: scale))
         let crop = CGRect(x: (scaled.extent.width - target.width) * 0.40, y: 0, width: target.width, height: target.height)
         if blur > 0 { scaled = scaled.clampedToExtent().applyingGaussianBlur(sigma: Double(blur * 2)) }
         let image = scaled.cropped(to: crop).transformed(by: CGAffineTransform(translationX: -crop.minX, y: -crop.minY))
-        guard let cg = CIContext().createCGImage(image, from: CGRect(origin: .zero, size: target)) else { return nil }
-        let result = NSImage(cgImage: cg, size: size)
-        cache[key] = result
-        return result
+        guard let cg = ciContext.createCGImage(image, from: CGRect(origin: .zero, size: target)) else { return nil }
+        cache[key] = cg
+        return cg
     }
 
     private static func rgb(_ r: CGFloat, _ g: CGFloat, _ b: CGFloat, _ a: CGFloat = 1) -> NSColor { NSColor(calibratedRed: r, green: g, blue: b, alpha: a) }
@@ -715,16 +716,50 @@ enum MeadowBackdrop {
     /// Quanto è grande il casale rispetto a quello vecchio (fumo e finestre).
     static var houseScale: CGFloat { hasLandscape ? 0.5 : 1 }
 
+    /// Lo sfondo finito (immagine, velo e bordi scuriti) alla grandezza e alla scala (pixel per punto) volute, già pronto: ridisegnarlo ogni volta
+    /// costava più di tutto il resto del giardino. Si può preparare anche in un altro thread (prima che serva), e due richieste uguali non si fanno due volte.
+    static func rendered(size: NSSize, scale: CGFloat, blur: CGFloat, veil: NSColor?, colorSpace: CGColorSpace? = nil) -> CGImage? {
+        lock.lock()
+        defer { lock.unlock() }
+        let space = colorSpace ?? GardenDisplay.colorSpace()
+        let veilColor = (veil ?? rgb(1, 0.96, 0.86, 0.16)).usingColorSpace(.deviceRGB)
+        let veilKey = veilColor.map { "\($0.redComponent),\($0.greenComponent),\($0.blueComponent),\($0.alphaComponent)" } ?? "-"
+        let key = "\(Int(size.width))x\(Int(size.height))@\(scale)-\(blur)-\(veilKey)-\(GardenDisplay.name(space))"
+        if let known = rendered[key] { return known }
+        guard let context = CGContext(data: nil, width: Int(size.width * scale), height: Int(size.height * scale), bitsPerComponent: 8, bytesPerRow: 0,
+                                      space: space,
+                                      bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue) else { return nil }
+        context.scaleBy(x: scale, y: -scale)
+        context.translateBy(x: 0, y: -size.height)
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = NSGraphicsContext(cgContext: context, flipped: true)
+        NSGraphicsContext.current?.imageInterpolation = .high
+        paint(in: NSRect(origin: .zero, size: size), blur: blur, veil: veilColor)
+        NSGraphicsContext.restoreGraphicsState()
+        let image = context.makeImage()
+        if let image { rendered[key] = image }
+        return image
+    }
+
     /// Disegna lo sfondo (nella vista capovolta: l'origine è in alto).
-    /// `veil`: il velo di colore che si stende sopra (di norma uno caldo; il giardino ne usa uno per stagione).
-    static func draw(in bounds: NSRect, blur: CGFloat = 0, veil: NSColor? = nil) {
+    /// `veil`: il velo di colore che si stende sopra (di norma uno caldo; il giardino ne usa uno per stagione). `scale`: i pixel per punto dello schermo.
+    static func draw(in bounds: NSRect, blur: CGFloat = 0, veil: NSColor? = nil, scale: CGFloat = 2) {
+        if let image = rendered(size: bounds.size, scale: scale, blur: blur, veil: veil) {
+            GardenBlit.draw(image, in: bounds, copy: true)
+        } else {
+            paint(in: bounds, blur: blur, veil: veil)
+        }
+    }
+
+    private static func paint(in bounds: NSRect, blur: CGFloat, veil: NSColor?) {
         base.setFill()
         bounds.fill()
         guard let picture = meadow(size: bounds.size, blur: blur) else {
             NSGradient(colors: [rgb(0.36, 0.26, 0.18), base])?.draw(in: bounds, relativeCenterPosition: NSPoint(x: 0, y: 0.2))
             return
         }
-        picture.draw(in: bounds, from: .zero, operation: .sourceOver, fraction: 1, respectFlipped: true, hints: [.interpolation: NSImageInterpolation.high])
+        NSImage(cgImage: picture, size: bounds.size).draw(in: bounds, from: .zero, operation: .sourceOver, fraction: 1, respectFlipped: true,
+                                                          hints: [.interpolation: NSImageInterpolation.high])
         (veil ?? rgb(1, 0.96, 0.86, 0.16)).setFill()
         bounds.fill()
         NSGradient(colors: [rgb(0.15, 0.20, 0.10, 0), rgb(0.15, 0.20, 0.10, 0.30)])?.draw(in: bounds, relativeCenterPosition: NSPoint(x: 0, y: 0))

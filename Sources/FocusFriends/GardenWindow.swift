@@ -60,6 +60,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
     private var walkTimer: Timer?
     private var lastWalkTick = Date()
     private var skyTicks = 0
+    private var frameTick = 0
     private var lastSky: SkyState?
 
     private let albumButton: PillIconButton
@@ -192,6 +193,12 @@ final class GardenView: NSView, NSViewToolTipOwner {
             origin = NSPoint(x: center.x + (scene.width / 2 - center.x) * zoom + pan.x, y: center.y + (Self.top - center.y) * zoom + pan.y)
         }
 
+        init(size: Int, tileW: CGFloat, origin: NSPoint) {
+            self.size = size
+            self.tileW = tileW
+            self.origin = origin
+        }
+
         var tileH: CGFloat { tileW / 2 }
         /// L'altezza del lato di terra, in proporzione alle tessere.
         var edge: CGFloat { max(tileW * 0.26, 8) }
@@ -213,6 +220,9 @@ final class GardenView: NSView, NSViewToolTipOwner {
     }
 
     private var iso: Iso { Iso(size: garden.islandSize, scene: Self.sceneSize, zoom: zoom, pan: pan) }
+
+    /// I pixel per punto dello schermo su cui sta la finestra.
+    private var backingScale: CGFloat { window?.backingScaleFactor ?? NSScreen.main?.backingScaleFactor ?? 2 }
 
     // MARK: - La vista: zoom e spostamenti
 
@@ -309,6 +319,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
     private struct Entity {
         var kind: Kind
         var sprite: GardenSprite
+        var resource = ""
         var feet: NSPoint
         var rect: NSRect
         var shadow: NSRect?
@@ -333,7 +344,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
             let shadowHeight = max(shadowWidth * 0.34, 5)
             shadow = NSRect(x: feet.x - shadowWidth / 2, y: feet.y - shadowHeight * 0.55, width: shadowWidth, height: shadowHeight)
         }
-        return Entity(kind: kind, sprite: sprite, feet: feet, rect: rect, shadow: shadow, turned: turned, depth: depth)
+        return Entity(kind: kind, sprite: sprite, resource: resource, feet: feet, rect: rect, shadow: shadow, turned: turned, depth: depth)
     }
 
     /// Dove sta un compagno in questo momento (cammina da una tessera all'altra).
@@ -437,7 +448,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
     private func startWalking() {
         walkTimer?.invalidate()
         lastWalkTick = Date()
-        let timer = Timer(timeInterval: 1.0 / 24, repeats: true) { [weak self] _ in
+        let timer = Timer(timeInterval: 1.0 / 30, repeats: true) { [weak self] _ in
             guard let self, let window = self.window, window.isVisible, window.occlusionState.contains(.visible) else { return }
             let elapsed = min(Date().timeIntervalSince(self.lastWalkTick), 0.2)
             self.lastWalkTick = Date()
@@ -450,7 +461,9 @@ final class GardenView: NSView, NSViewToolTipOwner {
                 if light != self.lastSky { changed = true }
                 self.lastSky = light
             }
-            if walking || changed || self.skyIsAnimated() { self.needsDisplay = true }
+            // a 30 al secondo se si cammina, a 15 se si muove solo l'aria (vento, fumo, neve): basta, e costa la metà
+            self.frameTick += 1
+            if walking || changed || (self.frameTick % 2 == 0 && self.skyIsAnimated()) { self.needsDisplay = true }
         }
         RunLoop.main.add(timer, forMode: .common)
         walkTimer = timer
@@ -629,11 +642,11 @@ final class GardenView: NSView, NSViewToolTipOwner {
     override func draw(_ dirtyRect: NSRect) {
         NSGraphicsContext.current?.imageInterpolation = .high
         let sky = skyState()
-        MeadowBackdrop.draw(in: sceneRect, blur: 2, veil: palette(sky.season).veil)
         let iso = self.iso
         let target = carryTarget()
-        drawChimneySmoke(season: sky.season)
-        drawIslandGround(iso, season: sky.season)
+        currentTint = GardenTint(multiplier: sky.light.multiplier)
+        drawStaticScene(iso, season: sky.season, light: sky.light)
+        drawChimneySmoke(season: sky.season, iso: iso)
         drawHighlight(target, iso: iso)
         let laid = entities()
         for entity in laid {
@@ -641,8 +654,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
             if let spot = entity.water { drawWater(entity, spot: spot, light: sky.light) }
         }
         drawGhost(target, iso: iso)
-        drawWeather(sky.season)
-        applyLight(sky.light)
+        drawWeather(sky.season, light: sky.light)
         drawLampGlows(laid, iso: iso, light: sky.light)
         drawCottageWindows(light: sky.light, iso: iso)
         drawFireflies(season: sky.season, light: sky.light)
@@ -689,7 +701,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
         var veil: NSColor
     }
 
-    private func palette(_ season: Season) -> Palette {
+    private static func palette(_ season: Season) -> Palette {
         switch season {
         case .spring:
             return Palette(grassA: (160, 204, 120), grassB: (152, 197, 112), pathA: (226, 208, 170), pathB: (218, 199, 160),
@@ -706,22 +718,39 @@ final class GardenView: NSView, NSViewToolTipOwner {
         }
     }
 
+    /// Prepara in anticipo quello che serve al primo disegno del giardino e dell'album (le immagini del terreno e degli oggetti, già decodificate, e gli
+    /// sfondi già finiti): si chiama all'avvio, fuori dal thread principale, così quando si apre la finestra non c'è da aspettare.
+    static func warmUp() {
+        _ = grassImages; _ = pathImages; _ = edgeImages; _ = darkEdgeImages; _ = decalImages
+        for item in GardenCatalog.items { _ = GardenSprites.sprite(item.resource) }
+        for pet in Pet.all { _ = GardenSprites.sprite(pet.iconResource) }
+        let scale = NSScreen.main?.backingScaleFactor ?? 2
+        _ = MeadowBackdrop.rendered(size: sceneSize, scale: scale, blur: 2, veil: palette(Season.of(Date())).veil)
+        _ = MeadowBackdrop.rendered(size: AlbumView.size, scale: scale, blur: 0, veil: nil)
+    }
+
     /// L'ora del cielo e degli effetti, in secondi (un banco di prova la può fissare).
     var effectsClock: () -> Double = { CACurrentMediaTime() }
 
     /// Petali, foglie o neve che cadono, a seconda della stagione.
-    private func drawWeather(_ season: Season) {
+    private func drawWeather(_ season: Season, light: GardenLight) {
         guard let kind = GardenSky.particleKind(season), !reduceMotion else { return }
         let time = effectsClock()
         let leafColors = [Self.color(214, 120, 50), Self.color(190, 84, 44), Self.color(226, 168, 60), Self.color(150, 104, 52)]
         for index in 0..<GardenSky.particleCount(kind) {
             let p = GardenSky.particle(kind: kind, index: index, time: time, width: Double(sceneW), height: Double(sceneH))
             let size = CGFloat(p.size)
-            let color: NSColor
+            var color: NSColor
             switch kind {
             case .petal: color = p.tone < 0.5 ? Self.color(255, 196, 214, p.alpha) : Self.color(255, 238, 242, p.alpha)
             case .leaf: color = leafColors[min(Int(p.tone * Double(leafColors.count)), leafColors.count - 1)].withAlphaComponent(CGFloat(p.alpha))
             case .snow: color = NSColor.white.withAlphaComponent(CGFloat(p.alpha) * 0.9)
+            }
+            // la luce del momento (sono sopra la scena, che è già tinta)
+            let m = light.multiplier
+            if let rgb = color.usingColorSpace(.deviceRGB) {
+                color = NSColor(calibratedRed: rgb.redComponent * CGFloat(m.red / 255), green: rgb.greenComponent * CGFloat(m.green / 255),
+                                blue: rgb.blueComponent * CGFloat(m.blue / 255), alpha: rgb.alphaComponent)
             }
             color.setFill()
             if kind == .snow {
@@ -817,19 +846,14 @@ final class GardenView: NSView, NSViewToolTipOwner {
         let time = effectsClock()
         let wind = GardenSky.wind(skyState().season)
         let amplitude = CGFloat(entity.sway * wind) * 2.6 * iso.tileW / 94
-        let strips = 14
-        let source = entity.sprite.source
-        for index in 0..<strips {
-            let top = CGFloat(index) / CGFloat(strips), bottom = CGFloat(index + 1) / CGFloat(strips)
-            let height = 1 - Double(top + bottom) / 2
-            let dx = CGFloat(GardenSky.sway(time: time, col: entity.tile.col, row: entity.tile.row, seed: entity.seed, height: height)) * amplitude
-            let overlap: CGFloat = index == strips - 1 ? 0 : 0.8
-            let target = NSRect(x: rect.minX + dx, y: rect.minY + top * rect.height, width: rect.width, height: (bottom - top) * rect.height + overlap)
-            let overlapInSource = overlap / rect.height * source.height
-            let piece = NSRect(x: source.minX, y: source.minY + (1 - bottom) * source.height - overlapInSource, width: source.width,
-                               height: (bottom - top) * source.height + overlapInSource)
-            entity.sprite.image.draw(in: target, from: piece, operation: .sourceOver, fraction: alpha, respectFlipped: true,
-                                     hints: [.interpolation: NSImageInterpolation.high])
+        let scale = backingScale
+        let pixelWidth = max(1, Int((rect.width * scale).rounded())), pixelHeight = max(1, Int((rect.height * scale).rounded()))
+        let strips = GardenSprites.strips(entity.sprite, resource: entity.resource, pixelWidth: pixelWidth, pixelHeight: pixelHeight, count: 12, tint: currentTint)
+        for strip in strips {
+            let middle = (Double(strip.firstRow) + Double(strip.image.height) / 2) / Double(pixelHeight)
+            let dx = CGFloat(GardenSky.sway(time: time, col: entity.tile.col, row: entity.tile.row, seed: entity.seed, height: 1 - middle)) * amplitude
+            let target = NSRect(x: rect.minX + dx, y: rect.minY + CGFloat(strip.firstRow) / scale, width: rect.width, height: CGFloat(strip.image.height) / scale)
+            GardenBlit.draw(strip.image, in: target, alpha: alpha)
         }
     }
 
@@ -868,9 +892,16 @@ final class GardenView: NSView, NSViewToolTipOwner {
     }
 
     /// Il fumo che esce dal camino del casale (sullo sfondo, dietro l'isola): sbuffi chiari che salgono e si piegano col vento.
-    private func drawChimneySmoke(season: Season) {
+    private func drawChimneySmoke(season: Season, iso: Iso) {
         let amount = GardenSky.smokeAmount(season)
         guard amount > 0.01, let mouth = MeadowBackdrop.scenePoint(u: MeadowBackdrop.chimney.u, v: MeadowBackdrop.chimney.v, in: Self.sceneSize) else { return }
+        // il fumo sta dietro l'isola: non si disegna sopra di lei
+        NSGraphicsContext.saveGraphicsState()
+        defer { NSGraphicsContext.restoreGraphicsState() }
+        let clip = NSBezierPath(rect: sceneRect.insetBy(dx: -20, dy: -20))
+        clip.append(islandOutline(iso))
+        clip.windingRule = .evenOdd
+        clip.addClip()
         let time = reduceMotion ? 3 : effectsClock()
         let wind = GardenSky.wind(season)
         let color = Self.color(226, 222, 224)
@@ -945,7 +976,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
     /// Le dodici tessere d'erba disegnate (rombi 2:1, già pronte da `tools/cutout_tessere.py`); se ne manca una, si disegna l'erba a mano.
     private static var grassImages: [NSImage]? = {
         let images = (1...GardenTerrain.grassCount).compactMap { index in
-            Bundle.main.url(forResource: "giardino_tessera_erba_\(index)", withExtension: "png").flatMap { NSImage(contentsOf: $0) }
+            GardenSprites.loadImage("giardino_tessera_erba_\(index)")
         }
         return images.count == GardenTerrain.grassCount ? images : nil
     }()
@@ -953,7 +984,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
     /// Le otto tessere del sentiero.
     private static var pathImages: [NSImage]? = {
         let images = (1...GardenTerrain.pathCount).compactMap { index in
-            Bundle.main.url(forResource: "giardino_tessera_sentiero_\(index)", withExtension: "png").flatMap { NSImage(contentsOf: $0) }
+            GardenSprites.loadImage("giardino_tessera_sentiero_\(index)")
         }
         return images.count == GardenTerrain.pathCount ? images : nil
     }()
@@ -962,7 +993,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
     private static let edgeLip: CGFloat = 24, edgeBody: CGFloat = 110, edgeFade: CGFloat = 30
     private static var edgeImages: [NSImage]? = {
         let images = (1...GardenTerrain.edgeCount).compactMap { index in
-            Bundle.main.url(forResource: "giardino_bordo_\(index)", withExtension: "png").flatMap { NSImage(contentsOf: $0) }
+            GardenSprites.loadImage("giardino_bordo_\(index)")
         }
         return images.count == GardenTerrain.edgeCount ? images : nil
     }()
@@ -1017,7 +1048,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
     /// I ventiquattro dettagli da spargere (ciuffi, fiori, sassi, foglie, petali, neve).
     private static var decalImages: [NSImage]? = {
         let images = (1...GardenTerrain.decalCount).compactMap { index in
-            Bundle.main.url(forResource: "giardino_dettaglio_\(index)", withExtension: "png").flatMap { NSImage(contentsOf: $0) }
+            GardenSprites.loadImage("giardino_dettaglio_\(index)")
         }
         return images.count == GardenTerrain.decalCount ? images : nil
     }()
@@ -1026,7 +1057,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
 
     /// Disegna il terreno (ombra, lati, tessere); `carrying`: la griglia si vede di più mentre si trascina.
     private func paintIslandGround(_ iso: Iso, season: Season, carrying: Bool) {
-        let pal = palette(season)
+        let pal = Self.palette(season)
         let grassGrid = Self.grassGrids[iso.size] ?? { let grid = GardenTerrain.grassGrid(size: iso.size); Self.grassGrids[iso.size] = grid; return grid }()
         let pathTiles = GardenIsland.pathTiles(size: iso.size)
         let pathIndex = Dictionary(uniqueKeysWithValues: pathTiles.enumerated().map { ($1, $0) })
@@ -1144,32 +1175,86 @@ final class GardenView: NSView, NSViewToolTipOwner {
         }
     }
 
-    /// Il terreno, da un disegno già pronto finché non cambia niente (l'isola, lo zoom, la stagione, la griglia): disegnare le tessere ad
-    /// ogni fotogramma costerebbe molto di più che copiare un'immagine.
-    private var groundCache: (key: String, image: CGImage)?
+    private struct GroundCache {
+        var key: String
+        var image: CGImage
+        var box: NSSize
+        /// Dove sta, dentro l'immagine, il vertice in alto dell'isola.
+        var origin: NSPoint
+    }
 
-    private func drawIslandGround(_ iso: Iso, season: Season) {
+    private var groundCache: GroundCache?
+
+    private var sceneCache: (key: String, image: CGImage)?
+
+    /// Lo sfondo e il terreno insieme, già pronti: finché non cambia niente (l'isola, lo zoom, la posizione, la stagione, la griglia) basta copiare
+    /// un'immagine sola, che è molto meno che copiarne due con la trasparenza. Quando ci si sposta si rifà ad ogni fotogramma, ed è come prima.
+    private func drawStaticScene(_ iso: Iso, season: Season, light: GardenLight) {
+        let scale = backingScale
+        let space = GardenDisplay.colorSpace(window)
         let carrying = carry != nil && carryMoved
-        let scale = window?.backingScaleFactor ?? 2
-        let key = "\(iso.size)|\(iso.tileW)|\(iso.origin.x)|\(iso.origin.y)|\(season.rawValue)|\(carrying)|\(scale)"
-        if groundCache?.key != key {
-            groundCache = nil
-            let width = Int(sceneW * scale), height = Int(sceneH * scale)
-            if let cg = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0, space: CGColorSpace(name: CGColorSpace.sRGB)!,
+        let tint = GardenTint(multiplier: light.multiplier)
+        let key = "\(iso.size)|\(Int(iso.tileW * 100))|\(Int(iso.origin.x * 4)),\(Int(iso.origin.y * 4))|\(season.rawValue)|\(carrying)|\(scale)|\(GardenDisplay.name(space))|"
+            + "\(tint.red),\(tint.green),\(tint.blue),\(Int(light.darkness * 40))"
+        if sceneCache?.key != key {
+            sceneCache = nil
+            if let cg = CGContext(data: nil, width: Int(sceneW * scale), height: Int(sceneH * scale), bitsPerComponent: 8, bytesPerRow: 0, space: space,
                                   bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue) {
                 cg.scaleBy(x: scale, y: -scale)
                 cg.translateBy(x: 0, y: -sceneH)
                 NSGraphicsContext.saveGraphicsState()
                 NSGraphicsContext.current = NSGraphicsContext(cgContext: cg, flipped: true)
                 NSGraphicsContext.current?.imageInterpolation = .high
-                paintIslandGround(iso, season: season, carrying: carrying)
+                MeadowBackdrop.draw(in: sceneRect, blur: 2, veil: Self.palette(season).veil, scale: scale)
+                drawIslandGround(iso, season: season)
+                applyLight(light)
                 NSGraphicsContext.restoreGraphicsState()
-                if let image = cg.makeImage() { groundCache = (key, image) }
+                if let image = cg.makeImage() { sceneCache = (key, image) }
             }
         }
-        if let cached = groundCache?.image {
-            NSImage(cgImage: cached, size: Self.sceneSize).draw(in: sceneRect, from: .zero, operation: .sourceOver, fraction: 1, respectFlipped: true,
-                                                                hints: [.interpolation: NSImageInterpolation.high])
+        if let cached = sceneCache {
+            GardenBlit.draw(cached.image, in: sceneRect, copy: true)
+        } else {
+            MeadowBackdrop.draw(in: sceneRect, blur: 2, veil: Self.palette(season).veil, scale: scale)
+            drawIslandGround(iso, season: season)
+            applyLight(light)
+        }
+    }
+
+    /// La tinta con cui si disegnano oggetti e compagni in questo momento (la luce è già dentro lo sfondo e il terreno).
+    private var currentTint = GardenTint.none
+
+    /// Il terreno, da un disegno già pronto (solo il rettangolo che lo contiene) finché non cambia niente tranne la posizione: spostarsi non lo rifà,
+    /// lo sposta soltanto. Si rifà con l'isola, lo zoom, la stagione o la griglia che si accende. Disegnare le tessere ad ogni fotogramma costerebbe
+    /// molto di più che copiare un'immagine.
+    private func drawIslandGround(_ iso: Iso, season: Season) {
+        let carrying = carry != nil && carryMoved
+        let scale = backingScale
+        let space = GardenDisplay.colorSpace(window)
+        let key = "\(iso.size)|\(Int(iso.tileW * 100))|\(season.rawValue)|\(carrying)|\(scale)|\(GardenDisplay.name(space))"
+        if groundCache?.key != key {
+            groundCache = nil
+            let n = CGFloat(iso.size)
+            let margin: CGFloat = 40
+            let top = iso.tileW * 0.6 + 20
+            let box = NSSize(width: n * iso.tileW + 2 * margin, height: n * iso.tileH + iso.edge + top + margin)
+            let origin = NSPoint(x: box.width / 2, y: top)
+            if let cg = CGContext(data: nil, width: Int(box.width * scale), height: Int(box.height * scale), bitsPerComponent: 8, bytesPerRow: 0,
+                                  space: space,
+                                  bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue) {
+                cg.scaleBy(x: scale, y: -scale)
+                cg.translateBy(x: 0, y: -box.height)
+                NSGraphicsContext.saveGraphicsState()
+                NSGraphicsContext.current = NSGraphicsContext(cgContext: cg, flipped: true)
+                NSGraphicsContext.current?.imageInterpolation = .high
+                paintIslandGround(Iso(size: iso.size, tileW: iso.tileW, origin: origin), season: season, carrying: carrying)
+                NSGraphicsContext.restoreGraphicsState()
+                if let image = cg.makeImage() { groundCache = GroundCache(key: key, image: image, box: box, origin: origin) }
+            }
+        }
+        if let cached = groundCache {
+            let target = NSRect(x: iso.origin.x - cached.origin.x, y: iso.origin.y - cached.origin.y, width: cached.box.width, height: cached.box.height)
+            GardenBlit.draw(cached.image, in: target)
         } else {
             paintIslandGround(iso, season: season, carrying: carrying)
         }
@@ -1205,6 +1290,9 @@ final class GardenView: NSView, NSViewToolTipOwner {
         }
         if entity.sway > 0, lift == 0, !reduceMotion {
             drawSwaying(entity, rect: rect, alpha: alpha)
+        } else if let scaled = GardenSprites.scaled(entity.sprite, resource: entity.resource, pixelWidth: max(1, Int((rect.width * backingScale).rounded())),
+                                                    pixelHeight: max(1, Int((rect.height * backingScale).rounded())), tint: currentTint) {
+            GardenBlit.draw(scaled, in: rect, alpha: alpha)
         } else {
             entity.sprite.image.draw(in: rect, from: entity.sprite.source, operation: .sourceOver, fraction: alpha,
                                      respectFlipped: true, hints: [.interpolation: NSImageInterpolation.high])
