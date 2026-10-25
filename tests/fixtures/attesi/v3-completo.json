@@ -625,6 +625,11 @@
         "y" : 0.94999999999999996
       }
     },
+    "contatori" : {
+      "dalLeggendario" : 7,
+      "dalRaro" : 0,
+      "niente" : 0
+    },
     "copie" : [
       {
         "oggetto" : "margherite",
@@ -640,22 +645,91 @@
         "oggetto" : "panchina",
         "x" : 0.96999999999999997,
         "y" : 0.56000000000000005
+      },
+      {
+        "oggetto" : "casetta-porcellino",
+        "x" : 0.64800000000000002,
+        "y" : 0.93899999999999995
+      },
+      {
+        "oggetto" : "tiragraffi",
+        "x" : 0.78700000000000003,
+        "y" : 0.75900000000000001
+      },
+      {
+        "oggetto" : "cesto-cuscino",
+        "x" : 0.27200000000000002,
+        "y" : 0.63700000000000001
+      },
+      {
+        "oggetto" : "lampione",
+        "x" : 0.23999999999999999,
+        "y" : 0.751
+      },
+      {
+        "oggetto" : "erbe",
+        "x" : 0.26000000000000001,
+        "y" : 0.82799999999999996
+      },
+      {
+        "oggetto" : "bandierine",
+        "x" : 0.80700000000000005,
+        "y" : 0.80800000000000005
+      },
+      {
+        "oggetto" : "cancelletto",
+        "x" : 0.5,
+        "y" : 0.66000000000000003
       }
     ],
+    "daMettere" : {
+      "erba-alta" : 1,
+      "mughetti" : 1,
+      "trifoglio" : 1,
+      "tulipani" : 1
+    },
     "oggettiUsabili" : [
       "margherite",
       "trifoglio",
       "erba-alta",
       "mughetti",
       "tulipani",
-      "lavanda"
-    ],
-    "saldo" : 7,
-    "sbloccatiConPunti" : [
       "lavanda",
-      "tulipani"
+      "erbe",
+      "cesto-cuscino",
+      "tiragraffi",
+      "casetta-porcellino",
+      "bandierine",
+      "cancelletto",
+      "panchina",
+      "lampione"
     ],
-    "speso" : 5
+    "regaliAperti" : 7,
+    "regaliTrovati" : [
+      "casetta-porcellino",
+      "tiragraffi",
+      "cesto-cuscino",
+      "lampione",
+      "erbe",
+      "bandierine",
+      "cancelletto"
+    ],
+    "trovati" : {
+      "bandierine" : 1,
+      "cancelletto" : 1,
+      "casetta-porcellino" : 1,
+      "cesto-cuscino" : 1,
+      "erba-alta" : 1,
+      "erbe" : 1,
+      "lampione" : 1,
+      "lavanda" : 1,
+      "margherite" : 1,
+      "mughetti" : 1,
+      "panchina" : 1,
+      "tiragraffi" : 1,
+      "trifoglio" : 1,
+      "tulipani" : 1
+    }
   },
   "profilo" : {
     "avvisi" : [

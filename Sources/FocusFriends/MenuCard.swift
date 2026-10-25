@@ -51,6 +51,10 @@ struct MenuCardState {
     var lastRating: FocusRating?
     /// Le cose da fare (la pagina «Da fare»).
     var todo = ToDoCardState()
+    /// L'album delle figurine: quante se ne hanno, quante ce ne sono e quante sono nuove (non ancora viste).
+    var albumFound = 0
+    var albumTotal = 0
+    var albumNew = 0
 }
 
 /// Quello che serve ogni secondo mentre la scheda è aperta: poco, perché il resto (statistiche, serie, compagni)
@@ -70,6 +74,7 @@ struct MenuCardActions {
     var selectPet: (Pet) -> Void
     var showStats: () -> Void
     var showGarden: () -> Void
+    var showAlbum: () -> Void
     var cycleChattiness: () -> Void
     var toggleMovement: () -> Void
     var toggleAsk: () -> Void
@@ -424,6 +429,11 @@ private final class MenuCardView: NSView {
         }
         y = addOption(symbol: "checklist", title: "Da fare", value: s.todo.openCount > 0 ? "\(s.todo.openCount)" : nil, toggle: nil, y: y, close: false) {
             self.page = .todo
+        }
+        y = addOption(symbol: "book.closed", title: "Album", value: s.albumTotal > 0
+                      ? "\(s.albumFound)/\(s.albumTotal)" + (s.albumNew > 0 ? " · \(s.albumNew) \(s.albumNew == 1 ? "nuova" : "nuove")" : "") : nil,
+                      toggle: nil, y: y, close: true) {
+            self.actions.showAlbum()
         }
         y = addOption(symbol: s.isPetVisible ? "eye.slash" : "eye",
                       title: s.isPetVisible ? "Nascondi \(s.pet.name)" : "Mostra \(s.pet.name)",

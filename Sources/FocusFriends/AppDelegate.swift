@@ -8,6 +8,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var menu: MenuController?
     private let introCard = IntroCard()
     private let reflectionCard = ReflectionCard()
+    private let giftCard = GiftCard()
     /// Quando il computer è andato in sleep (per salutare al risveglio) e gli ascoltatori di sleep e risveglio.
     private var sleptAt: Date?
     private var powerObservers: [NSObjectProtocol] = []
@@ -40,6 +41,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         SessionLog.shared.onProblem = { [weak speaker] in speaker?.say($0) }
         Profile.shared.onProblem = { [weak speaker] in speaker?.say($0) }
         Garden.shared.onProblem = { [weak speaker] in speaker?.say($0) }
+        // Chi aveva il giardino della versione 1: i punti non spesi diventano figurine da aprire (una volta sola).
+        Garden.shared.convertLegacyPoints(earned: GardenPoints.earned(sessions: SessionLog.shared.sessions, now: Date()))
         ToDoList.shared.onProblem = { [weak speaker] in speaker?.say($0) }
         AmbientPlayer.shared.onStartFailure = { [weak speaker] in
             speaker?.say("Non riesco ad avviare l'audio: il suono ambiente non si sente.")
@@ -72,7 +75,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Ogni tanto, al posto di una frase a caso, una delle frasi «quando rendi meglio» (mai due volte di fila la stessa, mai durante un focus).
         var lastInsight: String?
         // Il fumetto non va sopra la scheda «Com'è andata?» (che può anche essere spostata).
-        speaker.obstacles = { [weak self] in self?.reflectionCard.visibleFrame.map { [$0] } ?? [] }
+        speaker.obstacles = { [weak self] in
+            [self?.reflectionCard.visibleFrame, self?.giftCard.frame].compactMap { $0 }
+        }
         speaker.insight = { [weak self, weak pomodoro] in
             guard let self, pomodoro?.phase != .focus,
                   let text = Remarks.insight(self.remarksContext(), variant: Int.random(in: 0..<10)), text != lastInsight else { return nil }
@@ -94,6 +99,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         })
         // A fine focus: "com'è andata?" (se non l'hai spenta dal menu) e, se il focus era partito da una voce di «Da fare» ancora da fare,
         // «Hai finito «…»?» (anche con «com'è andata» spento). Sparisce da sola quando il timer riparte o si ferma.
+        // La figurina trovata a fine focus compare accanto al compagno.
+        pomodoro.onGift = { [weak self, weak window] gift in
+            guard case .found(let drop) = gift, let window else { return }
+            self?.giftCard.show(drop: drop, near: window)
+        }
         pomodoro.onFocusRecorded = { [weak self, weak window, weak speaker, weak pomodoro] session, todoID in
             self?.menu?.evaluateCompanionRewards(announce: true)
             // Un traguardo (giorni di fila, focus, ore, «un mese insieme»): detto dopo la frase di fine focus.

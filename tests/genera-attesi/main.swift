@@ -277,21 +277,30 @@ for entry in try fm.contentsOfDirectory(atPath: fixtures.path).sorted() {
     }
     _ = profile
 
-    // ---- giardino
+    // ---- giardino (versione 2: l'album; un file della versione 1 si porta avanti, e i punti non spesi diventano regali)
     if has("giardino.json") {
-        let g = Garden(directory: tmp)
+        // Su una copia: il giardino della versione 1 si riscrive (e tiene da parte l'originale), e i file dopo non devono cambiare.
+        let gardenTmp = fm.temporaryDirectory.appendingPathComponent("ff-attesi-giardino-\(UUID().uuidString)")
+        try fm.createDirectory(at: gardenTmp, withIntermediateDirectories: true)
+        try fm.copyItem(at: tmp.appendingPathComponent("giardino.json"), to: gardenTmp.appendingPathComponent("giardino.json"))
+        defer { try? fm.removeItem(at: gardenTmp) }
+        let g = Garden(directory: gardenTmp)
         var problems: [String] = []
         g.onProblem = { problems.append(normalized($0)) }
+        if !sessions.isEmpty {
+            g.convertLegacyPoints(earned: GardenPoints.earned(sessions: sessions, now: now, calendar: cal))
+        }
+        let pending = g.pendingGifts
+        let opened = g.openPendingGifts()
         var part: [String: Any] = [
-            "sbloccatiConPunti": Array(g.unlocked).sorted(), "speso": g.spent, "avvisi": problems,
+            "trovati": g.drops.found, "regaliAperti": pending, "regaliTrovati": opened.map { $0.item },
+            "contatori": ["niente": g.drops.nothingInARow, "dalRaro": g.drops.sinceRare, "dalLeggendario": g.drops.sinceLegendary],
+            "avvisi": problems,
             "copie": g.placements.map { ["oggetto": $0.item, "x": r($0.x), "y": r($0.y)] as [String: Any] },
             "compagni": g.companionSpots.mapValues { ["x": r($0.x), "y": r($0.y)] },
-            "oggettiUsabili": GardenCatalog.items.filter { g.isUnlocked($0.id) }.map { $0.id },
+            "oggettiUsabili": GardenCatalog.items.filter { g.isFound($0.id) }.map { $0.id },
         ]
-        if !sessions.isEmpty {
-            let earned = GardenPoints.earned(sessions: sessions, now: now, calendar: cal)
-            part["saldo"] = GardenPoints.balance(earned: earned, spent: g.spent)
-        }
+        part["daMettere"] = GardenCatalog.items.reduce(into: [String: Int]()) { if g.available($1.id) > 0 { $0[$1.id] = g.available($1.id) } }
         result["giardino"] = part
     }
 

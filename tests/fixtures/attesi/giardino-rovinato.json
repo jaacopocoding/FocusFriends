@@ -2,27 +2,44 @@
   "adesso" : "2026-10-14T20:00 Europe/Rome",
   "cartella" : "giardino-rovinato",
   "fileDopo" : [
-    "giardino.corrotto-<epoch>.json"
+    "giardino.json"
   ],
   "giardino" : {
     "avvisi" : [
-      "Il file del giardino era rovinato: l'ho messo da parte come giardino.corrotto-<epoch>.json."
+
     ],
     "compagni" : {
 
     },
+    "contatori" : {
+      "dalLeggendario" : 0,
+      "dalRaro" : 0,
+      "niente" : 0
+    },
     "copie" : [
 
     ],
+    "daMettere" : {
+      "erba-alta" : 1,
+      "margherite" : 1,
+      "mughetti" : 1,
+      "trifoglio" : 1
+    },
     "oggettiUsabili" : [
       "margherite",
       "trifoglio",
       "erba-alta",
       "mughetti"
     ],
-    "sbloccatiConPunti" : [
+    "regaliAperti" : 0,
+    "regaliTrovati" : [
 
     ],
-    "speso" : 0
+    "trovati" : {
+      "erba-alta" : 1,
+      "margherite" : 1,
+      "mughetti" : 1,
+      "trifoglio" : 1
+    }
   }
 }

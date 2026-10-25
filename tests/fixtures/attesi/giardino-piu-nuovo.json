@@ -11,9 +11,21 @@
     "compagni" : {
 
     },
+    "contatori" : {
+      "dalLeggendario" : 0,
+      "dalRaro" : 0,
+      "niente" : 0
+    },
     "copie" : [
 
     ],
+    "daMettere" : {
+      "erba-alta" : 1,
+      "margherite" : 1,
+      "mughetti" : 1,
+      "rosaio" : 1,
+      "trifoglio" : 1
+    },
     "oggettiUsabili" : [
       "margherite",
       "trifoglio",
@@ -21,9 +33,16 @@
       "mughetti",
       "rosaio"
     ],
-    "sbloccatiConPunti" : [
-      "rosaio"
+    "regaliAperti" : 0,
+    "regaliTrovati" : [
+
     ],
-    "speso" : 8
+    "trovati" : {
+      "erba-alta" : 1,
+      "margherite" : 1,
+      "mughetti" : 1,
+      "rosaio" : 1,
+      "trifoglio" : 1
+    }
   }
 }

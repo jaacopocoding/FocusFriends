@@ -28,6 +28,8 @@ final class MenuController: NSObject, NSMenuDelegate {
     private let dashboard = DashboardController()
     private let garden = GardenController()
     private let gardenItem = NSMenuItem()
+    private let album = AlbumController()
+    private let albumItem = NSMenuItem()
     private let nameItem = NSMenuItem()
     private var card: MenuCard!
 
@@ -80,6 +82,12 @@ final class MenuController: NSObject, NSMenuDelegate {
         gardenItem.target = self
         gardenItem.image = Self.symbol("leaf")
         menu.addItem(gardenItem)
+
+        albumItem.title = "Il mio album…"
+        albumItem.action = #selector(showAlbum)
+        albumItem.target = self
+        albumItem.image = Self.symbol("book.closed")
+        menu.addItem(albumItem)
 
         let ambientItem = makeAmbientItem()
         menu.addItem(ambientItem)
@@ -149,6 +157,8 @@ final class MenuController: NSObject, NSMenuDelegate {
                         actions: cardActions())
         dashboard.onBack = { [weak self] in self?.returnToMenu() }
         garden.onBack = { [weak self] in self?.returnToMenu() }
+        garden.onShowAlbum = { [weak self] in self?.showAlbum() }
+        album.onBack = { [weak self] in self?.returnToMenu() }
         statusItem.button?.target = self
         statusItem.button?.action = #selector(statusItemClicked(_:))
         statusItem.button?.sendAction(on: [.leftMouseUp, .rightMouseUp])
@@ -422,6 +432,7 @@ final class MenuController: NSObject, NSMenuDelegate {
         }
         statsItem.title = Profile.shared.statsTitle + "…"
         gardenItem.title = Profile.shared.gardenTitle + "…"
+        albumItem.title = Profile.shared.albumTitle + "…"
         petParent?.title = "Personaggio · \(name)"
         pomofocusItem.title = pomodoro.isRunning ? "Pomofocus · \(pomodoro.remainingText)" : "Pomofocus"
         chattinessParent.title = "Frequenza delle frasi · \(Chattiness.current.title)"
@@ -576,7 +587,8 @@ final class MenuController: NSObject, NSMenuDelegate {
             notes: pomodoro.notes, background: background, backgroundVolume: background == .music
                 ? MusicPlayer.shared.volume : AmbientPlayer.shared.volume,
             lastFocusMinutes: pomodoro.lastFocus?.minutes, lastFocusSubject: pomodoro.lastFocus?.subject,
-            lastSessionID: lastSession?.id, lastRating: lastSession?.rating, todo: todo
+            lastSessionID: lastSession?.id, lastRating: lastSession?.rating, todo: todo,
+            albumFound: Garden.shared.foundCount, albumTotal: GardenCatalog.items.count, albumNew: Garden.shared.unseen.count
         )
     }
 
@@ -588,6 +600,7 @@ final class MenuController: NSObject, NSMenuDelegate {
             selectPet: { [weak self] in self?.selectPet($0) },
             showStats: { [weak self] in self?.showStats() },
             showGarden: { [weak self] in self?.showGarden() },
+            showAlbum: { [weak self] in self?.showAlbum() },
             cycleChattiness: { [weak self] in self?.cycleChattiness() },
             toggleMovement: { Walker.isMovementEnabled.toggle() },
             toggleAsk: { ReflectionCard.isEnabled.toggle() },
@@ -695,6 +708,10 @@ final class MenuController: NSObject, NSMenuDelegate {
 
     @objc private func showGarden() {
         garden.show()
+    }
+
+    @objc private func showAlbum() {
+        album.show()
     }
 
     @objc private func startBreak(_ sender: NSMenuItem) {

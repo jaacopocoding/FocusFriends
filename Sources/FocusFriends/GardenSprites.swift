@@ -1,0 +1,80 @@
+import AppKit
+
+/// Un'immagine del giardino (un oggetto, un compagno) con la parte che si vede davvero e una griglia per capire dove cade un clic.
+struct GardenSprite {
+    let image: NSImage
+    /// La parte che non è trasparente, in coordinate dell'immagine (origine in basso a sinistra).
+    let source: NSRect
+    /// Una griglia grossolana dei punti disegnati (dall'alto in basso), per capire se un clic cade sull'oggetto
+    /// e non sul vuoto dentro il suo rettangolo (un arco, le bandierine).
+    let mask: [Bool]
+    let columns: Int
+    let rows: Int
+    var aspect: CGFloat { source.width / max(source.height, 1) }
+
+    /// C'è qualcosa di disegnato in (u, v), dentro la parte visibile (v dall'alto), o a una cella di distanza?
+    func isDrawn(u: CGFloat, v: CGFloat) -> Bool {
+        guard columns > 0, rows > 0, !mask.isEmpty else { return true }
+        let column = Int((u * CGFloat(columns)).rounded(.down)), row = Int((v * CGFloat(rows)).rounded(.down))
+        for r in max(row - 1, 0)...min(row + 1, rows - 1) {
+            for c in max(column - 1, 0)...min(column + 1, columns - 1) where mask[r * columns + c] { return true }
+        }
+        return false
+    }
+}
+
+/// Le immagini del giardino, lette e analizzate una volta sola.
+enum GardenSprites {
+    private static var cache: [String: GardenSprite] = [:]
+
+    static func sprite(_ resource: String) -> GardenSprite? {
+        if let known = cache[resource] { return known }
+        guard let url = Bundle.main.url(forResource: resource, withExtension: "png"),
+              let image = NSImage(contentsOf: url) else { return nil }
+        let made = analyze(image)
+        cache[resource] = made
+        return made
+    }
+
+    /// Cerca i pixel non trasparenti: i compagni hanno un bordo vuoto intorno, e i piedi devono stare dove dice il
+    /// prato, non dove finisce l'immagine. Ne ricava anche la griglia dei punti disegnati (per i clic).
+    private static func analyze(_ image: NSImage) -> GardenSprite {
+        let full = GardenSprite(image: image, source: NSRect(origin: .zero, size: image.size), mask: [], columns: 0, rows: 0)
+        guard let cg = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return full }
+        let w = cg.width, h = cg.height
+        guard w > 0, h > 0 else { return full }
+        var data = [UInt8](repeating: 0, count: w * h * 4)
+        let drawn = data.withUnsafeMutableBytes { buffer -> Bool in
+            guard let context = CGContext(data: buffer.baseAddress, width: w, height: h, bitsPerComponent: 8, bytesPerRow: w * 4,
+                                          space: CGColorSpaceCreateDeviceRGB(),
+                                          bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return false }
+            context.draw(cg, in: CGRect(x: 0, y: 0, width: w, height: h))
+            return true
+        }
+        guard drawn else { return full }
+        let threshold: UInt8 = 24
+        var minX = w, maxX = -1, minY = h, maxY = -1
+        for y in 0..<h {
+            for x in 0..<w where data[(y * w + x) * 4 + 3] > threshold {
+                minX = min(minX, x); maxX = max(maxX, x); minY = min(minY, y); maxY = max(maxY, y)
+            }
+        }
+        guard maxX >= minX, maxY >= minY else { return full }
+        let boxW = maxX - minX + 1, boxH = maxY - minY + 1
+        // La griglia dei clic: al massimo 64 celle sul lato lungo.
+        let long = 64
+        let columns = boxW >= boxH ? long : max(1, Int((Double(long) * Double(boxW) / Double(boxH)).rounded()))
+        let rows = boxH > boxW ? long : max(1, Int((Double(long) * Double(boxH) / Double(boxW)).rounded()))
+        var mask = [Bool](repeating: false, count: columns * rows)
+        for y in minY...maxY {
+            let row = min((y - minY) * rows / boxH, rows - 1)
+            for x in minX...maxX where data[(y * w + x) * 4 + 3] > threshold {
+                mask[row * columns + min((x - minX) * columns / boxW, columns - 1)] = true
+            }
+        }
+        // La memoria parte dalla riga in alto: nell'immagine l'origine è in basso.
+        let sx = image.size.width / CGFloat(w), sy = image.size.height / CGFloat(h)
+        let source = NSRect(x: CGFloat(minX) * sx, y: CGFloat(h - 1 - maxY) * sy, width: CGFloat(boxW) * sx, height: CGFloat(boxH) * sy)
+        return GardenSprite(image: image, source: source, mask: mask, columns: columns, rows: rows)
+    }
+}

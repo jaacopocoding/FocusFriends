@@ -828,45 +828,75 @@ let drops = (0..<9).map { GardenScene.defaultPlacementSpot(salt: $0) }
 check(Set(drops.map { "\($0.x)-\($0.y)" }).count > 4 && drops.allSatisfy { GardenScene.clamped($0) == $0 }, "i posti sfalsati")
 check(GardenCatalog.companionHeight(for: "gattino") > 0 && GardenCatalog.companionHeight(for: "sconosciuto") == 100, "altezze dei compagni")
 
-// ---------------------------------------------------------------- giardino: sblocchi e copie
-section("Giardino: sblocchi e copie")
+// le pagine dell'album: sei figurine per pagina, una sezione per volta
+let albumSpreads = GardenAlbum.spreads()
+check(albumSpreads.count == 3 && albumSpreads.allSatisfy { $0.right != nil && $0.left.items.count == 6 && $0.right!.items.count == 6 },
+      "36 oggetti: tre doppie pagine da dodici, una per sezione")
+check(albumSpreads.map { $0.left.category } == GardenCategory.allCases && albumSpreads.flatMap { $0.left.items + ($0.right?.items ?? []) }.map { $0.id } == GardenCatalog.items.map { $0.id },
+      "nell'ordine del catalogo (i numeri non cambiano)")
+let albumExtra = GardenCatalog.items + (0..<3).map { GardenItem(id: "extra\($0)", name: "Extra", category: .furniture, height: 50, price: 3) }
+let albumLonger = GardenAlbum.spreads(catalog: albumExtra)
+check(albumLonger.count == 4 && albumLonger[3].left.items.count == 3 && albumLonger[3].right == nil, "una sezione più lunga: una doppia pagina in più, con la pagina di destra vuota")
+check(GardenCatalog.number(of: "margherite") == 1 && GardenCatalog.number(of: "arco-rose") == 36 && GardenCatalog.number(of: "no") == nil, "i numeri delle figurine")
+
+// ---------------------------------------------------------------- giardino: l'album e le copie
+section("Giardino: l'album e le copie")
 UserDefaults.standard.removeObject(forKey: Profile.developerKey)
 let gardenDir = tempDirectory()
 let garden = Garden(directory: gardenDir)
-check(garden.placements.isEmpty && garden.spent == 0 && garden.unlocked.isEmpty, "all'inizio è vuoto")
-check(garden.isUnlocked("margherite") && !garden.isUnlocked("rosaio") && !garden.isUnlocked("inesistente"), "i gratuiti ci sono, gli altri no")
-check(!garden.unlock("rosaio", balance: 7) && garden.spent == 0, "con 7 punti il rosaio (8) non si sblocca")
-check(garden.unlock("rosaio", balance: 8) && garden.isUnlocked("rosaio") && garden.spent == 8, "con 8 sì, e si spendono")
-check(!garden.unlock("rosaio", balance: 99) && garden.spent == 8, "già sbloccato: non si spende due volte")
-check(!garden.unlock("margherite", balance: 99) && garden.spent == 8, "un gratuito non costa niente")
-check(garden.place("lampione", at: GardenSpot(x: 0.5, y: 0.7)) == nil, "bloccato: non si mette")
-let first = garden.place("margherite", at: GardenSpot(x: 0.4, y: 0.7))
-check(first != nil && garden.placements.count == 1 && garden.count(of: "margherite") == 1, "una copia nel prato")
-for i in 0..<9 { _ = garden.place("margherite", at: GardenSpot(x: 0.1 + 0.05 * Double(i), y: 0.8)) }
-check(garden.count(of: "margherite") == 10, "se ne possono avere quante se ne vuole: dieci margherite")
-let wild = garden.place("rosaio", at: GardenSpot(x: -2, y: 7))
-check(wild?.x == GardenScene.lawn.minX && wild?.y == GardenScene.lawn.maxY, "fuori dal prato lo riporta dentro")
-if let first { garden.move(first.id, to: GardenSpot(x: 0.9, y: 0.6)) }
-check(garden.placements.first(where: { $0.id == first?.id })?.spot == GardenSpot(x: 0.9, y: 0.6), "spostata")
-if let first { garden.remove(first.id) }
-check(garden.count(of: "margherite") == 9 && garden.spent == 8, "tolta una copia: i punti spesi non tornano e l'oggetto resta tuo")
-check(garden.isUnlocked("rosaio"), "l'oggetto sbloccato resta sbloccato anche senza copie")
+check(garden.foundCount == 4 && garden.placements.count == 4 && garden.copies(of: "margherite") == 1 && garden.pendingGifts == 0, "all'inizio c'è la dotazione, già nel prato")
+check(garden.isFound("margherite") && !garden.isFound("rosaio") && !garden.isFound("inesistente"), "la dotazione è nell'album, gli altri no")
+check(garden.place("lampione", at: GardenSpot(x: 0.5, y: 0.7)) == nil, "non trovato: non si mette")
+check(garden.available("margherite") == 0 && garden.place("margherite", at: GardenSpot(x: 0.4, y: 0.7)) == nil, "tutte le copie sono già nel prato: non se ne mettono di più")
+let firstDaisy = garden.placements.first { $0.item == "margherite" }
+if let firstDaisy { garden.remove(firstDaisy.id) }
+check(garden.count(of: "margherite") == 0 && garden.available("margherite") == 1 && garden.copies(of: "margherite") == 1, "tolta dal prato, la copia torna nell'album")
+let backDaisy = garden.place("margherite", at: GardenSpot(x: -2, y: 7))
+check(backDaisy?.x == GardenScene.lawn.minX && backDaisy?.y == GardenScene.lawn.maxY, "rimessa fuori dal prato: la riporta dentro")
+if let backDaisy { garden.move(backDaisy.id, to: GardenSpot(x: 0.9, y: 0.6)) }
+check(garden.placements.first(where: { $0.id == backDaisy?.id })?.spot == GardenSpot(x: 0.9, y: 0.6), "spostata")
 garden.setCompanionSpot("gattino", to: GardenSpot(x: 0.5, y: 0.9))
 check(garden.companionSpot("gattino", index: 3) == GardenSpot(x: 0.5, y: 0.9), "il compagno spostato")
 check(garden.companionSpot("pianty", index: 0) == GardenScene.defaultCompanionSpot(index: 0), "gli altri al posto di partenza")
+
+// i regali: un focus che tira mette la figurina nel prato, una volta sola per focus
+func gardenSession(_ minutes: Int, completed: Bool = true, id: UUID = UUID()) -> StudySession {
+    StudySession(id: id, start: date(2026, 10, 5, 9), localStart: "2026-10-05T09:00", seconds: minutes * 60, plannedMinutes: minutes, completed: completed, subject: nil)
+}
+check(garden.rollGift(for: gardenSession(50, completed: false), streakDays: 1) == .notEligible && garden.rollGift(for: gardenSession(10), streakDays: 1) == .notEligible
+      && garden.drops == GardenDropState.starting(), "un focus interrotto o troppo corto non tira e non cambia niente")
+var gardenFound: GardenDrop?
+var gardenSessions: [StudySession] = []
+for _ in 0..<40 where gardenFound == nil {
+    let session = gardenSession(30)
+    gardenSessions.append(session)
+    let before = garden.placements.count
+    if case .found(let drop) = garden.rollGift(for: session, streakDays: 1) {
+        gardenFound = drop
+        check(garden.placements.count == before + 1 && garden.unseen.contains(drop.item) && garden.copies(of: drop.item) == drop.copies, "una figurina trovata va nel prato e nell'album (NUOVA)")
+    }
+}
+check(gardenFound != nil, "entro quaranta focus esce qualcosa")
+if let last = gardenSessions.last {
+    check(garden.rollGift(for: last, streakDays: 1) == .notEligible, "lo stesso focus non tira due volte")
+}
+garden.markSeen()
+check(garden.unseen.isEmpty, "aperto l'album, non c'è più niente di nuovo")
 let reopenedGarden = Garden(directory: gardenDir)
-check(reopenedGarden.placements == garden.placements && reopenedGarden.unlocked == garden.unlocked
-      && reopenedGarden.spent == 8 && reopenedGarden.companionSpots == garden.companionSpots, "si ricorda alla riapertura")
+check(reopenedGarden.placements == garden.placements && reopenedGarden.drops == garden.drops && reopenedGarden.lastRolled == garden.lastRolled
+      && reopenedGarden.companionSpots == garden.companionSpots, "si ricorda alla riapertura")
 var observed = 0
 garden.addObserver { observed += 1 }
-_ = garden.place("trifoglio", at: GardenSpot(x: 0.5, y: 0.7))
+_ = garden.rollGift(for: gardenSession(30), streakDays: 1)
 check(observed == 1, "chi guarda viene avvisato")
-// il tetto di sicurezza
+// il tetto di sicurezza (con la modalità sviluppatore si possono mettere copie a volontà)
+UserDefaults.standard.set(true, forKey: Profile.developerKey)
 let crowd = Garden(directory: tempDirectory())
 for i in 0..<(Garden.maxPlacements + 20) { _ = crowd.place("erba-alta", at: GardenSpot(x: 0.5, y: 0.7 + Double(i % 10) * 0.01)) }
 check(crowd.placements.count == Garden.maxPlacements, "non più di \(Garden.maxPlacements) copie")
+UserDefaults.standard.removeObject(forKey: Profile.developerKey)
 
-// ---------------------------------------------------------------- giardino: file e modalità sviluppatore
+// ---------------------------------------------------------------- giardino: file, versione 1 e modalità sviluppatore
 section("Giardino: file e sviluppatore")
 let brokenDir = tempDirectory()
 try? "{ non è un giardino".write(to: brokenDir.appendingPathComponent("giardino.json"), atomically: true, encoding: .utf8)
@@ -877,7 +907,7 @@ check(problems.count == 1 && problems[0].contains("giardino.corrotto-"), "il fil
 check(!FileManager.default.fileExists(atPath: brokenDir.appendingPathComponent("giardino.json").path)
       && (try? FileManager.default.contentsOfDirectory(atPath: brokenDir.path))?.contains { $0.hasPrefix("giardino.corrotto-") } == true,
       "la copia c'è")
-check(broken.placements.isEmpty, "e si riparte da vuoto")
+check(broken.foundCount == 4 && broken.placements.count == 4, "e si riparte dalla dotazione")
 let newerGardenDir = tempDirectory()
 let newerGardenFile = newerGardenDir.appendingPathComponent("giardino.json")
 let newerGardenText = "{\"version\": 99, \"unlocked\": [\"rosaio\"], \"spent\": 3, \"placements\": [], \"companions\": {}}"
@@ -885,28 +915,66 @@ try? newerGardenText.write(to: newerGardenFile, atomically: true, encoding: .utf
 let newerGarden = Garden(directory: newerGardenDir)
 var newerGardenProblems: [String] = []
 newerGarden.onProblem = { newerGardenProblems.append($0) }
-check(newerGarden.isUnlocked("rosaio") && newerGarden.spent == 3 && newerGardenProblems.count == 1, "una versione più nuova si legge e si avvisa")
-_ = newerGarden.place("margherite", at: GardenSpot(x: 0.5, y: 0.7))
+check(newerGarden.isFound("rosaio") && newerGardenProblems.count == 1, "una versione più nuova si legge e si avvisa")
+_ = newerGarden.rollGift(for: gardenSession(30), streakDays: 1)
 check((try? String(contentsOf: newerGardenFile, encoding: .utf8)) == newerGardenText, "ma non si riscrive")
+
+// un giardino della versione 1: gli oggetti sbloccati restano, i punti non spesi diventano regali, e il file vecchio si tiene da parte
+let legacyDir = tempDirectory()
+let legacyFile = legacyDir.appendingPathComponent("giardino.json")
+let legacyText = """
+{"version": 1, "unlocked": ["rosaio", "lampione"], "spent": 14,
+ "placements": [{"id": "00000000-0000-4000-8000-000000001001", "item": "margherite", "x": 0.4, "y": 0.7},
+                {"id": "00000000-0000-4000-8000-000000001002", "item": "margherite", "x": 0.5, "y": 0.7},
+                {"id": "00000000-0000-4000-8000-000000001003", "item": "lampione", "x": 0.6, "y": 0.8}],
+ "companions": {"gattino": {"x": 0.5, "y": 0.9}}}
+"""
+try? legacyText.write(to: legacyFile, atomically: true, encoding: .utf8)
+let legacy = Garden(directory: legacyDir)
+check(legacy.copies(of: "rosaio") == 1 && legacy.copies(of: "lampione") == 1 && legacy.copies(of: "margherite") == 2 && legacy.placements.count == 3,
+      "versione 1: gli oggetti sbloccati restano (con le copie che aveva nel prato)")
+check(legacy.isFound("rosaio") && legacy.available("rosaio") == 1 && legacy.available("lampione") == 0, "…e quelle non ancora nel prato sono da mettere")
+check((try? String(contentsOf: legacyFile, encoding: .utf8)) == legacyText, "finché non si cambia niente, il file non si tocca")
+legacy.convertLegacyPoints(earned: 19)
+check(legacy.pendingGifts == 5, "19 punti guadagnati e 14 spesi: cinque regali da aprire")
+check((try? String(contentsOf: legacyDir.appendingPathComponent("giardino-formato1.json"), encoding: .utf8)) == legacyText, "il file della versione 1 si tiene da parte")
+let legacyBefore = legacy.placements.count
+let legacyGifts = legacy.openPendingGifts()
+check(legacyGifts.count == 5 && legacy.pendingGifts == 0 && legacy.placements.count == legacyBefore + 5 && legacy.unseen.count >= 1, "si aprono: cinque figurine, nel prato e «NUOVE»")
+check(Garden(directory: legacyDir).placements.count == legacyBefore + 5 && Garden(directory: legacyDir).pendingGifts == 0, "e restano aperte alla riapertura")
+legacy.convertLegacyPoints(earned: 99)
+check(legacy.pendingGifts == 0, "la conversione dei punti si fa una volta sola")
+let legacyAgain = Garden(directory: tempDirectory())
+legacyAgain.convertLegacyPoints(earned: 50)
+check(legacyAgain.pendingGifts == 0, "un giardino nuovo non ha punti da convertire")
+var legacyTwin = Garden(directory: { let d = tempDirectory(); try? legacyText.write(to: d.appendingPathComponent("giardino.json"), atomically: true, encoding: .utf8); return d }())
+legacyTwin.convertLegacyPoints(earned: 19)
+check(legacyTwin.openPendingGifts().map { $0.item } == legacyGifts.map { $0.item }, "gli stessi punti danno sempre gli stessi regali")
+legacyTwin.convertLegacyPoints(earned: 3)
+let fewPoints = Garden(directory: { let d = tempDirectory(); try? legacyText.write(to: d.appendingPathComponent("giardino.json"), atomically: true, encoding: .utf8); return d }())
+fewPoints.convertLegacyPoints(earned: 5)
+check(fewPoints.pendingGifts == 0, "se i punti guadagnati sono meno di quelli spesi (sessioni cancellate), niente regali")
+
 // una scrittura che non riesce si dice una volta sola
 let gardenBlocker = tempDirectory().appendingPathComponent("occupato")
 try? "x".write(to: gardenBlocker, atomically: true, encoding: .utf8)
 let failing = Garden(directory: gardenBlocker.appendingPathComponent("sotto"))
 var writeProblems: [String] = []
 failing.onProblem = { writeProblems.append($0) }
-_ = failing.place("margherite", at: GardenSpot(x: 0.5, y: 0.7))
-_ = failing.place("margherite", at: GardenSpot(x: 0.6, y: 0.7))
-check(writeProblems.count == 1 && failing.placements.count == 2, "scrittura fallita: un solo avviso, le copie restano in memoria")
-// modalità sviluppatore: tutto sbloccato, senza spendere
+_ = failing.rollGift(for: gardenSession(30), streakDays: 1)
+_ = failing.rollGift(for: gardenSession(30), streakDays: 1)
+check(writeProblems.count == 1, "scrittura fallita: un solo avviso, il resto resta in memoria")
+// modalità sviluppatore: tutto trovato, copie a volontà
 UserDefaults.standard.set(true, forKey: Profile.developerKey)
-check(GardenCatalog.items.allSatisfy { garden.isUnlocked($0.id) }, "sviluppatore: tutto sbloccato")
+check(GardenCatalog.items.allSatisfy { garden.isFound($0.id) }, "sviluppatore: tutto nell'album")
 let devGarden = Garden(directory: tempDirectory())
-check(devGarden.place("arco-rose", at: GardenSpot(x: 0.5, y: 0.7)) != nil && devGarden.spent == 0, "e si può mettere senza spendere")
+check(devGarden.place("arco-rose", at: GardenSpot(x: 0.5, y: 0.7)) != nil && devGarden.place("arco-rose", at: GardenSpot(x: 0.6, y: 0.7)) != nil, "e se ne mettono quanti si vuole")
 UserDefaults.standard.removeObject(forKey: Profile.developerKey)
-check(!garden.isUnlocked("arco-rose"), "spenta, torna come prima")
+// (con un giardino nuovo: in quello dei tiri l'arco potrebbe essere uscito davvero, gli identificativi delle sessioni sono casuali)
+check(!Garden(directory: tempDirectory()).isFound("arco-rose"), "spenta, torna come prima")
 garden.reset()
-check(garden.placements.isEmpty && garden.unlocked.isEmpty && garden.spent == 0 && garden.companionSpots.isEmpty
-      && !FileManager.default.fileExists(atPath: gardenDir.appendingPathComponent("giardino.json").path), "«Cancella tutto» ricomincia")
+check(garden.foundCount == 4 && garden.placements.count == 4 && garden.drops == GardenDropState.starting() && garden.companionSpots.isEmpty && garden.unseen.isEmpty
+      && !FileManager.default.fileExists(atPath: gardenDir.appendingPathComponent("giardino.json").path), "«Cancella tutto» ricomincia dalla dotazione")
 
 // ---------------------------------------------------------------- da fare
 section("Da fare: giorni e testi")
@@ -1313,6 +1381,79 @@ for width in [130, 157, 213, 260] as [CGFloat] {
     }
     check(back <= 1, "…e tornando indietro, \(back) cambio di lato")
 }
+
+// ---------------------------------------------------------------- regali del giardino
+section("Regali di fine focus")
+check(GardenDrops.hash("a") == 0xE40C292C && GardenDrops.hash("foobar") == 0xBF9CF968, "FNV-1a a 32 bit: i valori noti")
+var gdOne = GardenDrops.Stream(seed: 1)
+check([gdOne.next(), gdOne.next(), gdOne.next()].map { ($0 * 1e12).rounded() / 1e12 } == [0.627073940588, 0.00273572118, 0.52744703996], "Mulberry32: i valori noti (gli stessi di TypeScript)")
+var gdSeeded = GardenDrops.Stream(seed: GardenDrops.hash("A1B2C3D4-0000-4000-8000-000000000001"))
+check([gdSeeded.next(), gdSeeded.next()].map { ($0 * 1e12).rounded() / 1e12 } == [0.404550580308, 0.712755646091], "…e dal seme di una sessione")
+
+func gdSession(_ minutes: Int, completed: Bool = true, day: Int = 5) -> StudySession {
+    StudySession(start: date(2026, 10, day, 9), localStart: StudySession.localString(for: date(2026, 10, day, 9), calendar: cal),
+                 seconds: minutes * 60, plannedMinutes: minutes, completed: completed, subject: nil)
+}
+check(!GardenDrops.isEligible(gdSession(19)) && GardenDrops.isEligible(gdSession(20)) && !GardenDrops.isEligible(gdSession(50, completed: false)),
+      "tira solo un focus completato con almeno 20 minuti: un interrotto non dà niente")
+check(GardenCatalog.items.filter { $0.rarity == .common }.count == 16 && GardenCatalog.items.filter { $0.rarity == .rare }.count == 15
+      && GardenCatalog.items.filter { $0.rarity == .legendary }.count == 5, "36 oggetti: 16 comuni, 15 rari, 5 leggendari (dal vecchio prezzo)")
+let gdStart = GardenDropState.starting()
+check(gdStart.found.count == 4 && gdStart.found["margherite"] == 1 && gdStart.nothingInARow == 0, "l'album parte con la dotazione (4 oggetti)")
+
+let gdFirst = GardenDrops.chances(streakDays: 1, seconds: 25 * 60)
+check(abs(gdFirst.rare - 0.22) < 1e-9 && abs(gdFirst.legendary - 0.03) < 1e-9, "probabilità di partenza: 22% raro, 3% leggendario")
+check(abs(GardenDrops.chances(streakDays: 7, seconds: 25 * 60).rare - 0.30) < 1e-9 && abs(GardenDrops.chances(streakDays: 14, seconds: 25 * 60).legendary - 0.04) < 1e-9, "la serie le alza")
+check(abs(GardenDrops.chances(streakDays: 1, seconds: 50 * 60).rare - 0.26) < 1e-9, "un focus lungo anche")
+
+// un tiro è sempre lo stesso per la stessa sessione, e non dipende da altro
+var gdA = GardenDropState.starting(), gdB = GardenDropState.starting()
+let gdDrop1 = GardenDrops.roll(sessionID: "A1B2C3D4-0000-4000-8000-000000000001", streakDays: 3, seconds: 1800, state: &gdA)
+let gdDrop2 = GardenDrops.roll(sessionID: "a1b2c3d4-0000-4000-8000-000000000001", streakDays: 3, seconds: 1800, state: &gdB)
+check(gdDrop1 == gdDrop2 && gdA == gdB, "stesso identificativo (anche in minuscolo), stesso regalo")
+
+// molti tiri: «niente» una volta su cinque ma mai tre volte di fila; le copie tornano
+var gdState = GardenDropState.starting()
+var gdNothing = 0, gdRun = 0, gdLongest = 0, gdGifts = 0, gdNew = 0
+for i in 0..<2000 {
+    let drop = GardenDrops.roll(sessionID: String(format: "00000000-0000-4000-8000-%012d", i), streakDays: 1, seconds: 1800, state: &gdState)
+    if let drop {
+        gdGifts += 1; gdRun = 0
+        if drop.isNew { gdNew += 1 }
+    } else { gdNothing += 1; gdRun += 1; gdLongest = max(gdLongest, gdRun) }
+}
+check(gdLongest <= 2, "mai più di due focus di fila senza regalo (\(gdLongest))")
+check(gdNothing > 300 && gdNothing < 500, "circa un focus su cinque non dà niente (\(gdNothing) su 2000)")
+check(gdState.found.values.reduce(0, +) == 4 + gdGifts && gdState.found.count == 36 && gdNew == 32, "le copie tornano, e l'album si completa (\(gdState.found.count) di 36)")
+
+// le garanzie
+var gdPity = GardenDropState.starting()
+gdPity.sinceRare = GardenDrops.rarePity - 1
+let gdRarePity = GardenDrops.roll(sessionID: "11111111-1111-4111-8111-111111111111", streakDays: 1, seconds: 1800, state: &gdPity)
+check(gdRarePity == nil || gdRarePity!.rarity >= .rare, "dopo nove regali senza un raro, il prossimo lo è (o non esce niente)")
+var gdPity2 = GardenDropState.starting()
+gdPity2.sinceLegendary = GardenDrops.legendaryPity - 1
+gdPity2.nothingInARow = GardenDrops.maxNothingInARow            // così il regalo c'è di sicuro
+check(GardenDrops.roll(sessionID: "22222222-2222-4222-8222-222222222222", streakDays: 1, seconds: 1800, state: &gdPity2)?.rarity == .legendary, "dopo trentanove senza un leggendario, il prossimo lo è")
+check(gdPity2.sinceLegendary == 0 && gdPity2.sinceRare == 0, "…e i contatori ripartono")
+
+// con tutto trovato escono doppioni; con un solo oggetto per rarità non si blocca
+var gdFull = GardenDropState.starting()
+for item in GardenCatalog.items { gdFull.found[item.id] = 1 }
+var gdDuplicates = 0
+for i in 0..<200 {
+    if let drop = GardenDrops.roll(sessionID: String(format: "33333333-0000-4000-8000-%012d", i), streakDays: 1, seconds: 1800, state: &gdFull), !drop.isNew { gdDuplicates += 1 }
+}
+check(gdDuplicates > 100 && gdFull.found.count == 36, "con l'album completo i regali sono copie in più")
+var gdTiny = GardenDropState()
+check(GardenDrops.roll(sessionID: "44444444-0000-4000-8000-000000000000", streakDays: 1, seconds: 1800, state: &gdTiny, pool: [GardenCatalog.items[4]])?.item == "tulipani", "con un solo oggetto possibile esce quello (si scende o si sale di rarità)")
+check(GardenDrops.roll(sessionID: "55555555-0000-4000-8000-000000000000", streakDays: 1, seconds: 1800, state: &gdTiny, pool: []) == nil, "senza oggetti non esce niente")
+
+// il registro intero: salta gli interrotti e i focus corti, e dà lo stesso risultato ogni volta
+let gdLog = [gdSession(25, day: 1), gdSession(50, day: 1), gdSession(15, day: 2), gdSession(50, completed: false, day: 2), gdSession(30, day: 3), gdSession(30, day: 4)]
+let gdRun1 = GardenDrops.simulate(sessions: gdLog, now: date(2026, 10, 6, 12), calendar: cal)
+let gdRun2 = GardenDrops.simulate(sessions: gdLog, now: date(2026, 10, 6, 12), calendar: cal)
+check(gdRun1.count == 4 && gdRun1.map { $0.drop } == gdRun2.map { $0.drop }, "il registro: quattro focus validi su sei, sempre gli stessi regali")
 
 print("\n\(checks) controlli, \(failures) falliti")
 exit(failures == 0 ? 0 : 1)

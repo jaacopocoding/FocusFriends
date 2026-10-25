@@ -35,6 +35,11 @@ for f in assets/giardino/*.png; do
     case "$f" in *_original.png) continue ;; esac
     cp "$f" "$APP/Contents/Resources/giardino_$(basename "$f")"
 done
+# L'album delle figurine: la copertina del libro (i fogli *_original.png non servono nell'app).
+for f in assets/album/*.png; do
+    case "$f" in *_original.png) continue ;; esac
+    cp "$f" "$APP/Contents/Resources/album_$(basename "$f")"
+done
 for i in 1 2 3 4 5; do
     for f in 1 2 3 4 5 6 7; do
         cp "assets/pianty/stage${i}_$f.png" "$APP/Contents/Resources/pianty_stage${i}_$f.png"

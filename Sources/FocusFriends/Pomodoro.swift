@@ -88,6 +88,8 @@ final class Pomodoro {
     /// Chiamata con la sessione appena salvata quando un focus finisce davvero ("com'è andata?").
     /// Il focus è finito ed è stato registrato; `todoID` è la voce di «Da fare» da cui era partito (nil se non partiva da una).
     var onFocusRecorded: ((StudySession, _ todoID: UUID?) -> Void)?
+    /// Chiamata a fine focus con il regalo del giardino (anche «niente» o «non tira»): l'app mostra la figurina trovata.
+    var onGift: ((GardenGift) -> Void)?
     /// Chiamata quando il timer si ferma o ne parte uno nuovo: la scheda "com'è andata?" non serve più.
     var onTimerReset: (() -> Void)?
 
@@ -428,22 +430,21 @@ final class Pomodoro {
             notes = []
             subject = nil
             todoID = nil
-            // Cosa è successo nel giardino: i punti guadagnati con questo focus (e quanto manca al prossimo).
-            var gardenLine = "Il giardino cresce."
-            if recorded != nil {
-                let today = Date()
-                let before = GardenPoints.weightedMinutes(sessions: log.sessions.filter { $0.id != recorded?.id }, now: today)
-                let after = GardenPoints.weightedMinutes(sessions: log.sessions, now: today)
-                let streak = StudyStreak.analyze(sessions: log.sessions, now: today)
-                gardenLine = GardenPoints.finishLine(beforeMinutes: before, afterMinutes: after,
-                                                     factor: GardenPoints.multiplierToday(streak))
+            // Il regalo del giardino: un focus completato (con almeno 20 minuti) può far trovare una figurina per l'album.
+            var gift = GardenGift.notEligible
+            if let recorded {
+                let calendar = StudyPeriod.calendar()
+                let streak = StudyStreak.analyze(sessions: log.sessions, now: Date(), calendar: calendar)
+                let days = streak.perDay[calendar.startOfDay(for: recorded.startTime(in: calendar))] ?? 1
+                gift = Garden.shared.rollGift(for: recorded, streakDays: days)
             }
             begin(.rest, minutes: breakLength)
             isLongBreak = longBreak
             speaker.say(Self.focusFinishedMessage(subject: finishedSubject, studiedMinutes: studied, breakMinutes: breakLength,
-                                                  garden: gardenLine, longBreak: longBreak))
+                                                  garden: GardenDrops.line(for: gift), longBreak: longBreak))
             onFocusCompleted?()
             if let recorded { onFocusRecorded?(recorded, finishedTodo) }
+            onGift?(gift)
         case .rest:
             stop()
             speaker.say("Pausa finita! Pronto per un altro giro?")
@@ -451,24 +452,25 @@ final class Pomodoro {
     }
 
     /// "Hai studiato Anatomia per 50 minuti. Che bel lavoro!", con qualche variante. `garden` dice cosa è successo
-    /// nel giardino (vedi GardenPoints.finishLine).
+    /// nel giardino (la figurina trovata, vedi GardenDrops.line): se è vuoto non si dice niente.
     static func focusFinishedMessage(subject: String?, studiedMinutes: Int, breakMinutes: Int, garden: String,
                                      longBreak: Bool = false) -> String {
+        let g = garden.isEmpty ? "" : garden + " "
         if longBreak {
             let about = subject.map { " su \($0)" } ?? ""
             let variants = [
-                "Quattro focus di fila\(about): che costanza! \(garden) Ti sei guadagnato una pausa lunga, \(breakMinutes) minuti.",
-                "Il quarto focus\(about) è andato! \(garden) Pausa lunga: \(breakMinutes) minuti per respirare davvero.",
+                "Quattro focus di fila\(about): che costanza! \(g)Ti sei guadagnato una pausa lunga, \(breakMinutes) minuti.",
+                "Il quarto focus\(about) è andato! \(g)Pausa lunga: \(breakMinutes) minuti per respirare davvero.",
             ]
             return variants.randomElement() ?? variants[0]
         }
         guard let subject else {
-            return "Focus finito! \(garden) Ti sei meritato \(breakMinutes) minuti di pausa."
+            return "Focus finito! \(g)Ti sei meritato \(breakMinutes) minuti di pausa."
         }
         let variants = [
-            "Hai studiato \(subject) per \(studiedMinutes) minuti. Che bel lavoro! \(garden) Ora \(breakMinutes) minuti di pausa.",
-            "\(subject): \(studiedMinutes) minuti di concentrazione. Ottimo lavoro. \(garden) Ora \(breakMinutes) minuti di pausa.",
-            "Ben fatto! \(studiedMinutes) minuti su \(subject). \(garden) Respira: \(breakMinutes) minuti di pausa.",
+            "Hai studiato \(subject) per \(studiedMinutes) minuti. Che bel lavoro! \(g)Ora \(breakMinutes) minuti di pausa.",
+            "\(subject): \(studiedMinutes) minuti di concentrazione. Ottimo lavoro. \(g)Ora \(breakMinutes) minuti di pausa.",
+            "Ben fatto! \(studiedMinutes) minuti su \(subject). \(g)Respira: \(breakMinutes) minuti di pausa.",
         ]
         return variants.randomElement() ?? variants[0]
     }

@@ -171,6 +171,11 @@ final class Profile {
 
     // MARK: - I titoli
 
+    /// "L'album di Marco", oppure "Il mio album" se non c'è il nome.
+    var albumTitle: String {
+        name.map { "L'album di \($0)" } ?? "Il mio album"
+    }
+
     /// "Il giardino di Marco", oppure "Il mio giardino" se non c'è il nome.
     var gardenTitle: String {
         name.map { "Il giardino di \($0)" } ?? "Il mio giardino"

@@ -146,7 +146,41 @@ enum GardenCatalog {
         items.first { $0.id == id }
     }
 
+    /// Il numero della figurina nell'album (da 1, nell'ordine del catalogo: non cambia mai, i nuovi oggetti si aggiungono in fondo).
+    static func number(of id: String) -> Int? {
+        items.firstIndex { $0.id == id }.map { $0 + 1 }
+    }
+
     static func items(in category: GardenCategory) -> [GardenItem] {
         items.filter { $0.category == category }
+    }
+}
+
+/// Come l'album mette le figurine sulle pagine: sei per pagina (tre colonne per due righe), una sezione del catalogo dopo l'altra,
+/// ogni sezione comincia su una pagina di sinistra. Il numero di una figurina non cambia mai (è la posizione nel catalogo).
+enum GardenAlbum {
+    struct Page: Equatable {
+        var category: GardenCategory
+        var items: [GardenItem]
+        /// Quale pagina della sezione (da 1) e quante sono.
+        var index: Int
+        var count: Int
+    }
+
+    static let perPage = 6
+
+    /// Le doppie pagine (se una sezione ha un numero dispari di pagine, l'ultima pagina di destra manca).
+    static func spreads(catalog: [GardenItem] = GardenCatalog.items) -> [(left: Page, right: Page?)] {
+        var result: [(left: Page, right: Page?)] = []
+        for category in GardenCategory.allCases {
+            let items = catalog.filter { $0.category == category }
+            guard !items.isEmpty else { continue }
+            let chunks = stride(from: 0, to: items.count, by: perPage).map { Array(items[$0..<min($0 + perPage, items.count)]) }
+            let pages = chunks.enumerated().map { Page(category: category, items: $1, index: $0 + 1, count: chunks.count) }
+            for start in stride(from: 0, to: pages.count, by: 2) {
+                result.append((pages[start], start + 1 < pages.count ? pages[start + 1] : nil))
+            }
+        }
+        return result
     }
 }
