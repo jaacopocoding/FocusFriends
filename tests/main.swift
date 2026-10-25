@@ -1099,6 +1099,59 @@ garden.reset()
 check(garden.foundCount == 4 && garden.placements.count == 4 && garden.drops == GardenDropState.starting() && garden.companionTiles.isEmpty && garden.unseen.isEmpty
       && !FileManager.default.fileExists(atPath: gardenDir.appendingPathComponent("giardino.json").path), "«Cancella tutto» ricomincia dalla dotazione")
 
+// ---------------------------------------------------------------- giardino: cielo e stagioni
+section("Giardino: cielo e stagioni")
+check(Season.of(date(2026, 3, 1, 12)) == .spring && Season.of(date(2026, 5, 31, 12)) == .spring && Season.of(date(2026, 6, 1, 12)) == .summer
+      && Season.of(date(2026, 9, 1, 12)) == .autumn && Season.of(date(2026, 12, 1, 12)) == .winter && Season.of(date(2027, 2, 28, 12)) == .winter, "le stagioni dai mesi")
+check(Season.allCases.allSatisfy { GardenSky.sunrise($0) < GardenSky.sunset($0) } && GardenSky.sunset(.summer) > GardenSky.sunset(.winter) && GardenSky.sunrise(.summer) < GardenSky.sunrise(.winter),
+      "d'estate il giorno è più lungo che d'inverno")
+for season in Season.allCases {
+    let noon = GardenSky.light(hour: 13, season: season), midnight = GardenSky.light(hour: 0, season: season)
+    check(noon.darkness == 0 && noon.tintStrength == 0 && noon.lamp == 0 && noon.multiplier == GardenRGB(red: 255, green: 255, blue: 255), "\(season.title): a mezzogiorno nessuna tinta, lampioni spenti")
+    check(midnight.darkness == 0.55 && midnight.lamp == 1 && midnight.multiplier.blue < 255 && midnight.multiplier.red < midnight.multiplier.blue, "\(season.title): di notte è buio, i lampioni sono accesi e la scena vira all'azzurro")
+    check(GardenSky.light(hour: 24, season: season) == midnight && GardenSky.light(hour: -1, season: season) == GardenSky.light(hour: 23, season: season), "\(season.title): le ore si chiudono a cerchio")
+    // senza salti: un minuto dopo l'altro la luce cambia pochissimo
+    var maxStep = 0.0, lampsRise = true, last = GardenSky.light(hour: 0, season: season)
+    for minute in 1...1440 {
+        let now = GardenSky.light(hour: Double(minute) / 60, season: season)
+        maxStep = max(maxStep, abs(now.darkness - last.darkness), abs(now.tintStrength - last.tintStrength) / 4, abs(now.multiplier.red - last.multiplier.red) / 255)
+        last = now
+    }
+    check(maxStep < 0.02, "\(season.title): la luce cambia senza salti (al massimo \(maxStep) a minuto)")
+    let sunsetHour = GardenSky.sunset(season)
+    let evening = (0...8).map { GardenSky.light(hour: sunsetHour - 1 + Double($0) * 0.4, season: season).darkness }
+    lampsRise = zip(evening, evening.dropFirst()).allSatisfy { $0 <= $1 }
+    check(lampsRise && GardenSky.light(hour: sunsetHour - 2, season: season).lamp == 0 && GardenSky.light(hour: sunsetHour + 2, season: season).lamp == 1, "\(season.title): dopo il tramonto il buio cresce e i lampioni si accendono")
+}
+check(GardenSky.light(hour: 19, season: .winter).lamp > 0.9 && GardenSky.light(hour: 19, season: .summer).lamp == 0, "alle sette di sera d'inverno è già notte, d'estate no")
+check(GardenSky.light(hour: 6, season: .summer).darkness < GardenSky.light(hour: 6, season: .winter).darkness, "e al mattino d'estate è già chiaro")
+check(GardenSky.hour(of: date(2026, 10, 25, 21), calendar: StudyPeriod.calendar()) == 21, "l'ora con la virgola")
+// le lucciole
+check(GardenSky.fireflyAmount(season: .summer, light: GardenSky.light(hour: 23, season: .summer)) == 1
+      && GardenSky.fireflyAmount(season: .winter, light: GardenSky.light(hour: 23, season: .winter)) == 0
+      && GardenSky.fireflyAmount(season: .summer, light: GardenSky.light(hour: 13, season: .summer)) == 0
+      && GardenSky.fireflyAmount(season: .autumn, light: GardenSky.light(hour: 23, season: .autumn)) < GardenSky.fireflyAmount(season: .spring, light: GardenSky.light(hour: 23, season: .spring)),
+      "lucciole: di notte e d'estate soprattutto, mai d'inverno né di giorno")
+let fireflies = (0..<GardenSky.fireflyCount).flatMap { index in (0..<20).map { GardenSky.firefly(index: index, time: Double($0) * 7.3, width: 1000, height: 600) } }
+check(fireflies.allSatisfy { $0.x > 0 && $0.x < 1000 && $0.y > 0 && $0.y < 600 && $0.glow >= 0 && $0.glow <= 1 }, "le lucciole restano nella scena")
+check(GardenSky.firefly(index: 3, time: 12.5, width: 1000, height: 600) == GardenSky.firefly(index: 3, time: 12.5, width: 1000, height: 600)
+      && GardenSky.firefly(index: 3, time: 12.5, width: 1000, height: 600).x != GardenSky.firefly(index: 4, time: 12.5, width: 1000, height: 600).x, "ognuna ha il suo posto, sempre lo stesso")
+// quello che cade
+check(GardenSky.particleKind(.spring) == .petal && GardenSky.particleKind(.autumn) == .leaf && GardenSky.particleKind(.winter) == .snow && GardenSky.particleKind(.summer) == nil, "cosa cade in ogni stagione")
+for kind in [GardenParticleKind.petal, .leaf, .snow] {
+    let count = GardenSky.particleCount(kind)
+    let samples = (0..<count).flatMap { index in (0..<30).map { GardenSky.particle(kind: kind, index: index, time: Double($0) * 5.7, width: 1000, height: 600) } }
+    check(samples.allSatisfy { $0.x >= -30 && $0.x <= 1030 && $0.y >= -20 && $0.y <= 620 && $0.size > 0 && $0.alpha > 0 && $0.alpha <= 1 && $0.tone >= 0 && $0.tone < 1 }, "\(kind): sempre dentro la scena (con un bordo)")
+    let a = GardenSky.particle(kind: kind, index: 2, time: 10, width: 1000, height: 600), b = GardenSky.particle(kind: kind, index: 2, time: 11, width: 1000, height: 600)
+    check(a == GardenSky.particle(kind: kind, index: 2, time: 10, width: 1000, height: 600) && b.y != a.y, "\(kind): sempre uguale per lo stesso istante, e si muove")
+    let descends = (0..<count).allSatisfy { index in
+        let p0 = GardenSky.particle(kind: kind, index: index, time: 0, width: 1000, height: 600), p1 = GardenSky.particle(kind: kind, index: index, time: 0.5, width: 1000, height: 600)
+        return p1.y > p0.y || p0.y > 560      // scende (o è appena rientrata dall'alto)
+    }
+    check(descends, "\(kind): scende")
+}
+check(Set((0..<26).map { GardenSky.particle(kind: .petal, index: $0, time: 0, width: 1000, height: 600).x }).count == 26, "ogni petalo parte da un punto diverso")
+
 // ---------------------------------------------------------------- da fare
 section("Da fare: giorni e testi")
 check(ToDoDay.isValid("2026-10-23") && ToDoDay.isValid("2028-02-29"), "giorni che esistono")

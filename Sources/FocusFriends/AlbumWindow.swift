@@ -688,7 +688,8 @@ enum MeadowBackdrop {
     private static func rgb(_ r: CGFloat, _ g: CGFloat, _ b: CGFloat, _ a: CGFloat = 1) -> NSColor { NSColor(calibratedRed: r, green: g, blue: b, alpha: a) }
 
     /// Disegna lo sfondo (nella vista capovolta: l'origine è in alto).
-    static func draw(in bounds: NSRect, blur: CGFloat = 0) {
+    /// `veil`: il velo di colore che si stende sopra (di norma uno caldo; il giardino ne usa uno per stagione).
+    static func draw(in bounds: NSRect, blur: CGFloat = 0, veil: NSColor? = nil) {
         base.setFill()
         bounds.fill()
         guard let picture = meadow(size: bounds.size, blur: blur) else {
@@ -696,7 +697,7 @@ enum MeadowBackdrop {
             return
         }
         picture.draw(in: bounds, from: .zero, operation: .sourceOver, fraction: 1, respectFlipped: true, hints: [.interpolation: NSImageInterpolation.high])
-        rgb(1, 0.96, 0.86, 0.16).setFill()
+        (veil ?? rgb(1, 0.96, 0.86, 0.16)).setFill()
         bounds.fill()
         NSGradient(colors: [rgb(0.15, 0.20, 0.10, 0), rgb(0.15, 0.20, 0.10, 0.30)])?.draw(in: bounds, relativeCenterPosition: NSPoint(x: 0, y: 0))
     }

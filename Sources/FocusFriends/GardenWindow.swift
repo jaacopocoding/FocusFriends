@@ -59,6 +59,8 @@ final class GardenView: NSView, NSViewToolTipOwner {
     private var walkers: [String: Walker] = [:]
     private var walkTimer: Timer?
     private var lastWalkTick = Date()
+    private var skyTicks = 0
+    private var lastSky: SkyState?
 
     private let albumButton: PillIconButton
     /// Chiamata dal pulsante «‹ Menu»: la finestra si chiude e si torna alla scheda del menu.
@@ -426,7 +428,16 @@ final class GardenView: NSView, NSViewToolTipOwner {
             guard let self, self.window?.isVisible == true else { return }
             let elapsed = min(Date().timeIntervalSince(self.lastWalkTick), 0.2)
             self.lastWalkTick = Date()
-            if self.advanceWalkers(by: elapsed) { self.needsDisplay = true }
+            let walking = self.advanceWalkers(by: elapsed)
+            // di tanto in tanto si guarda se la luce è cambiata (sta calando la sera): altrimenti si ridisegna solo se qualcosa si muove
+            self.skyTicks += 1
+            var changed = false
+            if self.skyTicks % 30 == 0 {
+                let light = self.skyState()
+                if light != self.lastSky { changed = true }
+                self.lastSky = light
+            }
+            if walking || changed || self.skyIsAnimated() { self.needsDisplay = true }
         }
         RunLoop.main.add(timer, forMode: .common)
         walkTimer = timer
@@ -604,13 +615,18 @@ final class GardenView: NSView, NSViewToolTipOwner {
 
     override func draw(_ dirtyRect: NSRect) {
         NSGraphicsContext.current?.imageInterpolation = .high
-        MeadowBackdrop.draw(in: sceneRect, blur: 5)
+        let sky = skyState()
+        MeadowBackdrop.draw(in: sceneRect, blur: 5, veil: palette(sky.season).veil)
         let iso = self.iso
         let target = carryTarget()
-        drawIsland(iso, highlight: target)
+        drawIsland(iso, highlight: target, season: sky.season)
         let laid = entities()
         for entity in laid { drawEntity(entity) }
         drawGhost(target, iso: iso)
+        drawWeather(sky.season)
+        applyLight(sky.light)
+        drawLampGlows(laid, iso: iso, light: sky.light)
+        drawFireflies(season: sky.season, light: sky.light)
         if let bubble, let owner = laid.first(where: { $0.kind == .companion(bubble.petID) }) {
             drawBubble(bubble.text, above: owner.rect)
         }
@@ -623,6 +639,153 @@ final class GardenView: NSView, NSViewToolTipOwner {
         } else if garden.placements.isEmpty && carry == nil {
             drawHint("Trova le figurine a fine focus: si mettono qui da sole.")
         }
+    }
+
+    // MARK: - Il cielo e le stagioni
+
+    private struct SkyState: Equatable {
+        var season: Season
+        var light: GardenLight
+    }
+
+    /// Che stagione e che luce c'è adesso. Per provarle senza aspettare: `defaults write com.jacopo.focusfriends gardenHour -float 21`
+    /// (l'ora, con la virgola) e `gardenSeason -string winter` (spring, summer, autumn, winter); `defaults delete …` le toglie.
+    private func skyState() -> SkyState {
+        let defaults = UserDefaults.standard
+        let date = now()
+        var hour = GardenSky.hour(of: date, calendar: calendar)
+        var season = Season.of(date, calendar: calendar)
+        if defaults.object(forKey: "gardenHour") != nil { hour = defaults.double(forKey: "gardenHour") }
+        if let raw = defaults.string(forKey: "gardenSeason"), let forced = Season(rawValue: raw) { season = forced }
+        return SkyState(season: season, light: GardenSky.light(hour: hour, season: season))
+    }
+
+    /// I colori dell'isola in una stagione, e il velo sullo sfondo.
+    private struct Palette {
+        var grassA: (CGFloat, CGFloat, CGFloat)
+        var grassB: (CGFloat, CGFloat, CGFloat)
+        var pathA: (CGFloat, CGFloat, CGFloat)
+        var pathB: (CGFloat, CGFloat, CGFloat)
+        var tuft: NSColor
+        var veil: NSColor
+    }
+
+    private func palette(_ season: Season) -> Palette {
+        switch season {
+        case .spring:
+            return Palette(grassA: (160, 204, 120), grassB: (152, 197, 112), pathA: (226, 208, 170), pathB: (218, 199, 160),
+                           tuft: Self.color(104, 156, 80), veil: Self.color(255, 232, 238, 0.14))
+        case .summer:
+            return Palette(grassA: (146, 195, 100), grassB: (138, 187, 92), pathA: (230, 208, 160), pathB: (222, 199, 150),
+                           tuft: Self.color(96, 150, 68), veil: Self.color(255, 244, 200, 0.12))
+        case .autumn:
+            return Palette(grassA: (184, 178, 100), grassB: (174, 168, 92), pathA: (216, 194, 152), pathB: (208, 185, 142),
+                           tuft: Self.color(150, 112, 56), veil: Self.color(255, 190, 110, 0.24))
+        case .winter:
+            return Palette(grassA: (232, 240, 244), grassB: (222, 233, 240), pathA: (205, 212, 224), pathB: (197, 205, 218),
+                           tuft: Self.color(132, 164, 186), veil: Self.color(225, 238, 255, 0.34))
+        }
+    }
+
+    /// L'ora del cielo e degli effetti, in secondi (un banco di prova la può fissare).
+    var effectsClock: () -> Double = { CACurrentMediaTime() }
+
+    /// Petali, foglie o neve che cadono, a seconda della stagione.
+    private func drawWeather(_ season: Season) {
+        guard let kind = GardenSky.particleKind(season) else { return }
+        let time = effectsClock()
+        let leafColors = [Self.color(214, 120, 50), Self.color(190, 84, 44), Self.color(226, 168, 60), Self.color(150, 104, 52)]
+        for index in 0..<GardenSky.particleCount(kind) {
+            let p = GardenSky.particle(kind: kind, index: index, time: time, width: Double(sceneW), height: Double(sceneH))
+            let size = CGFloat(p.size)
+            let color: NSColor
+            switch kind {
+            case .petal: color = p.tone < 0.5 ? Self.color(255, 196, 214, p.alpha) : Self.color(255, 238, 242, p.alpha)
+            case .leaf: color = leafColors[min(Int(p.tone * Double(leafColors.count)), leafColors.count - 1)].withAlphaComponent(CGFloat(p.alpha))
+            case .snow: color = NSColor.white.withAlphaComponent(CGFloat(p.alpha) * 0.9)
+            }
+            color.setFill()
+            if kind == .snow {
+                NSBezierPath(ovalIn: NSRect(x: CGFloat(p.x) - size / 2, y: CGFloat(p.y) - size / 2, width: size, height: size)).fill()
+                continue
+            }
+            NSGraphicsContext.saveGraphicsState()
+            let turn = NSAffineTransform()
+            turn.translateX(by: CGFloat(p.x), yBy: CGFloat(p.y))
+            turn.rotate(byRadians: CGFloat(p.angle))
+            turn.concat()
+            let width = kind == .leaf ? size * 1.7 : size * 1.5, height = kind == .leaf ? size * 0.85 : size
+            NSBezierPath(ovalIn: NSRect(x: -width / 2, y: -height / 2, width: width, height: height)).fill()
+            NSGraphicsContext.restoreGraphicsState()
+        }
+    }
+
+    /// La luce del momento: la scena si moltiplica per un colore (bianco di giorno, azzurro scuro di notte) e di sera i bordi si scuriscono.
+    private func applyLight(_ light: GardenLight) {
+        guard light.tintStrength > 0.001 else { return }
+        let m = light.multiplier
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current?.cgContext.setBlendMode(.multiply)
+        NSColor(calibratedRed: CGFloat(m.red / 255), green: CGFloat(m.green / 255), blue: CGFloat(m.blue / 255), alpha: 1).setFill()
+        sceneRect.fill(using: .multiply)
+        if light.darkness > 0.1 {
+            NSGradient(colors: [NSColor(calibratedRed: 0.55, green: 0.58, blue: 0.80, alpha: 0), NSColor(calibratedRed: 0.28, green: 0.30, blue: 0.55, alpha: CGFloat(min(light.darkness * 1.3, 0.7)))])?
+                .draw(in: sceneRect, relativeCenterPosition: .zero)
+        }
+        NSGraphicsContext.restoreGraphicsState()
+    }
+
+    /// I lampioni accesi: una luce calda in cima e una pozza sul prato.
+    private func drawLampGlows(_ laid: [Entity], iso: Iso, light: GardenLight) {
+        let strength = CGFloat(light.lamp)
+        guard strength > 0.01 else { return }
+        let lamps = Set(garden.placements.filter { $0.item == "lampione" }.map { $0.id })
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current?.cgContext.setBlendMode(.plusLighter)
+        let warm = Self.color(255, 196, 104)
+        for entity in laid {
+            guard case .placed(let id) = entity.kind, lamps.contains(id) else { continue }
+            let top = NSPoint(x: entity.rect.midX, y: entity.rect.minY + entity.rect.height * 0.10)
+            NSGradient(colors: [warm.withAlphaComponent(0.48 * strength), warm.withAlphaComponent(0.14 * strength), warm.withAlphaComponent(0)])?
+                .draw(fromCenter: top, radius: 0, toCenter: top, radius: iso.tileW * 1.25, options: [])
+            // la pozza di luce sul prato, schiacciata come l'isola
+            NSGraphicsContext.saveGraphicsState()
+            let squash = NSAffineTransform()
+            squash.translateX(by: entity.feet.x, yBy: entity.feet.y)
+            squash.scaleX(by: 1, yBy: 0.5)
+            squash.concat()
+            NSGradient(colors: [warm.withAlphaComponent(0.34 * strength), warm.withAlphaComponent(0)])?
+                .draw(fromCenter: .zero, radius: 0, toCenter: .zero, radius: iso.tileW * 1.5, options: [])
+            NSGraphicsContext.restoreGraphicsState()
+        }
+        NSGraphicsContext.restoreGraphicsState()
+    }
+
+    /// Le lucciole: di sera, soprattutto d'estate.
+    private func drawFireflies(season: Season, light: GardenLight) {
+        let amount = CGFloat(GardenSky.fireflyAmount(season: season, light: light))
+        guard amount > 0.01 else { return }
+        let time = effectsClock()
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current?.cgContext.setBlendMode(.plusLighter)
+        let glowColor = Self.color(255, 238, 140), core = Self.color(255, 252, 210)
+        for index in 0..<GardenSky.fireflyCount {
+            let f = GardenSky.firefly(index: index, time: time, width: Double(sceneW), height: Double(sceneH))
+            let a = CGFloat(f.glow) * amount
+            guard a > 0.02 else { continue }
+            let c = NSPoint(x: CGFloat(f.x), y: CGFloat(f.y))
+            NSGradient(colors: [glowColor.withAlphaComponent(0.85 * a), glowColor.withAlphaComponent(0)])?
+                .draw(fromCenter: c, radius: 0, toCenter: c, radius: 10, options: [])
+            core.withAlphaComponent(min(1, a * 1.3)).setFill()
+            NSBezierPath(ovalIn: NSRect(x: c.x - 1.4, y: c.y - 1.4, width: 2.8, height: 2.8)).fill()
+        }
+        NSGraphicsContext.restoreGraphicsState()
+    }
+
+    /// C'è qualcosa che si muove nel cielo (e quindi si ridisegna di continuo)?
+    private func skyIsAnimated() -> Bool {
+        let sky = skyState()
+        return GardenSky.particleKind(sky.season) != nil || GardenSky.fireflyAmount(season: sky.season, light: sky.light) > 0.01
     }
 
     // MARK: - L'isola
@@ -647,7 +810,8 @@ final class GardenView: NSView, NSViewToolTipOwner {
 
     /// Il terreno: i lati di terra, le tessere d'erba e di sentiero, la griglia (più visibile mentre si trascina) e, se si sta
     /// trascinando qualcosa, le tessere dove cadrebbe (verdi se ci sta, rosse se no).
-    private func drawIsland(_ iso: Iso, highlight: CarryTarget?) {
+    private func drawIsland(_ iso: Iso, highlight: CarryTarget?, season: Season) {
+        let pal = palette(season)
         let n = Double(iso.size)
         let thickness = Iso.thickness
         // l'ombra sul prato, sotto l'isola
@@ -675,8 +839,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
                 let seed = GardenDrops.hash("\(col),\(row)")
                 let variation = CGFloat(Int(seed % 11)) - 5
                 let isPath = GardenIsland.isPath(tile)
-                let base: (CGFloat, CGFloat, CGFloat) = isPath ? ((col + row) % 2 == 0 ? (226, 208, 170) : (218, 199, 160))
-                                                              : ((col + row) % 2 == 0 ? (158, 198, 122) : (150, 191, 115))
+                let base = isPath ? ((col + row) % 2 == 0 ? pal.pathA : pal.pathB) : ((col + row) % 2 == 0 ? pal.grassA : pal.grassB)
                 let path = diamond(tile, iso: iso)
                 Self.color(base.0 + variation, base.1 + variation, base.2 + variation).setFill()
                 path.fill()
@@ -694,7 +857,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
                     }
                 } else if seed % 3 == 0 {
                     // un ciuffo d'erba
-                    Self.color(104, 154, 80).setStroke()
+                    pal.tuft.setStroke()
                     for k in 0..<3 {
                         let h = GardenDrops.hash("erba\(col),\(row),\(k)")
                         let x = center.x + (CGFloat(h % 45) - 22) * iso.tileW / 140, y = center.y + (CGFloat((h >> 8) % 17) - 8) * iso.tileH / 60
