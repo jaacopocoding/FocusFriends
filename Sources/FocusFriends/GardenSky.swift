@@ -130,7 +130,7 @@ enum GardenSky {
 
     /// Un numero da 0 a 1, sempre lo stesso per la stessa particella e lo stesso scopo.
     private static func unit(_ index: Int, _ salt: Int) -> Double {
-        Double(GardenDrops.hash("cielo-\(salt)-\(index)")) / 4_294_967_296
+        Double(GardenDrops.mixedHash("cielo-\(salt)-\(index)")) / 4_294_967_296
     }
 
     private static func wrapped(_ value: Double, _ period: Double) -> Double {

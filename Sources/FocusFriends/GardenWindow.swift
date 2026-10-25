@@ -630,7 +630,8 @@ final class GardenView: NSView, NSViewToolTipOwner {
         let iso = self.iso
         let target = carryTarget()
         drawChimneySmoke(season: sky.season)
-        drawIsland(iso, highlight: target, season: sky.season)
+        drawIslandGround(iso, season: sky.season)
+        drawHighlight(target, iso: iso)
         let laid = entities()
         for entity in laid {
             drawEntity(entity)
@@ -937,8 +938,31 @@ final class GardenView: NSView, NSViewToolTipOwner {
 
     /// Il terreno: i lati di terra, le tessere d'erba e di sentiero, la griglia (più visibile mentre si trascina) e, se si sta
     /// trascinando qualcosa, le tessere dove cadrebbe (verdi se ci sta, rosse se no).
-    private func drawIsland(_ iso: Iso, highlight: CarryTarget?, season: Season) {
+    /// Le dodici tessere d'erba disegnate (rombi 2:1, già pronte da `tools/cutout_tessere.py`); se ne manca una, si disegna l'erba a mano.
+    private static var grassImages: [NSImage]? = {
+        let images = (1...GardenTerrain.grassCount).compactMap { index in
+            Bundle.main.url(forResource: "giardino_tessera_erba_\(index)", withExtension: "png").flatMap { NSImage(contentsOf: $0) }
+        }
+        return images.count == GardenTerrain.grassCount ? images : nil
+    }()
+
+    /// Le otto tessere del sentiero.
+    private static var pathImages: [NSImage]? = {
+        let images = (1...GardenTerrain.pathCount).compactMap { index in
+            Bundle.main.url(forResource: "giardino_tessera_sentiero_\(index)", withExtension: "png").flatMap { NSImage(contentsOf: $0) }
+        }
+        return images.count == GardenTerrain.pathCount ? images : nil
+    }()
+
+    private static var grassGrids: [Int: [Int]] = [:]
+
+    /// Disegna il terreno (ombra, lati, tessere); `carrying`: la griglia si vede di più mentre si trascina.
+    private func paintIslandGround(_ iso: Iso, season: Season, carrying: Bool) {
         let pal = palette(season)
+        let grassGrid = Self.grassGrids[iso.size] ?? { let grid = GardenTerrain.grassGrid(size: iso.size); Self.grassGrids[iso.size] = grid; return grid }()
+        let pathTiles = GardenIsland.pathTiles(size: iso.size)
+        let pathIndex = Dictionary(uniqueKeysWithValues: pathTiles.enumerated().map { ($1, $0) })
+        let pathVariants = GardenTerrain.pathVariants(count: pathTiles.count)
         let n = Double(iso.size)
         let thickness = Iso.thickness
         // l'ombra sul prato, sotto l'isola
@@ -959,7 +983,6 @@ final class GardenView: NSView, NSViewToolTipOwner {
         Self.color(108, 78, 50).setFill()
         rightSide.fill()
         // le tessere
-        let carrying = carry != nil && carryMoved
         for row in 0..<iso.size {
             for col in 0..<iso.size {
                 let tile = GardenTile(col: col, row: row)
@@ -968,13 +991,31 @@ final class GardenView: NSView, NSViewToolTipOwner {
                 let isPath = GardenIsland.isPath(tile)
                 let base = isPath ? ((col + row) % 2 == 0 ? pal.pathA : pal.pathB) : ((col + row) % 2 == 0 ? pal.grassA : pal.grassB)
                 let path = diamond(tile, iso: iso)
-                Self.color(base.0 + variation, base.1 + variation, base.2 + variation).setFill()
-                path.fill()
+                // l'erba disegnata (d'inverno, finché non c'è la neve disegnata, si usa quella a mano: bianca)
+                var grass: NSImage?
+                if season != .winter {
+                    if isPath, let index = pathIndex[tile] { grass = Self.pathImages?[pathVariants[index]] }
+                    else if !isPath { grass = Self.grassImages?[grassGrid[row * iso.size + col]] }
+                }
+                if let grass {
+                    grass.draw(in: path.bounds.insetBy(dx: -0.6, dy: -0.3), from: .zero, operation: .sourceOver, fraction: 1, respectFlipped: true,
+                               hints: [.interpolation: NSImageInterpolation.high])
+                    if season == .autumn {
+                        NSGraphicsContext.saveGraphicsState()
+                        NSGraphicsContext.current?.cgContext.setBlendMode(.multiply)
+                        (isPath ? Self.color(244, 220, 178) : Self.color(236, 196, 120)).setFill()
+                        path.fill()
+                        NSGraphicsContext.restoreGraphicsState()
+                    }
+                } else {
+                    Self.color(base.0 + variation, base.1 + variation, base.2 + variation).setFill()
+                    path.fill()
+                }
                 NSColor.white.withAlphaComponent(carrying ? 0.34 : 0.14).setStroke()
                 path.lineWidth = 1
                 path.stroke()
                 let center = iso.center(of: tile)
-                if isPath {
+                if isPath, grass == nil {
                     // qualche sasso
                     for k in 0..<3 {
                         let h = GardenDrops.hash("sasso\(col),\(row),\(k)")
@@ -982,7 +1023,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
                         Self.color(196, 176, 138, 0.8).setFill()
                         NSBezierPath(ovalIn: NSRect(x: center.x + dx - 4, y: center.y + dy - 2, width: 8, height: 4)).fill()
                     }
-                } else if seed % 3 == 0 {
+                } else if grass == nil, seed % 3 == 0 {
                     // un ciuffo d'erba
                     pal.tuft.setStroke()
                     for k in 0..<3 {
@@ -996,17 +1037,50 @@ final class GardenView: NSView, NSViewToolTipOwner {
                 }
             }
         }
-        // dove cadrebbe quello che si trascina
-        if let highlight {
-            let good = highlight.valid
-            for tile in highlight.tiles where GardenIsland.contains(tile, size: iso.size) {
-                let path = diamond(tile, iso: iso, inset: 2)
-                (good ? Self.color(80, 200, 105, 0.5) : Self.color(226, 80, 66, 0.5)).setFill()
-                path.fill()
-                (good ? Self.color(60, 160, 85) : Self.color(190, 56, 46)).setStroke()
-                path.lineWidth = 2
-                path.stroke()
+    }
+
+    /// Il terreno, da un disegno già pronto finché non cambia niente (l'isola, lo zoom, la stagione, la griglia): disegnare le tessere ad
+    /// ogni fotogramma costerebbe molto di più che copiare un'immagine.
+    private var groundCache: (key: String, image: CGImage)?
+
+    private func drawIslandGround(_ iso: Iso, season: Season) {
+        let carrying = carry != nil && carryMoved
+        let scale = window?.backingScaleFactor ?? 2
+        let key = "\(iso.size)|\(iso.tileW)|\(iso.origin.x)|\(iso.origin.y)|\(season.rawValue)|\(carrying)|\(scale)"
+        if groundCache?.key != key {
+            groundCache = nil
+            let width = Int(sceneW * scale), height = Int(sceneH * scale)
+            if let cg = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0, space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                                  bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue) {
+                cg.scaleBy(x: scale, y: -scale)
+                cg.translateBy(x: 0, y: -sceneH)
+                NSGraphicsContext.saveGraphicsState()
+                NSGraphicsContext.current = NSGraphicsContext(cgContext: cg, flipped: true)
+                NSGraphicsContext.current?.imageInterpolation = .high
+                paintIslandGround(iso, season: season, carrying: carrying)
+                NSGraphicsContext.restoreGraphicsState()
+                if let image = cg.makeImage() { groundCache = (key, image) }
             }
+        }
+        if let cached = groundCache?.image {
+            NSImage(cgImage: cached, size: Self.sceneSize).draw(in: sceneRect, from: .zero, operation: .sourceOver, fraction: 1, respectFlipped: true,
+                                                                hints: [.interpolation: NSImageInterpolation.high])
+        } else {
+            paintIslandGround(iso, season: season, carrying: carrying)
+        }
+    }
+
+    /// Dove cadrebbe quello che si trascina: tessere verdi se ci sta, rosse se no.
+    private func drawHighlight(_ highlight: CarryTarget?, iso: Iso) {
+        guard let highlight else { return }
+        let good = highlight.valid
+        for tile in highlight.tiles where GardenIsland.contains(tile, size: iso.size) {
+            let path = diamond(tile, iso: iso, inset: 2)
+            (good ? Self.color(80, 200, 105, 0.5) : Self.color(226, 80, 66, 0.5)).setFill()
+            path.fill()
+            (good ? Self.color(60, 160, 85) : Self.color(190, 56, 46)).setStroke()
+            path.lineWidth = 2
+            path.stroke()
         }
     }
 

@@ -103,6 +103,18 @@ enum GardenDrops {
         return h
     }
 
+    /// L'hash di un testo con in più un rimescolamento (come l'ultimo passo di MurmurHash3): cambiando poco il testo (un numero in fondo) cambia
+    /// tutto, anche i bit alti. Per scegliere a caso fra poche cose (le tessere, i petali…).
+    static func mixedHash(_ text: String) -> UInt32 {
+        var x = hash(text)
+        x ^= x >> 16
+        x = x &* 0x85EB_CA6B
+        x ^= x >> 13
+        x = x &* 0xC2B2_AE35
+        x ^= x >> 16
+        return x
+    }
+
     /// Mulberry32: numeri da 0 (incluso) a 1 (escluso), sempre gli stessi per lo stesso seme.
     struct Stream {
         private var state: UInt32

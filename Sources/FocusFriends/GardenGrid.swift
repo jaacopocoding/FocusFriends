@@ -165,3 +165,75 @@ enum GardenLayout {
         "erba-alta": GardenTile(col: 1, row: 1), "mughetti": GardenTile(col: 6, row: 6),
     ]
 }
+
+/// Il terreno dell'isola: quale delle tessere d'erba disegnate (assets/giardino/tessera_erba_<n>.png, dodici) va su ogni tessera. Sempre la
+/// stessa per la stessa tessera (non cambia da un'apertura all'altra) e non due uguali una accanto all'altra, quasi mai.
+enum GardenTerrain {
+    static let grassCount = 12
+    /// Quanto spesso esce ognuna (le prime due, lisce, fanno da sfondo; quelle con sassi, muschio o foglie sono rare perché hanno tinte diverse).
+    static let grassWeights: [Double] = [0.15, 0.09, 0.12, 0.09, 0.06, 0.06, 0.05, 0.05, 0.04, 0.06, 0.02, 0.07]
+
+    static let pathCount = 8
+    /// Le tessere del sentiero: le lastre e i ciottoli fanno la parte principale; il masso solo, il muschio e la terra liscia sono rari.
+    static let pathWeights: [Double] = [0.04, 0.14, 0.16, 0.20, 0.14, 0.08, 0.12, 0.12]
+
+    /// Quante tessere di seguito (da 2 a 3) hanno la stessa immagine, per la corsa che comincia a `index` di una fila (o del sentiero).
+    private static func runLength(_ index: Int, _ line: Int) -> Int {
+        2 + Int(GardenDrops.mixedHash("corsa-\(line),\(index)") % 2)
+    }
+
+    /// La tessera del sentiero (da 0) per ognuna delle prime `count` tessere del sentiero (nell'ordine di `GardenIsland.pathTiles`): a gruppi di 2 o 3
+    /// uguali, e un gruppo diverso dal precedente (se non dopo quattro tentativi). Quando il sentiero si allunga, quelle che c'erano non cambiano.
+    static func pathVariants(count: Int, weights: [Double] = pathWeights) -> [Int] {
+        var result: [Int] = []
+        var previous = -1
+        while result.count < count {
+            let start = result.count
+            var choice = pick(col: start, row: -1, salt: 0, weights: weights)
+            var salt = 1
+            while choice == previous && salt <= 4 {
+                choice = pick(col: start, row: -1, salt: salt, weights: weights)
+                salt += 1
+            }
+            for _ in 0..<runLength(start, -1) where result.count < count { result.append(choice) }
+            previous = choice
+        }
+        return result
+    }
+
+    private static func pick(col: Int, row: Int, salt: Int, weights: [Double]) -> Int {
+        let total = weights.reduce(0, +)
+        let draw = Double(GardenDrops.mixedHash("terra-\(col),\(row),\(salt)")) / 4_294_967_296 * total
+        var sum = 0.0
+        for (index, weight) in weights.enumerated() {
+            sum += weight
+            if draw < sum { return index }
+        }
+        return weights.count - 1
+    }
+
+    /// La tessera d'erba (da 0) di ogni tessera di un'isola `size × size`, per righe (`row * size + col`). In ogni fila (verso `col`) vanno a gruppi di
+    /// 2 o 3 uguali, come chiazze di prato; un gruppo è diverso da quello prima e dalla tessera che gli sta sopra all'inizio (se non dopo quattro
+    /// tentativi). Non dipende da quanto è grande l'isola: se si allarga, quello che c'era resta com'era.
+    static func grassGrid(size: Int, weights: [Double] = grassWeights) -> [Int] {
+        var grid = [Int](repeating: 0, count: size * size)
+        for row in 0..<size {
+            var col = 0
+            var previous = -1
+            while col < size {
+                let up = row > 0 ? grid[(row - 1) * size + col] : -1
+                var choice = pick(col: col, row: row, salt: 0, weights: weights)
+                var salt = 1
+                while (choice == previous || choice == up) && salt <= 4 {
+                    choice = pick(col: col, row: row, salt: salt, weights: weights)
+                    salt += 1
+                }
+                for offset in 0..<runLength(col, row) where col + offset < size { grid[row * size + col + offset] = choice }
+                previous = choice
+                col += runLength(col, row)
+            }
+        }
+        return grid
+    }
+}
+

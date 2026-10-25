@@ -1183,6 +1183,46 @@ check(Set((0..<GardenSky.smokeCount).map { GardenSky.smoke(index: $0, time: 3, w
 check(GardenSky.smoke(index: 2, time: 4, wind: 1.0).dx > GardenSky.smoke(index: 2, time: 4, wind: 0.2).dx, "col vento il fumo si piega di più")
 check(GardenSky.smoke(index: 0, time: 0, wind: 1).alpha < 0.05, "uno sbuffo nasce quasi invisibile")
 
+// ---------------------------------------------------------------- giardino: il terreno disegnato
+section("Giardino: il terreno disegnato")
+check(GardenTerrain.grassWeights.count == GardenTerrain.grassCount && GardenTerrain.grassWeights.allSatisfy { $0 > 0 }, "un peso per ogni tessera d'erba")
+check((1...GardenTerrain.grassCount).allSatisfy { FileManager.default.fileExists(atPath: "assets/giardino/tessera_erba_\($0).png") }, "le dodici tessere d'erba ci sono in assets/giardino")
+var hashBuckets = [Int](repeating: 0, count: 10)
+for i in 0..<200 { hashBuckets[min(Int(Double(GardenDrops.mixedHash("prova-\(i)")) / 4_294_967_296 * 10), 9)] += 1 }
+check(hashBuckets.allSatisfy { $0 >= 8 && $0 <= 34 }, "l'hash rimescolato: numeri di seguito, risultati sparsi (\(hashBuckets))")
+check(GardenTerrain.pathWeights.count == GardenTerrain.pathCount && GardenTerrain.pathWeights.allSatisfy { $0 > 0 }, "un peso per ogni tessera del sentiero")
+check((1...GardenTerrain.pathCount).allSatisfy { FileManager.default.fileExists(atPath: "assets/giardino/tessera_sentiero_\($0).png") }, "le otto tessere del sentiero ci sono")
+let pathPicks = GardenTerrain.pathVariants(count: 200)
+check(pathPicks.allSatisfy { (0..<GardenTerrain.pathCount).contains($0) } && GardenTerrain.pathVariants(count: 200) == pathPicks, "sentiero: sempre una delle otto, sempre le stesse")
+check(GardenTerrain.pathVariants(count: 12) == Array(pathPicks.prefix(12)), "se il sentiero si allunga, le tessere che c'erano restano com'erano")
+func runLengths(_ values: [Int]) -> [Int] {
+    var lengths: [Int] = []
+    var current = 1
+    for index in 1..<values.count {
+        if values[index] == values[index - 1] { current += 1 } else { lengths.append(current); current = 1 }
+    }
+    return lengths + [current]
+}
+let pathRuns = runLengths(pathPicks)
+check(pathRuns.dropLast().filter { $0 == 2 || $0 == 3 }.count * 100 >= pathRuns.dropLast().count * 80 && pathRuns.allSatisfy { $0 <= 6 }, "sentiero: a gruppi di 2 o 3 uguali (\(pathRuns.prefix(12)))")
+let grassGrid = GardenTerrain.grassGrid(size: 40)
+check(grassGrid.count == 1600 && grassGrid.allSatisfy { (0..<GardenTerrain.grassCount).contains($0) }, "la tessera d'erba è sempre una delle dodici")
+check(GardenTerrain.grassGrid(size: 40) == grassGrid, "sempre le stesse")
+let smallGrid = GardenTerrain.grassGrid(size: 8), bigGrid = GardenTerrain.grassGrid(size: 10)
+var sameAfterGrowing = true
+for r in 0..<8 { for c in 0..<8 where smallGrid[r * 8 + c] != bigGrid[r * 10 + c] { sameAfterGrowing = false } }
+check(sameAfterGrowing, "se l'isola si allarga, le tessere che c'erano restano com'erano")
+let grassTotal = GardenTerrain.grassWeights.reduce(0, +)
+let grassShares = (0..<GardenTerrain.grassCount).map { index in Double(grassGrid.filter { $0 == index }.count) / Double(grassGrid.count) }
+check(zip(grassShares, GardenTerrain.grassWeights).allSatisfy { abs($0 - $1 / grassTotal) < 0.05 }, "escono più o meno come dicono i pesi")
+var grassRuns: [Int] = []
+for r in 0..<40 { grassRuns += runLengths(Array(grassGrid[(r * 40)..<(r * 40 + 40)])).dropLast() }
+let goodRuns = grassRuns.filter { $0 == 2 || $0 == 3 }.count
+check(goodRuns * 100 >= grassRuns.count * 80 && grassRuns.allSatisfy { $0 <= 8 }, "l'erba a chiazze di 2 o 3 tessere uguali in fila (\(goodRuns) gruppi su \(grassRuns.count))")
+var gridsAboveEqual = 0, gridsPairs = 0
+for r in 1..<40 { for c in 0..<40 { gridsPairs += 1; if grassGrid[r * 40 + c] == grassGrid[(r - 1) * 40 + c] { gridsAboveEqual += 1 } } }
+check(Double(gridsAboveEqual) / Double(gridsPairs) < 0.2, "e le chiazze non si impilano sempre uguali (\(gridsAboveEqual) su \(gridsPairs))")
+
 // ---------------------------------------------------------------- da fare
 section("Da fare: giorni e testi")
 check(ToDoDay.isValid("2026-10-23") && ToDoDay.isValid("2028-02-29"), "giorni che esistono")
