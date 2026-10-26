@@ -1398,6 +1398,54 @@ let wipedGarden = movingGarden
 wipedGarden.reset()
 check(wipedGarden.corners.isEmpty && wipedGarden.formedCorners.isEmpty && wipedGarden.takeNewCorners().isEmpty, "«Cancella tutto» toglie anche gli angoli")
 
+// i compagni negli angoli
+let petIDs = ["pianty", "porcellino", "ciccio", "gattino"]
+func affinityIsSound(_ affinity: GardenAffinity) -> Bool {
+    guard petIDs.contains(affinity.pet), let corner = GardenCorners.corner(withID: affinity.corner) else { return false }
+    var itemInCorner = false
+    for need in corner.needs {
+        if case .oneOf(let ids) = need, ids.contains(affinity.item) { itemInCorner = true }
+    }
+    let frames = GardenCompanions.frames(pet: affinity.pet, pose: affinity.pose)
+    let filesExist = frames.allSatisfy { FileManager.default.fileExists(atPath: "assets/\(affinity.pet)/frame\($0).png") }
+    return itemInCorner && !frames.isEmpty && filesExist
+}
+check(GardenCompanions.affinities.allSatisfy(affinityIsSound), "ogni compagno va a un angolo vero, vicino a una cosa che ne fa parte, e ha le immagini della posa")
+check(Set(GardenCompanions.affinities.map { "\($0.pet)-\($0.corner)" }).count == GardenCompanions.affinities.count
+      && !GardenCompanions.affinities.contains { $0.pet == "pianty" }, "una sola voce per compagno e angolo; Pianty non ha pose")
+check(GardenPose.allCases.allSatisfy { $0.framesPerSecond > 0 && $0.duration.lowerBound > 0 && $0.duration.upperBound >= $0.duration.lowerBound }, "ogni posa ha una velocità e una durata")
+check(GardenCompanions.resource(pet: "gattino", pose: .sleep, time: 0) == "gattino_frame13"
+      && GardenCompanions.resource(pet: "gattino", pose: .sleep, time: 1.0) == "gattino_frame16"
+      && GardenCompanions.resource(pet: "gattino", pose: .sleep, time: 2.0) == "gattino_frame13", "il gattino dorme: i fotogrammi 13–18 uno dopo l'altro, e ricomincia")
+check(GardenCompanions.resource(pet: "porcellino", pose: .wings, time: 3) == nil && GardenCompanions.resource(pet: "ciccio", pose: .wings, time: -1.3) != nil, "solo le pose che il compagno ha (e un tempo negativo non fa danni)")
+// dove può stare
+check(GardenCompanions.standingTiles(around: [GardenTile(col: 0, row: 0)], size: 8) == [GardenTile(col: 1, row: 0), GardenTile(col: 0, row: 1), GardenTile(col: 1, row: 1)],
+      "attorno a una tessera d'angolo: tre posti, dentro l'isola")
+let aroundBig = GardenCompanions.standingTiles(around: GardenLayout.tiles(of: GardenFootprint(cols: 2, rows: 2), at: GardenTile(col: 3, row: 3)), size: 8)
+check(aroundBig.count == 12 && !aroundBig.contains(GardenTile(col: 3, row: 3)) && aroundBig.contains(GardenTile(col: 2, row: 2)) && aroundBig.contains(GardenTile(col: 5, row: 5)),
+      "attorno a una cosa da 2×2: dodici posti, anche in diagonale")
+// la strada
+func routeIsContiguous(_ route: [GardenTile], from: GardenTile) -> Bool {
+    var last = from
+    for tile in route {
+        if abs(tile.col - last.col) + abs(tile.row - last.row) != 1 { return false }
+        last = tile
+    }
+    return true
+}
+let routeStart = GardenTile(col: 0, row: 0)
+check(GardenCompanions.route(from: routeStart, to: GardenTile(col: 3, row: 0), size: 8, occupied: [])
+      == [GardenTile(col: 1, row: 0), GardenTile(col: 2, row: 0), GardenTile(col: 3, row: 0)], "la strada dritta: tessera per tessera, senza la partenza")
+check(GardenCompanions.route(from: routeStart, to: routeStart, size: 8, occupied: []) == [], "già lì: nessun passo")
+let aroundObstacle = GardenCompanions.route(from: routeStart, to: GardenTile(col: 2, row: 0), size: 8, occupied: [GardenTile(col: 1, row: 0)])
+check(aroundObstacle?.count == 4 && aroundObstacle.map { routeIsContiguous($0, from: routeStart) } == true && aroundObstacle?.contains(GardenTile(col: 1, row: 0)) == false,
+      "intorno a un ostacolo: la più corta, e non ci passa sopra")
+let wall = Set((0..<8).map { GardenTile(col: 1, row: $0) })
+check(GardenCompanions.route(from: routeStart, to: GardenTile(col: 3, row: 3), size: 8, occupied: wall) == nil, "un muro da parte a parte: nessuna strada")
+check(GardenCompanions.route(from: routeStart, to: GardenTile(col: 3, row: 0), size: 8, occupied: [GardenTile(col: 3, row: 0)]) == nil, "se la meta è occupata, no")
+check(GardenCompanions.route(from: routeStart, to: GardenTile(col: 7, row: 7), size: 8, occupied: [], limit: 10) == nil
+      && GardenCompanions.route(from: routeStart, to: GardenTile(col: 7, row: 7), size: 8, occupied: [], limit: 14)?.count == 14, "oltre il limite di passi non ci va")
+
 // le cose che cadono, volano e sbocciano (le funzioni pure del disegno)
 var driftOK = true, driftEdges = true, butterflyOK = true, fireflyOK = true
 for index in 0..<8 {

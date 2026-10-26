@@ -55,6 +55,20 @@ final class GardenView: NSView, NSViewToolTipOwner {
         var to: GardenTile
         var progress: Double
         var rest: Double
+        /// Se sta andando in un angolo a fare una posa: il resto della strada.
+        var errand: Errand?
+        /// Se sta facendo la posa (dorme, mangia, saltella, sbatte le ali…).
+        var activity: Activity?
+        /// Da quanti secondi non fa niente di speciale: dopo una posa passa un po' prima della prossima. Parte alto, così la prima viene presto.
+        var idle: Double = 20
+    }
+    private struct Errand {
+        var route: [GardenTile]
+        var affinity: GardenAffinity
+    }
+    private struct Activity {
+        var affinity: GardenAffinity
+        var remaining: Double
     }
     private var walkers: [String: Walker] = [:]
     private var walkTimer: Timer?
@@ -402,7 +416,13 @@ final class GardenView: NSView, NSViewToolTipOwner {
             let home = garden.companionTile(pet.id, index: index)
             let ground = companionGround(pet.id, home: home, iso: iso)
             let feet = NSPoint(x: ground.point.x, y: ground.point.y + iso.tileH * Self.feetOffset)
-            guard let made = entity(kind: .companion(pet.id), resource: pet.iconResource, referenceHeight: GardenCatalog.companionHeight(for: pet.id),
+            // se sta facendo una posa si disegna il fotogramma di quel momento (e, se manca l'immagine, quella ferma)
+            var resource = pet.iconResource
+            if let activity = walkers[pet.id]?.activity,
+               let pose = GardenCompanions.resource(pet: pet.id, pose: activity.affinity.pose, time: effectsClock()), GardenSprites.sprite(pose) != nil {
+                resource = pose
+            }
+            guard let made = entity(kind: .companion(pet.id), resource: resource, referenceHeight: GardenCatalog.companionHeight(for: pet.id),
                                     feet: feet, shadowWidth: iso.tileW * 0.5, turned: false, depth: ground.depth, iso: iso) else { continue }
             result.append(made)
         }
@@ -440,27 +460,89 @@ final class GardenView: NSView, NSViewToolTipOwner {
                 // Gli hanno messo un oggetto sotto i piedi (o l'isola è cambiata): torna a casa.
                 walker = Walker(from: home, to: home, progress: 1, rest: 1)
             }
+            // l'angolo si è sciolto mentre ci andava o ci stava: smette
+            if let errand = walker.errand, garden.formedCorners[errand.affinity.corner] == nil { walker.errand = nil }
+            if let activity = walker.activity, garden.formedCorners[activity.affinity.corner] == nil { walker.activity = nil; walker.idle = 0 }
+            walker.idle += dt
+            let taken = Set(walkers.filter { $0.key != pet.id }.flatMap { [$0.value.from, $0.value.to] })
             if walker.progress < 1 {
                 walker.progress = min(1, walker.progress + dt / 1.3)
                 moving = true
             } else {
                 walker.from = walker.to
-                walker.rest -= dt
-                if walker.rest <= 0 {
-                    let taken = Set(walkers.filter { $0.key != pet.id }.flatMap { [$0.value.from, $0.value.to] })
-                    let around = [(1, 0), (-1, 0), (0, 1), (0, -1)].map { GardenTile(col: walker.from.col + $0.0, row: walker.from.row + $0.1) }
-                    let free = around.filter { GardenLayout.isWalkable($0, size: size, occupied: occupied) && !taken.contains($0) }
-                    if let next = free.randomElement() {
-                        walker.to = next
-                        walker.progress = 0
-                        moving = true
+                if var activity = walker.activity {
+                    // fa la posa: i fotogrammi cambiano, quindi si ridisegna
+                    activity.remaining -= dt
+                    moving = true
+                    if activity.remaining <= 0 {
+                        walker.activity = nil
+                        walker.idle = 0
+                        walker.rest = 1.2
+                    } else {
+                        walker.activity = activity
                     }
-                    walker.rest = 1.5 + Double.random(in: 0...3.5)
+                } else if var errand = walker.errand {
+                    walker.rest -= dt
+                    if walker.rest <= 0 {
+                        if errand.route.isEmpty {
+                            walker.errand = nil
+                            walker.activity = Activity(affinity: errand.affinity, remaining: Double.random(in: errand.affinity.pose.duration))
+                        } else {
+                            let next = errand.route.removeFirst()
+                            if GardenLayout.isWalkable(next, size: size, occupied: occupied) && !taken.contains(next) {
+                                walker.to = next
+                                walker.progress = 0
+                                walker.errand = errand
+                                moving = true
+                            } else {
+                                walker.errand = nil      // la strada si è chiusa: lascia perdere
+                            }
+                        }
+                    }
+                } else {
+                    walker.rest -= dt
+                    if walker.rest <= 0 {
+                        if let errand = startErrand(for: pet.id, walker: walker, size: size, occupied: occupied, taken: taken) {
+                            walker.errand = errand
+                            walker.rest = 0
+                        } else {
+                            let around = [(1, 0), (-1, 0), (0, 1), (0, -1)].map { GardenTile(col: walker.from.col + $0.0, row: walker.from.row + $0.1) }
+                            let free = around.filter { GardenLayout.isWalkable($0, size: size, occupied: occupied) && !taken.contains($0) }
+                            if let next = free.randomElement() {
+                                walker.to = next
+                                walker.progress = 0
+                                moving = true
+                            }
+                            walker.rest = 1.5 + Double.random(in: 0...3.5)
+                        }
+                    }
                 }
             }
             walkers[pet.id] = walker
         }
         return moving
+    }
+
+    /// Se un compagno ha un angolo che gli piace e c'è (e nessun altro ci sta andando), ogni tanto ci va: la strada più corta fino a una tessera accanto
+    /// a una cosa dell'angolo.
+    private func startErrand(for petID: String, walker: Walker, size: Int, occupied: Set<GardenTile>, taken: Set<GardenTile>) -> Errand? {
+        guard walker.idle > 25, Double.random(in: 0..<1) < 0.4 else { return nil }
+        var busy = Set<String>()
+        for (otherID, other) in walkers where otherID != petID {
+            if let corner = other.errand?.affinity.corner ?? other.activity?.affinity.corner { busy.insert(corner) }
+        }
+        let options = GardenCompanions.affinities.filter { $0.pet == petID && garden.formedCorners[$0.corner] != nil && !busy.contains($0.corner) }
+        guard let affinity = options.randomElement(), let ids = garden.formedCorners[affinity.corner],
+              let placement = garden.placements.first(where: { ids.contains($0.id) && $0.item == affinity.item }),
+              let item = GardenCatalog.item(withID: placement.item) else { return nil }
+        let footprint = GardenLayout.tiles(of: item.footprint.applying(turned: placement.turned), at: placement.tile)
+        var best: [GardenTile]?
+        for tile in GardenCompanions.standingTiles(around: footprint, size: size) where GardenLayout.isWalkable(tile, size: size, occupied: occupied) && !taken.contains(tile) {
+            guard let route = GardenCompanions.route(from: walker.from, to: tile, size: size, occupied: occupied) else { continue }
+            if best == nil || route.count < best?.count ?? Int.max { best = route }
+        }
+        guard let route = best else { return nil }
+        return Errand(route: route, affinity: affinity)
     }
 
     private func startWalking() {
@@ -2026,8 +2108,10 @@ extension GardenView {
         shadow.set()
         drawChip(rect, fill: NSColor(calibratedRed: 1, green: 0.985, blue: 0.9, alpha: 0.97 * envelope), stroke: edge.withAlphaComponent(0.85 * envelope))
         NSGraphicsContext.restoreGraphicsState()
-        if let icon = tinted("star.fill", size: 17, color: edge.withAlphaComponent(envelope)) {
-            icon.draw(in: NSRect(x: rect.minX + 16, y: rect.midY - icon.size.height / 2, width: icon.size.width, height: icon.size.height))
+        if let icon = tinted("star.fill", size: 17, color: edge) {
+            // l'icona si fa col colore pieno e poi si sfuma: colorata con un colore trasparente lascerebbe vedere il nero del simbolo
+            icon.draw(in: NSRect(x: rect.minX + 16, y: rect.midY - icon.size.height / 2, width: icon.size.width, height: icon.size.height),
+                      from: .zero, operation: .sourceOver, fraction: envelope, respectFlipped: true, hints: nil)
         }
         text(caption, in: NSRect(x: rect.minX + 16 + iconWidth + 8, y: rect.minY + 7, width: max(titleWidth, captionWidth) + 4, height: 15),
              font: smallFont, color: Paper.inkLight.withAlphaComponent(envelope))
