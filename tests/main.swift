@@ -1308,6 +1308,122 @@ check(GardenSky.shownSeason(date: date(2026, 7, 10), calendar: cal, defaults: se
 seasonDefaults.set("boh", forKey: "gardenSeason")
 check(GardenSky.shownSeason(date: date(2026, 7, 10), calendar: cal, defaults: seasonDefaults) == .summer, "…ma un nome che non c'è non conta")
 
+// ---------------------------------------------------------------- giardino: gli angoli
+section("Giardino: gli angoli")
+func put(_ item: String, _ col: Int, _ row: Int, turned: Bool = false) -> GardenPlacement {
+    GardenPlacement(item: item, tile: GardenTile(col: col, row: row), turned: turned)
+}
+func cornerNeedExists(_ need: GardenCorner.Need) -> Bool {
+    switch need {
+    case .oneOf(let ids): return !ids.isEmpty && ids.allSatisfy { GardenCatalog.item(withID: $0) != nil }
+    case .different(let category, let count): return GardenCatalog.items.filter { $0.category == category }.count >= count
+    }
+}
+check(GardenCorners.all.count == 10 && Set(GardenCorners.all.map { $0.id }).count == 10 && GardenCorners.all.allSatisfy { !$0.name.isEmpty && !$0.needs.isEmpty },
+      "dieci angoli, ognuno con il suo nome")
+check(GardenCorners.all.allSatisfy { $0.needs.allSatisfy(cornerNeedExists) }, "ogni angolo chiede oggetti che ci sono nel catalogo")
+check(GardenCorners.corner(withID: "te")?.name == "L'angolo del tè" && GardenCorners.corner(withID: "boh") == nil, "si trova per nome")
+// la distanza: contano i bordi dell'ingombro
+let cornerTable = put("tavolino", 1, 1)
+check(GardenCorners.distance(cornerTable, cornerTable) == 0, "da sé stessa: 0")
+check(GardenCorners.distance(cornerTable, put("sdraio", 2, 1)) == 1 && GardenCorners.distance(cornerTable, put("sdraio", 2, 2)) == 1, "attaccate (anche in diagonale): 1")
+check(GardenCorners.distance(cornerTable, put("sdraio", 3, 1)) == 2 && GardenCorners.distance(cornerTable, put("sdraio", 4, 1)) == 3, "una tessera libera in mezzo: 2; due: 3")
+check(GardenCorners.distance(put("panchina", 2, 1), put("lampione", 4, 1)) == 1 && GardenCorners.distance(put("panchina", 2, 1), put("lampione", 4, 3)) == 2,
+      "una cosa da due tessere conta fino al suo bordo")
+check(GardenCorners.distance(put("panchina", 2, 1, turned: true), put("lampione", 3, 3)) == 1, "e girata cambia l'ingombro")
+// un angolo si forma, o no
+check(GardenCorners.formed(by: []).isEmpty && GardenCorners.formed(by: [cornerTable]).isEmpty, "da sole le cose non fanno angoli")
+let teaCorner = GardenCorners.formed(by: [cornerTable, put("sdraio", 3, 1)])
+check(teaCorner.keys.sorted() == ["te"] && teaCorner["te"]?.count == 2, "tavolino e sdraio con una tessera in mezzo: l'angolo del tè")
+check(GardenCorners.formed(by: [cornerTable, put("sdraio", 4, 1)]).isEmpty, "con due tessere in mezzo no")
+check(GardenCorners.formed(by: [cornerTable, put("sdraio", 4, 1), put("sdraio", 2, 2)])["te"]?.count == 2, "ne basta una vicina, dell'altra non importa")
+let tableAndLamp = [put("tavolino", 0, 0), put("picnic", 2, 0), put("bandierine", 0, 5)]
+check(GardenCorners.formed(by: tableAndLamp)["festa"] == nil, "bandierine, picnic e tavolino: se una è lontana non c'è la festa")
+let party = [put("tavolino", 0, 0), put("picnic", 2, 0), put("bandierine", 0, 2), put("sdraio", 1, 2)]
+let partyFormed = GardenCorners.formed(by: party)
+check(partyFormed["festa"]?.count == 3 && partyFormed["te"]?.count == 2, "una stessa cosa può stare in due angoli (il tavolino: festa e tè)")
+// quattro fiori diversi
+let flowers4 = [put("margherite", 0, 0), put("tulipani", 1, 0), put("papaveri", 2, 0), put("lavanda", 0, 1)]
+check(GardenCorners.formed(by: flowers4)["prato-fiorito"]?.count == 4, "quattro fiori diversi vicini: il prato fiorito")
+check(GardenCorners.formed(by: [put("margherite", 0, 0), put("margherite", 1, 0), put("tulipani", 2, 0), put("papaveri", 0, 1)])["prato-fiorito"] == nil,
+      "due uguali e due diversi non bastano: servono quattro diversi")
+check(GardenCorners.formed(by: [put("margherite", 0, 0), put("tulipani", 1, 0), put("papaveri", 2, 0), put("lavanda", 6, 6)])["prato-fiorito"] == nil, "se uno è lontano no")
+check(GardenCorners.formed(by: [put("margherite", 0, 0), put("tulipani", 1, 0), put("papaveri", 2, 0), put("cesto-carote", 0, 1)])["prato-fiorito"] == nil,
+      "un oggetto che non è un fiore non conta")
+// «una fra due»: la panchina o il ponticello
+check(GardenCorners.formed(by: [put("arco-rose", 0, 0), put("ponticello", 0, 2)])["rose"] != nil
+      && GardenCorners.formed(by: [put("arco-rose", 0, 0), put("panchina", 2, 0)])["rose"] != nil
+      && GardenCorners.formed(by: [put("arco-rose", 0, 0), put("sdraio", 2, 0)])["rose"] == nil, "l'arco delle rose vuole la panchina o il ponticello")
+// tre cose, ognuna diversa
+let vegetable = [put("aiuola", 0, 0), put("erbe", 2, 0), put("annaffiatoio", 0, 1)]
+check(GardenCorners.formed(by: vegetable)["orto"]?.count == 3 && GardenCorners.formed(by: Array(vegetable.prefix(2)))["orto"] == nil, "l'orto vuole tutte e tre le cose")
+let vegetableForward = GardenCorners.formed(by: vegetable).mapValues { Set($0) }
+let vegetableBackward = GardenCorners.formed(by: vegetable.reversed()).mapValues { Set($0) }
+check(vegetableForward == vegetableBackward, "l'ordine in cui sono nell'elenco non cambia quali cose fanno l'angolo")
+// la dotazione di partenza non forma angoli
+check(Garden(directory: tempDirectory()).formedCorners.isEmpty, "un giardino nuovo non ha angoli")
+
+// lo sblocco e il file
+var cornerDrops = GardenDropState.starting()
+for item in GardenCatalog.items { cornerDrops.found[item.id] = 1 }
+let cornerDir = tempDirectory()
+writeGardenFile(cornerDir, version: 3, drops: cornerDrops, placements: [
+    ["id": "00000000-0000-4000-8000-0000000000C1", "item": "tavolino", "col": 0, "row": 0, "turned": false],
+    ["id": "00000000-0000-4000-8000-0000000000C2", "item": "sdraio", "col": 2, "row": 0, "turned": false],
+])
+let cornerGarden = Garden(directory: cornerDir)
+check(cornerGarden.formedCorners["te"]?.count == 2 && cornerGarden.corners.isEmpty && cornerGarden.takeNewCorners().isEmpty,
+      "all'apertura l'angolo c'è già ma non è ancora sbloccato (non si salva niente senza che nessuno lo veda)")
+cornerGarden.discoverCorners()
+check(cornerGarden.corners == ["te"] && cornerGarden.takeNewCorners() == ["te"] && cornerGarden.takeNewCorners().isEmpty, "lo sblocca e lo annuncia una volta sola")
+let cornerFile = (try? JSONSerialization.jsonObject(with: Data(contentsOf: cornerDir.appendingPathComponent("giardino.json")))) as? [String: Any]
+check(cornerFile?["corners"] as? [String] == ["te"] && cornerFile?["version"] as? Int == 3, "il file ricorda l'angolo, e resta la versione 3")
+let cornerAgain = Garden(directory: cornerDir)
+cornerAgain.discoverCorners()
+check(cornerAgain.corners == ["te"] && cornerAgain.takeNewCorners().isEmpty, "alla riapertura non lo annuncia di nuovo")
+// spostando le cose
+let cornerFreeDir = tempDirectory()
+writeGardenFile(cornerFreeDir, version: 3, drops: cornerDrops, placements: [])
+let movingGarden = Garden(directory: cornerFreeDir)
+let movingTable = movingGarden.place("tavolino", at: GardenTile(col: 0, row: 0))
+let movingChair = movingGarden.place("sdraio", at: GardenTile(col: 6, row: 0))
+check(movingTable != nil && movingChair != nil && movingGarden.takeNewCorners().isEmpty && movingGarden.corners.isEmpty, "le due cose lontane non fanno niente")
+if let movingChair {
+    check(movingGarden.move(movingChair.id, to: GardenTile(col: 2, row: 0)) && movingGarden.takeNewCorners() == ["te"], "avvicinandole si forma l'angolo e si annuncia")
+    check(movingGarden.move(movingChair.id, to: GardenTile(col: 6, row: 0)) && movingGarden.formedCorners["te"] == nil && movingGarden.corners == ["te"] && movingGarden.takeNewCorners().isEmpty,
+          "allontanandole l'angolo si scioglie, ma resta sbloccato")
+    check(movingGarden.move(movingChair.id, to: GardenTile(col: 2, row: 0)) && movingGarden.takeNewCorners().isEmpty && movingGarden.formedCorners["te"] != nil, "rifacendolo non si annuncia di nuovo")
+}
+let wipedGarden = movingGarden
+wipedGarden.reset()
+check(wipedGarden.corners.isEmpty && wipedGarden.formedCorners.isEmpty && wipedGarden.takeNewCorners().isEmpty, "«Cancella tutto» toglie anche gli angoli")
+
+// le cose che cadono, volano e sbocciano (le funzioni pure del disegno)
+var driftOK = true, driftEdges = true, butterflyOK = true, fireflyOK = true
+for index in 0..<8 {
+    for step in 0..<200 {
+        let time = Double(step) * 0.13
+        let d = GardenSky.drift(index: index, time: time, period: 3.5)
+        if !(0..<1).contains(d.progress) || !(0...1).contains(d.alpha) || abs(d.x) > 1.0001 { driftOK = false }
+        if d.progress < 0.01 && d.alpha > 0.06 { driftEdges = false }
+        let b = GardenSky.butterfly(index: index, time: time)
+        if abs(b.x) > 0.96 || abs(b.y) > 0.51 || !(0...1).contains(b.flap) { butterflyOK = false }
+        let f = GardenSky.cornerFirefly(index: index, time: time)
+        if abs(f.x) > 0.96 || abs(f.y) > 0.81 || !(0...1).contains(f.glow) { fireflyOK = false }
+    }
+}
+check(driftOK && driftEdges, "quello che cade: sempre dentro l'angolo, e compare e sparisce piano")
+check(butterflyOK && fireflyOK, "farfalle e lucciole dell'angolo restano nei loro limiti")
+check(GardenSky.drift(index: 2, time: 41.7, period: 3.5) == GardenSky.drift(index: 2, time: 41.7, period: 3.5), "sempre lo stesso allo stesso istante")
+var starsOK = true
+for index in 0..<GardenSky.burstStarCount {
+    let begin = GardenSky.burstStar(index: index, progress: 0), end = GardenSky.burstStar(index: index, progress: 1)
+    let middle = GardenSky.burstStar(index: index, progress: 0.6), early = GardenSky.burstStar(index: index, progress: 0.3)
+    if begin.alpha != 0 || end.alpha > 0.001 || middle.alpha < 0.3 || !(0...1).contains(middle.alpha) { starsOK = false }
+    if hypot(middle.dx, middle.dy) <= hypot(early.dx, early.dy) || middle.size < 6 || middle.size > 18 { starsOK = false }
+}
+check(starsOK, "le stelline escono dal centro, si allontanano e svaniscono")
+
 // ---------------------------------------------------------------- da fare
 section("Da fare: giorni e testi")
 check(ToDoDay.isValid("2026-10-23") && ToDoDay.isValid("2028-02-29"), "giorni che esistono")

@@ -244,4 +244,52 @@ enum GardenSky {
         let dx = sin(t * 2.6 + Double(index) * 1.7) * 7 + t * t * 34 * wind
         return (dx, -t * 92, 3 + 15 * pow(t, 0.8), min(1, t * 7) * pow(1 - t, 1.3) * 0.6)
     }
+
+    // MARK: - Gli angoli
+
+    /// Qualcosa che cade o sale vicino a un oggetto di un angolo (petali di rosa, gocce, coriandoli, «z», cuori, note): `index` dice quale
+    /// e `period` quanti secondi dura il tragitto. `progress` (da 0 a 1) è a che punto è, `x` di quanto è spostato di lato (da −1 a 1: il
+    /// disegno lo moltiplica per la larghezza che vuole), `spin` un angolo e `alpha` svanisce in entrata e in uscita. A ogni giro parte
+    /// da un punto diverso.
+    static func drift(index: Int, time: Double, period: Double) -> (progress: Double, x: Double, spin: Double, alpha: Double) {
+        let cycle = time / period + unit(index, 61)
+        let progress = cycle - cycle.rounded(.down)
+        let lap = Int(cycle.rounded(.down))
+        let start = unit(index &+ lap &* 7, 62) * 2 - 1
+        let x = start * 0.7 + sin(time * (0.8 + unit(index, 63) * 0.8) + unit(index, 64) * 6.28) * 0.3
+        let alpha = max(min(progress * 5, (1 - progress) * 3, 1), 0)
+        return (progress, x, unit(index, 65) * 6.28 + time * (0.5 + unit(index, 66)), alpha)
+    }
+
+    /// Una farfalla del prato fiorito: dove sta (da −1 a 1 attorno al centro dell'angolo) e quanto ha le ali aperte (da 0 a 1, veloce).
+    static func butterfly(index: Int, time: Double) -> (x: Double, y: Double, flap: Double) {
+        let x = sin(time * (0.25 + unit(index, 71) * 0.3) + unit(index, 73) * 6.28) * (0.65 + unit(index, 74) * 0.3)
+        let y = sin(time * (0.6 + unit(index, 72) * 0.5) + unit(index, 75) * 6.28) * 0.5
+        let flap = (sin(time * (11 + unit(index, 76) * 3)) + 1) / 2
+        return (x, y, flap)
+    }
+
+    /// Una lucciola dell'angolo del bosco: gira piano attorno al centro (da −1 a 1) e si accende e si spegne.
+    static func cornerFirefly(index: Int, time: Double) -> (x: Double, y: Double, glow: Double) {
+        let x = sin(time * (0.2 + unit(index, 81) * 0.3) + unit(index, 82) * 6.28) * (0.5 + unit(index, 83) * 0.45)
+        let y = sin(time * (0.25 + unit(index, 84) * 0.3) + unit(index, 85) * 6.28) * (0.4 + unit(index, 86) * 0.4)
+        let pulse = (sin(time * (0.7 + unit(index, 87) * 0.9) + unit(index, 88) * 6.28) + 1) / 2
+        return (x, y, pow(pulse, 2))
+    }
+
+    static let burstStarCount = 18
+
+    /// Una stellina di quelle che escono quando si sblocca un angolo, a `progress` (da 0 a 1) della festa: parte dal centro, si allontana
+    /// rallentando (`dx` e `dy` in punti, con l'alto che è negativo) e svanisce; è grande `size` punti (da 7 a 17) e girata di `angle`. Ogni stellina parte un po'
+    /// dopo le altre, così non escono tutte insieme.
+    static func burstStar(index: Int, progress: Double) -> (dx: Double, dy: Double, size: Double, angle: Double, alpha: Double) {
+        let delay = unit(index, 91) * 0.35
+        let t = min(max((progress - delay) / (1 - delay), 0), 1)
+        let eased = 1 - pow(1 - t, 2.4)
+        let direction = (Double(index) + unit(index, 92) * 0.8) / Double(burstStarCount) * 2 * Double.pi
+        let reach = 50 + unit(index, 93) * 70
+        let size = 7 + unit(index, 94) * 10
+        let alpha = t <= 0 ? 0 : min(t * 8, 1) * min((1 - t) * 2.2, 1)
+        return (cos(direction) * reach * eased, sin(direction) * reach * eased * 0.8 - 14 * eased, size, direction + t * 2.4, alpha)
+    }
 }

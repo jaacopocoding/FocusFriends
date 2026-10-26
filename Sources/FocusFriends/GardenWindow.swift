@@ -63,6 +63,17 @@ final class GardenView: NSView, NSViewToolTipOwner {
     private var frameTick = 0
     private var lastSky: SkyState?
 
+    /// Uno sblocco in corso: le stelline escono dal centro dell'angolo e in alto compare la scritta «Hai sbloccato…».
+    private struct Celebration {
+        var corner: GardenCorner
+        var members: [UUID]
+        /// Quando è cominciata: si imposta al primo disegno (se la finestra era chiusa, non si perde).
+        var start: Double?
+    }
+    private var celebrations: [Celebration] = []
+    /// Quanto dura la scritta (le stelline, un po' meno).
+    private static let celebrationLength = 4.6
+
     private let albumButton: PillIconButton
     /// Chiamata dal pulsante «‹ Menu»: la finestra si chiude e si torna alla scheda del menu.
     var onBack: (() -> Void)?
@@ -93,6 +104,8 @@ final class GardenView: NSView, NSViewToolTipOwner {
             guard let self, self.window.map({ $0.isVisible || $0.isMiniaturized }) ?? true else { return }
             self.reload()
         }
+        // un angolo che c'era già prima di aprire la finestra si sblocca adesso (e si annuncia), una volta sola
+        garden.discoverCorners()
         garden.addObserver { [weak self] in self?.reload() }
         reload()
     }
@@ -104,6 +117,9 @@ final class GardenView: NSView, NSViewToolTipOwner {
     /// Rifà i conti della serie e ridisegna.
     func reload() {
         streak = StudyStreak.analyze(sessions: log.sessions, now: now(), calendar: calendar)
+        for id in garden.takeNewCorners() {
+            if let corner = GardenCorners.corner(withID: id) { celebrations.append(Celebration(corner: corner, members: garden.formedCorners[id] ?? [], start: nil)) }
+        }
         removeAllToolTips()
         let hud = hudLayout()
         addToolTip(hud.album, owner: self, userData: UnsafeMutableRawPointer(bitPattern: 1))
@@ -363,6 +379,8 @@ final class GardenView: NSView, NSViewToolTipOwner {
     private func entities() -> [Entity] {
         let iso = self.iso
         var result: [Entity] = []
+        // le bandierine di una festa in giardino ondeggiano di più
+        let party = Set(garden.formedCorners["festa"] ?? [])
         for placement in garden.placements {
             guard let item = GardenCatalog.item(withID: placement.item) else { continue }
             if carryMoved, carry == .placed(placement.id) { continue }
@@ -373,7 +391,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
             let shadowWidth = item.castsShadow ? min(iso.tileW * 0.62 * CGFloat(max(footprint.cols, footprint.rows)), iso.tileW * 1.3) : nil
             guard var made = entity(kind: .placed(placement.id), resource: item.resource, referenceHeight: item.height, feet: feet,
                                     shadowWidth: shadowWidth, turned: placement.turned, depth: front + 0.5, iso: iso) else { continue }
-            made.sway = item.swayStrength
+            made.sway = item.swayStrength * (party.contains(placement.id) ? 1.7 : 1)
             made.seed = Double(GardenDrops.hash(placement.id.uuidString) % 1000) / 1000
             made.tile = placement.tile
             made.water = item.waterSpot
@@ -463,7 +481,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
             }
             // a 30 al secondo se si cammina, a 15 se si muove solo l'aria (vento, fumo, neve): basta, e costa la metà
             self.frameTick += 1
-            if walking || changed || (self.frameTick % 2 == 0 && self.skyIsAnimated()) { self.needsDisplay = true }
+            if walking || changed || !self.celebrations.isEmpty || (self.frameTick % 2 == 0 && self.skyIsAnimated()) { self.needsDisplay = true }
         }
         RunLoop.main.add(timer, forMode: .common)
         walkTimer = timer
@@ -655,6 +673,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
             if let spot = entity.water { drawWater(entity, spot: spot, light: sky.light) }
         }
         drawGhost(target, iso: iso)
+        drawCornerEffects(laid, season: sky.season, light: sky.light, iso: iso)
         drawWeather(sky.season, light: sky.light)
         drawLampGlows(laid, iso: iso, light: sky.light)
         drawCottageWindows(light: sky.light, season: sky.season, iso: iso)
@@ -665,6 +684,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
         drawHUD()
         if trayVisible { drawTray() } else if showsTrayPill { drawTrayPill() }
         drawZoomControls()
+        drawCelebration(laid, iso: iso)
         if isCarryingPlaced { drawRemoveZone() }
         if let message {
             drawHint(message)
@@ -794,14 +814,17 @@ final class GardenView: NSView, NSViewToolTipOwner {
         let strength = CGFloat(light.lamp)
         guard strength > 0.01 else { return }
         let lamps = Set(garden.placements.filter { $0.item == "lampione" }.map { $0.id })
+        // il lampione dell'angolo di lettura fa più luce, e più calda
+        let reading = Set(garden.formedCorners["lettura"] ?? [])
         NSGraphicsContext.saveGraphicsState()
         NSGraphicsContext.current?.cgContext.setBlendMode(.plusLighter)
         let warm = Self.color(255, 196, 104)
         for entity in laid {
             guard case .placed(let id) = entity.kind, lamps.contains(id) else { continue }
+            let boost: CGFloat = reading.contains(id) ? 1.45 : 1
             let top = NSPoint(x: entity.rect.midX, y: entity.rect.minY + entity.rect.height * 0.10)
-            NSGradient(colors: [warm.withAlphaComponent(0.48 * strength), warm.withAlphaComponent(0.14 * strength), warm.withAlphaComponent(0)])?
-                .draw(fromCenter: top, radius: 0, toCenter: top, radius: iso.tileW * 1.25, options: [])
+            NSGradient(colors: [warm.withAlphaComponent(0.48 * strength * min(boost, 1.2)), warm.withAlphaComponent(0.14 * strength * min(boost, 1.2)), warm.withAlphaComponent(0)])?
+                .draw(fromCenter: top, radius: 0, toCenter: top, radius: iso.tileW * 1.25 * boost, options: [])
             // la pozza di luce sul prato, schiacciata come l'isola
             NSGraphicsContext.saveGraphicsState()
             let squash = NSAffineTransform()
@@ -809,7 +832,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
             squash.scaleX(by: 1, yBy: 0.5)
             squash.concat()
             NSGradient(colors: [warm.withAlphaComponent(0.34 * strength), warm.withAlphaComponent(0)])?
-                .draw(fromCenter: .zero, radius: 0, toCenter: .zero, radius: iso.tileW * 1.5, options: [])
+                .draw(fromCenter: .zero, radius: 0, toCenter: .zero, radius: iso.tileW * 1.5 * boost, options: [])
             NSGraphicsContext.restoreGraphicsState()
         }
         NSGraphicsContext.restoreGraphicsState()
@@ -1725,6 +1748,291 @@ final class GardenView: NSView, NSViewToolTipOwner {
             self?.bubble = nil
             self?.needsDisplay = true
         }
+    }
+}
+
+// MARK: - Gli angoli: le stelline dello sblocco e quello che succede quando si formano
+
+extension GardenView {
+    /// I colori degli effetti stanno sopra la scena, che è già tinta dalla luce: si tingono come i petali.
+    private func lit(_ color: NSColor, _ light: GardenLight) -> NSColor {
+        guard let rgb = color.usingColorSpace(.deviceRGB) else { return color }
+        let m = light.multiplier
+        return NSColor(calibratedRed: rgb.redComponent * CGFloat(m.red / 255), green: rgb.greenComponent * CGFloat(m.green / 255),
+                       blue: rgb.blueComponent * CGFloat(m.blue / 255), alpha: rgb.alphaComponent)
+    }
+
+    /// Una lettera o un simbolo (la «z» del sonno, un cuore, una nota) che si disegna centrato su un punto e girato di `angle`.
+    private func drawGlyph(_ glyph: String, at point: NSPoint, size: CGFloat, color: NSColor, angle: CGFloat = 0) {
+        let attributes: [NSAttributedString.Key: Any] = [.font: NSFont.systemFont(ofSize: size, weight: .heavy), .foregroundColor: color]
+        let extent = (glyph as NSString).size(withAttributes: attributes)
+        NSGraphicsContext.saveGraphicsState()
+        let transform = NSAffineTransform()
+        transform.translateX(by: point.x, yBy: point.y)
+        transform.rotate(byRadians: angle)
+        transform.concat()
+        (glyph as NSString).draw(at: NSPoint(x: -extent.width / 2, y: -extent.height / 2), withAttributes: attributes)
+        NSGraphicsContext.restoreGraphicsState()
+    }
+
+    /// Quello che gli angoli formati fanno nel giardino: vapore dal tavolino, gocce dall'annaffiatoio, «z» sulla casa del gatto, cuori su quella del
+    /// porcellino, note sulla casa degli uccelli, farfalle sul prato fiorito, lucciole e nebbia nel bosco, coriandoli alla festa, petali di rosa e luce
+    /// rosata sotto l'arco. Niente di tutto questo si vede con «Riduci movimento» (la luce più forte del lampione di lettura sì).
+    private func drawCornerEffects(_ laid: [Entity], season: Season, light: GardenLight, iso: Iso) {
+        guard !reduceMotion, !garden.formedCorners.isEmpty else { return }
+        let time = effectsClock()
+        var itemOf: [UUID: String] = [:]
+        for placement in garden.placements { itemOf[placement.id] = placement.item }
+        /// La copia di `item` che fa parte dell'angolo `corner`, se c'è.
+        func member(_ corner: String, _ item: String) -> Entity? {
+            guard let ids = garden.formedCorners[corner] else { return nil }
+            for entity in laid {
+                if case .placed(let id) = entity.kind, ids.contains(id), itemOf[id] == item { return entity }
+            }
+            return nil
+        }
+        /// Dove stanno, in media, i piedi delle cose di un angolo.
+        func center(_ corner: String) -> NSPoint? {
+            guard let ids = garden.formedCorners[corner] else { return nil }
+            var feet: [NSPoint] = []
+            for entity in laid {
+                if case .placed(let id) = entity.kind, ids.contains(id) { feet.append(entity.feet) }
+            }
+            guard !feet.isEmpty else { return nil }
+            let count = CGFloat(feet.count)
+            return NSPoint(x: feet.reduce(0) { $0 + $1.x } / count, y: feet.reduce(0) { $0 + $1.y } / count)
+        }
+        let tileW = iso.tileW, tileH = iso.tileH
+        let white = lit(NSColor.white, light)
+        let steamColor = lit(Self.color(188, 196, 214), light)
+
+        // il tè: un filo di vapore dal tavolino
+        if let table = member("te", "tavolino") {
+            let origin = NSPoint(x: table.rect.midX - table.rect.width * 0.06, y: table.rect.minY + table.rect.height * 0.30)
+            let k = tileW / 185
+            for index in 0..<4 {
+                let puff = GardenSky.smoke(index: index * 2, time: time, wind: 0.15)
+                let alpha = CGFloat(puff.alpha) * 0.9
+                guard alpha > 0.01 else { continue }
+                let c = NSPoint(x: origin.x + CGFloat(puff.dx) * k, y: origin.y + CGFloat(puff.dy) * k)
+                NSGradient(colors: [steamColor.withAlphaComponent(min(alpha * 1.5, 0.85)), steamColor.withAlphaComponent(alpha * 0.7), steamColor.withAlphaComponent(0)])?
+                    .draw(fromCenter: c, radius: 0, toCenter: c, radius: CGFloat(puff.radius) * 2.1 * k, options: [])
+            }
+        }
+        // l'orto: le gocce dell'annaffiatoio
+        if let can = member("orto", "annaffiatoio") {
+            let origin = NSPoint(x: can.rect.minX + can.rect.width * 0.12, y: can.rect.minY + can.rect.height * 0.42)
+            let drop = lit(Self.color(150, 200, 238), light)
+            for index in 0..<3 {
+                let d = GardenSky.drift(index: index, time: time, period: 1.1)
+                drop.withAlphaComponent(CGFloat(d.alpha) * 0.9).setFill()
+                let c = NSPoint(x: origin.x + CGFloat(d.x) * tileW * 0.05, y: origin.y + CGFloat(d.progress) * tileH * 1.1)
+                NSBezierPath(ovalIn: NSRect(x: c.x - 1.6, y: c.y - 2.8, width: 3.2, height: 5.6)).fill()
+            }
+        }
+        // il gatto dorme, il porcellino è contento, gli uccelli cantano: una «z», un cuore, una nota che salgono dalla loro casa
+        let risers: [(corner: String, item: String, glyph: String, color: NSColor, period: Double)] = [
+            ("gatto", "casetta-gatto", "z", Self.color(110, 130, 190), 3.2),
+            ("porcellino", "casetta-porcellino", "♥", Self.color(238, 118, 150), 3.6),
+            ("uccelli", "casetta-uccelli", "♪", Self.color(96, 150, 205), 3.0),
+        ]
+        for riser in risers {
+            guard let house = member(riser.corner, riser.item) else { continue }
+            let origin = NSPoint(x: house.rect.midX + house.rect.width * 0.06, y: house.rect.minY + house.rect.height * 0.30)
+            for index in 0..<2 {
+                let d = GardenSky.drift(index: index + 3, time: time, period: riser.period)
+                let c = NSPoint(x: origin.x + CGFloat(d.x) * tileW * 0.12, y: origin.y - CGFloat(d.progress) * tileH * 1.0)
+                drawGlyph(riser.glyph, at: c, size: 11 + CGFloat(d.progress) * 6, color: lit(riser.color, light).withAlphaComponent(CGFloat(d.alpha) * 0.9),
+                          angle: CGFloat(sin(d.spin)) * 0.25)
+            }
+        }
+        // il prato fiorito: le farfalle (non d'inverno)
+        if season != .winter, let middle = center("prato-fiorito") {
+            let colors = [Self.color(240, 150, 60), Self.color(120, 170, 232), Self.color(240, 140, 186)]
+            for index in 0..<3 {
+                let b = GardenSky.butterfly(index: index, time: time)
+                let c = NSPoint(x: middle.x + CGFloat(b.x) * tileW * 0.95, y: middle.y - tileH * 1.1 + CGFloat(b.y) * tileH * 0.9)
+                let wing = tileW * 0.06
+                let spread = 0.25 + CGFloat(b.flap) * 0.75
+                lit(colors[index], light).setFill()
+                NSBezierPath(ovalIn: NSRect(x: c.x - wing * 1.9 * spread, y: c.y - wing, width: wing * 1.9 * spread, height: wing * 1.6)).fill()
+                NSBezierPath(ovalIn: NSRect(x: c.x, y: c.y - wing, width: wing * 1.9 * spread, height: wing * 1.6)).fill()
+                lit(Self.color(70, 52, 44), light).setFill()
+                NSBezierPath(ovalIn: NSRect(x: c.x - 0.7, y: c.y - wing * 0.9, width: 1.4, height: wing * 1.9)).fill()
+            }
+        }
+        // il bosco: la nebbia di giorno, le lucciole la sera (non d'inverno)
+        if let middle = center("bosco") {
+            if light.lamp < 0.5 {
+                let drift = CGFloat(sin(time * 0.12)) * tileW * 0.3
+                for layer in 0..<2 {
+                    let c = NSPoint(x: middle.x + drift * (layer == 0 ? 1 : -0.7), y: middle.y - tileH * (0.25 + CGFloat(layer) * 0.3))
+                    let alpha = (0.17 + 0.05 * CGFloat(sin(time * 0.3 + Double(layer)))) * (1 - CGFloat(light.lamp) * 2)
+                    NSGraphicsContext.saveGraphicsState()
+                    let squash = NSAffineTransform()
+                    squash.translateX(by: c.x, yBy: c.y)
+                    squash.scaleX(by: 1, yBy: 0.38)
+                    squash.concat()
+                    NSGradient(colors: [white.withAlphaComponent(alpha), white.withAlphaComponent(0)])?
+                        .draw(fromCenter: .zero, radius: 0, toCenter: .zero, radius: tileW * 1.4, options: [])
+                    NSGraphicsContext.restoreGraphicsState()
+                }
+            }
+            let evening = CGFloat(GardenSky.smoothstep(light.darkness, from: 0.2, to: 0.45))
+            if season != .winter, evening > 0.01 {
+                NSGraphicsContext.saveGraphicsState()
+                NSGraphicsContext.current?.cgContext.setBlendMode(.plusLighter)
+                let glowColor = Self.color(255, 238, 140), core = Self.color(255, 252, 210)
+                for index in 0..<6 {
+                    let f = GardenSky.cornerFirefly(index: index, time: time)
+                    let a = CGFloat(f.glow) * evening
+                    guard a > 0.02 else { continue }
+                    let c = NSPoint(x: middle.x + CGFloat(f.x) * tileW * 1.0, y: middle.y - tileH * 0.9 + CGFloat(f.y) * tileH * 1.1)
+                    NSGradient(colors: [glowColor.withAlphaComponent(0.85 * a), glowColor.withAlphaComponent(0)])?
+                        .draw(fromCenter: c, radius: 0, toCenter: c, radius: 10, options: [])
+                    core.withAlphaComponent(min(1, a * 1.3)).setFill()
+                    NSBezierPath(ovalIn: NSRect(x: c.x - 1.4, y: c.y - 1.4, width: 2.8, height: 2.8)).fill()
+                }
+                NSGraphicsContext.restoreGraphicsState()
+            }
+        }
+        // la festa: i coriandoli che cadono dalle bandierine
+        if let flags = member("festa", "bandierine") {
+            let colors = [Self.color(240, 128, 160), Self.color(250, 205, 80), Self.color(110, 170, 235), Self.color(130, 200, 140), Self.color(242, 160, 80), Self.color(170, 130, 220)]
+            let origin = NSPoint(x: flags.rect.midX, y: flags.rect.minY + flags.rect.height * 0.22)
+            for index in 0..<6 {
+                let d = GardenSky.drift(index: index + 10, time: time, period: 3)
+                let c = NSPoint(x: origin.x + CGFloat(d.x) * flags.rect.width * 0.45, y: origin.y + CGFloat(d.progress) * tileH * 1.7)
+                NSGraphicsContext.saveGraphicsState()
+                let turn = NSAffineTransform()
+                turn.translateX(by: c.x, yBy: c.y)
+                turn.rotate(byRadians: CGFloat(d.spin))
+                turn.concat()
+                lit(colors[index], light).withAlphaComponent(CGFloat(d.alpha)).setFill()
+                NSBezierPath(rect: NSRect(x: -2, y: -3.2, width: 4, height: 6.4)).fill()
+                NSGraphicsContext.restoreGraphicsState()
+            }
+        }
+        // l'arco delle rose: i petali che cadono e, di sera, una luce rosata
+        if let arch = member("rose", "arco-rose") {
+            let origin = NSPoint(x: arch.rect.midX, y: arch.rect.minY + arch.rect.height * 0.20)
+            for index in 0..<5 {
+                let d = GardenSky.drift(index: index + 20, time: time, period: 4.2)
+                let c = NSPoint(x: origin.x + CGFloat(d.x) * arch.rect.width * 0.32, y: origin.y + CGFloat(d.progress) * arch.rect.height * 0.8)
+                NSGraphicsContext.saveGraphicsState()
+                let turn = NSAffineTransform()
+                turn.translateX(by: c.x, yBy: c.y)
+                turn.rotate(byRadians: CGFloat(d.spin))
+                turn.concat()
+                lit(Self.color(246, 150, 178), light).withAlphaComponent(CGFloat(d.alpha) * 0.95).setFill()
+                NSBezierPath(ovalIn: NSRect(x: -3.2, y: -2.1, width: 6.4, height: 4.2)).fill()
+                NSGraphicsContext.restoreGraphicsState()
+            }
+            let glow = CGFloat(light.lamp)
+            if glow > 0.02 {
+                NSGraphicsContext.saveGraphicsState()
+                NSGraphicsContext.current?.cgContext.setBlendMode(.plusLighter)
+                let c = NSPoint(x: arch.rect.midX, y: arch.rect.minY + arch.rect.height * 0.45)
+                let pink = Self.color(255, 150, 186)
+                NSGradient(colors: [pink.withAlphaComponent(0.26 * glow), pink.withAlphaComponent(0)])?
+                    .draw(fromCenter: c, radius: 0, toCenter: c, radius: tileW * 0.95, options: [])
+                NSGraphicsContext.restoreGraphicsState()
+            }
+        }
+    }
+
+    /// Una stella a cinque punte centrata su `center`, con una punta in alto girata di `angle`.
+    private func starPath(center: NSPoint, outer: CGFloat, angle: CGFloat) -> NSBezierPath {
+        let path = NSBezierPath()
+        for point in 0..<10 {
+            let radius = point % 2 == 0 ? outer : outer * 0.45
+            let a = angle - .pi / 2 + CGFloat(point) * .pi / 5
+            let p = NSPoint(x: center.x + cos(a) * radius, y: center.y + sin(a) * radius)
+            if point == 0 { path.move(to: p) } else { path.line(to: p) }
+        }
+        path.close()
+        return path
+    }
+
+    /// Lo sblocco di un angolo: le stelline escono dal centro e in alto compare «Hai sbloccato «L'angolo del tè»». Uno alla volta, se ce ne sono più d'uno.
+    /// Con «Riduci movimento» le stelline stanno ferme attorno all'angolo e compaiono e svaniscono piano.
+    private func drawCelebration(_ laid: [Entity], iso: Iso) {
+        guard let current = celebrations.first else { return }
+        let now = effectsClock()
+        if current.start == nil { celebrations[0].start = now }
+        let elapsed = now - (current.start ?? now)
+        if elapsed >= Self.celebrationLength {
+            celebrations.removeFirst()
+            return
+        }
+        let enter = min(max(elapsed / 0.35, 0), 1), leave = min(max((Self.celebrationLength - elapsed) / 0.6, 0), 1)
+        let envelope = CGFloat(min(enter, leave))
+
+        // dove stanno le cose dell'angolo
+        let members = Set(current.members)
+        var xs: [CGFloat] = [], ys: [CGFloat] = []
+        for entity in laid {
+            if case .placed(let id) = entity.kind, members.contains(id) {
+                xs.append(entity.rect.midX)
+                ys.append(entity.rect.midY)
+            }
+        }
+        let middle: NSPoint
+        if xs.isEmpty {
+            middle = iso.point(col: Double(garden.islandSize) / 2, row: Double(garden.islandSize) / 2)
+        } else {
+            middle = NSPoint(x: xs.reduce(0, +) / CGFloat(xs.count), y: ys.reduce(0, +) / CGFloat(ys.count))
+        }
+
+        // le stelline
+        let burstLength = 2.8
+        let progress = reduceMotion ? 0.55 : min(elapsed / burstLength, 1)
+        let gold = Self.color(255, 208, 70), edge = Self.color(226, 140, 28), pale = Self.color(255, 240, 170)
+        if !reduceMotion, progress < 1 {
+            NSGraphicsContext.saveGraphicsState()
+            NSGraphicsContext.current?.cgContext.setBlendMode(.plusLighter)
+            let pulse = CGFloat(sin(progress * .pi))
+            NSGradient(colors: [pale.withAlphaComponent(0.55 * pulse), pale.withAlphaComponent(0)])?
+                .draw(fromCenter: middle, radius: 0, toCenter: middle, radius: iso.tileW * 1.1, options: [])
+            NSGraphicsContext.restoreGraphicsState()
+        }
+        for index in 0..<GardenSky.burstStarCount {
+            let star = GardenSky.burstStar(index: index, progress: progress)
+            let alpha = CGFloat(star.alpha) * (reduceMotion ? envelope : 1)
+            guard alpha > 0.01 else { continue }
+            let path = starPath(center: NSPoint(x: middle.x + CGFloat(star.dx), y: middle.y + CGFloat(star.dy)), outer: CGFloat(star.size), angle: CGFloat(star.angle))
+            (index % 3 == 0 ? pale : gold).withAlphaComponent(alpha).setFill()
+            path.fill()
+            edge.withAlphaComponent(alpha * 0.9).setStroke()
+            path.lineWidth = 0.9
+            path.stroke()
+        }
+
+        // la scritta, nello spazio libero in alto (fra «Menu» e le pillole dell'album e della serie)
+        let caption = "Hai sbloccato", title = current.corner.name
+        let titleWidth = ceil((title as NSString).size(withAttributes: [.font: numberFont]).width)
+        let captionWidth = ceil((caption as NSString).size(withAttributes: [.font: smallFont]).width)
+        let iconWidth: CGFloat = 22
+        let width = 16 + iconWidth + 8 + max(titleWidth, captionWidth) + 20
+        let hud = hudLayout()
+        let freeRight = (hud.streak?.minX ?? hud.album.minX) - 12
+        let centerX = (150 + freeRight) / 2
+        let rect = NSRect(x: centerX - width / 2, y: 10 + (1 - enter) * -14, width: width, height: 50)
+        NSGraphicsContext.saveGraphicsState()
+        let shadow = NSShadow()
+        shadow.shadowColor = NSColor(calibratedWhite: 0, alpha: 0.18 * envelope)
+        shadow.shadowBlurRadius = 8
+        shadow.shadowOffset = NSSize(width: 0, height: -2)
+        shadow.set()
+        drawChip(rect, fill: NSColor(calibratedRed: 1, green: 0.985, blue: 0.9, alpha: 0.97 * envelope), stroke: edge.withAlphaComponent(0.85 * envelope))
+        NSGraphicsContext.restoreGraphicsState()
+        if let icon = tinted("star.fill", size: 17, color: edge.withAlphaComponent(envelope)) {
+            icon.draw(in: NSRect(x: rect.minX + 16, y: rect.midY - icon.size.height / 2, width: icon.size.width, height: icon.size.height))
+        }
+        text(caption, in: NSRect(x: rect.minX + 16 + iconWidth + 8, y: rect.minY + 7, width: max(titleWidth, captionWidth) + 4, height: 15),
+             font: smallFont, color: Paper.inkLight.withAlphaComponent(envelope))
+        text(title, in: NSRect(x: rect.minX + 16 + iconWidth + 8, y: rect.minY + 21, width: max(titleWidth, captionWidth) + 6, height: 24),
+             font: numberFont, color: Paper.ink.withAlphaComponent(envelope))
     }
 }
 

@@ -29,6 +29,8 @@ final class Garden {
         var legacySpent: Int?
         var placements: [GardenPlacement]
         var companions: [String: GardenCompanionPlace]
+        /// Gli angoli già sbloccati (si aggiunge senza cambiare la versione: chi non lo conosce lo ignora).
+        var corners: [String]?
     }
 
     private let file: URL
@@ -47,6 +49,12 @@ final class Garden {
     private(set) var placements: [GardenPlacement] = []
     /// Dove l'utente ha messo i compagni; chi non c'è sta dove dice `GardenLayout.defaultCompanionTile`.
     private(set) var companionTiles: [String: GardenTile] = [:]
+    /// Gli angoli sbloccati (`GardenCorners`), nell'ordine in cui si sono trovati.
+    private(set) var corners: [String] = []
+    /// Gli angoli che le copie sull'isola formano adesso, con le copie che li formano (si ricalcola a ogni modifica).
+    private(set) var formedCorners: [String: [UUID]] = [:]
+    /// Gli angoli appena sbloccati e non ancora annunciati dalla finestra del giardino (le stelline).
+    private var newCorners: [String] = []
     private var observers: [() -> Void] = []
     /// Il file c'è ma non si legge (o è di una versione più nuova, o non si riesce a metterlo da parte): non lo
     /// sovrascrivo. Le modifiche valgono finché l'app resta aperta.
@@ -117,7 +125,9 @@ final class Garden {
                 legacySpent = max(contents.spent ?? 0, 0)
             }
             if contents.version < Self.formatVersion { legacyBackupName = "giardino-formato\(max(contents.version, 1)).json" }
+            corners = contents.corners ?? []
             settle(legacyCompanions: legacyCompanions)
+            formedCorners = GardenCorners.formed(by: placements)
         } else {
             // Rovinato: lo metto da parte invece di sovrascriverlo alla prossima modifica.
             let aside = directory.appendingPathComponent("giardino.corrotto-\(Int(Date().timeIntervalSince1970)).json")
@@ -141,10 +151,13 @@ final class Garden {
         legacySpent = nil
         companionTiles = [:]
         placements = []
+        corners = []
+        newCorners = []
         for item in GardenCatalog.items.filter({ $0.isStarter }) {
             guard let origin = GardenLayout.starterOrigins[item.id] else { continue }
             placements.append(GardenPlacement(item: item.id, tile: origin))
         }
+        formedCorners = GardenCorners.formed(by: placements)
     }
 
     /// Dopo aver letto un file: le posizioni del prato libero (versioni 1 e 2) diventano tessere, e quello che non ci sta (fuori
@@ -362,6 +375,33 @@ final class Garden {
         save()
     }
 
+    // MARK: - Gli angoli
+
+    /// Ricalcola gli angoli formati e sblocca quelli nuovi. Ritorna se ce n'è qualcuno di nuovo.
+    @discardableResult
+    private func updateCorners() -> Bool {
+        formedCorners = GardenCorners.formed(by: placements)
+        var found = false
+        for corner in GardenCorners.all where formedCorners[corner.id] != nil && !corners.contains(corner.id) {
+            corners.append(corner.id)
+            newCorners.append(corner.id)
+            found = true
+        }
+        return found
+    }
+
+    /// Guarda se le copie sull'isola formano un angolo non ancora sbloccato (per quello che c'era già prima di aprire la finestra) e,
+    /// se sì, lo sblocca e salva.
+    func discoverCorners() {
+        if updateCorners() { save() }
+    }
+
+    /// Gli angoli sbloccati da quando si è chiesto l'ultima volta: la finestra del giardino li annuncia con le stelline.
+    func takeNewCorners() -> [String] {
+        defer { newCorners = [] }
+        return newCorners
+    }
+
     // MARK: - Da capo
 
     /// Toglie tutto (per "Cancella tutto…"): le figurine trovate, le copie e le posizioni. Si riparte dalla dotazione.
@@ -374,6 +414,7 @@ final class Garden {
     }
 
     private func save() {
+        updateCorners()
         if !isReadOnly {
             if let name = legacyBackupName {
                 legacyBackupName = nil
@@ -384,7 +425,8 @@ final class Garden {
             let contents = Contents(version: Self.formatVersion, unlocked: nil, spent: nil, drops: drops, lastRolled: lastRolled,
                                     unseen: unseen.sorted(), pendingGifts: pendingGifts, legacySpent: legacySpent,
                                     placements: placements,
-                                    companions: companionTiles.mapValues { GardenCompanionPlace(col: $0.col, row: $0.row, x: nil, y: nil) })
+                                    companions: companionTiles.mapValues { GardenCompanionPlace(col: $0.col, row: $0.row, x: nil, y: nil) },
+                                    corners: corners.isEmpty ? nil : corners)
             let encoder = JSONEncoder()
             encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
             do {
