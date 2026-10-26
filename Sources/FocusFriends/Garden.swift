@@ -204,6 +204,7 @@ final class Garden {
             return made
         }
         var settled: [GardenPlacement] = []
+        var onPath: [GardenPlacement] = []
         for var placement in allPlacements {
             guard let item = GardenCatalog.item(withID: placement.item) else {
                 settled.append(placement)
@@ -214,12 +215,26 @@ final class Garden {
             if let spot = placement.legacy {
                 placement.legacy = nil
                 let desired = GardenLayout.tile(fromLegacy: spot, size: size(of: island))
-                guard let origin = GardenLayout.nearestOrigin(to: desired, footprint: footprint, size: size(of: island), occupied: occupied[island] ?? []) else { continue }
+                guard let origin = GardenLayout.nearestOrigin(to: desired, footprint: footprint, size: size(of: island), occupied: occupied[island] ?? [], island: island) else { continue }
                 placement.tile = origin
-            } else if !GardenLayout.canPlace(footprint, at: placement.tile, size: GardenIsland.maxSize, occupied: occupied[island] ?? []) {
+            } else if !GardenLayout.canPlace(footprint, at: placement.tile, size: size(of: island), occupied: occupied[island] ?? [], island: island) {
+                // se è sul sentiero dell'isola (che può essere cambiato) si sposta dopo, quando tutte le altre hanno il loro posto; fuori dall'isola o sopra
+                // un'altra cosa no: torna tra quelle da mettere
+                let path = Set(GardenPaths.tiles(island: island, size: size(of: island))).union(GardenLandmarks.tiles(island: island))
+                let covered = GardenLayout.tiles(of: footprint, at: placement.tile)
+                if covered.allSatisfy({ GardenIsland.contains($0, size: size(of: island)) }) && covered.contains(where: { path.contains($0) }) { onPath.append(placement) }
                 continue
             }
             occupied[island, default: []].formUnion(GardenLayout.tiles(of: footprint, at: placement.tile))
+            settled.append(placement)
+        }
+        for var placement in onPath {
+            guard let item = GardenCatalog.item(withID: placement.item) else { continue }
+            let island = resolved(placement.island)
+            let footprint = item.footprint.applying(turned: placement.turned)
+            guard let origin = GardenLayout.nearestOrigin(to: placement.tile, footprint: footprint, size: size(of: island), occupied: occupied[island] ?? [], island: island) else { continue }
+            placement.tile = origin
+            occupied[island, default: []].formUnion(GardenLayout.tiles(of: footprint, at: origin))
             settled.append(placement)
         }
         allPlacements = settled
@@ -251,7 +266,22 @@ final class Garden {
         guard home == nil, GardenIslands.isKnown(id) else { return }
         home = id
         for index in allPlacements.indices where allPlacements[index].island.isEmpty { allPlacements[index].island = id }
+        relocateOffPath(on: id)
         save()
+    }
+
+    /// Le copie di un'isola che stanno sul suo sentiero (ogni isola ha il suo) vanno sulla tessera libera più vicina.
+    private func relocateOffPath(on island: String) {
+        let size = islandSize(of: island)
+        for index in allPlacements.indices where resolved(allPlacements[index].island) == island {
+            guard let item = GardenCatalog.item(withID: allPlacements[index].item) else { continue }
+            let footprint = item.footprint.applying(turned: allPlacements[index].turned)
+            let others = occupiedTiles(on: island, ignoring: allPlacements[index].id)
+            if !GardenLayout.canPlace(footprint, at: allPlacements[index].tile, size: size, occupied: others, island: island),
+               let origin = GardenLayout.nearestOrigin(to: allPlacements[index].tile, footprint: footprint, size: size, occupied: others, island: island) {
+                allPlacements[index].tile = origin
+            }
+        }
     }
 
     /// L'isola vera di un id che può essere vuoto (= casa).
@@ -359,7 +389,7 @@ final class Garden {
     private func autoPlace(_ id: String, salt: String) {
         let island = homeIsland
         guard placements(on: island).count < Self.maxPlacements, available(id) > 0, let item = GardenCatalog.item(withID: id) else { return }
-        let origins = GardenLayout.freeOrigins(for: item.footprint, size: islandSize(of: island), occupied: occupiedTiles(on: island))
+        let origins = GardenLayout.freeOrigins(for: item.footprint, size: islandSize(of: island), occupied: occupiedTiles(on: island), island: island)
         guard !origins.isEmpty else { return }
         var stream = GardenDrops.Stream(seed: GardenDrops.hash("posto-" + salt.uppercased()))
         allPlacements.append(GardenPlacement(item: id, tile: origins[min(Int(stream.next() * Double(origins.count)), origins.count - 1)], island: stored(island)))
@@ -385,7 +415,7 @@ final class Garden {
 
     /// Le tessere coperte dalle copie di un'isola (senza contare `ignoring`, quella che si sta spostando).
     func occupiedTiles(on island: String, ignoring: UUID? = nil) -> Set<GardenTile> {
-        GardenLayout.occupiedTiles(placements(on: island), skipping: ignoring)
+        GardenLayout.occupiedTiles(placements(on: island), skipping: ignoring).union(GardenLandmarks.tiles(island: island))
     }
 
     /// Le tessere coperte sull'isola mostrata.
@@ -395,7 +425,7 @@ final class Garden {
     func canPlace(_ id: String, at tile: GardenTile, turned: Bool = false, on island: String? = nil, ignoring: UUID? = nil) -> Bool {
         guard let item = GardenCatalog.item(withID: id) else { return false }
         let target = island.map(resolved) ?? shownIsland
-        return GardenLayout.canPlace(item.footprint.applying(turned: turned), at: tile, size: islandSize(of: target), occupied: occupiedTiles(on: target, ignoring: ignoring))
+        return GardenLayout.canPlace(item.footprint.applying(turned: turned), at: tile, size: islandSize(of: target), occupied: occupiedTiles(on: target, ignoring: ignoring), island: target)
     }
 
     /// Mette una copia dell'oggetto (se ce n'è una da mettere e ci sta). Ritorna la copia, o nil se non si può.
@@ -415,23 +445,31 @@ final class Garden {
     func placeSomewhere(_ id: String, on island: String? = nil) -> GardenPlacement? {
         guard let item = GardenCatalog.item(withID: id) else { return nil }
         let target = island.map(resolved) ?? shownIsland
-        let origins = GardenLayout.freeOrigins(for: item.footprint, size: islandSize(of: target), occupied: occupiedTiles(on: target))
+        let origins = GardenLayout.freeOrigins(for: item.footprint, size: islandSize(of: target), occupied: occupiedTiles(on: target), island: target)
         guard !origins.isEmpty else { return nil }
         var stream = GardenDrops.Stream(seed: GardenDrops.hash("tocco-\(placements(on: target).count)-" + id))
         return place(id, at: origins[min(Int(stream.next() * Double(origins.count)), origins.count - 1)], on: target)
     }
 
     /// Sposta una copia (e la gira, se `turned` c'è), sulla sua isola. Ritorna false se lì non ci sta: resta dov'era.
+    /// Sposta una copia su una tessera libera, della sua isola o (se si dice `island`) di un'altra: allora cambia isola.
     @discardableResult
-    func move(_ placementID: UUID, to tile: GardenTile, turned: Bool? = nil) -> Bool {
+    func move(_ placementID: UUID, to tile: GardenTile, turned: Bool? = nil, on island: String? = nil) -> Bool {
         guard let index = allPlacements.firstIndex(where: { $0.id == placementID }) else { return false }
         let newTurned = turned ?? allPlacements[index].turned
-        guard canPlace(allPlacements[index].item, at: tile, turned: newTurned, on: allPlacements[index].island, ignoring: placementID) else { return false }
+        let target = island.map(resolved) ?? resolved(allPlacements[index].island)
+        guard GardenIslands.isKnown(target),
+              canPlace(allPlacements[index].item, at: tile, turned: newTurned, on: target, ignoring: placementID) else { return false }
         allPlacements[index].tile = tile
         allPlacements[index].turned = newTurned
+        if island != nil && target != resolved(allPlacements[index].island) { allPlacements[index].island = stored(target) }
+        updateCorners()
         save()
         return true
     }
+
+    /// Una copia, su qualunque isola.
+    func placement(withID id: UUID) -> GardenPlacement? { allPlacements.first { $0.id == id } }
 
     /// Gira una copia di un quarto, se così ci sta ancora.
     @discardableResult
@@ -456,7 +494,7 @@ final class Garden {
     /// Dove sta un compagno: dove l'ha messo l'utente, o il suo posto di partenza sul sentiero (`index` è la sua posizione
     /// nell'elenco dei compagni).
     func companionTile(_ petID: String, index: Int) -> GardenTile {
-        companionTiles[petID] ?? GardenLayout.defaultCompanionTile(index: index)
+        companionTiles[petID] ?? GardenLayout.defaultCompanionTile(index: index, island: GardenIslands.isKnown(petID) ? petID : nil)
     }
 
     func setCompanionTile(_ petID: String, to tile: GardenTile) {

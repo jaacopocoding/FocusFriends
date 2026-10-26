@@ -27,6 +27,9 @@ func tempDirectory() -> URL {
 }
 
 // ---------------------------------------------------------------- materie
+// le case delle isole si provano a parte: nel resto delle prove il giardino è senza case
+GardenLandmarks.built = []
+
 section("Materie")
 check(Subject.clean("  Anatomia  ") == "Anatomia", "toglie gli spazi ai bordi")
 check(Subject.clean("Fisica   generale") == "Fisica generale", "riduce gli spazi interni")
@@ -862,6 +865,9 @@ check(GardenLayout.tile(fromLegacy: GardenSpot(x: 0.1, y: 0.75), size: 8).col - 
       "a sinistra del prato è a sinistra sull'isola")
 let companionTilesDefault = (0..<4).map { GardenLayout.defaultCompanionTile(index: $0) }
 check(Set(companionTilesDefault).count == 4 && companionTilesDefault.allSatisfy { GardenIsland.isPath($0) }, "i compagni partono sul sentiero, in posti diversi")
+let companionTilesPerIsland = GardenIslands.all.enumerated().map { GardenLayout.defaultCompanionTile(index: $0.offset, island: $0.element) }
+check(GardenIslands.all.enumerated().allSatisfy { GardenPaths.contains(companionTilesPerIsland[$0.offset], island: $0.element, size: GardenIsland.baseSize) },
+      "sulla loro isola i compagni partono sul sentiero di quell'isola")
 let starting = Garden(directory: tempDirectory())
 check(starting.placements.count == 4 && Set(starting.placements.map { $0.tile }).count == 4
       && starting.placements.allSatisfy { GardenLayout.canPlace(GardenCatalog.item(withID: $0.item)!.footprint, at: $0.tile, size: 8, occupied: noTiles) },
@@ -894,13 +900,14 @@ check(garden.available("margherite") == 0 && garden.place("margherite", at: Gard
 let firstDaisy = garden.placements.first { $0.item == "margherite" }
 if let firstDaisy { garden.remove(firstDaisy.id) }
 check(garden.count(of: "margherite") == 0 && garden.available("margherite") == 1 && garden.copies(of: "margherite") == 1, "tolta dall'isola, la copia torna tra quelle da mettere")
-check(garden.place("margherite", at: GardenTile(col: 3, row: 4)) == nil && garden.place("margherite", at: GardenTile(col: 8, row: 0)) == nil
-      && garden.place("margherite", at: GardenTile(col: 6, row: 6)) == nil, "sul sentiero, fuori dall'isola o sopra un'altra cosa no")
+let pianty8Path = GardenPaths.tiles(island: "pianty", size: 8)
+check(garden.place("margherite", at: pianty8Path[0]) == nil && garden.place("margherite", at: GardenTile(col: 8, row: 0)) == nil
+      && garden.place("margherite", at: garden.placements.first { $0.item == "mughetti" }?.tile ?? GardenTile(col: 0, row: 0)) == nil, "sul sentiero, fuori dall'isola o sopra un'altra cosa no")
 let backDaisy = garden.place("margherite", at: GardenTile(col: 5, row: 1))
 check(backDaisy?.tile == GardenTile(col: 5, row: 1) && garden.available("margherite") == 0, "rimessa su una tessera libera")
 if let backDaisy {
     check(garden.move(backDaisy.id, to: GardenTile(col: 6, row: 1)) && garden.placements.first(where: { $0.id == backDaisy.id })?.tile == GardenTile(col: 6, row: 1), "spostata")
-    check(!garden.move(backDaisy.id, to: GardenTile(col: 6, row: 6)) && !garden.move(backDaisy.id, to: GardenTile(col: 3, row: 3))
+    check(!garden.move(backDaisy.id, to: garden.placements.first { $0.item == "mughetti" }?.tile ?? GardenTile(col: 0, row: 0)) && !garden.move(backDaisy.id, to: pianty8Path[1])
           && garden.placements.first(where: { $0.id == backDaisy.id })?.tile == GardenTile(col: 6, row: 1), "sopra un'altra cosa o sul sentiero non si sposta: resta dov'era")
     check(garden.move(backDaisy.id, to: GardenTile(col: 6, row: 1)), "si può «spostare» sulla tessera dove sta già")
 }
@@ -908,8 +915,8 @@ check(garden.placeSomewhere("lampione") == nil, "placeSomewhere: una cosa non tr
 garden.setCompanionTile("gattino", to: GardenTile(col: 2, row: 2))
 check(garden.companionTile("gattino", index: 3) == GardenTile(col: 2, row: 2), "il compagno spostato")
 garden.setCompanionTile("pianty", to: GardenTile(col: 9, row: 9))
-check(garden.companionTile("pianty", index: 0) == GardenLayout.defaultCompanionTile(index: 0), "fuori dall'isola il compagno non si sposta")
-check(garden.companionTile("ciccio", index: 2) == GardenLayout.defaultCompanionTile(index: 2), "gli altri al posto di partenza")
+check(garden.companionTile("pianty", index: 0) == GardenLayout.defaultCompanionTile(index: 0, island: "pianty"), "fuori dall'isola il compagno non si sposta")
+check(garden.companionTile("ciccio", index: 2) == GardenLayout.defaultCompanionTile(index: 2, island: "ciccio"), "gli altri al posto di partenza")
 
 // i regali: un focus che tira mette la figurina nel prato, una volta sola per focus
 func gardenSession(_ minutes: Int, completed: Bool = true, id: UUID = UUID()) -> StudySession {
@@ -937,7 +944,7 @@ check(garden.unseen.isEmpty, "aperto l'album, non c'è più niente di nuovo")
 let reopenedGarden = Garden(directory: gardenDir)
 check(reopenedGarden.placements == garden.placements && reopenedGarden.drops == garden.drops && reopenedGarden.lastRolled == garden.lastRolled
       && reopenedGarden.companionTiles == garden.companionTiles, "si ricorda alla riapertura")
-check(Set(garden.placements.map { $0.tile }).count == garden.placements.count && garden.placements.allSatisfy { GardenIsland.contains($0.tile, size: garden.islandSize) && !GardenIsland.isPath($0.tile) },
+check(Set(garden.placements.map { $0.tile }).count == garden.placements.count && garden.placements.allSatisfy { GardenIsland.contains($0.tile, size: garden.islandSize) && !GardenPaths.contains($0.tile, island: garden.homeIsland, size: garden.islandSize) },
       "dopo i regali, ogni cosa sta su una tessera sua, fuori dal sentiero")
 var observed = 0
 garden.addObserver { observed += 1 }
@@ -948,7 +955,7 @@ UserDefaults.standard.set(true, forKey: Profile.developerKey)
 let crowd = Garden(directory: tempDirectory())
 check(crowd.islandSize == 10, "sviluppatore: l'album è tutto completo, l'isola è da 10")
 for tile in allTiles10 { _ = crowd.place("erba-alta", at: tile) }
-check(crowd.placements.count == 88, "tutta l'isola riempita, tranne le 12 tessere del sentiero")
+check(crowd.placements.count == 100 - GardenPaths.tiles(island: crowd.homeIsland, size: 10).count, "tutta l'isola riempita, tranne le tessere del sentiero")
 check(crowd.place("erba-alta", at: GardenTile(col: 0, row: 0)) == nil, "e poi non ci sta più niente")
 // girare: la panchina (2×1) girata ha bisogno dell'altra tessera
 let turnDir = tempDirectory()
@@ -983,14 +990,15 @@ check(Garden(directory: extentDir).islandSize == 9 && Garden(directory: extentDi
 let sloppyDir = tempDirectory()
 writeGardenFile(sloppyDir, version: 3, drops: GardenDropState.starting(), placements: [
     ["id": "00000000-0000-4000-8000-0000000000B1", "item": "margherite", "col": 1, "row": 1, "turned": false],
-    ["id": "00000000-0000-4000-8000-0000000000B2", "item": "trifoglio", "col": 3, "row": 4, "turned": false],
+    ["id": "00000000-0000-4000-8000-0000000000B2", "item": "trifoglio", "col": 7, "row": 4, "turned": false],
     ["id": "00000000-0000-4000-8000-0000000000B3", "item": "erba-alta", "col": 11, "row": 0, "turned": false],
     ["id": "00000000-0000-4000-8000-0000000000B4", "item": "mughetti", "col": 1, "row": 1, "turned": false],
     ["id": "00000000-0000-4000-8000-0000000000B5", "item": "cosa-sconosciuta", "col": 0, "row": 0, "turned": false],
 ])
 let sloppy = Garden(directory: sloppyDir)
-check(sloppy.placements.map { $0.item } == ["margherite", "cosa-sconosciuta"], "sul sentiero, fuori dall'isola o sopra un'altra cosa: tolta (resta tra quelle da mettere); le sconosciute si tengono")
-check(sloppy.available("trifoglio") == 1 && sloppy.available("erba-alta") == 1 && sloppy.available("mughetti") == 1, "…e le copie tolte sono di nuovo da mettere")
+check(sloppy.placements.map { $0.item } == ["margherite", "trifoglio", "cosa-sconosciuta"], "fuori dall'isola o sopra un'altra cosa: tolta (resta tra quelle da mettere); sul sentiero: spostata lì vicino; le sconosciute si tengono")
+check(sloppy.placements.first { $0.item == "trifoglio" }.map { !GardenPaths.contains($0.tile, island: sloppy.homeIsland, size: sloppy.islandSize) && abs($0.tile.col - 7) + abs($0.tile.row - 4) <= 3 } == true
+      && sloppy.available("erba-alta") == 1 && sloppy.available("mughetti") == 1, "…le copie tolte sono di nuovo da mettere, quella sul sentiero è lì vicino")
 // un giardino della versione 2 (il prato libero): ogni cosa va sulla tessera libera più vicina e il file vecchio si tiene da parte
 let gardenV2Dir = tempDirectory()
 let gardenV2Text = """
@@ -1005,7 +1013,7 @@ let gardenV2Text = """
 try? gardenV2Text.write(to: gardenV2Dir.appendingPathComponent("giardino.json"), atomically: true, encoding: .utf8)
 let gardenV2 = Garden(directory: gardenV2Dir)
 check(gardenV2.placements.count == 4 && Set(gardenV2.placements.map { $0.tile }).count == 4
-      && gardenV2.placements.allSatisfy { GardenIsland.contains($0.tile, size: 8) && !GardenIsland.isPath($0.tile) && $0.legacy == nil },
+      && gardenV2.placements.allSatisfy { GardenIsland.contains($0.tile, size: 8) && !GardenPaths.contains($0.tile, island: gardenV2.homeIsland, size: 8) && $0.legacy == nil },
       "versione 2: quattro copie, ognuna sulla sua tessera (anche le tre che stavano nello stesso punto)")
 check(gardenV2.placements[0].tile == GardenTile(col: 4, row: 4) || GardenLayout.nearestOrigin(to: GardenTile(col: 4, row: 4), footprint: one, size: 8, occupied: noTiles) != nil, "la prima va dove stava")
 check(gardenV2.copies(of: "lavanda") == 3 && gardenV2.unseen == ["lavanda"] && gardenV2.lastRolled != nil, "album e regali restano")
@@ -1091,7 +1099,7 @@ check(writeProblems.count == 1, "scrittura fallita: un solo avviso, il resto res
 UserDefaults.standard.set(true, forKey: Profile.developerKey)
 check(GardenCatalog.items.allSatisfy { garden.isFound($0.id) }, "sviluppatore: tutto nell'album")
 let devGarden = Garden(directory: tempDirectory())
-check(devGarden.place("arco-rose", at: GardenTile(col: 0, row: 6)) != nil && devGarden.place("arco-rose", at: GardenTile(col: 0, row: 7)) != nil, "e se ne mettono quanti si vuole")
+check(devGarden.placeSomewhere("arco-rose") != nil && devGarden.placeSomewhere("arco-rose") != nil, "e se ne mettono quanti si vuole")
 UserDefaults.standard.removeObject(forKey: Profile.developerKey)
 // (con un giardino nuovo: in quello dei tiri l'arco potrebbe essere uscito davvero, gli identificativi delle sessioni sono casuali)
 check(!Garden(directory: tempDirectory()).isFound("arco-rose"), "spenta, torna come prima")
@@ -1634,6 +1642,13 @@ check(multi.count(of: "margherite") == 2 && multi.available("margherite") == 1, 
 if let onPig {
     check(multi.move(onPig.id, to: GardenTile(col: 4, row: 0)) && multi.placements(on: "porcellino").first?.tile == GardenTile(col: 4, row: 0)
           && multi.placements.first?.tile == GardenTile(col: 0, row: 0), "una copia si sposta sulla sua isola, senza toccare le altre")
+    // lasciata su un'altra isola, la copia cambia isola (se lì c'è posto)
+    check(!multi.move(onPig.id, to: GardenTile(col: 0, row: 0), on: "gattino") && multi.placement(withID: onPig.id)?.island == "porcellino", "su una tessera occupata dell'altra isola non si sposta")
+    check(multi.move(onPig.id, to: GardenTile(col: 6, row: 0), on: "ciccio") && multi.placement(withID: onPig.id)?.island == "ciccio"
+          && multi.placements(on: "ciccio").contains { $0.id == onPig.id } && !multi.placements(on: "porcellino").contains { $0.id == onPig.id }, "lasciata su un'altra isola, la copia cambia isola")
+    check(multi.move(onPig.id, to: GardenTile(col: 7, row: 0)) && multi.placement(withID: onPig.id)?.island == "ciccio", "senza dire l'isola resta sulla sua")
+    check(!multi.move(onPig.id, to: GardenTile(col: 5, row: 5), on: "boh") && multi.placement(withID: UUID()) == nil, "un'isola che non c'è non vale")
+    check(multi.move(onPig.id, to: GardenTile(col: 4, row: 0), on: "porcellino") && multi.placements(on: "porcellino").count == 1, "e si può rimettere sulla sua")
     multi.showIsland("porcellino")
     check(multi.shownIsland == "porcellino" && multi.placements.map { $0.id } == [onPig.id] && multi.islandSize == multi.islandSize(of: "porcellino"), "mostrando un'altra isola, le chiamate parlano di quella")
     multi.showIsland("boh")
@@ -1643,7 +1658,7 @@ if let onPig {
 }
 multi.showIsland("gattino")
 // gli angoli: sulla stessa isola, o niente
-_ = multi.place("tavolino", at: GardenTile(col: 5, row: 0))
+_ = multi.place("tavolino", at: GardenTile(col: 2, row: 0))
 _ = multi.place("sdraio", at: GardenTile(col: 7, row: 0), on: "ciccio")
 check(multi.corners.isEmpty && multi.formedCorners(on: "gattino").isEmpty && multi.formedCorners(on: "ciccio").isEmpty, "il tavolino su un'isola e la sdraio su un'altra non fanno l'angolo del tè")
 _ = multi.place("panchina", at: GardenTile(col: 0, row: 7), on: "ciccio")
@@ -1652,6 +1667,112 @@ check(multi.corners == ["lettura"] && multi.formedCorners["lettura"] == nil && m
       "un angolo di un'altra isola si sblocca (e si annuncia), ma non è fra quelli dell'isola mostrata")
 let multiAgain = Garden(directory: multiDir)
 check(multiAgain.placements(on: "ciccio").count == 3 && multiAgain.placements(on: "gattino").count == 2 && multiAgain.shownIsland == "gattino", "le copie di ogni isola restano nel file")
+
+// il sentiero di ogni isola: unisce i due approdi dei ponti
+func pathIsConnected(_ tiles: [GardenTile]) -> Bool {
+    guard let first = tiles.first else { return false }
+    let all = Set(tiles)
+    var seen: Set<GardenTile> = [first]
+    var stack = [first]
+    while let tile = stack.popLast() {
+        for (dc, dr) in [(1, 0), (-1, 0), (0, 1), (0, -1)] {
+            let next = GardenTile(col: tile.col + dc, row: tile.row + dr)
+            if all.contains(next) && !seen.contains(next) { seen.insert(next); stack.append(next) }
+        }
+    }
+    return seen.count == all.count
+}
+var pathsOK = true, pathsConnected = true, pathsSized = true, pathsLanded = true
+var pathShapes = Set<Set<GardenTile>>()
+for island in GardenIslands.all {
+    for size in 8...10 {
+        let tiles = GardenPaths.tiles(island: island, size: size)
+        let lands = GardenPaths.landings(island: island, size: size)
+        if tiles != GardenPaths.tiles(island: island, size: size) || Set(tiles).count != tiles.count || !tiles.allSatisfy({ GardenIsland.contains($0, size: size) }) { pathsOK = false }
+        if !pathIsConnected(tiles) { pathsConnected = false }
+        if !(6...40).contains(tiles.count) { pathsSized = false }
+        if lands.count != 2 || !lands.allSatisfy({ tiles.contains($0.tile) }) { pathsLanded = false }
+        if size == 10 { pathShapes.insert(Set(tiles)) }
+    }
+}
+check(pathsOK, "il sentiero: tessere diverse fra loro, dentro l'isola, sempre le stesse")
+check(pathsConnected, "il sentiero è tutto d'un pezzo, per ogni isola e grandezza")
+check(pathsSized, "il sentiero è largo: da 6 a 40 tessere")
+check(pathsLanded, "il sentiero passa dalle due tessere dove arrivano i ponti")
+check(pathShapes.count == 4, "ogni isola ha un sentiero diverso (\(pathShapes.count) forme)")
+var pathsGrow = true
+for island in GardenIslands.all {
+    let big = Set(GardenPaths.tiles(island: island, size: 10))
+    let landing8 = Set(GardenPaths.landings(island: island, size: 8).map { $0.tile })
+    // le tessere del sentiero da 10 dentro l'isola da 8 ci sono anche in quello da 8: allargando l'isola non si perde niente sotto i piedi
+    if !big.filter({ GardenIsland.contains($0, size: 8) }).isSubset(of: Set(GardenPaths.tiles(island: island, size: 8))) || !landing8.isSubset(of: Set(GardenPaths.tiles(island: island, size: 8))) { pathsGrow = false }
+}
+check(pathsGrow, "se l'isola si allarga il sentiero resta com'era (e arriva sempre agli approdi)")
+let landA = GardenPaths.landings(island: "pianty", size: 10), landD = GardenPaths.landings(island: "gattino", size: 8)
+check(landA.map { $0.face } == [.colEnd, .rowEnd] && landA.map { $0.tile } == [GardenTile(col: 9, row: 5), GardenTile(col: 5, row: 9)]
+      && landD.map { $0.face } == [.rowStart, .colStart] && landD.map { $0.tile } == [GardenTile(col: 5, row: 0), GardenTile(col: 0, row: 5)], "gli approdi: sui lati dove arrivano i ponti, sulla sesta fila")
+let blockedPath = GardenPaths.tiles(island: "porcellino", size: 10)[0]
+check(!GardenLayout.canPlace(GardenFootprint(cols: 1, rows: 1), at: blockedPath, size: 10, occupied: [], island: "porcellino")
+      && (GardenLayout.canPlace(GardenFootprint(cols: 1, rows: 1), at: blockedPath, size: 10, occupied: []) || GardenIsland.isPath(blockedPath)), "sul sentiero dell'isola non si mette niente")
+
+// la casa di ogni isola: 3×3 tessere nell'angolo in alto, dove non arriva il sentiero
+let cornerHouse = (0..<GardenLandmarks.side).flatMap { row in (0..<GardenLandmarks.side).map { col in GardenTile(col: col, row: row) } }
+var housesClear = true
+for island in GardenIslands.all {
+    for size in 8...10 where GardenPaths.tiles(island: island, size: size).contains(where: { cornerHouse.contains($0) }) { housesClear = false }
+}
+check(housesClear, "il sentiero di nessuna isola, a nessuna grandezza, passa nell'angolo della casa")
+check(GardenLandmarks.shipped.allSatisfy { GardenIslands.isKnown($0) && GardenLandmarks.art[$0] != nil && FileManager.default.fileExists(atPath: "assets/giardino/casa_\($0).png") },
+      "ogni casa disegnata ha le sue misure e la sua immagine")
+check(GardenLayout.starterOrigins.values.allSatisfy { start in !cornerHouse.contains(start) && GardenIslands.all.allSatisfy { !GardenPaths.contains(start, island: $0, size: 8) } },
+      "la dotazione sta fuori dalla casa e dal sentiero di ogni isola")
+GardenLandmarks.built = ["pianty"]
+let houseTiles = GardenLandmarks.tiles(island: "pianty")
+check(houseTiles.count == 9 && Set(houseTiles) == Set(cornerHouse) && GardenLandmarks.tiles(island: "ciccio").isEmpty
+      && GardenLandmarks.contains(GardenTile(col: 2, row: 2), island: "pianty") && !GardenLandmarks.contains(GardenTile(col: 3, row: 0), island: "pianty") && !GardenLandmarks.contains(GardenTile(col: 0, row: 0), island: "ciccio"),
+      "la casa occupa le prime 3×3 tessere, solo sull'isola che ce l'ha")
+let houseOne = GardenFootprint(cols: 1, rows: 1)
+check(!GardenLayout.canPlace(houseOne, at: GardenTile(col: 1, row: 1), size: 10, occupied: [], island: "pianty")
+      && GardenLayout.canPlace(houseOne, at: GardenTile(col: 1, row: 1), size: 10, occupied: [], island: "ciccio")
+      && (GardenLayout.canPlace(houseOne, at: GardenTile(col: 3, row: 0), size: 10, occupied: [], island: "pianty") || GardenPaths.contains(GardenTile(col: 3, row: 0), island: "pianty", size: 10)), "sulla casa non si mette niente, accanto sì")
+let houseDir = tempDirectory()
+var houseDrops = GardenDropState.starting()
+for item in GardenCatalog.items { houseDrops.found[item.id] = 1 }
+writeGardenFile(houseDir, version: 4, drops: houseDrops, placements: [
+    ["id": "00000000-0000-4000-8000-0000000000D1", "item": "margherite", "col": 1, "row": 1, "island": "pianty", "turned": false],
+    ["id": "00000000-0000-4000-8000-0000000000D2", "item": "margherite", "col": 1, "row": 1, "island": "ciccio", "turned": false]])
+let houseGarden = Garden(directory: houseDir)
+check(houseGarden.occupiedTiles(on: "pianty").isSuperset(of: houseTiles) && houseGarden.occupiedTiles(on: "ciccio").isEmpty == false && !houseGarden.occupiedTiles(on: "ciccio").contains(GardenTile(col: 0, row: 0)),
+      "le tessere della casa sono occupate")
+check(houseGarden.placements(on: "pianty").count == 1 && !GardenLandmarks.contains(houseGarden.placements(on: "pianty")[0].tile, island: "pianty")
+      && houseGarden.placements(on: "ciccio").first?.tile == GardenTile(col: 1, row: 1), "una cosa che stava dove ora c'è la casa si sposta lì vicino; sulle altre isole resta")
+GardenLandmarks.built = []
+
+// il mondo: quattro isole in una griglia di 2×2, quattro ponti
+let worldSlots = GardenIslands.all.compactMap { GardenWorld.slot(of: $0) }
+check(worldSlots.count == 4 && Set(worldSlots).count == 4 && worldSlots.allSatisfy { (0...1).contains($0.col) && (0...1).contains($0.row) } && GardenWorld.slot(of: "boh") == nil,
+      "ogni isola ha la sua cella, tutte diverse")
+check(GardenWorld.slot(of: "pianty") == GardenTile(col: 0, row: 0) && GardenWorld.slot(of: "porcellino") == GardenTile(col: 1, row: 0)
+      && GardenWorld.slot(of: "ciccio") == GardenTile(col: 0, row: 1) && GardenWorld.slot(of: "gattino") == GardenTile(col: 1, row: 1), "le isole stanno sempre nelle stesse posizioni")
+check(GardenWorld.cell == 14 && GardenWorld.extent == 24, "il mondo è largo 24 tessere (due celle da 14 meno lo spazio in fondo)")
+let bigCorner = GardenWorld.corner(of: "porcellino", size: 10), smallCorner = GardenWorld.corner(of: "porcellino", size: 8)
+check(bigCorner?.col == 14 && bigCorner?.row == 0 && smallCorner?.col == 14 && smallCorner?.row == 0 && GardenWorld.corner(of: "boh", size: 8) == nil,
+      "un'isola sta all'angolo della sua cella, qualunque sia la sua grandezza: allargandosi non si sposta")
+check(GardenWorld.bridges.count == 4 && Set(GardenWorld.bridges.map { $0.first + ">" + $0.second }).count == 4
+      && GardenWorld.bridges.filter { $0.alongColumns }.count == 2 && GardenWorld.bridges.filter { !$0.alongColumns }.count == 2, "quattro ponti: due lungo le colonne e due lungo le righe")
+check(GardenWorld.bridges.contains(GardenBridge(first: "pianty", second: "porcellino", alongColumns: true))
+      && GardenWorld.bridges.contains(GardenBridge(first: "pianty", second: "ciccio", alongColumns: false))
+      && GardenWorld.bridges.contains(GardenBridge(first: "porcellino", second: "gattino", alongColumns: false))
+      && GardenWorld.bridges.contains(GardenBridge(first: "ciccio", second: "gattino", alongColumns: true))
+      && !GardenWorld.bridges.contains { Set([$0.first, $0.second]) == Set(["pianty", "gattino"]) }, "i ponti legano le isole vicine, mai in diagonale")
+let bridgeAcross = GardenWorld.span(of: GardenBridge(first: "pianty", second: "porcellino", alongColumns: true), firstSize: 10, secondSize: 10)
+check(bridgeAcross?.from == 10 && bridgeAcross?.to == 14 && bridgeAcross?.across == 5.5, "fra due isole grandi il ponte va dalla tessera 10 alla 14, sulla sesta fila")
+let bridgeSmall = GardenWorld.span(of: GardenBridge(first: "ciccio", second: "gattino", alongColumns: true), firstSize: 8, secondSize: 9)
+check(bridgeSmall?.from == 8 && bridgeSmall?.to == 14 && bridgeSmall?.across == 19.5, "fra isole più piccole il ponte è più lungo, ma tocca sempre la sesta fila")
+let bridgeRows = GardenWorld.span(of: GardenBridge(first: "pianty", second: "ciccio", alongColumns: false), firstSize: 10, secondSize: 10)
+check(bridgeRows?.from == 10 && bridgeRows?.to == 14 && bridgeRows?.across == 5.5, "lungo le righe lo stesso, sull'altro asse")
+check(GardenWorld.pieceCenters(from: 10, to: 14) == [11, 13] && GardenWorld.pieceCenters(from: 8, to: 14) == [9, 11, 13] && GardenWorld.pieceCenters(from: 5, to: 5.5) == [5.25],
+      "i pezzi del ponte: due tessere ciascuno, quanti ne servono per coprire tutto, al centro")
 
 // le cose che cadono, volano e sbocciano (le funzioni pure del disegno)
 var driftOK = true, driftEdges = true, butterflyOK = true, fireflyOK = true

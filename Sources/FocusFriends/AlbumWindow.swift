@@ -705,7 +705,7 @@ enum MeadowBackdrop {
 
     /// Di quanto il paesaggio del mondo è più grande della finestra, da ogni lato (in punti): serve per spostarsi (l'isola più vicina al bordo) e per rimpicciolire
     /// senza che si veda finire il disegno.
-    static let worldMargin = (top: CGFloat(340), left: CGFloat(480), bottom: CGFloat(230), right: CGFloat(480))
+    static let worldMargin = (top: CGFloat(340), left: CGFloat(480), bottom: CGFloat(520), right: CGFloat(480))
     private static var worldCache: [String: CGImage] = [:]
 
     /// Il paesaggio con la stessa inquadratura di `meadow(size:…)` al centro, e tutt'attorno altre copie del disegno capovolte (riflesse): continua senza stacchi.

@@ -147,6 +147,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
         // un angolo che c'era già prima di aprire la finestra si sblocca adesso (e si annuncia), una volta sola
         garden.discoverCorners()
         garden.addObserver { [weak self] in self?.reload() }
+        resetCamera()
         reload()
     }
 
@@ -166,6 +167,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
         let hud = hudLayout()
         addToolTip(hud.album, owner: self, userData: UnsafeMutableRawPointer(bitPattern: 1))
         if let chip = hud.streak { addToolTip(chip, owner: self, userData: UnsafeMutableRawPointer(bitPattern: 2)) }
+        addToolTip(captionRect, owner: self, userData: UnsafeMutableRawPointer(bitPattern: 3))
         needsDisplay = true
     }
 
@@ -183,6 +185,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
         }
         if carry == nil {
             switch event.charactersIgnoringModifiers {
+            case "m": toggleWorldView(); return
             case "+", "=": zoom(by: 1.3); return
             case "-": zoom(by: 1 / 1.3); return
             case "0": resetCamera(); return
@@ -243,23 +246,23 @@ final class GardenView: NSView, NSViewToolTipOwner {
         static let hillTop: CGFloat = 104
         static let bottomMargin: CGFloat = 44
 
-        /// `zoom` e `pan`: la vista (1 e zero = tutta l'isola, a misura della finestra). Lo zoom è attorno al centro della scena.
-        init(size: Int, scene: NSSize, zoom: CGFloat = 1, pan: NSPoint = .zero) {
-            self.size = size
-            // con la collina sotto, a zoom 1 deve starci tutta (è larga quasi due isole e scende sotto): l'isola è un po' più piccola e comincia più in alto
+        /// Quanto è larga una tessera, a zoom 1, per un'isola di `size` tessere per lato: con la collina sotto deve starci tutta (è larga quasi due isole e scende sotto),
+        /// quindi l'isola è un po' più piccola e comincia più in alto.
+        static func fit(size: Int, scene: NSSize) -> CGFloat {
             let hill = GardenView.hasHill
-            let top = hill ? Self.hillTop : Self.top
-            let availableHeight = scene.height - top - Self.bottomMargin - Self.thickness
+            let top = hill ? hillTop : Self.top
+            let availableHeight = scene.height - top - bottomMargin - thickness
             var fit = min((scene.width - 60) / CGFloat(size), 2 * availableHeight / CGFloat(size))
             if hill {
                 let widthFit = (scene.width - 16) / (CGFloat(size) * CGFloat(GardenHill.widthRatio))
                 let heightFit = (scene.height - top - 14) / (CGFloat(size) * CGFloat(GardenHill.heightRatio))
                 fit = min(widthFit, heightFit)
             }
-            tileW = fit * zoom
-            let center = NSPoint(x: scene.width / 2, y: scene.height / 2)
-            origin = NSPoint(x: center.x + (scene.width / 2 - center.x) * zoom + pan.x, y: center.y + (top - center.y) * zoom + pan.y)
+            return fit
         }
+
+        /// Dove comincia l'isola (il suo vertice in alto) a zoom 1.
+        static var sceneTop: CGFloat { GardenView.hasHill ? hillTop : top }
 
         init(size: Int, tileW: CGFloat, origin: NSPoint) {
             self.size = size
@@ -287,16 +290,18 @@ final class GardenView: NSView, NSViewToolTipOwner {
         }
     }
 
-    private var iso: Iso { Iso(size: garden.islandSize, scene: Self.sceneSize, zoom: zoom, pan: pan) }
+    /// L'isola mostrata (quella «viva»: ci camminano i compagni, ci si trascinano le cose) alla vista di adesso.
+    private var iso: Iso { isoOf(garden.shownIsland) ?? Iso(size: garden.islandSize, tileW: 40, origin: .zero) }
 
     /// I pixel per punto dello schermo su cui sta la finestra.
     private var backingScale: CGFloat { window?.backingScaleFactor ?? NSScreen.main?.backingScaleFactor ?? 2 }
 
     // MARK: - La vista: zoom e spostamenti
 
-    /// Con la collina rimpicciolire più di così non serve: a zoom 1 c'è già tutto.
-    static var zoomRange: ClosedRange<CGFloat> { hasHill ? 0.8...2.5 : 0.6...2.5 }
-    /// Quanto è ingrandita la vista (1 = tutta l'isola) e di quanto è spostata.
+    /// La telecamera è una sola per tutto il mondo (le quattro isole): lo zoom 1 è una tessera larga quanto per un'isola grande al massimo, che alla sua isola sta tutta nella
+    /// finestra; rimpicciolendo si vedono le altre isole, e ci si sposta da una all'altra trascinando.
+    static var zoomRange: ClosedRange<CGFloat> { hasHill ? 0.4...2.5 : 0.3...2.5 }
+    /// Quanto è ingrandita la vista e di quanto è spostata.
     private(set) var zoom: CGFloat = 1
     private(set) var pan = NSPoint.zero
     private var panning = false
@@ -311,33 +316,27 @@ final class GardenView: NSView, NSViewToolTipOwner {
         let ratio = target / zoom
         pan = NSPoint(x: at.x - center.x - (at.x - center.x - pan.x) * ratio, y: at.y - center.y - (at.y - center.y - pan.y) * ratio)
         zoom = target
-        clampCamera()
-        needsDisplay = true
+        cameraMoved()
     }
 
-    /// Tutta l'isola, a misura della finestra.
+    /// Tutta l'isola mostrata, a misura della finestra.
     func resetCamera() {
-        zoom = 1
-        pan = .zero
+        let camera = islandCamera(garden.shownIsland)
+        zoom = camera.zoom
+        pan = camera.pan
         needsDisplay = true
     }
 
     private func movePan(by delta: NSPoint) {
         pan = NSPoint(x: pan.x + delta.x, y: pan.y + delta.y)
-        clampCamera()
-        needsDisplay = true
+        cameraMoved()
     }
 
-    /// Il centro della finestra resta sempre su un punto dell'isola (o a una tessera dal bordo): non si può perderla di vista.
-    private func clampCamera() {
-        let i = iso
-        let n = Double(i.size)
-        let center = NSPoint(x: sceneW / 2, y: sceneH / 2)
-        let g = i.grid(at: center)
-        let col = min(max(g.col, -1), n + 1), row = min(max(g.row, -1), n + 1)
-        guard col != g.col || row != g.row else { return }
-        let inside = i.point(col: col, row: row)
-        pan = NSPoint(x: pan.x + center.x - inside.x, y: pan.y + center.y - inside.y)
+    /// Dopo uno zoom o uno spostamento: il centro della finestra resta nel mondo, e l'isola viva è quella più vicina al centro.
+    private func cameraMoved() {
+        clampCamera()
+        updateFocus()
+        needsDisplay = true
     }
 
     private var zoomControlsRect: NSRect {
@@ -367,7 +366,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
                 divider.stroke()
             }
             let enabled = button.symbol == "minus" ? zoom > Self.zoomRange.lowerBound + 0.001
-                : button.symbol == "plus" ? zoom < Self.zoomRange.upperBound - 0.001 : (zoom != 1 || pan != .zero)
+                : button.symbol == "plus" ? zoom < Self.zoomRange.upperBound - 0.001 : !isFitted()
             if let icon = tinted(button.symbol, size: 13, color: enabled ? Paper.ink : Paper.inkLight.withAlphaComponent(0.4)) {
                 icon.draw(in: NSRect(x: button.rect.midX - icon.size.width / 2, y: button.rect.midY - icon.size.height / 2, width: icon.size.width, height: icon.size.height))
             }
@@ -404,6 +403,8 @@ final class GardenView: NSView, NSViewToolTipOwner {
         var water: (u: Double, v: Double, halfWidth: Double, halfHeight: Double)?
         /// Quanto si vede (un ospite compare e sparisce piano).
         var alpha: CGFloat = 1
+        /// L'isola a cui sta (l'id): un tocco su una cosa di un'altra isola la porta in primo piano.
+        var island = ""
     }
 
     private func entity(kind: Kind, resource: String, referenceHeight: Double, feet: NSPoint, shadowWidth: CGFloat?, turned: Bool,
@@ -432,6 +433,11 @@ final class GardenView: NSView, NSViewToolTipOwner {
         return (point, cols + rows + 1)
     }
 
+    /// I compagni che stanno sull'isola mostrata: ognuno vive solo sulla sua (l'id dell'isola è quello del compagno), se è sbloccato.
+    private func companionsHere() -> [(offset: Int, element: Pet)] {
+        Pet.all.enumerated().filter { profile.isCompanionUnlocked($0.element.id) && $0.element.id == garden.shownIsland }
+    }
+
     /// Gli oggetti e i compagni sbloccati, dal fondo al davanti. Quello che si sta trascinando non c'è: si disegna a parte (`drawGhost`).
     private func entities() -> [Entity] {
         let iso = self.iso
@@ -454,7 +460,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
             made.water = item.waterSpot
             result.append(made)
         }
-        for (index, pet) in Pet.all.enumerated() where profile.isCompanionUnlocked(pet.id) {
+        for (index, pet) in companionsHere() {
             if carryMoved, carry == .companion(pet.id) { continue }
             let home = garden.companionTile(pet.id, index: index)
             let ground = companionGround(pet.id, home: home, iso: iso)
@@ -470,6 +476,14 @@ final class GardenView: NSView, NSViewToolTipOwner {
             result.append(made)
         }
         if let guest = visitor, let made = visitorEntity(guest, iso: iso) { result.append(made) }
+        // la profondità è quella del mondo: le cose di un'isola più avanti stanno davanti a quelle di un'isola dietro
+        let here = garden.shownIsland
+        let base = GardenWorld.corner(of: here, size: iso.size).map { $0.col + $0.row } ?? 0
+        for index in result.indices {
+            result[index].depth += base
+            result[index].island = here
+        }
+        for entry in worldIslands() where entry.open && entry.id != here { result += staticEntities(on: entry.id, iso: entry.iso) }
         result.sort { $0.depth < $1.depth }
         return result
     }
@@ -495,7 +509,8 @@ final class GardenView: NSView, NSViewToolTipOwner {
         let size = garden.islandSize
         let occupied = garden.occupiedTiles()
         var moving = false
-        let pets = Pet.all.enumerated().filter { profile.isCompanionUnlocked($0.element.id) }
+        let pets = companionsHere()
+        let hereIDs = Set(pets.map { $0.element.id })
         for (index, pet) in pets {
             if carry == .companion(pet.id) { continue }
             let home = garden.companionTile(pet.id, index: index)
@@ -508,7 +523,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
             if let errand = walker.errand, garden.formedCorners[errand.affinity.corner] == nil { walker.errand = nil }
             if let activity = walker.activity, garden.formedCorners[activity.affinity.corner] == nil { walker.activity = nil; walker.idle = 0 }
             walker.idle += dt
-            let taken = Set(walkers.filter { $0.key != pet.id }.flatMap { [$0.value.from, $0.value.to] })
+            let taken = Set(walkers.filter { $0.key != pet.id && hereIDs.contains($0.key) }.flatMap { [$0.value.from, $0.value.to] })
             if walker.progress < 1 {
                 walker.progress = min(1, walker.progress + dt / 1.3)
                 moving = true
@@ -638,12 +653,11 @@ final class GardenView: NSView, NSViewToolTipOwner {
         switch current {
         case .companion(let petID):
             let tile = GardenTile(col: Int(g.col.rounded(.down)), row: Int(g.row.rounded(.down)))
-            let others = Pet.all.enumerated().filter { $0.element.id != petID && profile.isCompanionUnlocked($0.element.id) }
-                .map { garden.companionTile($0.element.id, index: $0.offset) }
+            let others = companionsHere().filter { $0.element.id != petID }.map { garden.companionTile($0.element.id, index: $0.offset) }
             let valid = GardenLayout.isWalkable(tile, size: iso.size, occupied: garden.occupiedTiles()) && !others.contains(tile)
             return CarryTarget(origin: tile, tiles: [tile], valid: valid)
         case .placed(let id):
-            guard let placement = garden.placements.first(where: { $0.id == id }), let item = GardenCatalog.item(withID: placement.item) else { return nil }
+            guard let placement = garden.placement(withID: id), let item = GardenCatalog.item(withID: placement.item) else { return nil }
             return itemTarget(item, grid: g, ignoring: id, needsCopy: false)
         case .fresh(let id):
             guard let item = GardenCatalog.item(withID: id) else { return nil }
@@ -680,6 +694,12 @@ final class GardenView: NSView, NSViewToolTipOwner {
 
     private var isCarryingPlaced: Bool {
         if case .placed? = carry, carryMoved { return true }
+        return false
+    }
+
+    /// Un compagno non lascia la sua isola: se è lui quello che si trascina, passando sopra un'altra isola questa non diventa quella viva.
+    private var isCarryingCompanion: Bool {
+        if case .companion? = carry { return true }
         return false
     }
 
@@ -760,6 +780,9 @@ final class GardenView: NSView, NSViewToolTipOwner {
     }
 
     func view(_ view: NSView, stringForToolTip tag: NSView.ToolTipTag, point: NSPoint, userData data: UnsafeMutableRawPointer?) -> String {
+        if Int(bitPattern: data) == 3 {
+            return "Tocca per vedere tutte le isole, e di nuovo per tornare a questa. Si ingrandisce e ci si sposta da un'isola all'altra anche con lo zoom e trascinando."
+        }
         if Int(bitPattern: data) == 1 {
             return "L'album: \(garden.foundCount) figurine su \(GardenCatalog.items.count). Le trovi a fine focus (completato, con almeno 20 minuti): "
                 + "una volta su cinque non esce niente. Con più giorni di fila e con i focus lunghi le figurine rare sono più probabili."
@@ -804,11 +827,14 @@ final class GardenView: NSView, NSViewToolTipOwner {
         drawWeather(sky.season, light: sky.light)
         drawLampGlows(laid, iso: iso, light: sky.light)
         drawCottageWindows(light: sky.light, season: sky.season, iso: iso)
+        drawLandmarkLights(light: sky.light)
         drawFireflies(season: sky.season, light: sky.light)
         if let bubble, let owner = laid.first(where: { $0.kind == .companion(bubble.petID) }) {
             drawBubble(bubble.text, above: owner.rect)
         }
+        drawIslandLabels()
         drawHUD()
+        drawIslandCaption()
         if trayVisible { drawTray() } else if showsTrayPill { drawTrayPill() }
         drawZoomControls()
         drawCelebration(laid, iso: iso)
@@ -950,7 +976,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
     private func drawLampGlows(_ laid: [Entity], iso: Iso, light: GardenLight) {
         let strength = CGFloat(light.lamp)
         guard strength > 0.01 else { return }
-        let lamps = Set(garden.placements.filter { $0.item == "lampione" }.map { $0.id })
+        let lamps = Set(GardenIslands.all.flatMap { garden.placements(on: $0) }.filter { $0.item == "lampione" }.map { $0.id })
         // il lampione dell'angolo di lettura fa più luce, e più calda
         let reading = Set(garden.formedCorners["lettura"] ?? [])
         NSGraphicsContext.saveGraphicsState()
@@ -1067,13 +1093,13 @@ final class GardenView: NSView, NSViewToolTipOwner {
     private func drawChimneySmoke(season: Season, iso: Iso) {
         let amount = GardenSky.smokeAmount(season)
         let chimney = MeadowBackdrop.chimney(season)
-        guard amount > 0.01, let fixed = MeadowBackdrop.scenePoint(u: chimney.u, v: chimney.v, in: Self.sceneSize, season: season) else { return }
+        guard amount > 0.01, let fixed = backdropPoint(u: chimney.u, v: chimney.v, season: season) else { return }
         let mouth = cameraPoint(fixed)
         // il fumo sta dietro l'isola: non si disegna sopra di lei
         NSGraphicsContext.saveGraphicsState()
         defer { NSGraphicsContext.restoreGraphicsState() }
         let clip = NSBezierPath(rect: sceneRect.insetBy(dx: -20, dy: -20))
-        clip.append(islandOutline(iso))
+        for entry in worldIslands() { clip.append(islandOutline(entry.iso)) }
         clip.windingRule = .evenOdd
         clip.addClip()
         let time = reduceMotion ? 3 : effectsClock()
@@ -1084,7 +1110,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
             let puff = GardenSky.smoke(index: index, time: time, wind: wind)
             let a = min(CGFloat(puff.alpha * amount) * 1.5, 0.8)
             guard a > 0.01 else { continue }
-            let k = MeadowBackdrop.houseScale(season) * zoom
+            let k = MeadowBackdrop.houseScale(season) * zoom * Self.backdropScale
             let c = NSPoint(x: mouth.x + CGFloat(puff.dx) * k, y: mouth.y + CGFloat(puff.dy) * k)
             NSGradient(colors: [color.withAlphaComponent(a), color.withAlphaComponent(a * 0.55), color.withAlphaComponent(0)])?
                 .draw(fromCenter: c, radius: 0, toCenter: c, radius: CGFloat(puff.radius) * 1.7 * k, options: [])
@@ -1097,16 +1123,16 @@ final class GardenView: NSView, NSViewToolTipOwner {
         guard strength > 0.02 else { return }
         NSGraphicsContext.saveGraphicsState()
         let clip = NSBezierPath(rect: sceneRect.insetBy(dx: -20, dy: -20))
-        clip.append(islandOutline(iso))
+        for entry in worldIslands() { clip.append(islandOutline(entry.iso)) }
         clip.windingRule = .evenOdd
         clip.addClip()
         NSGraphicsContext.current?.cgContext.setBlendMode(.plusLighter)
         let warm = Self.color(255, 208, 120)
         for window in MeadowBackdrop.windows(season) {
-            guard let fixed = MeadowBackdrop.scenePoint(u: window.u, v: window.v, in: Self.sceneSize, season: season) else { continue }
+            guard let fixed = backdropPoint(u: window.u, v: window.v, season: season) else { continue }
             let c = cameraPoint(fixed)
             NSGradient(colors: [warm.withAlphaComponent(0.8 * strength), warm.withAlphaComponent(0.25 * strength), warm.withAlphaComponent(0)])?
-                .draw(fromCenter: c, radius: 0, toCenter: c, radius: 20 * MeadowBackdrop.houseScale(season) * zoom * 0.55, options: [])
+                .draw(fromCenter: c, radius: 0, toCenter: c, radius: 20 * MeadowBackdrop.houseScale(season) * zoom * Self.backdropScale * 0.55, options: [])
         }
         NSGraphicsContext.restoreGraphicsState()
     }
@@ -1178,6 +1204,50 @@ final class GardenView: NSView, NSViewToolTipOwner {
               let decoded = Self.decoded(loaded) else { return nil }
         hillCache[season] = decoded
         return decoded
+    }
+
+    /// Il carattere di ogni isola: una tinta leggera sul terreno e sulla collina, perché si riconoscano da lontano (Pianty fresca e verde, Porcellino calda di paglia,
+    /// Ciccio fredda di cielo, Gattino di pietra e di lilla). D'inverno, sotto la neve, è più leggera.
+    private static func islandWash(_ island: String, season: Season) -> NSColor? {
+        let k: CGFloat = season == .winter ? 0.55 : 1
+        switch island {
+        case "pianty": return color(96, 200, 84, 0.16 * k)
+        case "porcellino": return color(238, 150, 96, 0.24 * k)
+        case "ciccio": return color(70, 170, 214, 0.22 * k)
+        case "gattino": return color(112, 132, 204, 0.26 * k)
+        default: return nil
+        }
+    }
+
+    /// La collina di una stagione con sopra un colore (solo dove l'immagine c'è: i bordi trasparenti restano), già pronta: quella scura delle isole chiuse e quelle delle isole aperte.
+    private static var tintedHillCache: [String: NSImage] = [:]
+    private static func tintedHillImage(_ season: Season, key: String, color: CGColor) -> NSImage? {
+        guard let base = hillImage(season) else { return nil }
+        hillLock.lock()
+        defer { hillLock.unlock() }
+        let cacheKey = "\(season.rawValue)|\(key)"
+        if let known = tintedHillCache[cacheKey] { return known }
+        guard let source = base.cgImage(forProposedRect: nil, context: nil, hints: nil),
+              let context = CGContext(data: nil, width: source.width, height: source.height, bitsPerComponent: 8, bytesPerRow: 0, space: GardenDisplay.colorSpace(),
+                                      bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue) else { return nil }
+        let box = CGRect(x: 0, y: 0, width: source.width, height: source.height)
+        context.draw(source, in: box)
+        context.setBlendMode(.sourceAtop)
+        context.setFillColor(color)
+        context.fill(box)
+        guard let made = context.makeImage() else { return nil }
+        let image = NSImage(cgImage: made, size: NSSize(width: source.width, height: source.height))
+        tintedHillCache[cacheKey] = image
+        return image
+    }
+
+    private static func darkHillImage(_ season: Season) -> NSImage? {
+        tintedHillImage(season, key: "buio", color: CGColor(red: 0.04, green: 0.06, blue: 0.14, alpha: 0.62))
+    }
+
+    private static func moodHillImage(_ season: Season, island: String) -> NSImage? {
+        guard let wash = islandWash(island, season: season) else { return nil }
+        return tintedHillImage(season, key: island, color: wash.cgColor)
     }
 
     /// L'immagine già decodificata, in un bitmap nello spazio dei colori dello schermo. Un'`NSImage` letta da un file PNG lo decodifica ad ogni disegno
@@ -1279,27 +1349,28 @@ final class GardenView: NSView, NSViewToolTipOwner {
     }()
 
     /// La disposizione delle tessere d'erba (o di neve) per ogni grandezza dell'isola, calcolata una volta: la chiave è la grandezza e se è inverno.
-    private static var grassGrids: [Int: [Int]] = [:]
+    private static var grassGrids: [String: [Int]] = [:]
 
     /// Disegna il terreno (ombra, lati, tessere); `carrying`: la griglia si vede di più mentre si trascina.
-    private func paintIslandGround(_ iso: Iso, season: Season, carrying: Bool) {
+    private func paintIslandGround(_ iso: Iso, season: Season, carrying: Bool, onHill: Bool? = nil, island: String = GardenIslands.fallbackHome) {
         let pal = Self.palette(season)
         let winter = season == .winter
-        let gridKey = iso.size * 2 + (winter ? 1 : 0)
+        let tag = GardenIslands.terrainTag(island)
+        let gridKey = "\(iso.size)|\(winter)|\(tag)"
         let grassGrid = Self.grassGrids[gridKey] ?? {
-            let grid = GardenTerrain.grassGrid(size: iso.size, weights: GardenTerrain.grassWeights(season: season))
+            let grid = GardenTerrain.grassGrid(size: iso.size, weights: GardenTerrain.grassWeights(season: season), tag: tag)
             Self.grassGrids[gridKey] = grid
             return grid
         }()
-        let pathTiles = GardenIsland.pathTiles(size: iso.size)
+        let pathTiles = GardenPaths.tiles(island: island, size: iso.size)
         let pathIndex = Dictionary(uniqueKeysWithValues: pathTiles.enumerated().map { ($1, $0) })
-        let pathVariants = GardenTerrain.pathVariants(count: pathTiles.count, weights: GardenTerrain.pathWeights(season: season))
+        let pathVariants = GardenTerrain.pathVariants(count: pathTiles.count, weights: GardenTerrain.pathWeights(season: season), tag: tag)
         let grassSet = winter ? Self.snowImages : Self.grassImages
         let pathSet = winter ? Self.snowPathImages : Self.pathImages
         let edgeSet = winter ? Self.snowEdgeImages : Self.edgeImages
         let darkEdgeSet = winter ? Self.darkSnowEdgeImages : Self.darkEdgeImages
         // con la collina il terreno finisce sul pendio: niente ombra a ellisse, niente lati di terra né strisce
-        let onHill = Self.hasHill
+        let onHill = onHill ?? Self.hasHill
         let n = Double(iso.size)
         let thickness = iso.edge
         // l'ombra sul prato, sotto l'isola
@@ -1329,7 +1400,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
                 let tile = GardenTile(col: col, row: row)
                 let seed = GardenDrops.hash("\(col),\(row)")
                 let variation = CGFloat(Int(seed % 11)) - 5
-                let isPath = GardenIsland.isPath(tile)
+                let isPath = pathIndex[tile] != nil
                 let base = isPath ? ((col + row) % 2 == 0 ? pal.pathA : pal.pathB) : ((col + row) % 2 == 0 ? pal.grassA : pal.grassB)
                 let path = diamond(tile, iso: iso)
                 // l'erba (o la neve) disegnata; se manca, a mano
@@ -1343,6 +1414,14 @@ final class GardenView: NSView, NSViewToolTipOwner {
                         NSGraphicsContext.saveGraphicsState()
                         NSGraphicsContext.current?.cgContext.setBlendMode(.multiply)
                         (isPath ? Self.color(244, 220, 178) : Self.color(236, 196, 120)).setFill()
+                        path.fill()
+                        NSGraphicsContext.restoreGraphicsState()
+                    }
+                    // il sentiero un po' più scuro del prato (con le tinte delle isole le sue pietre chiare si perdevano): d'inverno meno, sulla neve
+                    if isPath {
+                        NSGraphicsContext.saveGraphicsState()
+                        NSGraphicsContext.current?.cgContext.setBlendMode(.multiply)
+                        (winter ? Self.color(226, 228, 238) : Self.color(204, 188, 164)).setFill()
                         path.fill()
                         NSGraphicsContext.restoreGraphicsState()
                     }
@@ -1387,7 +1466,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
             for row in 0..<iso.size {
                 for col in 0..<iso.size {
                     let tile = GardenTile(col: col, row: row)
-                    for decal in GardenTerrain.decals(col: col, row: row, season: season, onPath: GardenIsland.isPath(tile)) {
+                    for decal in GardenTerrain.decals(col: col, row: row, season: season, onPath: pathIndex[tile] != nil, tag: tag) {
                         placed.append((Double(col + row) + decal.u + decal.v, tile, decal))
                     }
                 }
@@ -1421,7 +1500,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
         var origin: NSPoint
     }
 
-    private var groundCache: GroundCache?
+    private var groundCaches: [String: GroundCache] = [:]
 
     /// La scena fissa (paesaggio, collina, terreno, luce) già pronta, ma **più grande della finestra**: per spostarsi basta mostrarne un pezzo diverso (una copia), senza
     /// ridisegnare niente; si rifà solo quando ci si avvicina al bordo, cambia qualcosa (l'isola, la stagione, la luce, la griglia) o, dopo uno zoom, quando il gesto finisce.
@@ -1491,9 +1570,18 @@ final class GardenView: NSView, NSViewToolTipOwner {
         NSGraphicsContext.saveGraphicsState()
         NSGraphicsContext.current = NSGraphicsContext(cgContext: cg, flipped: true)
         NSGraphicsContext.current?.imageInterpolation = .high
-        MeadowBackdrop.drawWorld(scene: sceneRect, fill: area, zoom: zoom, pan: pan, blur: 2, veil: Self.palette(season).veil, season: season)
-        drawHill(iso, season: season, visible: area)
-        drawIslandGround(iso, season: season)
+        drawBackdrop(fill: area, season: season)
+        let islands = worldIslands()
+        for entry in islands { drawHill(entry.iso, season: season, visible: area, dark: !entry.open, island: entry.id) }       // tutte le colline prima: le isole le coprono
+        for entry in islands {
+            drawIslandGround(entry.iso, season: season, island: entry.id)
+            if !entry.open {
+                NSColor(calibratedRed: 0.04, green: 0.06, blue: 0.14, alpha: 0.66).setFill()
+                islandOutline(entry.iso).fill()
+            }
+        }
+        for entry in islands { drawLandmark(island: entry.id, iso: entry.iso, open: entry.open) }       // le case, dopo i terreni (il tetto esce sopra l'isola)
+        drawBridges(islands)
         applyLight(light, in: area)
         NSGraphicsContext.restoreGraphicsState()
         guard let image = cg.makeImage() else { return nil }
@@ -1535,7 +1623,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
         let space = GardenDisplay.colorSpace(window)
         let carrying = carry != nil && carryMoved
         let tint = GardenTint(multiplier: light.multiplier)
-        let key = "\(iso.size)|\(season.rawValue)|\(carrying)|\(scale)|\(GardenDisplay.name(space))|" + "\(tint.red),\(tint.green),\(tint.blue),\(Int(light.darkness * 40))"
+        let key = "\(worldSignature())|\(season.rawValue)|\(carrying)|\(scale)|\(GardenDisplay.name(space))|" + "\(tint.red),\(tint.green),\(tint.blue),\(Int(light.darkness * 40))"
         if let cache = sceneCache, cache.key == key {
             let now = placement(of: cache)
             if now.covers {
@@ -1575,9 +1663,9 @@ final class GardenView: NSView, NSViewToolTipOwner {
         if let cache = sceneCache {
             GardenBlit.draw(cache.image, in: placement(of: cache).rect, copy: true)
         } else {
-            MeadowBackdrop.drawWorld(scene: sceneRect, zoom: zoom, pan: pan, blur: 2, veil: Self.palette(season).veil, season: season)
+            drawBackdrop(fill: sceneRect, season: season)
             drawHill(iso, season: season, visible: sceneRect)
-            drawIslandGround(iso, season: season)
+            drawIslandGround(iso, season: season, island: garden.shownIsland)
             applyLight(light, in: sceneRect)
         }
         drawOverlay(season: season, light: light, space: space)
@@ -1586,8 +1674,8 @@ final class GardenView: NSView, NSViewToolTipOwner {
     /// La collina sotto l'isola: l'ombra e la nebbia sul prato, e l'immagine d'erba con il buco a rombo dove stanno le tessere (l'isola ne copre il bordo,
     /// quindi fra le tessere e il pendio non c'è nessun distacco). Si disegna direttamente nella scena già pronta: la scena è un'immagine sola, e l'immagine
     /// della collina (tanto più grande dell'isola) in una cache a parte, ingrandendo, peserebbe troppo.
-    private func drawHill(_ iso: Iso, season: Season, visible: NSRect) {
-        guard let image = Self.hillImage(season) else { return }
+    private func drawHill(_ iso: Iso, season: Season, visible: NSRect, dark: Bool = false, island: String = "") {
+        guard let image = dark ? (Self.darkHillImage(season) ?? Self.hillImage(season)) : (Self.moodHillImage(season, island: island) ?? Self.hillImage(season)) else { return }
         let n = Double(iso.size)
         let left = iso.point(col: 0, row: n), right = iso.point(col: n, row: 0)
         let frame = GardenHill.frame(islandLeft: (Double(left.x), Double(left.y)), islandRight: (Double(right.x), Double(right.y)))
@@ -1628,13 +1716,13 @@ final class GardenView: NSView, NSViewToolTipOwner {
     /// Il terreno, da un disegno già pronto (solo il rettangolo che lo contiene) finché non cambia niente tranne la posizione: spostarsi non lo rifà,
     /// lo sposta soltanto. Si rifà con l'isola, lo zoom, la stagione o la griglia che si accende. Disegnare le tessere ad ogni fotogramma costerebbe
     /// molto di più che copiare un'immagine.
-    private func drawIslandGround(_ iso: Iso, season: Season) {
+    private func drawIslandGround(_ iso: Iso, season: Season, island: String) {
         let carrying = carry != nil && carryMoved
         let scale = backingScale
         let space = GardenDisplay.colorSpace(window)
-        let key = "\(iso.size)|\(Int(iso.tileW * 100))|\(season.rawValue)|\(carrying)|\(scale)|\(GardenDisplay.name(space))"
-        if groundCache?.key != key {
-            groundCache = nil
+        let key = "\(island)|\(iso.size)|\(Int(iso.tileW * 100))|\(season.rawValue)|\(carrying)|\(scale)|\(GardenDisplay.name(space))"
+        if groundCaches[key] == nil {
+            if groundCaches.count >= 8 { groundCaches.removeAll() }
             let n = CGFloat(iso.size)
             let margin: CGFloat = 40
             let top = iso.tileW * 0.6 + 20
@@ -1648,16 +1736,22 @@ final class GardenView: NSView, NSViewToolTipOwner {
                 NSGraphicsContext.saveGraphicsState()
                 NSGraphicsContext.current = NSGraphicsContext(cgContext: cg, flipped: true)
                 NSGraphicsContext.current?.imageInterpolation = .high
-                paintIslandGround(Iso(size: iso.size, tileW: iso.tileW, origin: origin), season: season, carrying: carrying)
+                paintIslandGround(Iso(size: iso.size, tileW: iso.tileW, origin: origin), season: season, carrying: carrying, island: island)
+                // la tinta dell'isola, solo dove il terreno c'è
+                if let wash = Self.islandWash(island, season: season) {
+                    cg.setBlendMode(.sourceAtop)
+                    cg.setFillColor(wash.cgColor)
+                    cg.fill(CGRect(origin: .zero, size: box))
+                }
                 NSGraphicsContext.restoreGraphicsState()
-                if let image = cg.makeImage() { groundCache = GroundCache(key: key, image: image, box: box, origin: origin) }
+                if let image = cg.makeImage() { groundCaches[key] = GroundCache(key: key, image: image, box: box, origin: origin) }
             }
         }
-        if let cached = groundCache {
+        if let cached = groundCaches[key] {
             let target = NSRect(x: iso.origin.x - cached.origin.x, y: iso.origin.y - cached.origin.y, width: cached.box.width, height: cached.box.height)
             GardenBlit.draw(cached.image, in: target)
         } else {
-            paintIslandGround(iso, season: season, carrying: carrying)
+            paintIslandGround(iso, season: season, carrying: carrying, island: island)
         }
     }
 
@@ -1787,9 +1881,9 @@ final class GardenView: NSView, NSViewToolTipOwner {
         }
     }
 
-    private func drawHint(_ string: String) {
+    private func drawHint(_ string: String, y: CGFloat? = nil) {
         let width: CGFloat = 520
-        let rect = NSRect(x: (sceneW - width) / 2, y: sceneH - 50 - (trayVisible ? Self.trayHeight : 0), width: width, height: 34)
+        let rect = NSRect(x: (sceneW - width) / 2, y: y ?? sceneH - 50 - (trayVisible ? Self.trayHeight : 0), width: width, height: 34)
         let pill = NSBezierPath(roundedRect: rect, xRadius: 17, yRadius: 17)
         Paper.paper.withAlphaComponent(0.88).setFill()
         pill.fill()
@@ -1905,6 +1999,10 @@ final class GardenView: NSView, NSViewToolTipOwner {
         carryStart = p
         carryMoved = false
         bubble = nil
+        if captionRect.contains(p) {
+            toggleWorldView()
+            return
+        }
         if showsTrayPill && trayPillRect.contains(p) {
             trayOpen = true
             needsDisplay = true
@@ -1918,10 +2016,11 @@ final class GardenView: NSView, NSViewToolTipOwner {
             button.action()
             return
         }
+        touchIsland(at: p)
         guard sceneRect.contains(p), let found = entity(at: p) else {
             // sullo sfondo: due tocchi ingrandiscono (o, già ingrandita, rimettono tutta l'isola), trascinando ci si sposta
             if event.clickCount == 2 {
-                if zoom > 1.05 { resetCamera() } else { zoom(by: 1.8, at: p) }
+                if !isFitted() && zoom > islandCamera(garden.shownIsland).zoom * 1.05 { resetCamera() } else { zoom(by: 1.8, at: p) }
             } else {
                 panning = true
                 panLast = p
@@ -1980,6 +2079,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
         if carryMoved {
             NSCursor.closedHand.set()
             carryFeet = NSPoint(x: p.x + carryGrab.width, y: p.y + carryGrab.height)
+            if !isCarryingCompanion, let id = islandUnder(p), id != garden.shownIsland, isIslandOpen(id) { focus(id) }
             needsDisplay = true
         }
     }
@@ -2004,7 +2104,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
                 if overTray {
                     garden.remove(id)
                 } else if let target, target.valid {
-                    garden.move(id, to: target.origin, turned: carryTurned)
+                    garden.move(id, to: target.origin, turned: carryTurned, on: garden.shownIsland)
                 } else if sceneRect.contains(p) {
                     flash("Lì non ci sta: serve una tessera libera, fuori dal sentiero.")
                 }
@@ -2548,6 +2648,368 @@ extension GardenView {
         Self.color(226, 140, 28).setStroke()
         path.lineWidth = 0.9
         path.stroke()
+    }
+}
+
+// MARK: - Il mondo
+
+extension GardenView {
+    // MARK: Lo sfondo
+
+    /// Il paesaggio dipinto è uno solo e copre tutto il mondo: più grande della finestra, centrato su di essa a zoom 1 e senza spostamenti (il resto, attorno, è lo stesso
+    /// disegno specchiato e sfocato).
+    static let backdropScale: CGFloat = 1.9
+
+    private var backdropBounds: NSRect {
+        NSRect(x: sceneW * (1 - Self.backdropScale) / 2, y: sceneH * (1 - Self.backdropScale) / 2, width: sceneW * Self.backdropScale, height: sceneH * Self.backdropScale)
+    }
+
+    private func drawBackdrop(fill: NSRect, season: Season) {
+        MeadowBackdrop.drawWorld(scene: backdropBounds, fill: fill, zoom: zoom, pan: pan, blur: 2 * Self.backdropScale, veil: Self.palette(season).veil, season: season)
+    }
+
+    /// Un punto del disegno del paesaggio (`u` e `v` da 0 a 1 dall'angolo in alto a sinistra) com'è a zoom 1 e senza spostamenti: serve a mettere il fumo e le luci del casale.
+    private func backdropPoint(u: Double, v: Double, season: Season) -> NSPoint? {
+        MeadowBackdrop.scenePoint(u: u, v: v, in: backdropBounds.size, season: season).map { NSPoint(x: $0.x + backdropBounds.minX, y: $0.y + backdropBounds.minY) }
+    }
+
+    // MARK: La telecamera
+
+    /// Dove cade, a zoom 1 e senza spostamenti, l'angolo (0, 0) del mondo (la cella di Pianty), e quanto è larga una tessera: lì l'isola grande al massimo sta tutta nella finestra.
+    private var worldBase: (tileW: CGFloat, origin: NSPoint) {
+        (Iso.fit(size: GardenIsland.maxSize, scene: Self.sceneSize), NSPoint(x: sceneW / 2, y: Iso.sceneTop))
+    }
+
+    /// Il mondo con la telecamera `zoom` e `pan` (ingrandito attorno al centro della scena, come il paesaggio): la tessera e dove sta il suo angolo (0, 0).
+    private func worldView(zoom: CGFloat, pan: NSPoint) -> (tileW: CGFloat, origin: NSPoint) {
+        let base = worldBase
+        let center = NSPoint(x: sceneW / 2, y: sceneH / 2)
+        return (base.tileW * zoom, NSPoint(x: center.x + (base.origin.x - center.x) * zoom + pan.x, y: center.y + (base.origin.y - center.y) * zoom + pan.y))
+    }
+
+    /// L'isola `id` com'è alla vista data (di norma quella di adesso): grande com'è, nel suo posto del mondo.
+    private func isoOf(_ id: String, zoom: CGFloat? = nil, pan: NSPoint? = nil) -> Iso? {
+        let size = garden.islandSize(of: id)
+        guard let corner = GardenWorld.corner(of: id, size: size) else { return nil }
+        let view = worldView(zoom: zoom ?? self.zoom, pan: pan ?? self.pan)
+        return Iso(size: size, tileW: view.tileW, origin: NSPoint(x: view.origin.x + CGFloat(corner.col - corner.row) * view.tileW / 2,
+                                                                   y: view.origin.y + CGFloat(corner.col + corner.row) * view.tileW / 4))
+    }
+
+    /// Le quattro isole alla vista di adesso, dal fondo (in alto) al davanti, e se sono aperte (il compagno è sbloccato) o chiuse (al buio).
+    private func worldIslands() -> [(id: String, iso: Iso, open: Bool)] {
+        GardenIslands.all.compactMap { id in isoOf(id).map { (id: id, iso: $0, open: isIslandOpen(id)) } }
+            .sorted { (GardenWorld.slot(of: $0.id).map { $0.col + $0.row } ?? 0) < (GardenWorld.slot(of: $1.id).map { $0.col + $0.row } ?? 0) }
+    }
+
+    /// Cosa fa rifare la scena preparata, oltre alla stagione e alla luce: la grandezza delle isole e quali sono aperte.
+    private func worldSignature() -> String {
+        GardenIslands.all.map { "\($0):\(garden.islandSize(of: $0))\(isIslandOpen($0) ? "a" : "c")" }.joined(separator: ",")
+    }
+
+    /// L'isola è aperta se il suo compagno è sbloccato; le altre sono al buio.
+    private func isIslandOpen(_ id: String) -> Bool { profile.isCompanionUnlocked(id) }
+
+    private func petName(_ island: String) -> String { Pet.all.first { $0.id == island }?.name ?? island }
+
+    private func totalFocuses() -> Int {
+        CompanionRewards.focuses(totalSeconds: log.sessions.reduce(0) { $0 + $1.seconds })
+    }
+
+    /// La vista che mostra tutta un'isola, a misura della finestra: lo zoom per cui la sua tessera è quella di sempre, e lo spostamento che mette il suo vertice in alto al solito posto.
+    private func islandCamera(_ id: String) -> (zoom: CGFloat, pan: NSPoint) {
+        let size = max(garden.islandSize(of: id), 1)
+        let zoom = min(max(CGFloat(GardenIsland.maxSize) / CGFloat(size), Self.zoomRange.lowerBound), Self.zoomRange.upperBound)
+        let corner = GardenWorld.corner(of: id, size: size) ?? (col: 0, row: 0)
+        let view = worldView(zoom: zoom, pan: .zero)
+        let want = NSPoint(x: sceneW / 2, y: Iso.sceneTop)
+        return (zoom, NSPoint(x: want.x - view.origin.x - CGFloat(corner.col - corner.row) * view.tileW / 2,
+                              y: want.y - view.origin.y - CGFloat(corner.col + corner.row) * view.tileW / 4))
+    }
+
+    /// La vista che mostra tutte e quattro le isole (con le colline).
+    private func worldCamera() -> (zoom: CGFloat, pan: NSPoint) {
+        let base = worldBase
+        let extent = CGFloat(GardenWorld.extent)
+        let island = CGFloat(GardenIsland.maxSize) * base.tileW
+        let sideHill = max((CGFloat(GardenHill.widthRatio) - 1) / 2, 0) * island
+        // la scatola che le contiene, a zoom 1, rispetto all'angolo (0, 0): a sinistra e a destra gli angoli delle isole laterali, in alto le cose alte della prima,
+        // in basso la collina dell'ultima (la linea dei suoi angoli sinistro e destro più quanto scende)
+        let left = -extent * base.tileW / 2 - sideHill, right = extent * base.tileW / 2 + sideHill
+        let top = -base.tileW * 1.6
+        let bottom = CGFloat(2 * GardenWorld.cell + GardenIsland.maxSize) * base.tileW / 4 + CGFloat(GardenHill.belowRatio) * island
+        let zoom = min(max(min((sceneW - 40) / (right - left), (sceneH - 120) / (bottom - top)), Self.zoomRange.lowerBound), Self.zoomRange.upperBound)
+        let center = NSPoint(x: sceneW / 2, y: sceneH / 2)
+        let box = NSPoint(x: base.origin.x + (left + right) / 2, y: base.origin.y + (top + bottom) / 2)
+        let want = NSPoint(x: sceneW / 2, y: sceneH / 2 + 14)
+        return (zoom, NSPoint(x: want.x - center.x - (box.x - center.x) * zoom, y: want.y - center.y - (box.y - center.y) * zoom))
+    }
+
+    /// Se la vista è quella che mostra tutta l'isola mostrata (nel qual caso il pulsante «tutta l'isola» non serve).
+    private func isFitted() -> Bool {
+        let camera = islandCamera(garden.shownIsland)
+        return abs(zoom - camera.zoom) < 0.002 && abs(pan.x - camera.pan.x) < 0.5 && abs(pan.y - camera.pan.y) < 0.5
+    }
+
+    /// Il centro della finestra resta sempre nel mondo (o a una tessera dal bordo): non si può perderlo di vista.
+    private func clampCamera() {
+        let view = worldView(zoom: zoom, pan: pan)
+        let world = Iso(size: GardenWorld.extent, tileW: view.tileW, origin: view.origin)
+        let n = Double(GardenWorld.extent)
+        let center = NSPoint(x: sceneW / 2, y: sceneH / 2)
+        let g = world.grid(at: center)
+        let col = min(max(g.col, -1), n + 1), row = min(max(g.row, -1), n + 1)
+        guard col != g.col || row != g.row else { return }
+        let inside = world.point(col: col, row: row)
+        pan = NSPoint(x: pan.x + center.x - inside.x, y: pan.y + center.y - inside.y)
+    }
+
+    /// Dal vicino al lontano: se si sta vedendo tutta l'isola mostrata si rimpicciolisce a tutte e quattro, altrimenti si torna all'isola.
+    func toggleWorldView() {
+        cancelCarry()
+        let all = worldCamera()
+        if abs(zoom - all.zoom) < 0.02 && abs(pan.x - all.pan.x) < 3 && abs(pan.y - all.pan.y) < 3 {
+            resetCamera()
+        } else {
+            zoom = all.zoom
+            pan = all.pan
+            cameraMoved()
+        }
+    }
+
+    // MARK: L'isola viva
+
+    /// L'isola «mostrata» (quella viva: ci camminano i compagni, ci si trascinano gli oggetti) è la più vicina al centro della finestra; cambia solo se un'altra è
+    /// chiaramente più vicina, così sul confine non ballano.
+    private func updateFocus() {
+        guard carry == nil else { return }
+        let view = worldView(zoom: zoom, pan: pan)
+        let world = Iso(size: GardenWorld.extent, tileW: view.tileW, origin: view.origin)
+        let g = world.grid(at: NSPoint(x: sceneW / 2, y: sceneH / 2))
+        func distance(_ id: String) -> Double? {
+            let size = garden.islandSize(of: id)
+            guard let corner = GardenWorld.corner(of: id, size: size) else { return nil }
+            let dc = max(corner.col - g.col, 0, g.col - (corner.col + Double(size))), dr = max(corner.row - g.row, 0, g.row - (corner.row + Double(size)))
+            return (dc * dc + dr * dr).squareRoot()
+        }
+        let current = distance(garden.shownIsland) ?? .infinity
+        let best = GardenIslands.all.filter { isIslandOpen($0) }.compactMap { id in distance(id).map { (id: id, distance: $0) } }.min { $0.distance < $1.distance }
+        if let best, best.id != garden.shownIsland, best.distance + 0.75 < current { focus(best.id) }
+    }
+
+    /// Porta in primo piano un'isola aperta: da ora è lei quella viva (la vista non si muove). Il visitatore se ne va, i compagni dell'altra restano dove sono.
+    private func focus(_ id: String) {
+        guard id != garden.shownIsland, isIslandOpen(id) else { return }
+        garden.showIsland(id)
+        bubble = nil
+        resetVisitors()
+        trayScroll = 0
+        needsDisplay = true
+    }
+
+    /// L'isola che sta sotto un punto della scena (dentro i suoi bordi), se c'è.
+    private func islandUnder(_ p: NSPoint) -> String? {
+        for entry in worldIslands().reversed() {
+            let g = entry.iso.grid(at: p)
+            if g.col >= -0.2, g.row >= -0.2, g.col < Double(entry.iso.size) + 0.2, g.row < Double(entry.iso.size) + 0.2 { return entry.id }
+        }
+        return nil
+    }
+
+    /// Un tocco su un'altra isola (o su una sua cosa) la porta in primo piano; su una chiusa dice cosa manca.
+    private func touchIsland(at p: NSPoint) {
+        guard carry == nil else { return }
+        if let found = entity(at: p), !found.island.isEmpty, found.island != garden.shownIsland {
+            focus(found.island)
+            return
+        }
+        guard let id = islandUnder(p), id != garden.shownIsland else { return }
+        if isIslandOpen(id) {
+            focus(id)
+        } else {
+            let need = CompanionRewards.need(for: id, first: profile.firstCompanion, all: Pet.all.map(\.id))
+            flash("L'isola di \(petName(id)) è chiusa: si sblocca a \(need) focus pieni di studio (ne hai \(min(totalFocuses(), need))).")
+        }
+    }
+
+    // MARK: Ponti e cose sulle altre isole
+
+    /// I ponti fra le isole aperte vicine.
+    private func drawBridges(_ islands: [(id: String, iso: Iso, open: Bool)]) {
+        for bridge in GardenWorld.bridges {
+            guard let first = islands.first(where: { $0.id == bridge.first }), let second = islands.first(where: { $0.id == bridge.second }),
+                  first.open, second.open,
+                  let span = GardenWorld.span(of: bridge, firstSize: first.iso.size, secondSize: second.iso.size),
+                  let view = Optional(worldView(zoom: zoom, pan: pan)) else { continue }
+            let world = Iso(size: GardenWorld.extent, tileW: view.tileW, origin: view.origin)
+            for (index, center) in GardenWorld.pieceCenters(from: span.from, to: span.to).enumerated() {
+                let point = bridge.alongColumns ? world.point(col: center, row: span.across) : world.point(col: span.across, row: center)
+                drawBridgePiece(alongColumns: bridge.alongColumns, variant: index % 2 + 1, at: point, tileW: world.tileW)
+            }
+        }
+    }
+
+    /// Un pezzo di ponte, con il centro della sua striscia (lunga due tessere, larga una) su `center`. Il disegno è più alto che largo rispetto alla griglia
+    /// (122×75 pixel per due tessere): si scala a parte in larghezza e in altezza, così i paletti di un pezzo coincidono con quelli del successivo.
+    private func drawBridgePiece(alongColumns: Bool, variant: Int, at center: NSPoint, tileW: CGFloat) {
+        let resource = "giardino_ponte_\(alongColumns ? "colonna" : "riga")_\(variant)"
+        guard let sprite = GardenSprites.sprite(resource) else { return }
+        let sx = tileW / 122, sy = tileW / 150
+        let width = sprite.source.width * sx, height = sprite.source.height * sy
+        // il centro della striscia nel disegno (dall'alto a sinistra): 119,5 e 127; nello specchiato, da destra
+        let anchorX = (alongColumns ? 119.5 : sprite.image.size.width - 119.5) - sprite.source.minX
+        let anchorY = 127 - (sprite.image.size.height - sprite.source.maxY)
+        let rect = NSRect(x: center.x - anchorX * sx, y: center.y - anchorY * sy, width: width, height: height)
+        guard let scaled = GardenSprites.scaled(sprite, resource: resource, pixelWidth: max(1, Int((width * backingScale).rounded())),
+                                                pixelHeight: max(1, Int((height * backingScale).rounded()))) else { return }
+        GardenBlit.draw(scaled, in: rect)
+    }
+
+    /// Gli oggetti e il compagno di un'isola che non è quella viva: fermi, con la profondità del mondo.
+    private func staticEntities(on id: String, iso: Iso) -> [Entity] {
+        guard let corner = GardenWorld.corner(of: id, size: iso.size) else { return [] }
+        let base = corner.col + corner.row
+        let visible = sceneRect.insetBy(dx: -80, dy: -140)
+        var result: [Entity] = []
+        for placement in garden.placements(on: id) {
+            guard let item = GardenCatalog.item(withID: placement.item) else { continue }
+            if carryMoved, carry == .placed(placement.id) { continue }
+            let footprint = item.footprint.applying(turned: placement.turned)
+            let ground = iso.point(col: Double(placement.col) + Double(footprint.cols) / 2, row: Double(placement.row) + Double(footprint.rows) / 2)
+            guard visible.contains(ground) else { continue }
+            let feet = NSPoint(x: ground.x, y: ground.y + iso.tileH * Self.feetOffset)
+            let front = Double(placement.col + footprint.cols - 1 + placement.row + footprint.rows - 1)
+            let shadowWidth = item.castsShadow ? min(iso.tileW * 0.62 * CGFloat(max(footprint.cols, footprint.rows)), iso.tileW * 1.3) : nil
+            if var made = entity(kind: .placed(placement.id), resource: item.resource, referenceHeight: item.height, feet: feet, shadowWidth: shadowWidth,
+                                 turned: placement.turned, depth: base + front + 0.5, iso: iso) {
+                made.island = id
+                made.tile = placement.tile
+                result.append(made)
+            }
+        }
+        if let index = Pet.all.firstIndex(where: { $0.id == id }) {
+            let pet = Pet.all[index]
+            let ground = companionGround(pet.id, home: garden.companionTile(pet.id, index: index), iso: iso)
+            if visible.contains(ground.point) {
+                let feet = NSPoint(x: ground.point.x, y: ground.point.y + iso.tileH * Self.feetOffset)
+                if var made = entity(kind: .companion(pet.id), resource: pet.iconResource, referenceHeight: GardenCatalog.companionHeight(for: pet.id), feet: feet,
+                                     shadowWidth: iso.tileW * 0.5, turned: false, depth: base + ground.depth, iso: iso) {
+                    made.island = id
+                    result.append(made)
+                }
+            }
+        }
+        return result
+    }
+
+    // MARK: Le case
+
+    /// Dove cade il disegno della casa di un'isola: il suo zoccolo (un rombo) sulle 3×3 tessere dell'angolo in alto. Il disegno è un po' più alto che largo rispetto alla griglia:
+    /// si scala a parte in larghezza e in altezza, come i ponti. Nil se l'isola non ha ancora la casa.
+    private func landmarkPlacement(island: String, iso: Iso) -> (origin: NSPoint, scaleX: CGFloat, scaleY: CGFloat, sprite: GardenSprite, resource: String, art: GardenLandmarks.Art)? {
+        guard let art = GardenLandmarks.art[island], GardenLandmarks.built.contains(island) else { return nil }
+        let resource = "giardino_casa_" + island
+        guard let sprite = GardenSprites.sprite(resource) else { return nil }
+        let center = iso.point(col: Double(GardenLandmarks.side) / 2, row: Double(GardenLandmarks.side) / 2)
+        let sx = iso.tileW * CGFloat(GardenLandmarks.side) / 2 / CGFloat(art.halfWidth)
+        let sy = iso.tileW * CGFloat(GardenLandmarks.side) / 4 / CGFloat(art.halfHeight)
+        // l'angolo in alto a sinistra del disegno ritagliato, nella scena
+        return (NSPoint(x: center.x - CGFloat(art.centerX) * sx, y: center.y - CGFloat(art.centerY) * sy), sx, sy, sprite, resource, art)
+    }
+
+    /// La casa di un'isola, nella scena preparata; su un'isola chiusa è al buio.
+    private func drawLandmark(island: String, iso: Iso, open: Bool) {
+        guard let house = landmarkPlacement(island: island, iso: iso) else { return }
+        let imageHeight = house.sprite.image.size.height
+        let rect = NSRect(x: house.origin.x + house.sprite.source.minX * house.scaleX, y: house.origin.y + (imageHeight - house.sprite.source.maxY) * house.scaleY,
+                          width: house.sprite.source.width * house.scaleX, height: house.sprite.source.height * house.scaleY)
+        guard rect.intersects(sceneRect.insetBy(dx: -300, dy: -180)) else { return }
+        let tint = open ? GardenTint.none : GardenTint(red: 92, green: 98, blue: 130)
+        guard let scaled = GardenSprites.scaled(house.sprite, resource: house.resource, pixelWidth: max(1, Int((rect.width * backingScale).rounded())),
+                                                pixelHeight: max(1, Int((rect.height * backingScale).rounded())), tint: tint) else { return }
+        GardenBlit.draw(scaled, in: rect)
+    }
+
+    /// Di sera le finestre delle case si accendono (come quelle del casale): una luce calda sui vetri.
+    private func drawLandmarkLights(light: GardenLight) {
+        let strength = CGFloat(light.lamp)
+        guard strength > 0.02 else { return }
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current?.cgContext.setBlendMode(.plusLighter)
+        let warm = Self.color(255, 208, 120)
+        for entry in worldIslands() where entry.open {
+            guard let house = landmarkPlacement(island: entry.id, iso: entry.iso) else { continue }
+            let size = house.sprite.image.size
+            for lamp in house.art.lights {
+                let c = NSPoint(x: house.origin.x + CGFloat(lamp.u) * size.width * house.scaleX, y: house.origin.y + CGFloat(lamp.v) * size.height * house.scaleY)
+                guard sceneRect.insetBy(dx: -80, dy: -80).contains(c) else { continue }
+                let radius = CGFloat(lamp.size) * entry.iso.tileW * 0.55
+                NSGradient(colors: [warm.withAlphaComponent(0.55 * strength), warm.withAlphaComponent(0.18 * strength), warm.withAlphaComponent(0)])?
+                    .draw(fromCenter: c, radius: 0, toCenter: c, radius: radius, options: [])
+            }
+        }
+        NSGraphicsContext.restoreGraphicsState()
+    }
+
+    // MARK: I nomi e il lucchetto
+
+    /// La targhetta in alto a sinistra: su quale isola si è; tocca per vedere tutte le isole.
+    private var captionRect: NSRect {
+        let caption = "Isola di \(petName(garden.shownIsland))"
+        let width = ceil((caption as NSString).size(withAttributes: [.font: smallFont]).width) + 40
+        return NSRect(x: 16, y: 50, width: width, height: 26)
+    }
+
+    private func drawIslandCaption() {
+        let box = captionRect
+        drawChip(box, fill: NSColor(calibratedRed: 1, green: 0.99, blue: 0.94, alpha: 0.92), stroke: Paper.paperEdge)
+        if let icon = tinted("map", size: 11, color: Paper.inkLight) {
+            icon.draw(in: NSRect(x: box.minX + 12, y: box.midY - icon.size.height / 2, width: icon.size.width, height: icon.size.height))
+        }
+        text("Isola di \(petName(garden.shownIsland))", in: NSRect(x: box.minX + 30, y: box.minY + 5, width: box.width - 36, height: 16), font: smallFont, color: Paper.ink)
+    }
+
+    /// Il cartellino di un'isola, sotto il suo angolo davanti: il nome e, se è chiusa, quanto manca a sbloccarla.
+    private func islandLabel(_ id: String, iso: Iso, open: Bool) -> (rect: NSRect, subtitle: String?) {
+        var subtitle: String?
+        if !open {
+            let need = CompanionRewards.need(for: id, first: profile.firstCompanion, all: Pet.all.map(\.id))
+            subtitle = "si sblocca a \(need) focus"
+        }
+        let n = Double(iso.size)
+        let front = iso.point(col: n, row: n)
+        let nameWidth = ceil((petName(id) as NSString).size(withAttributes: [.font: Paper.markerFont(17)]).width)
+        let subtitleWidth = subtitle.map { ceil(($0 as NSString).size(withAttributes: [.font: smallFont]).width) } ?? 0
+        let width = max(nameWidth, subtitleWidth) + 30
+        let height: CGFloat = subtitle == nil ? 28 : 46
+        return (NSRect(x: front.x - width / 2, y: front.y + iso.edge + 6, width: width, height: height), subtitle)
+    }
+
+    /// I lucchetti sulle isole chiuse, e (rimpicciolendo) i nomi di tutte: sono sullo schermo, non nel mondo, quindi non crescono con lo zoom.
+    private func drawIslandLabels() {
+        let showNames = zoom < 0.8
+        for entry in worldIslands() {
+            let label = islandLabel(entry.id, iso: entry.iso, open: entry.open)
+            let n = Double(entry.iso.size)
+            let center = entry.iso.point(col: n / 2, row: n / 2)
+            guard sceneRect.insetBy(dx: -200, dy: -200).contains(center) else { continue }
+            if !entry.open {
+                if let lock = tinted("lock.fill", size: min(max(entry.iso.tileW * 0.55, 16), 34), color: NSColor(calibratedWhite: 1, alpha: 0.88)) {
+                    lock.draw(in: NSRect(x: center.x - lock.size.width / 2, y: center.y - lock.size.height / 2, width: lock.size.width, height: lock.size.height))
+                }
+            }
+            guard showNames || !entry.open else { continue }
+            guard entry.open || entry.iso.tileW > 18 else { continue }
+            let open = entry.open
+            drawChip(label.rect, fill: open ? NSColor(calibratedRed: 1, green: 0.99, blue: 0.94, alpha: 0.95) : NSColor(calibratedRed: 0.20, green: 0.22, blue: 0.30, alpha: 0.90),
+                     stroke: entry.id == garden.shownIsland ? Paper.accent : (open ? Paper.paperEdge : NSColor(calibratedRed: 0.45, green: 0.48, blue: 0.60, alpha: 1)))
+            text(petName(entry.id), in: NSRect(x: label.rect.minX, y: label.rect.minY + (label.subtitle == nil ? 3 : 4), width: label.rect.width, height: 24), font: Paper.markerFont(17),
+                 color: open ? Paper.ink : NSColor(calibratedWhite: 0.92, alpha: 1), alignment: .center)
+            if let subtitle = label.subtitle {
+                text(subtitle, in: NSRect(x: label.rect.minX, y: label.rect.minY + 26, width: label.rect.width, height: 16), font: smallFont,
+                     color: NSColor(calibratedWhite: 0.78, alpha: 1), alignment: .center)
+            }
+        }
     }
 }
 

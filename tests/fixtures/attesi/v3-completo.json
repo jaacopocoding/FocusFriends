@@ -635,7 +635,7 @@
         "col" : 2,
         "girata" : false,
         "oggetto" : "margherite",
-        "row" : 2
+        "row" : 3
       },
       {
         "col" : 0,
@@ -650,25 +650,25 @@
         "row" : 0
       },
       {
-        "col" : 1,
+        "col" : 5,
         "girata" : false,
         "oggetto" : "casetta-porcellino",
-        "row" : 5
+        "row" : 4
       },
       {
-        "col" : 1,
+        "col" : 4,
         "girata" : false,
         "oggetto" : "tiragraffi",
-        "row" : 7
+        "row" : 6
       },
       {
         "col" : 3,
         "girata" : false,
         "oggetto" : "cesto-cuscino",
-        "row" : 1
+        "row" : 2
       },
       {
-        "col" : 1,
+        "col" : 6,
         "girata" : false,
         "oggetto" : "lampione",
         "row" : 1
@@ -677,19 +677,19 @@
         "col" : 4,
         "girata" : false,
         "oggetto" : "erbe",
-        "row" : 1
+        "row" : 2
       },
       {
-        "col" : 3,
+        "col" : 0,
         "girata" : false,
         "oggetto" : "bandierine",
         "row" : 7
       },
       {
-        "col" : 4,
+        "col" : 1,
         "girata" : false,
         "oggetto" : "cancelletto",
-        "row" : 3
+        "row" : 4
       }
     ],
     "daMettere" : {
