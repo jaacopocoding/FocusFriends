@@ -64,7 +64,7 @@ Single user per Mac, no accounts, no network: all data is stored locally under
 | App type | Menu-bar "agent": `LSUIElement = true`, activation policy `.accessory` | `build.sh`, `AppDelegate.applicationDidFinishLaunching` |
 | Signing | Ad-hoc (`codesign --force --sign -`; `build.sh` stops with exit 1 if signing fails); not notarised, no hardened runtime or sandbox | `build.sh`, `README.md` "Scaricare e usare" |
 | Asset tooling | Python 3 scripts using Pillow and NumPy (not run at build time) | `tools/*.py` |
-| Tests | One hand-written Swift executable (`tests/main.swift`, 44 sections, 796 checks) that compiles twenty Foundation-only source files; no XCTest | `tests/run.sh` |
+| Tests | One hand-written Swift executable (`tests/main.swift`, 44 sections, 827 checks) that compiles twenty Foundation-only source files; no XCTest | `tests/run.sh` |
 | License | MIT (`LICENSE`); bundled music is CC0 (`CREDITS.md`) | `LICENSE`, `CREDITS.md` |
 | Swift toolchain version / Python version | Not pinned anywhere in the repository | **[unknown]** |
 
@@ -158,7 +158,7 @@ FocusFriends/
 │   ├── MusicLibrary.swift        MusicSource, MusicLibrary (file discovery, shuffle, titles), MusicSettings  (Foundation only)
 │   └── MusicPlayer.swift         AVAudioPlayer-based music playback with queue and fades
 ├── tests/
-│   ├── main.swift                hand-rolled test executable (check()/section()), 44 sections, 796 checks
+│   ├── main.swift                hand-rolled test executable (check()/section()), 44 sections, 827 checks
 │   ├── run.sh                    compiles 17 source files + tests/main.swift into build/tests/stats and runs it
 │   ├── genera-attesi.sh          builds and runs tests/genera-attesi/main.swift: for every folder in tests/fixtures/ writes what this app derives from it (the expected results the Windows port is compared with)
 │   ├── simula-regali.sh          simulates the end-of-focus drops over 30/60/90 days of studying (how long an album takes; used to tune GardenDrops)
@@ -588,17 +588,52 @@ code. All UI code runs on the main thread; the only other thread is the audio re
   taken by another companion for companions). `mouseUp` → `Garden.move(_, to:, turned:)` / `place` / `placeSomewhere` (a tap on the tray) /
   `setCompanionTile` / `remove` (dropped on `removeZoneRect`), or, for a companion that did not move, a phrase from `Quotes.load(for:)` for 5 s. **R** while
   dragging turns the copy; right-click → "Gira" / "Togli dal giardino". Scroll = pan (⌘ or ⌥ = zoom), pinch = zoom, `+` `−` `0`.
-- **Islands** (`GardenIslands`, `Garden`; step 1 of a plan, `giardino.json` version 4). The garden is becoming a **world of four islands, one per companion** (`GardenIslands.all`, the
-  ids of `Pet.all`, always in the same positions on the map). Decisions taken with the user: a companion's specimens live only on its island; objects are of two kinds — **universal**
-  (the 24 flowers and furniture, anywhere) and **of an animal** (`GardenItem.island`, three per animal: the twelve "per i compagni", only on that island); all four islands are on
-  the map, the ones whose companion is not yet unlocked darkened; the **bridge** to an island is built the first time the garden is entered after unlocking its companion; gifts draw
-  from the universal objects and those of the unlocked animals, and a welcome gift (an object of the animal) comes with the bridge. **Step 1 is only the model**, the game looks the
-  same: each copy remembers its island (`GardenPlacement.island`; empty = home), `Garden.home` is the first companion's island (`adoptHome`, once: called at launch for those who
-  have seen the intro — `Profile.firstCompanion`, or the companion in use for old users — and when the intro ends; until then the copies are on `GardenIslands.fallbackHome` and follow
-  the home when it is decided), and `Garden` answers per island (`placements(on:)`, `islandSize(of:)`, `occupiedTiles(on:)`, `canPlace(…on:)`, `place(…on:)`, `formedCorners(on:)`).
-  The calls without an island talk about the **shown** island (`showIsland`, by default the home one), so the view is unchanged. Corners are formed only among copies of the same island,
-  and are unlocked from any island. Not yet: the rule "an animal's object only on its island" (`GardenItem.fits(island:)` exists, `place` does not enforce it, so nothing is lost
-  while only one island is visible), the world map, the darkened islands, the bridges, the companions on their own islands, a size per island.
+- **Islands** (`GardenIslands`, `GardenWorld`, `Garden`; steps 1 and 2 of a plan, `giardino.json` version 4). The garden is becoming a **world of four islands, one per companion**
+  (`GardenIslands.all`, the ids of `Pet.all`, always in the same positions on the map). Decisions taken with the user: a companion's specimens live only on its island; objects are of
+  two kinds — **universal** (the 24 flowers and furniture, anywhere) and **of an animal** (`GardenItem.island`, three per animal: the twelve "per i compagni", only on that island);
+  all four islands are on the map, the ones whose companion is not yet unlocked darkened; the **bridge** to an island is built the first time the garden is entered after unlocking
+  its companion; gifts draw from the universal objects and those of the unlocked animals, and a welcome gift (an object of the animal) comes with the bridge.
+  **Step 1, the model:** each copy remembers its island (`GardenPlacement.island`; empty = home), `Garden.home` is the first companion's island (`adoptHome`, once: called at launch for
+  those who have seen the intro — `Profile.firstCompanion`, or the companion in use for old users — and when the intro ends; until then the copies are on
+  `GardenIslands.fallbackHome` and follow the home when it is decided), and `Garden` answers per island (`placements(on:)`, `islandSize(of:)`, `occupiedTiles(on:)`,
+  `canPlace(…on:)`, `place(…on:)`, `formedCorners(on:)`). The calls without an island talk about the **shown** island (`showIsland`, by default the home one; it is not saved).
+  Corners are formed only among copies of the same island, and are unlocked from any island.
+  **Step 2, one world:** there is no separate map screen. `GardenWorld` (Foundation only, tested) puts the islands in a 2×2 grid of cells (pianty top, porcellino right, ciccio left,
+  gattino bottom: always there), each cell `GardenIsland.maxSize + gap(4)` tiles, a smaller island centred in its cell so it does not move when it grows; four `bridges` between
+  neighbouring cells (two along the columns, two along the rows, never diagonal); `span(of:)` is the strip a bridge covers and `pieceCenters` where its pieces go (each covers two
+  tiles). `GardenView` has **one camera for the whole world** (`zoom`, `pan`; zoom 1 = a tile as wide as for a 10-tile island that fits the window; `worldView` gives the tile size and where
+  world corner (0, 0) falls, `isoOf(id)` the `Iso` of any island, `worldIslands()` all four back to front). Zooming out (`zoomRange` 0.4…2.5 with the hill) shows the others; scrolling,
+  pinching, dragging the background moves between them; the **«Isola di …» chip** (or `M`) toggles between all four islands (`worldCamera()`) and the shown one (`islandCamera(id)`,
+  also the ⤢ button and `0`). The **shown island** (`Garden.shownIsland`) is the live one — companions walk, objects sway, things are dragged — and follows the camera
+  (`updateFocus`: the open island nearest the window centre, with a 0.75-tile hysteresis), or a tap on it or on something of it (`touchIsland`), or a drag over it (`mouseDragged`);
+  `focus(_:)` only calls `Garden.showIsland` and restarts the visitor, the camera does not move. The scene cache (`renderScene`) draws the painting, the four hills (darkened, `darkHillImage`,
+  for the closed ones — companion not unlocked), the four grounds (`groundCaches`, shared by islands of the same size) with a dark veil on the closed ones, and the bridges between two open islands
+  (`drawBridges`); its key has `worldSignature()` (sizes and open flags) but not which island is shown, so a focus change does not redraw it. Objects and companions of the other open islands
+  are `staticEntities(on:)` (still, depth = world depth like the live ones, `Entity.island`), live every frame. Padlocks and «si sblocca a N focus» (`CompanionRewards.need`) are drawn on the
+  screen over closed islands (`drawIslandLabels`), names over all of them when zoom < 0.8. The backdrop is **one painting at 1.9×** (`backdropScale`, `backdropBounds`; smoke and window lights
+  use `backdropPoint`; `MeadowBackdrop.worldMargin.bottom` is 520), so the world is a single landscape. A companion lives only on its own island (`companionsHere()`) and cannot be dragged onto
+  another; any object can (`Garden.move(…on:)` changes the copy's island; `placement(withID:)`). The bridge art is `assets/giardino/ponte_{colonna,riga}_{1,2}.png`
+  (`tools/cutout_ponte.py` cuts the two middle pieces of Gemini's sheet and mirrors them for the other axis), drawn at `sx = tileW/122`, `sy = tileW/150` (the art is a little taller than a 2:1
+  grid), centred on the strip at pixel (119.5, 127), alternating the two pieces so the posts coincide.
+  **Each island is different.** Its **path** (`GardenPaths`, Foundation only, tested) joins the two tiles where its bridges land (`landings`: the sixth row or column of the face the
+  bridge touches, the same for every island so islands of different size stay in line; islands are anchored at the top corner of their cell and grow towards the front): a wide curve (a Bézier
+  sampled and thickened by 0.95…1.4 tiles, so one to three tiles across) whose bends come from a hash of the island's name; a smaller island's path is the 10-tile one clipped, plus a straight
+  stretch to the landing, so growing the island never moves a path tile under an object. `GardenLayout.canPlace/freeOrigins/nearestOrigin` and `defaultCompanionTile` take an optional `island`
+  (without it the old fixed path, `GardenIsland.isPath`, still applies: that is what `tests/fixtures/attesi` and the Windows port know). `Garden.settle` moves an object that sits on its island's
+  path to the nearest free tile (outside the island or over another object it is still dropped back into the tray), `adoptHome` does the same for the home island; the starter objects moved to
+  tiles outside every island's path (`starterOrigins`), which changed `v3-completo.json` in the contract fixtures. The terrain draws differ too: `GardenTerrain.grassGrid/pathVariants/decals` take a
+  `tag` (`GardenIslands.terrainTag`: empty for Pianty, the island's name for the others) in their hashes, and each island has a colour wash (`islandWash`, `sourceAtop` over the ground and the hill, so
+  transparent edges stay) — fresh green for Pianty, straw for Porcellino, teal for Ciccio, blue-lilac for Gattino.
+  **Each island has a house** (`GardenLandmarks`, Foundation only, tested): a big fixed landmark in the top corner (tiles 0…2 × 0…2, `side` 3, plinth included: 4×4 was tried and was too big), where the
+  path never goes (`GardenPaths.generateFull` redoes the curve with longer reach until it clears the corner, and clips any stray tile). It blocks the tiles (`GardenLayout.canPlace` with an island,
+  `Garden.occupiedTiles(on:)`), so objects, companions and visitors go around it, and whatever stood there is moved to the nearest free tile (`settle`, `adoptHome`). `GardenLandmarks.shipped` lists the
+  islands whose art exists (`assets/giardino/casa_<isola>.png`, cut by `tools/cutout_case.py` from Gemini's `casa_<isola>_original.png`): Pianty's greenhouse, Porcellino's barn, Ciccio's aviary,
+  Gattino's cat house; `built` is what is active (tests empty it so the rest of the garden is tested without houses); `art` has, in pixels of the cut image, the centre and the half width and half
+  height of the plinth's diamond (top surface: the slab thickness is taken off) and where the lights shine. `GardenView.drawLandmark` draws the house in the scene cache after all the grounds (the roof
+  goes over the hill), scaling the plinth onto the 3×3 diamond with separate x and y factors (like the bridges), darkened on closed islands; `drawLandmarkLights` makes its windows glow at dusk.
+  Not yet: the bridge as something *built* (a saved state, the ceremony at the first entry after an unlock, the welcome gift), the rule "an animal's object only on its island" (`GardenItem.fits(island:)`
+  exists, `place`/`move` do not enforce it), gifts drawn from the unlocked animals' objects only, the tray filtered per island, visitors and corners per island's companion, a size per island, the
+  Windows port.
 - **Corners** (`GardenCorners.swift`, Foundation only, tested; unlocked by `Garden`, drawn by `GardenView`): certain things placed close together form an
   *angolo*, which the user is never told about: it is found by moving things around, and when one forms, stars burst from it with "Hai sbloccato «…»".
   `GardenCorners.all` has ten, each a list of needs (`.oneOf([ids])`, a copy of any of those items, or `.different(category, n)`, n different items of a category):
@@ -1401,7 +1436,7 @@ file/UserDefaults writes, windows, timers, sound, global state.
 ### 5.9 Tests, build and tools
 
 #### `tests/main.swift` (1,056) and `tests/run.sh` (7)
-- A single executable: `check(_:_:line:)`, `section(_:)`, 44 sections (796 checks) covering subjects, log persistence,
+- A single executable: `check(_:_:line:)`, `section(_:)`, 44 sections (827 checks) covering subjects, log persistence,
   in-progress recovery, periods, summaries, streaks, texts, garden rules, format versions/migration, subject merging, backups and
   delete-all, time zones, profile, ratings/notes/insights/CSV, timer dial math, seasons, ambient settings, music
   library/settings, focus notes, paused-time recovery, companion rewards (including the developer flag), break cycle,
@@ -1893,7 +1928,7 @@ code is clear. Items without a mark still describe the current code.
 
 ### 7.8 Test coverage as it exists
 
-- Covered (44 sections, 796 checks in `tests/main.swift`): everything in the Foundation-only files listed in §4.1,
+- Covered (44 sections, 827 checks in `tests/main.swift`): everything in the Foundation-only files listed in §4.1,
   including the new damaged-data cases and the developer flag.
 - Not covered by any automated test in the repository: `Pomodoro` (timer, pause, grace, the sleep-gap rule, cycle
   wiring), `Speaker` (including when a to-do reminder replaces a phrase), `Walker`, `PetWindow`/`PetView`, `MenuController`,
