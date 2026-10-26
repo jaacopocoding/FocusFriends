@@ -224,7 +224,8 @@ Versione 3 (Mac 0.10.0). Il giardino non ha più punti né negozio né prato lib
   "placements" : [
     { "id" : "00000000-0000-4000-8000-0000000000A1", "item" : "margherite", "col" : 4, "row" : 1, "turned" : false }
   ],
-  "companions" : { "gattino" : { "col" : 3, "row" : 4 } }
+  "companions" : { "gattino" : { "col" : 3, "row" : 4 } },
+  "corners" : ["te", "orto"]
 }
 ```
 
@@ -242,6 +243,9 @@ Versione 3 (Mac 0.10.0). Il giardino non ha più punti né negozio né prato lib
   ponticello, aiuola, arco di rose; 2×2 casette del gatto e del porcellino, altalena, amaca, tappeto da picnic). Di un oggetto se ne possono mettere
   **al massimo quante copie si sono trovate**. In lettura, una copia fuori dall'isola, sul sentiero o sopra un'altra si toglie (torna tra quelle da mettere);
   una di un oggetto sconosciuto si tiene.
+- `corners` (facoltativo; assente se non se n'è sbloccato nessuno): gli **angoli** sbloccati, nell'ordine in cui si sono trovati (`te`, `lettura`, `orto`, `gatto`, `porcellino`,
+  `uccelli`, `prato-fiorito`, `bosco`, `festa`, `rose`). Non cambia la versione: un'app che non lo conosce lo ignora (e, riscrivendo il file, lo perde: gli angoli
+  si risbloccano). Quali cose formano un angolo e quanto devono stare vicine sta in `GardenCorners.swift`, e va ripetuto uguale su Windows.
 - `companions`: la tessera di «casa» dei compagni (gli altri stanno sul sentiero, a posti fissi); camminando si spostano di una tessera alla volta, ma non si
   salva.
 - **La dotazione** (le quattro cose a prezzo 0) parte su tessere fisse: margherite (5, 3), trifoglio (2, 5), erba alta (1, 1), mughetti (6, 6).

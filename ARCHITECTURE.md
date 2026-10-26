@@ -64,7 +64,7 @@ Single user per Mac, no accounts, no network: all data is stored locally under
 | App type | Menu-bar "agent": `LSUIElement = true`, activation policy `.accessory` | `build.sh`, `AppDelegate.applicationDidFinishLaunching` |
 | Signing | Ad-hoc (`codesign --force --sign -`; `build.sh` stops with exit 1 if signing fails); not notarised, no hardened runtime or sandbox | `build.sh`, `README.md` "Scaricare e usare" |
 | Asset tooling | Python 3 scripts using Pillow and NumPy (not run at build time) | `tools/*.py` |
-| Tests | One hand-written Swift executable (`tests/main.swift`, 43 sections, 687 checks) that compiles seventeen Foundation-only source files; no XCTest | `tests/run.sh` |
+| Tests | One hand-written Swift executable (`tests/main.swift`, 44 sections, 722 checks) that compiles eighteen Foundation-only source files; no XCTest | `tests/run.sh` |
 | License | MIT (`LICENSE`); bundled music is CC0 (`CREDITS.md`) | `LICENSE`, `CREDITS.md` |
 | Swift toolchain version / Python version | Not pinned anywhere in the repository | **[unknown]** |
 
@@ -145,6 +145,7 @@ FocusFriends/
 │   ├── BreakCycle.swift          four-focus cycle counter for the long break                            (Foundation only)
 │   ├── CompanionRewards.swift    thresholds for unlocking companions                                    (Foundation only)
 │   ├── Garden.swift              giardino.json v3: copies found per object, drop counters, unseen/pending gifts, copies on the island (tile + turned), companion tiles; v1/v2 migration (Foundation only)
+│   ├── GardenCorners.swift       the garden's "corners": which things placed close together make something happen, and which of them the placements form now (Foundation only)
 │   ├── GardenSky.swift           the garden's sky: light by hour and season (`GardenSky.light`), lamps and fireflies, the motion of petals, leaves, snow and fireflies (Foundation only)
 │   ├── GardenGrid.swift          the island: GardenTile, GardenFootprint, GardenIsland (size, path), GardenLayout (canPlace, nearest free tile, legacy-spot mapping), legacy GardenSpot/GardenScene (Foundation only)
 │   ├── GardenDrops.swift         the end-of-focus drop: rarities, chances, pity, deterministic roll (FNV-1a + Mulberry32), simulate(), the sentences (Foundation only)
@@ -155,7 +156,7 @@ FocusFriends/
 │   ├── MusicLibrary.swift        MusicSource, MusicLibrary (file discovery, shuffle, titles), MusicSettings  (Foundation only)
 │   └── MusicPlayer.swift         AVAudioPlayer-based music playback with queue and fades
 ├── tests/
-│   ├── main.swift                hand-rolled test executable (check()/section()), 43 sections, 687 checks
+│   ├── main.swift                hand-rolled test executable (check()/section()), 44 sections, 722 checks
 │   ├── run.sh                    compiles 17 source files + tests/main.swift into build/tests/stats and runs it
 │   ├── genera-attesi.sh          builds and runs tests/genera-attesi/main.swift: for every folder in tests/fixtures/ writes what this app derives from it (the expected results the Windows port is compared with)
 │   ├── simula-regali.sh          simulates the end-of-focus drops over 30/60/90 days of studying (how long an album takes; used to tune GardenDrops)
@@ -574,6 +575,24 @@ code. All UI code runs on the main thread; the only other thread is the audio re
   taken by another companion for companions). `mouseUp` → `Garden.move(_, to:, turned:)` / `place` / `placeSomewhere` (a tap on the tray) /
   `setCompanionTile` / `remove` (dropped on `removeZoneRect`), or, for a companion that did not move, a phrase from `Quotes.load(for:)` for 5 s. **R** while
   dragging turns the copy; right-click → "Gira" / "Togli dal giardino". Scroll = pan (⌘ or ⌥ = zoom), pinch = zoom, `+` `−` `0`.
+- **Corners** (`GardenCorners.swift`, Foundation only, tested; unlocked by `Garden`, drawn by `GardenView`): certain things placed close together form an
+  *angolo*, which the user is never told about: it is found by moving things around, and when one forms, stars burst from it with "Hai sbloccato «…»".
+  `GardenCorners.all` has ten, each a list of needs (`.oneOf([ids])`, a copy of any of those items, or `.different(category, n)`, n different items of a category):
+  the tea corner (tavolino + sdraio), reading (panchina + lampione), the vegetable patch (aiuola + erbe + annaffiatoio), the cat's (casetta-gatto + tiragraffi +
+  cesto-cuscino), the guinea pig's house (casetta-porcellino + tunnel + cesto-carote), the birds' (bagnetto + casetta-uccelli + altalena-uccelli), the
+  flowery meadow (four different flowers), the wood (funghi + felci + erba-alta), the party (bandierine + picnic + tavolino) and the rose arch (arco-rose + panchina
+  or ponticello). `GardenCorners.formed(by:)` tries every placement as the **centre**: the corner is formed if its needs are met by distinct copies within
+  `reach` = 2 of the centre (`distance` is the larger of the column and row gaps between the footprints' edges: 1 touching, 2 with one free tile between), so
+  the result depends only on the placements, and the same copy can be in two corners. `Garden` recomputes `formedCorners` (corner → the copies forming it) at
+  every `save()`, unlocks the new ones (`corners`, in the order found, saved as the optional `corners` key of `giardino.json` — still version 3), and hands them to
+  the window once (`takeNewCorners()`); the window calls `discoverCorners()` when it opens, for the ones that already existed. An unlocked corner stays unlocked
+  when the things are moved apart. In `GardenView`: a queue of `Celebration`s, one at a time (4.6 s; the stars `GardenSky.burstStar` for the first 2.8 s, a pill
+  with "Hai sbloccato" and the name in the free space at the top; with Reduce Motion the stars stand still and fade), and `drawCornerEffects` (after the entities, before
+  the weather): steam from the table (`GardenSky.smoke` scaled), water drops from the can, a "z", a heart or a note rising from the cat's, guinea pig's and birds'
+  houses, butterflies on the meadow (not in winter), mist by day and fireflies in the evening in the wood (`GardenSky.cornerFirefly`, none in winter), confetti
+  from the bunting (which also sways 1.7× as much), rose petals and a pink glow at night under the arch; the reading corner's lamp is lit 1.45× wider. The
+  motion is `GardenSky.drift(index:time:period:)` (falling or rising things) and `butterfly`, pure functions of time. The effects stop with Reduce Motion. Still to
+  come: the companions going to the corner and doing their pose (eating, sleeping, hopping, flapping).
 - **Sky and seasons** (`GardenSky.swift`, Foundation only, tested; drawn by `GardenView`): `skyState()` takes the hour and the season from
   `now()` (or from the hidden preferences `gardenHour` / `gardenSeason`). `GardenSky.light(hour:season:)` interpolates between keyframes built
   from the season's `sunrise`/`sunset` (night 0.55 darkness, dawn, day 0, golden hour, dusk, night) and gives a tint colour, how strongly it tints
@@ -1323,7 +1342,7 @@ file/UserDefaults writes, windows, timers, sound, global state.
 ### 5.9 Tests, build and tools
 
 #### `tests/main.swift` (1,056) and `tests/run.sh` (7)
-- A single executable: `check(_:_:line:)`, `section(_:)`, 43 sections (687 checks) covering subjects, log persistence,
+- A single executable: `check(_:_:line:)`, `section(_:)`, 44 sections (722 checks) covering subjects, log persistence,
   in-progress recovery, periods, summaries, streaks, texts, garden rules, format versions/migration, subject merging, backups and
   delete-all, time zones, profile, ratings/notes/insights/CSV, timer dial math, seasons, ambient settings, music
   library/settings, focus notes, paused-time recovery, companion rewards (including the developer flag), break cycle,
@@ -1815,7 +1834,7 @@ code is clear. Items without a mark still describe the current code.
 
 ### 7.8 Test coverage as it exists
 
-- Covered (43 sections, 687 checks in `tests/main.swift`): everything in the Foundation-only files listed in §4.1,
+- Covered (44 sections, 722 checks in `tests/main.swift`): everything in the Foundation-only files listed in §4.1,
   including the new damaged-data cases and the developer flag.
 - Not covered by any automated test in the repository: `Pomodoro` (timer, pause, grace, the sleep-gap rule, cycle
   wiring), `Speaker` (including when a to-do reminder replaces a phrase), `Walker`, `PetWindow`/`PetView`, `MenuController`,
