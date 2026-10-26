@@ -1125,7 +1125,7 @@ for season in Season.allCases {
 }
 check(GardenSky.light(hour: 19, season: .winter).lamp > 0.9 && GardenSky.light(hour: 19, season: .summer).lamp == 0, "alle sette di sera d'inverno è già notte, d'estate no")
 check(GardenSky.light(hour: 6, season: .summer).darkness < GardenSky.light(hour: 6, season: .winter).darkness, "e al mattino d'estate è già chiaro")
-check(GardenSky.hour(of: date(2026, 10, 25, 21), calendar: StudyPeriod.calendar()) == 21, "l'ora con la virgola")
+check(GardenSky.hour(of: date(2026, 10, 25, 21), calendar: cal) == 21 && GardenSky.hour(of: date(2026, 10, 25, 7, 30), calendar: cal) == 7.5, "l'ora con la virgola")
 // le lucciole
 check(GardenSky.fireflyAmount(season: .summer, light: GardenSky.light(hour: 23, season: .summer)) == 1
       && GardenSky.fireflyAmount(season: .winter, light: GardenSky.light(hour: 23, season: .winter)) == 0
