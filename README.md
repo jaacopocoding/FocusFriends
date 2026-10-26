@@ -409,7 +409,8 @@ muschio. Si ripetono sui due lati, sempre diverse dalla precedente e sovrapposte
 e i fili d'erba che sporgono coprono un po' il bordo delle tessere.
 
 Le cose messe **vicine** possono fare qualcosa insieme: nessuno ti dice quali, si scopre spostando gli oggetti. Quando se ne forma una (un angolo) compaiono le
-stelline con la scritta «Hai sbloccato…», e da quel momento il giardino lo mostra: un filo di vapore, le farfalle, una luce più calda la sera… (`GardenCorners.swift`:
+stelline con la scritta «Hai sbloccato…», e da quel momento il giardino lo mostra: un filo di vapore, le farfalle, una luce più calda la sera… E ogni tanto un
+compagno ci va a fare quello che gli piace: il gattino a dormire, il porcellino a mangiare o a saltellare, Ciccio a sbattere le ali (`GardenCorners.swift`:
 non cambiano le figurine né le loro probabilità, solo l'aspetto del giardino).
 
 Sopra il terreno si spargono **dettagli** disegnati (`assets/giardino/dettaglio_1..24.png`, da un foglio su magenta): ciuffi d'erba, trifogli, fiorellini
