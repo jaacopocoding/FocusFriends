@@ -431,7 +431,7 @@ in alto, e l'ultima durata come punto di partenza), e «Avvia il focus» parte c
 Installer controllati prima di pubblicare: SHA-256 uguali a `SHA256SUMS.txt`, eseguibile x64 e ARM64 giusti, versione 1.1.1, 114 file di immagini, frasi e brani (5 `.m4a`), Chewy con la sua
 licenza, licenze di Electron e Chromium, nessuna mappa dei sorgenti, e nel codice compilato «Nuova cosa», «FOCUS PER», la modifica delle voci e il blocco di navigazione e permessi.
 
-**1.2.0 (preparata il 21 ottobre 2026, non ancora pubblicata): «Hai finito?» e le frasi legate al momento.** Chiude il giro tra «Da fare» e il timer: se un focus parte dal ▶ di una voce, a fine focus la scheda
+**1.2.0 (preparata il 21 ottobre 2026, pubblicata il 26 ottobre 2026): «Hai finito?», le frasi legate al momento e la scheda «Anno».** Chiude il giro tra «Da fare» e il timer: se un focus parte dal ▶ di una voce, a fine focus la scheda
 «Com'è andata?» chiede anche «Hai finito «…»?» con *Fatta* e *Non ancora* (con «Chiedi com'è andata» spento, solo questa domanda). *Fatta* segna la voce. Il timer ricorda la voce solo in
 memoria (nessun nuovo formato di dati; se l'app si chiude durante il focus il legame si perde). Stessa cosa sul Mac (0.10.0). Provata dal vivo con `test/vivo/hai-finito.cjs`.
 Poi **le frasi legate al momento e i numeri a voce** (stesse regole e testi del Mac, `Remarks.swift` ↔ `core/remarks.ts`): il saluto dell'avvio per fascia della giornata, con il nome; il riepilogo
@@ -441,6 +441,10 @@ della prossima (`PhraseChooser`) stanno nel processo principale; un nuovo canale
 sta ora sopra «Com'è andata?». Provata sugli stessi dati del Mac (saluti in 6 momenti fissi, traguardi mano a mano che il registro cresce, 294 anniversari su date inventate: `genera-attesi` e
 `contratto.test.ts`) e dal vivo con `test/vivo/frasi-contesto.cjs`. Nel farlo si è corretto anche il Mac: da un 31 gennaio al 28 febbraio il conteggio dei mesi dava zero. 318 prove su Windows e 445 sul Mac.
 Poi **la scheda «Anno» delle statistiche** (Mac 0.10.0, Windows 1.2.0): l'anno di calendario come mappa con un quadratino per giorno (soglie fisse a 30, 90 e 180 minuti), tre caselle (serie più lunga, giorno più forte, mese migliore) e l'andamento per settimana, di tutte le materie o di una a scelta; passando sopra un giorno si legge il tempo, cliccandolo si apre in «Oggi». Nessun dato nuovo. `YearStats.swift` ↔ `core/yearStats.ts`, con i testi in comune provati sui due lati; il contratto confronta anche un anno e mezzo di studio inventato (504 sessioni) e le griglie di 41 anni. 337 prove su Windows e 484 sul Mac; provata dal vivo con `test/vivo/anno.cjs` (e sul Mac con un banco di prova di dati inventati).
+
+È uscita come [`windows-v1.2.0`](https://github.com/jaacopocoding/FocusFriends/releases/tag/windows-v1.2.0) (tag su `7d691bb`, la stessa punta di `main` della `v0.10.0` per Mac, che resta la «Latest»); non firmata, non «Latest».
+Controllato prima di pubblicare la bozza: il flusso «Windows» verde (tipi, prove, build e i due installer), SHA-256 degli installer scaricati uguali a `SHA256SUMS.txt`, installer x64 e ARM64 di
+misure diverse (134 e 128 MB), note della release uguali a `windows/NOTE_DI_RILASCIO.md`. Non si sono guardati dentro gli installer (senza 7-Zip a disposizione sul Mac). Il giardino nuovo (Mac 0.10.0) non c'è ancora su Windows: resta la seconda uscita.
 
 ## Seconda uscita: il giardino (8–12 giorni)
 

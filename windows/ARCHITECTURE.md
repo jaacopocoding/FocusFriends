@@ -3,7 +3,7 @@
 > Purpose: a factual description of how the Windows version works, written so that another reader (human or AI) can judge
 > whether the code is acceptable as written or needs revision. It is the counterpart of `../ARCHITECTURE.md`, which describes
 > the Mac app; features are numbered and named alike where they correspond, and `PARITA.md` compares them one by one.
-> Snapshot described: version `1.2.0`, not yet released (`1.1.1` is released as `windows-v1.1.1` at `e989d20`, `1.1.0` as `windows-v1.1.0` at `4b84a72`; the first release, `windows-v1.0.0`, is at `75d07e9`; 1.0.1, at `74bda89`,
+> Snapshot described: version `1.2.0`, released as `windows-v1.2.0` at `7d691bb` on 26 October 2026 (`1.1.1` is released as `windows-v1.1.1` at `e989d20`, `1.1.0` as `windows-v1.1.0` at `4b84a72`; the first release, `windows-v1.0.0`, is at `75d07e9`; 1.0.1, at `74bda89`,
 > adds the lock-down of the windows, the gating of the test-only environment variables and the live-run scripts in `test/vivo/`, see §10;
 > 1.1.0 adds the to-do list, §4.16; 1.1.1 changes how items are added and lets them be edited; 1.2.0 asks "Hai finito?" at the end of a focus started from an item, and adds the context phrases, §4.17). Content: **everything except the garden** (see `../PIANO_WINDOWS.md`).
 > Everything here was read from the files in the repository; statements that could not be fully verified are marked
