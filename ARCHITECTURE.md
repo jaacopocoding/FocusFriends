@@ -64,7 +64,7 @@ Single user per Mac, no accounts, no network: all data is stored locally under
 | App type | Menu-bar "agent": `LSUIElement = true`, activation policy `.accessory` | `build.sh`, `AppDelegate.applicationDidFinishLaunching` |
 | Signing | Ad-hoc (`codesign --force --sign -`; `build.sh` stops with exit 1 if signing fails); not notarised, no hardened runtime or sandbox | `build.sh`, `README.md` "Scaricare e usare" |
 | Asset tooling | Python 3 scripts using Pillow and NumPy (not run at build time) | `tools/*.py` |
-| Tests | One hand-written Swift executable (`tests/main.swift`, 44 sections, 772 checks) that compiles twenty Foundation-only source files; no XCTest | `tests/run.sh` |
+| Tests | One hand-written Swift executable (`tests/main.swift`, 44 sections, 796 checks) that compiles twenty Foundation-only source files; no XCTest | `tests/run.sh` |
 | License | MIT (`LICENSE`); bundled music is CC0 (`CREDITS.md`) | `LICENSE`, `CREDITS.md` |
 | Swift toolchain version / Python version | Not pinned anywhere in the repository | **[unknown]** |
 
@@ -158,7 +158,7 @@ FocusFriends/
 │   ├── MusicLibrary.swift        MusicSource, MusicLibrary (file discovery, shuffle, titles), MusicSettings  (Foundation only)
 │   └── MusicPlayer.swift         AVAudioPlayer-based music playback with queue and fades
 ├── tests/
-│   ├── main.swift                hand-rolled test executable (check()/section()), 44 sections, 772 checks
+│   ├── main.swift                hand-rolled test executable (check()/section()), 44 sections, 796 checks
 │   ├── run.sh                    compiles 17 source files + tests/main.swift into build/tests/stats and runs it
 │   ├── genera-attesi.sh          builds and runs tests/genera-attesi/main.swift: for every folder in tests/fixtures/ writes what this app derives from it (the expected results the Windows port is compared with)
 │   ├── simula-regali.sh          simulates the end-of-focus drops over 30/60/90 days of studying (how long an album takes; used to tune GardenDrops)
@@ -588,6 +588,17 @@ code. All UI code runs on the main thread; the only other thread is the audio re
   taken by another companion for companions). `mouseUp` → `Garden.move(_, to:, turned:)` / `place` / `placeSomewhere` (a tap on the tray) /
   `setCompanionTile` / `remove` (dropped on `removeZoneRect`), or, for a companion that did not move, a phrase from `Quotes.load(for:)` for 5 s. **R** while
   dragging turns the copy; right-click → "Gira" / "Togli dal giardino". Scroll = pan (⌘ or ⌥ = zoom), pinch = zoom, `+` `−` `0`.
+- **Islands** (`GardenIslands`, `Garden`; step 1 of a plan, `giardino.json` version 4). The garden is becoming a **world of four islands, one per companion** (`GardenIslands.all`, the
+  ids of `Pet.all`, always in the same positions on the map). Decisions taken with the user: a companion's specimens live only on its island; objects are of two kinds — **universal**
+  (the 24 flowers and furniture, anywhere) and **of an animal** (`GardenItem.island`, three per animal: the twelve "per i compagni", only on that island); all four islands are on
+  the map, the ones whose companion is not yet unlocked darkened; the **bridge** to an island is built the first time the garden is entered after unlocking its companion; gifts draw
+  from the universal objects and those of the unlocked animals, and a welcome gift (an object of the animal) comes with the bridge. **Step 1 is only the model**, the game looks the
+  same: each copy remembers its island (`GardenPlacement.island`; empty = home), `Garden.home` is the first companion's island (`adoptHome`, once: called at launch for those who
+  have seen the intro — `Profile.firstCompanion`, or the companion in use for old users — and when the intro ends; until then the copies are on `GardenIslands.fallbackHome` and follow
+  the home when it is decided), and `Garden` answers per island (`placements(on:)`, `islandSize(of:)`, `occupiedTiles(on:)`, `canPlace(…on:)`, `place(…on:)`, `formedCorners(on:)`).
+  The calls without an island talk about the **shown** island (`showIsland`, by default the home one), so the view is unchanged. Corners are formed only among copies of the same island,
+  and are unlocked from any island. Not yet: the rule "an animal's object only on its island" (`GardenItem.fits(island:)` exists, `place` does not enforce it, so nothing is lost
+  while only one island is visible), the world map, the darkened islands, the bridges, the companions on their own islands, a size per island.
 - **Corners** (`GardenCorners.swift`, Foundation only, tested; unlocked by `Garden`, drawn by `GardenView`): certain things placed close together form an
   *angolo*, which the user is never told about: it is found by moving things around, and when one forms, stars burst from it with "Hai sbloccato «…»".
   `GardenCorners.all` has ten, each a list of needs (`.oneOf([ids])`, a copy of any of those items, or `.different(category, n)`, n different items of a category):
@@ -1390,7 +1401,7 @@ file/UserDefaults writes, windows, timers, sound, global state.
 ### 5.9 Tests, build and tools
 
 #### `tests/main.swift` (1,056) and `tests/run.sh` (7)
-- A single executable: `check(_:_:line:)`, `section(_:)`, 44 sections (772 checks) covering subjects, log persistence,
+- A single executable: `check(_:_:line:)`, `section(_:)`, 44 sections (796 checks) covering subjects, log persistence,
   in-progress recovery, periods, summaries, streaks, texts, garden rules, format versions/migration, subject merging, backups and
   delete-all, time zones, profile, ratings/notes/insights/CSV, timer dial math, seasons, ambient settings, music
   library/settings, focus notes, paused-time recovery, companion rewards (including the developer flag), break cycle,
@@ -1882,7 +1893,7 @@ code is clear. Items without a mark still describe the current code.
 
 ### 7.8 Test coverage as it exists
 
-- Covered (44 sections, 772 checks in `tests/main.swift`): everything in the Foundation-only files listed in §4.1,
+- Covered (44 sections, 796 checks in `tests/main.swift`): everything in the Foundation-only files listed in §4.1,
   including the new damaged-data cases and the developer flag.
 - Not covered by any automated test in the repository: `Pomodoro` (timer, pause, grace, the sleep-gap rule, cycle
   wiring), `Speaker` (including when a to-do reminder replaces a phrase), `Walker`, `PetWindow`/`PetView`, `MenuController`,

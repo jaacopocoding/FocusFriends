@@ -210,19 +210,27 @@ personaggi** (`pianty`, `porcellino`, `ciccio`, `gattino`). Soglie per posizione
 
 ## 5. `giardino.json` (seconda uscita su Windows)
 
-Versione 3 (Mac 0.10.0). Il giardino non ha più punti né negozio né prato libero: si riempie con le figurine trovate a fine focus
+Versione 4 (Mac, dopo la 0.10.0): **più isole, una per compagno**. L'id di un'isola è l'id del compagno (`pianty`, `porcellino`, `ciccio`, `gattino`, sempre in quest'ordine
+e sempre nelle stesse posizioni sulla mappa). Ogni copia in `placements` dice su quale isola sta (`island`), e c'è l'isola di casa (`home`: quella del compagno scelto all'inizio, o
+per chi usava già l'app quella del compagno in uso). Il resto è come nella 3; chi apre un file della 3 trova tutte le copie sull'isola di casa (la scelta della casa si fa al primo
+avvio con la versione nuova: finché non c'è, le copie senza `island` stanno sull'isola `pianty`, che poi seguono la casa) e il vecchio file si tiene come `giardino-formato3.json`.
+Per ora l'app mostra una sola isola (quella di casa): le altre arrivano nei prossimi passi (sono al buio finché non si sblocca il compagno, e il ponte si costruisce alla
+prima entrata nel giardino dopo averlo sbloccato).
+
+Versione 3 (Mac 0.10.0): il giardino non ha più punti né negozio né prato libero: si riempie con le figurine trovate a fine focus
 (`GardenDrops.swift`), ognuna con le sue copie, che stanno sulle tessere di un'isola (`GardenGrid.swift`).
 
 ```json
 {
-  "version" : 3,
+  "version" : 4,
+  "home" : "gattino",
   "drops" : { "found" : { "margherite" : 2, "lavanda" : 1 }, "nothingInARow" : 0, "sinceRare" : 3, "sinceLegendary" : 11 },
   "lastRolled" : "5B0C2A4E-6D1F-4C8B-9E27-3A7D41C0F8B2",
   "unseen" : ["lavanda"],
   "pendingGifts" : 0,
   "legacySpent" : null,
   "placements" : [
-    { "id" : "00000000-0000-4000-8000-0000000000A1", "item" : "margherite", "col" : 4, "row" : 1, "turned" : false }
+    { "id" : "00000000-0000-4000-8000-0000000000A1", "item" : "margherite", "island" : "gattino", "col" : 4, "row" : 1, "turned" : false }
   ],
   "companions" : { "gattino" : { "col" : 3, "row" : 4 } },
   "corners" : ["te", "orto"],
@@ -239,7 +247,11 @@ Versione 3 (Mac 0.10.0). Il giardino non ha più punti né negozio né prato lib
   **8** più il numero di doppie pagine dell'album complete (tutte le figurine trovate), al massimo **10** (e mai meno di quanto serve a quello che c'è già sopra).
   Il **sentiero** sono le tessere `row = 3` con `col` da 0 a 3, `col = 3` con `row` da 3 a 5, e `row = 5` con `col ≥ 3`: non cambia quando l'isola si
   allarga (si allunga soltanto l'ultimo pezzo) e non ci si mette niente sopra.
-- `placements`: le copie sull'isola (al massimo **150**). `col`, `row`: la tessera dove sta l'angolo in fondo dell'oggetto; `turned`: se è girato (larghezza e
+- `home`: l'isola di casa; assente nei file della 3 finché non si decide. `placements[].island`: l'isola della copia (omesso se vuoto = casa).
+- **Oggetti universali e di un animale** (nel catalogo, non nel file): i 24 fiori e arredi stanno su qualunque isola; i 12 «per i compagni» sono 3 per animale e si mettono solo
+  sulla sua isola (annaffiatoio, vaso grande e aiuola rialzata: `pianty`; cesto di carote, tunnel con fieno e casa porcellino: `porcellino`; altalena uccelli, bagnetto e casa per
+  uccelli: `ciccio`; cesto con cuscino, tiragraffi e casa del gatto: `gattino`). I regali, per ora, restano sull'isola di casa.
+- `placements`: le copie sulle isole (al massimo **150** per isola). `col`, `row`: la tessera dove sta l'angolo in fondo dell'oggetto; `turned`: se è girato (larghezza e
   profondità si scambiano). Un oggetto occupa `cols × rows` tessere del catalogo (`footprint`: 1×1 quasi sempre; 2×1 panchina, bandierine, cancelletto,
   ponticello, aiuola, arco di rose; 2×2 casette del gatto e del porcellino, altalena, amaca, tappeto da picnic). Di un oggetto se ne possono mettere
   **al massimo quante copie si sono trovate**. In lettura, una copia fuori dall'isola, sul sentiero o sopra un'altra si toglie (torna tra quelle da mettere);
@@ -265,7 +277,7 @@ Versione 3 (Mac 0.10.0). Il giardino non ha più punti né negozio né prato lib
   copia in `giardino-formato1.json` o `giardino-formato2.json` prima di riscriverlo.
 - **Obbligatori**: `version`, `placements` e `companions` (se ne manca uno il file è rovinato: si sposta in `giardino.corrotto-<epoch>.json` e si riparte
   da vuoto). Il resto è facoltativo; senza `drops` si tratta come il formato 1.
-- `version` maggiore di 3: si legge e si lavora in sola lettura (con un avviso). Illeggibile: sola lettura.
+- `version` maggiore di 4: si legge e si lavora in sola lettura (con un avviso). Illeggibile: sola lettura.
 - «Cancella tutto» toglie il file.
 
 ## 6. `impostazioni.json` (solo Windows)
