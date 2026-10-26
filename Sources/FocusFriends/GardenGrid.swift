@@ -409,3 +409,15 @@ enum GardenHill {
     /// Dall'angolo in alto dell'isola (largo `width`, alto la metà) al fondo della collina, in larghezze d'isola.
     static var heightRatio: Double { 0.25 + belowRatio }
 }
+
+/// Le isole del mondo: una per compagno, e l'id dell'isola è l'id del compagno a cui appartiene. Sono sempre quattro e sempre nelle stesse posizioni sulla mappa;
+/// quelle dei compagni non ancora sbloccati sono al buio. Ognuna è un'isola a tessere come `GardenIsland` (stessa forma e stesso sentiero). Gli esemplari di un
+/// animale vivono solo sulla sua isola, e gli oggetti di un animale (`GardenItem.island`) si mettono solo sulla sua.
+enum GardenIslands {
+    /// Nell'ordine dei compagni (`Pet.all`).
+    static let all = ["pianty", "porcellino", "ciccio", "gattino"]
+    /// L'isola di partenza finché non si sa chi si è scelto (e per i giardini delle versioni precedenti, finché `Garden.adoptHome` non dice quale).
+    static let fallbackHome = "pianty"
+
+    static func isKnown(_ id: String) -> Bool { all.contains(id) }
+}

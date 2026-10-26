@@ -133,6 +133,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.menu = menu
         // Chi usava già l'app li tiene tutti; per gli altri si guadagnano (silenziosamente: al massimo sono già meritati).
         Profile.shared.keepAllCompanions(Pet.all.map(\.id))
+        // L'isola di casa è quella del compagno scelto all'inizio (per chi usava già l'app, quella del compagno che usa): si decide una volta sola.
+        if Profile.shared.introSeen { Garden.shared.adoptHome(Profile.shared.firstCompanion ?? Pet.saved.id) }
         menu.evaluateCompanionRewards(announce: false)
 
         // La prima volta (anche per chi la usava già): come ti chiami e chi ti fa compagnia.
@@ -144,6 +146,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     Profile.shared.setName(name)
                     Profile.shared.markIntroSeen()
                     Profile.shared.chooseFirstCompanion(pet.id)
+                    Garden.shared.adoptHome(pet.id)
                     if pet != window.pet {
                         menu.selectPet(pet)
                     } else {

@@ -13,8 +13,7 @@ enum GardenCategory: String, CaseIterable {
     }
 }
 
-/// Un tipo di oggetto del giardino. Si sblocca una volta (con i punti, o c'è fin dall'inizio) e poi se ne possono
-/// mettere quanti se ne vuole.
+/// Un tipo di oggetto del giardino. Si trova una volta (a fine focus, o c'è fin dall'inizio) e poi se ne possono mettere quante sono le copie trovate.
 struct GardenItem: Equatable {
     let id: String
     let name: String
@@ -27,6 +26,11 @@ struct GardenItem: Equatable {
     var castsShadow = true
     /// Quante tessere occupa (da girato, larghezza e profondità si scambiano).
     var footprint = GardenFootprint(cols: 1, rows: 1)
+    /// L'isola dell'animale a cui appartiene (l'id del compagno): quell'oggetto si mette solo sulla sua isola. `nil` = universale, va su qualunque isola.
+    var island: String?
+
+    /// Può stare su questa isola? Gli universali sì, ovunque; quelli di un animale solo sulla sua.
+    func fits(island other: String) -> Bool { island == nil || island == other }
 
     /// Il nome dell'immagine nel bundle (`assets/giardino/<id>.png`, copiata da build.sh).
     var resource: String { "giardino_" + id }
@@ -36,6 +40,9 @@ struct GardenItem: Equatable {
 struct GardenPlacement: Codable, Equatable {
     var id: UUID
     var item: String
+    /// L'isola dove sta (l'id del compagno a cui appartiene). Vuoto = quella di casa, quando non è ancora decisa (`Garden.adoptHome`): chi apre un giardino
+    /// delle versioni precedenti, o chi non ha ancora scelto il suo compagno.
+    var island: String
     var col: Int
     var row: Int
     var turned: Bool
@@ -47,21 +54,23 @@ struct GardenPlacement: Codable, Equatable {
         set { col = newValue.col; row = newValue.row }
     }
 
-    init(id: UUID = UUID(), item: String, tile: GardenTile, turned: Bool = false) {
+    init(id: UUID = UUID(), item: String, tile: GardenTile, turned: Bool = false, island: String = "") {
         self.id = id
         self.item = item
+        self.island = island
         col = tile.col
         row = tile.row
         self.turned = turned
         legacy = nil
     }
 
-    private enum CodingKeys: String, CodingKey { case id, item, col, row, turned, x, y }
+    private enum CodingKeys: String, CodingKey { case id, item, island, col, row, turned, x, y }
 
     init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
         id = try values.decode(UUID.self, forKey: .id)
         item = try values.decode(String.self, forKey: .item)
+        island = try values.decodeIfPresent(String.self, forKey: .island) ?? ""
         turned = try values.decodeIfPresent(Bool.self, forKey: .turned) ?? false
         if let col = try values.decodeIfPresent(Int.self, forKey: .col), let row = try values.decodeIfPresent(Int.self, forKey: .row) {
             self.col = col
@@ -79,6 +88,7 @@ struct GardenPlacement: Codable, Equatable {
         var values = encoder.container(keyedBy: CodingKeys.self)
         try values.encode(id, forKey: .id)
         try values.encode(item, forKey: .item)
+        if !island.isEmpty { try values.encode(island, forKey: .island) }
         try values.encode(col, forKey: .col)
         try values.encode(row, forKey: .row)
         try values.encode(turned, forKey: .turned)
@@ -103,9 +113,9 @@ enum GardenCatalog {
     static func companionHeight(for petID: String) -> Double { companionHeights[petID] ?? 100 }
 
     private static func item(_ id: String, _ name: String, _ category: GardenCategory, height: Double, price: Int,
-                             shadow: Bool = true, cols: Int = 1, rows: Int = 1) -> GardenItem {
+                             shadow: Bool = true, cols: Int = 1, rows: Int = 1, island: String? = nil) -> GardenItem {
         GardenItem(id: id, name: name, category: category, height: height, price: price, castsShadow: shadow,
-                   footprint: GardenFootprint(cols: cols, rows: rows))
+                   footprint: GardenFootprint(cols: cols, rows: rows), island: island)
     }
 
     /// Tutti gli oggetti, nell'ordine in cui compaiono nel negozio. I prezzi sono provvisori.
@@ -124,18 +134,18 @@ enum GardenCatalog {
         item("girasole", "Girasole", .flowers, height: 170, price: 4),
         item("rosaio", "Rosaio", .flowers, height: 130, price: 8),
         // Case e cose per i compagni
-        item("cesto-carote", "Cesto di carote", .companions, height: 55, price: 2),
-        item("annaffiatoio", "Annaffiatoio", .companions, height: 50, price: 2),
-        item("cesto-cuscino", "Cesto con cuscino", .companions, height: 60, price: 3),
-        item("tunnel", "Tunnel con fieno", .companions, height: 55, price: 3),
-        item("altalena-uccelli", "Altalena uccelli", .companions, height: 85, price: 3),
-        item("vaso-grande", "Vaso grande", .companions, height: 70, price: 3),
-        item("bagnetto", "Bagnetto uccelli", .companions, height: 75, price: 4),
-        item("aiuola", "Aiuola rialzata", .companions, height: 75, price: 4, cols: 2),
-        item("tiragraffi", "Tiragraffi", .companions, height: 115, price: 5),
-        item("casetta-uccelli", "Casa per uccelli", .companions, height: 95, price: 5),
-        item("casetta-gatto", "Casa del gatto", .companions, height: 115, price: 6, cols: 2, rows: 2),
-        item("casetta-porcellino", "Casa porcellino", .companions, height: 100, price: 6, cols: 2, rows: 2),
+        item("cesto-carote", "Cesto di carote", .companions, height: 55, price: 2, island: "porcellino"),
+        item("annaffiatoio", "Annaffiatoio", .companions, height: 50, price: 2, island: "pianty"),
+        item("cesto-cuscino", "Cesto con cuscino", .companions, height: 60, price: 3, island: "gattino"),
+        item("tunnel", "Tunnel con fieno", .companions, height: 55, price: 3, island: "porcellino"),
+        item("altalena-uccelli", "Altalena uccelli", .companions, height: 85, price: 3, island: "ciccio"),
+        item("vaso-grande", "Vaso grande", .companions, height: 70, price: 3, island: "pianty"),
+        item("bagnetto", "Bagnetto uccelli", .companions, height: 75, price: 4, island: "ciccio"),
+        item("aiuola", "Aiuola rialzata", .companions, height: 75, price: 4, cols: 2, island: "pianty"),
+        item("tiragraffi", "Tiragraffi", .companions, height: 115, price: 5, island: "gattino"),
+        item("casetta-uccelli", "Casa per uccelli", .companions, height: 95, price: 5, island: "ciccio"),
+        item("casetta-gatto", "Casa del gatto", .companions, height: 115, price: 6, cols: 2, rows: 2, island: "gattino"),
+        item("casetta-porcellino", "Casa porcellino", .companions, height: 100, price: 6, cols: 2, rows: 2, island: "porcellino"),
         // Arredi
         item("picnic", "Tappeto da picnic", .furniture, height: 70, price: 4, shadow: false, cols: 2, rows: 2),
         item("bandierine", "Bandierine", .furniture, height: 110, price: 4, cols: 2),
@@ -150,6 +160,10 @@ enum GardenCatalog {
         item("altalena", "Altalena", .furniture, height: 190, price: 10, cols: 2, rows: 2),
         item("arco-rose", "Arco di rose", .furniture, height: 210, price: 12, cols: 2),
     ]
+
+    /// Gli oggetti universali (su qualunque isola) e quelli di un animale (solo sulla sua isola).
+    static var universalItems: [GardenItem] { items.filter { $0.island == nil } }
+    static func items(forIsland island: String) -> [GardenItem] { items.filter { $0.island == island } }
 
     static func item(withID id: String) -> GardenItem? {
         items.first { $0.id == id }
