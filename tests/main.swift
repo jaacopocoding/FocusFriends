@@ -1446,6 +1446,125 @@ check(GardenCompanions.route(from: routeStart, to: GardenTile(col: 3, row: 0), s
 check(GardenCompanions.route(from: routeStart, to: GardenTile(col: 7, row: 7), size: 8, occupied: [], limit: 10) == nil
       && GardenCompanions.route(from: routeStart, to: GardenTile(col: 7, row: 7), size: 8, occupied: [], limit: 14)?.count == 14, "oltre il limite di passi non ci va")
 
+// gli ospiti
+func visitorIsSound(_ visitor: GardenVisitor) -> Bool {
+    guard visitor.name.count > 3, visitor.height > 0, visitor.weight > 0, !visitor.seasons.isEmpty, !visitor.slots.isEmpty else { return false }
+    guard FileManager.default.fileExists(atPath: "assets/giardino/visitatore_\(visitor.id).png") else { return false }
+    // un comune ha cose che lo attirano, un raro angoli, mai le due insieme
+    if visitor.isRare {
+        if visitor.haunts.isEmpty { return false }
+    } else if !visitor.haunts.isEmpty || visitor.items.isEmpty {
+        return false
+    }
+    if !visitor.items.allSatisfy({ GardenCatalog.item(withID: $0) != nil }) { return false }
+    for haunt in visitor.haunts {
+        guard let corner = GardenCorners.corner(withID: haunt.corner), GardenCatalog.item(withID: haunt.item) != nil else { return false }
+        var inCorner = false
+        for need in corner.needs {
+            if case .oneOf(let ids) = need, ids.contains(haunt.item) { inCorner = true }
+        }
+        if !inCorner { return false }
+    }
+    return true
+}
+check(GardenVisitors.all.count == 12 && Set(GardenVisitors.all.map { $0.id }).count == 12, "dodici ospiti, ognuno con il suo nome")
+check(GardenVisitors.all.allSatisfy(visitorIsSound), "ogni ospite ha la sua immagine, e chi lo attira esiste (una cosa del catalogo, o un angolo con quella cosa dentro)")
+check(GardenVisitors.all.filter { $0.isRare }.map { $0.id }.sorted() == ["civetta", "volpe"] && GardenVisitors.visitor(withID: "riccio")?.name == "Il riccio"
+      && GardenVisitors.visitor(withID: "boh") == nil, "i rari sono la civetta e la volpe")
+check(GardenDaySlot.of(hour: 5.9) == .night && GardenDaySlot.of(hour: 6) == .morning && GardenDaySlot.of(hour: 9.99) == .morning && GardenDaySlot.of(hour: 10) == .day
+      && GardenDaySlot.of(hour: 17) == .evening && GardenDaySlot.of(hour: 21) == .night && GardenDaySlot.of(hour: 0) == .night, "le fasce della giornata")
+// chi può venire
+let starters = [put("margherite", 5, 3), put("trifoglio", 2, 5), put("erba-alta", 1, 1), put("mughetti", 6, 6)]
+check(GardenVisitors.attractions(placements: [], formedCorners: [:], season: .spring, slot: .morning).isEmpty, "un'isola vuota non attira nessuno")
+let morningSpring = GardenVisitors.attractions(placements: starters, formedCorners: [:], season: .spring, slot: .morning)
+check(morningSpring.map { $0.visitor.id } == ["coniglio"] && morningSpring.first?.item == "erba-alta" && morningSpring.first?.placement.item == "erba-alta",
+      "con la dotazione di partenza, di primavera, di mattina viene il coniglio (per l'erba alta)")
+check(GardenVisitors.attractions(placements: starters, formedCorners: [:], season: .winter, slot: .morning).isEmpty
+      && GardenVisitors.attractions(placements: starters, formedCorners: [:], season: .spring, slot: .night).isEmpty, "d'inverno o di notte non viene")
+let birdPlace = [put("bagnetto", 0, 0), put("funghi", 2, 0)]
+check(GardenVisitors.attractions(placements: birdPlace, formedCorners: [:], season: .spring, slot: .evening).map { $0.visitor.id }.sorted() == ["pettirosso", "rana", "riccio"],
+      "una sera di primavera con il bagnetto e i funghi: pettirosso, rana e riccio (l'anatroccolo viene di mattina e di giorno)")
+check(GardenVisitors.attractions(placements: birdPlace, formedCorners: [:], season: .spring, slot: .morning).map { $0.visitor.id }.sorted() == ["anatroccolo", "pettirosso"],
+      "e di mattina: pettirosso e anatroccolo")
+check(GardenVisitors.attractions(placements: birdPlace, formedCorners: [:], season: .winter, slot: .day).map { $0.visitor.id } == ["pettirosso"], "d'inverno, di giorno, solo il pettirosso")
+// i rari vogliono l'angolo
+let readingPlace = [put("panchina", 0, 0), put("lampione", 2, 0)]
+check(GardenVisitors.attractions(placements: readingPlace, formedCorners: [:], season: .autumn, slot: .night).isEmpty, "la civetta non viene se l'angolo non c'è")
+let readingFormed = GardenCorners.formed(by: readingPlace)
+let owl = GardenVisitors.attractions(placements: readingPlace, formedCorners: readingFormed, season: .autumn, slot: .night)
+check(owl.map { $0.visitor.id } == ["civetta"] && owl.first?.placement.item == "panchina" && owl.first?.corner == "lettura", "con l'angolo di lettura, di notte viene la civetta, vicino alla panchina")
+let teaPlace = [put("tavolino", 0, 0), put("sdraio", 2, 0)]
+let fox = GardenVisitors.attractions(placements: teaPlace, formedCorners: GardenCorners.formed(by: teaPlace), season: .summer, slot: .evening)
+check(fox.contains { $0.visitor.id == "volpe" && $0.corner == "te" && $0.placement.item == "tavolino" } && fox.contains { $0.visitor.id == "tartaruga" } == false, "con l'angolo del tè, di sera, viene la volpe (la tartaruga solo di giorno)")
+// chi viene davvero: sempre lo stesso per lo stesso giorno
+let someDays = (1...200).map { "2026-\($0 / 31 + 1 < 10 ? "0" : "")\($0 / 31 + 1)-\(String(format: "%02d", $0 % 28 + 1))" }
+var present = 0, sameEveryTime = true
+for day in someDays {
+    let first = GardenVisitors.arrival(day: day, slot: .evening, placements: birdPlace, formedCorners: [:], season: .spring)
+    if first != GardenVisitors.arrival(day: day, slot: .evening, placements: birdPlace, formedCorners: [:], season: .spring) { sameEveryTime = false }
+    if first != nil { present += 1 }
+}
+check(sameEveryTime, "aprendo il giardino due volte nella stessa fascia dello stesso giorno viene lo stesso ospite")
+check(present >= 140 && present <= 180, "viene più o meno quattro volte su cinque (\(present) giorni su 200)")
+check(GardenVisitors.arrival(day: "2026-10-26", slot: .night, placements: [], formedCorners: [:], season: .autumn) == nil, "senza niente che li attiri non viene nessuno")
+var rareCount = 0, commonCount = 0
+for day in someDays {
+    if let guest = GardenVisitors.arrival(day: day, slot: .evening, placements: teaPlace + [put("funghi", 4, 0)], formedCorners: GardenCorners.formed(by: teaPlace), season: .summer) {
+        if guest.visitor.isRare { rareCount += 1 } else { commonCount += 1 }
+    }
+}
+check(rareCount > 0 && rareCount < commonCount, "il raro viene, ma meno spesso del comune (\(rareCount) contro \(commonCount))")
+// l'ingresso
+let entry = GardenVisitors.entryRoute(to: GardenTile(col: 4, row: 4), size: 8, occupied: [])
+check(entry != nil && entry?.last == GardenTile(col: 4, row: 4) && entry.map { routeIsContiguous(Array($0.dropFirst()), from: $0[0]) } == true
+      && entry.map { $0[0].col == 0 || $0[0].row == 0 || $0[0].col == 7 || $0[0].row == 7 } == true, "entra da un bordo dell'isola e arriva alla meta, tessera per tessera")
+check((entry?.count ?? 0) >= 5 && (entry?.count ?? 99) <= 10, "né troppo vicino né troppo lontano (\(entry?.count ?? 0) tessere)")
+var enclosed = Set<GardenTile>()
+for dc in -1...1 { for dr in -1...1 where dc != 0 || dr != 0 { enclosed.insert(GardenTile(col: 4 + dc, row: 4 + dr)) } }
+check(GardenVisitors.entryRoute(to: GardenTile(col: 4, row: 4), size: 8, occupied: enclosed) == nil, "con la meta circondata da cose non si inventa una strada")
+check(GardenVisitors.reasonText(item: "funghi", corner: nil) == "Funghi" && GardenVisitors.reasonText(item: "panchina", corner: "lettura") == "L'angolo di lettura", "il motivo, scritto per il diario")
+
+// il registro degli ospiti
+let guestDir = tempDirectory()
+let guestGarden = Garden(directory: guestDir)
+let guestFirst = guestGarden.welcomeGuest("riccio", day: "2026-10-26", reason: "Funghi")
+check(guestFirst.isFirst && guestFirst.gift != nil && guestGarden.guests["riccio"] == GardenGuest(first: "2026-10-26", visits: 1, reason: "Funghi"),
+      "la prima volta: entra nel diario e lascia un regalo")
+let giftItem = guestFirst.gift?.item ?? ""
+check(guestGarden.isFound(giftItem) && guestGarden.unseen.contains(giftItem), "il regalo è nell'album, con il nastrino «NUOVA» se era nuovo")
+let guestAgain = guestGarden.welcomeGuest("riccio", day: "2026-10-30", reason: "Felci")
+check(!guestAgain.isFirst && guestAgain.gift == nil && guestGarden.guests["riccio"] == GardenGuest(first: "2026-10-26", visits: 2, reason: "Funghi"),
+      "le volte dopo si conta solo la visita (e il motivo resta quello della prima)")
+let guestOther = Garden(directory: tempDirectory()).welcomeGuest("riccio", day: "2026-11-02", reason: "Funghi")
+check(guestOther.gift?.item == giftItem, "lo stesso ospite lascia sempre lo stesso regalo, su un giardino nuovo")
+let guestFile = (try? JSONSerialization.jsonObject(with: Data(contentsOf: guestDir.appendingPathComponent("giardino.json")))) as? [String: Any]
+check((guestFile?["guests"] as? [String: Any])?["riccio"] != nil && guestFile?["version"] as? Int == 3, "il file ricorda gli ospiti, e resta la versione 3")
+check(Garden(directory: guestDir).guests["riccio"]?.visits == 2, "alla riapertura ci sono ancora")
+let guestWiped = Garden(directory: guestDir)
+guestWiped.reset()
+check(guestWiped.guests.isEmpty, "«Cancella tutto» toglie anche il diario")
+
+// la collina sotto l'isola
+func pngSize(_ path: String) -> (width: Int, height: Int)? {
+    guard let data = FileManager.default.contents(atPath: path), data.count > 24 else { return nil }
+    func word(_ offset: Int) -> Int { Int(data[offset]) << 24 | Int(data[offset + 1]) << 16 | Int(data[offset + 2]) << 8 | Int(data[offset + 3]) }
+    return (word(16), word(20))
+}
+for name in ["autunno", "primavera", "estate", "inverno"] {
+    let size = pngSize("assets/giardino/collina_\(name).png")
+    check(size?.width == Int(GardenHill.imageWidth) && size?.height == Int(GardenHill.imageHeight), "la collina d'\(name) ha la misura dei numeri di GardenHill")
+}
+check(abs(GardenHill.holeWidth / GardenHill.holeHeight - 2) < 0.1 && abs(GardenHill.holeLeft.y - GardenHill.holeRight.y) < 3, "il buco è (quasi) un rombo 2:1, dritto")
+let hillFrame = GardenHill.frame(islandLeft: (x: 200, y: 250), islandRight: (x: 800, y: 250))
+check(abs(hillFrame.scale - 600 * GardenHill.fit / GardenHill.holeWidth) < 1e-9 && abs(hillFrame.width - GardenHill.imageWidth * hillFrame.scale) < 1e-9,
+      "la collina si scala sulla larghezza dell'isola")
+check(abs((hillFrame.x + (GardenHill.holeLeft.x + GardenHill.holeRight.x) / 2 * hillFrame.scale) - 500) < 1e-9
+      && abs((hillFrame.y + (GardenHill.holeLeft.y + GardenHill.holeRight.y) / 2 * hillFrame.scale) - 250) < 1e-9, "il centro del buco è sul centro dell'isola")
+let hillHoleWidth = GardenHill.holeWidth * hillFrame.scale
+check(hillHoleWidth < 600 * 0.97 && hillHoleWidth > 600 * 0.70, "il buco è più piccolo dell'isola, così l'isola ne copre il bordo e la fascia piatta (\(Int(hillHoleWidth)) contro 600)")
+check(GardenHill.widthRatio > 1.4 && GardenHill.widthRatio < 2.1 && GardenHill.belowRatio > 0.3 && GardenHill.belowRatio < 0.8
+      && abs(GardenHill.heightRatio - (0.25 + GardenHill.belowRatio)) < 1e-9, "le proporzioni della collina (larga \(String(format: "%.2f", GardenHill.widthRatio)) isole, scende \(String(format: "%.2f", GardenHill.belowRatio)))")
+
 // le cose che cadono, volano e sbocciano (le funzioni pure del disegno)
 var driftOK = true, driftEdges = true, butterflyOK = true, fireflyOK = true
 for index in 0..<8 {

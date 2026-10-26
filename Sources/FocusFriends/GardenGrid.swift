@@ -370,3 +370,42 @@ enum GardenTerrain {
     }
 }
 
+
+/// La collina sotto l'isola: un'immagine d'erba (assets/giardino/collina_<stagione>.png, da `tools/prepara_collina.py`) con un buco a rombo in cima, dove sta l'isola.
+/// L'isola si ingrandisce un po' perché ne copra il bordo, e la collina si ingrandisce con lei. Qui sono i numeri e il conto; il disegno sta in GardenWindow.swift.
+enum GardenHill {
+    /// La misura dell'immagine, in pixel, e gli angoli del buco (il rombo, largo circa il doppio dell'altezza).
+    static let imageWidth = 1497.0, imageHeight = 720.0
+    static let holeLeft = (x: 340.0, y: 262.0), holeRight = (x: 1158.0, y: 260.0)
+    static let holeTop = (x: 752.0, y: 69.0), holeBottom = (x: 753.0, y: 466.0)
+    static var holeWidth: Double { holeRight.x - holeLeft.x }
+    static var holeHeight: Double { holeBottom.y - holeTop.y }
+    /// Il buco è più piccolo dell'isola: l'isola ne copre il bordo e la fascia piatta d'erba che Gemini ha dipinto attorno (circa il 7 % per lato), così il pendio
+    /// comincia subito dal bordo delle tessere. Per quanto: il buco è l'86 % dell'isola.
+    static let fit = 0.86
+
+    /// Dove cade la collina quando gli angoli sinistro e destro dell'isola sono in questi punti (coordinate dello schermo).
+    struct Frame: Equatable {
+        var x: Double
+        var y: Double
+        var width: Double
+        var height: Double
+        /// Quanti punti dello schermo per ogni pixel dell'immagine.
+        var scale: Double
+    }
+
+    static func frame(islandLeft: (x: Double, y: Double), islandRight: (x: Double, y: Double)) -> Frame {
+        let scale = (islandRight.x - islandLeft.x) * fit / holeWidth
+        let centerX = (holeLeft.x + holeRight.x) / 2, centerY = (holeLeft.y + holeRight.y) / 2
+        // il centro del buco sta nel centro dell'isola (a metà fra i suoi angoli sinistro e destro, sulla loro linea)
+        let islandCenterX = (islandLeft.x + islandRight.x) / 2, islandCenterY = (islandLeft.y + islandRight.y) / 2
+        return Frame(x: islandCenterX - centerX * scale, y: islandCenterY - centerY * scale, width: imageWidth * scale, height: imageHeight * scale, scale: scale)
+    }
+
+    /// Quanto è larga la collina, in larghezze d'isola.
+    static var widthRatio: Double { imageWidth * fit / holeWidth }
+    /// Quanto scende sotto la linea degli angoli sinistro e destro dell'isola, in larghezze d'isola.
+    static var belowRatio: Double { (imageHeight - (holeLeft.y + holeRight.y) / 2) * fit / holeWidth }
+    /// Dall'angolo in alto dell'isola (largo `width`, alto la metà) al fondo della collina, in larghezze d'isola.
+    static var heightRatio: Double { 0.25 + belowRatio }
+}

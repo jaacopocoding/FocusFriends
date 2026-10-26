@@ -701,6 +701,70 @@ enum MeadowBackdrop {
         return cg
     }
 
+    // MARK: - Il paesaggio «del mondo» (il giardino: ci si sposta e si ingrandisce, il paesaggio con l'isola e la collina)
+
+    /// Di quanto il paesaggio del mondo è più grande della finestra, da ogni lato (in punti): serve per spostarsi (l'isola più vicina al bordo) e per rimpicciolire
+    /// senza che si veda finire il disegno.
+    static let worldMargin = (top: CGFloat(340), left: CGFloat(480), bottom: CGFloat(230), right: CGFloat(480))
+    private static var worldCache: [String: CGImage] = [:]
+
+    /// Il paesaggio con la stessa inquadratura di `meadow(size:…)` al centro, e tutt'attorno altre copie del disegno capovolte (riflesse): continua senza stacchi.
+    /// Un pixel per punto (è sfocato, e si disegna ingrandito).
+    static func world(size: NSSize, blur: CGFloat, season: Season) -> CGImage? {
+        lock.lock()
+        defer { lock.unlock() }
+        let key = "\(Int(size.width))x\(Int(size.height))-\(blur)-\(isFrozen(season) ? "inverno" : "prato")"
+        if let known = worldCache[key] { return known }
+        guard let url = pictureURL(season), let picture = CIImage(contentsOf: url) else { return nil }
+        let scale = max(size.width / picture.extent.width, size.height / picture.extent.height)
+        let scaled = picture.transformed(by: CGAffineTransform(scaleX: scale, y: scale))
+        let w = scaled.extent.width, h = scaled.extent.height
+        var padded = scaled
+        for dx in -1...1 {
+            for dy in -1...1 where dx != 0 || dy != 0 {
+                let mirror = CGAffineTransform(a: dx == 0 ? 1 : -1, b: 0, c: 0, d: dy == 0 ? 1 : -1,
+                                               tx: dx == 1 ? 2 * w : 0, ty: dy == 1 ? 2 * h : 0)
+                padded = scaled.transformed(by: mirror).composited(over: padded)
+            }
+        }
+        let m = worldMargin
+        let baseX = (w - size.width) * 0.40
+        let crop = CGRect(x: baseX - m.left, y: -m.bottom, width: size.width + m.left + m.right, height: size.height + m.top + m.bottom)
+        var image = padded
+        if blur > 0 { image = padded.clampedToExtent().applyingGaussianBlur(sigma: Double(blur)) }
+        image = image.cropped(to: crop).transformed(by: CGAffineTransform(translationX: -crop.minX, y: -crop.minY))
+        guard let cg = ciContext.createCGImage(image, from: CGRect(origin: .zero, size: crop.size)) else { return nil }
+        worldCache[key] = cg
+        return cg
+    }
+
+    /// Disegna il paesaggio come lo vede la telecamera del giardino: spostato di `pan` e ingrandito di `zoom` attorno al centro della scena `scene` (come l'isola e la
+    /// collina: quando ci si muove, si muove tutto il mondo insieme), poi il velo, su tutto `fill` (che può essere più grande della scena: la scena preparata in
+    /// anticipo). Gli angoli scuri (`vignette`) stanno invece sullo schermo, non nel mondo: `drawVignette` li disegna a parte (nella vista capovolta).
+    static func drawWorld(scene bounds: NSRect, fill: NSRect? = nil, zoom: CGFloat, pan: NSPoint, blur: CGFloat, veil: NSColor?, season: Season) {
+        let area = fill ?? bounds
+        guard let image = world(size: bounds.size, blur: blur, season: season) else {
+            paint(in: area, blur: blur, veil: veil, season: season)
+            return
+        }
+        base.setFill()
+        area.fill()
+        let m = worldMargin
+        let center = NSPoint(x: bounds.midX, y: bounds.midY)
+        let origin = NSPoint(x: center.x + (bounds.minX - m.left - center.x) * zoom + pan.x, y: center.y + (bounds.minY - m.top - center.y) * zoom + pan.y)
+        let rect = NSRect(x: origin.x, y: origin.y, width: (bounds.width + m.left + m.right) * zoom, height: (bounds.height + m.top + m.bottom) * zoom)
+        NSImage(cgImage: image, size: rect.size).draw(in: rect, from: .zero, operation: .sourceOver, fraction: 1, respectFlipped: true,
+                                                       hints: [.interpolation: NSImageInterpolation.low])
+        (veil ?? defaultVeil(season)).setFill()
+        area.fill()
+    }
+
+    /// I bordi scuriti del paesaggio (verdi sul prato, azzurri sul ghiaccio).
+    static func drawVignette(in bounds: NSRect, season: Season) {
+        let edge = isFrozen(season) ? (0.14, 0.19, 0.28, 0.26) : (0.15, 0.20, 0.10, 0.30)
+        NSGradient(colors: [rgb(edge.0, edge.1, edge.2, 0), rgb(edge.0, edge.1, edge.2, edge.3)])?.draw(in: bounds, relativeCenterPosition: NSPoint(x: 0, y: 0))
+    }
+
     private static func rgb(_ r: CGFloat, _ g: CGFloat, _ b: CGFloat, _ a: CGFloat = 1) -> NSColor { NSColor(calibratedRed: r, green: g, blue: b, alpha: a) }
 
     private static let sourcePixels: CGSize? = meadowURL.flatMap { CIImage(contentsOf: $0) }.map { $0.extent.size }

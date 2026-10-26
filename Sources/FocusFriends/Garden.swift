@@ -6,6 +6,22 @@ import Foundation
 /// togliere (torna tra quelle da mettere); il numero di copie sull'isola non supera quello delle copie trovate. Le regole di dove ci
 /// stanno le cose sono in GardenGrid.swift.
 /// Solo Foundation: si collauda da solo (tests/main.swift).
+/// Un ospite che ha già fatto visita (`GardenVisitors`): il diario ricorda quando, quante volte e cosa l'aveva attirato.
+struct GardenGuest: Codable, Equatable {
+    /// Il giorno della prima visita, come «2026-10-26».
+    var first: String
+    /// Quante volte l'hai salutato.
+    var visits: Int
+    /// Cosa l'aveva attirato la prima volta: il nome di una cosa o di un angolo.
+    var reason: String
+}
+
+/// Cosa succede quando si saluta un ospite: la prima volta lascia un regalo.
+struct GardenGuestWelcome: Equatable {
+    var isFirst: Bool
+    var gift: GardenDrop?
+}
+
 final class Garden {
     /// 3: l'isola a tessere (la 2 aveva l'album e il prato libero, la 1 i punti spesi e gli oggetti sbloccati: si portano a 3 al primo salvataggio).
     static let formatVersion = 3
@@ -31,6 +47,8 @@ final class Garden {
         var companions: [String: GardenCompanionPlace]
         /// Gli angoli già sbloccati (si aggiunge senza cambiare la versione: chi non lo conosce lo ignora).
         var corners: [String]?
+        /// Gli ospiti che hanno fatto visita (anche questo: facoltativo).
+        var guests: [String: GardenGuest]?
     }
 
     private let file: URL
@@ -51,6 +69,8 @@ final class Garden {
     private(set) var companionTiles: [String: GardenTile] = [:]
     /// Gli angoli sbloccati (`GardenCorners`), nell'ordine in cui si sono trovati.
     private(set) var corners: [String] = []
+    /// Gli ospiti salutati, per specie (`GardenVisitor.id`).
+    private(set) var guests: [String: GardenGuest] = [:]
     /// Gli angoli che le copie sull'isola formano adesso, con le copie che li formano (si ricalcola a ogni modifica).
     private(set) var formedCorners: [String: [UUID]] = [:]
     /// Gli angoli appena sbloccati e non ancora annunciati dalla finestra del giardino (le stelline).
@@ -126,6 +146,7 @@ final class Garden {
             }
             if contents.version < Self.formatVersion { legacyBackupName = "giardino-formato\(max(contents.version, 1)).json" }
             corners = contents.corners ?? []
+            guests = contents.guests ?? [:]
             settle(legacyCompanions: legacyCompanions)
             formedCorners = GardenCorners.formed(by: placements)
         } else {
@@ -153,6 +174,7 @@ final class Garden {
         placements = []
         corners = []
         newCorners = []
+        guests = [:]
         for item in GardenCatalog.items.filter({ $0.isStarter }) {
             guard let origin = GardenLayout.starterOrigins[item.id] else { continue }
             placements.append(GardenPlacement(item: item.id, tile: origin))
@@ -402,6 +424,31 @@ final class Garden {
         return newCorners
     }
 
+    // MARK: - Gli ospiti
+
+    /// Saluti un ospite (`id` è la specie): la prima volta entra nel diario, con la data e il motivo, e ti lascia un regalo (qualcosa che si
+    /// aggiunge all'album, sempre lo stesso per la stessa specie); le volte dopo si conta solo la visita.
+    @discardableResult
+    func welcomeGuest(_ id: String, day: String, reason: String) -> GardenGuestWelcome {
+        if var known = guests[id] {
+            known.visits += 1
+            guests[id] = known
+            save()
+            return GardenGuestWelcome(isFirst: false, gift: nil)
+        }
+        guests[id] = GardenGuest(first: day, visits: 1, reason: reason)
+        var state = drops
+        let salt = "OSPITE-\(id)"
+        let gift = GardenDrops.roll(sessionID: salt, streakDays: 1, seconds: GardenDrops.minimumSeconds, state: &state, allowNothing: false)
+        if let gift {
+            drops = state
+            unseen.insert(gift.item)
+            autoPlace(gift.item, salt: salt)
+        }
+        save()
+        return GardenGuestWelcome(isFirst: true, gift: gift)
+    }
+
     // MARK: - Da capo
 
     /// Toglie tutto (per "Cancella tutto…"): le figurine trovate, le copie e le posizioni. Si riparte dalla dotazione.
@@ -426,7 +473,7 @@ final class Garden {
                                     unseen: unseen.sorted(), pendingGifts: pendingGifts, legacySpent: legacySpent,
                                     placements: placements,
                                     companions: companionTiles.mapValues { GardenCompanionPlace(col: $0.col, row: $0.row, x: nil, y: nil) },
-                                    corners: corners.isEmpty ? nil : corners)
+                                    corners: corners.isEmpty ? nil : corners, guests: guests.isEmpty ? nil : guests)
             let encoder = JSONEncoder()
             encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
             do {

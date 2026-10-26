@@ -56,11 +56,11 @@ struct GardenTint: Hashable {
 
 /// Copia un'immagine già pronta in un rettangolo (in una vista capovolta o no), senza interpolare: è il modo più veloce di disegnarla.
 enum GardenBlit {
-    static func draw(_ image: CGImage, in rect: NSRect, alpha: CGFloat = 1, copy: Bool = false) {
+    static func draw(_ image: CGImage, in rect: NSRect, alpha: CGFloat = 1, copy: Bool = false, quality: CGInterpolationQuality = .none) {
         guard let context = NSGraphicsContext.current else { return }
         let cg = context.cgContext
         cg.saveGState()
-        cg.interpolationQuality = .none
+        cg.interpolationQuality = quality
         if copy { cg.setBlendMode(.copy) }
         cg.setAlpha(alpha)
         if context.isFlipped {
