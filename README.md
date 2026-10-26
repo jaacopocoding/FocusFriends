@@ -394,6 +394,10 @@ loro pesi (`snowWeights`, `snowPathWeights`). I lati diventano zolle con la neve
 dettagli sparsi sono pochi (le tessere hanno già le loro orme): qualche cumulo di neve e qualche sasso, mai erba verde. Per provarlo fuori stagione:
 `defaults write com.jacopo.focusfriends gardenSeason -string winter` (e `defaults delete com.jacopo.focusfriends gardenSeason` per toglierlo).
 
+L'isola è l'**altopiano di una collina** d'erba (`assets/giardino/collina_<stagione>.png`, preparata da `tools/prepara_collina.py` da un disegno di Gemini): dalle tessere il
+pendio scende senza nessuno stacco di terra, con il contorno sottile e netto sui fianchi e sfumato in basso, dove la collina si perde nella nebbia del lago. Ce n'è una per
+stagione (verde in primavera e in estate, ocra in autunno, bianca e azzurra d'inverno). Con la collina l'isola, a zoom normale, è un quarto più piccola: si ingrandisce con lo zoom. Quando ci si sposta o si ingrandisce, si muove tutto il mondo insieme (collina, lago, colline lontane e casale con il suo fumo): è la telecamera che si muove, non la collina che scivola sullo sfondo.
+
 Lo **sfondo** è un paesaggio di Gemini (`assets/giardino/sfondo_original.png`: colline, cielo e un lago) preparato da `tools/prepara_sfondo.py`: lo
 ingrandisce a 2048×1012, copre con una sfumatura la piccola isola che Gemini aveva dipinto in mezzo al lago (la nostra ci sta sopra) e compone
 sulle rive lontane il **casale**, gli alberi e gli abeti ritagliati dal foglio del paesaggio (`paesaggio_original.png`, `tools/cutout_paesaggio.py`),
@@ -412,6 +416,11 @@ Le cose messe **vicine** possono fare qualcosa insieme: nessuno ti dice quali, s
 stelline con la scritta «Hai sbloccato…», e da quel momento il giardino lo mostra: un filo di vapore, le farfalle, una luce più calda la sera… E ogni tanto un
 compagno ci va a fare quello che gli piace: il gattino a dormire, il porcellino a mangiare o a saltellare, Ciccio a sbattere le ali (`GardenCorners.swift`:
 non cambiano le figurine né le loro probabilità, solo l'aspetto del giardino).
+
+Mentre il giardino è aperto, a seconda dell'ora e della stagione passa a trovarti un **ospite**: un riccio, un pettirosso, un coniglio, una volpe… (dodici in tutto,
+`GardenVisitors.swift`). Arriva da un bordo dell'isola, cammina fino a una cosa che gli piace e si ferma; finché non lo saluti con un tocco c'è una stellina sopra di lui. La
+prima volta che incontri una specie entra nel diario (`guests` in `giardino.json`) e ti lascia un regalo: una figurina in più per l'album, sempre la stessa per quella specie.
+Nessuno ti dice chi viene e per cosa: dipende da cosa hai messo sull'isola, e i più rari vengono solo se hai formato certi angoli.
 
 Sopra il terreno si spargono **dettagli** disegnati (`assets/giardino/dettaglio_1..24.png`, da un foglio su magenta): ciuffi d'erba, trifogli, fiorellini
 bianchi, rosa, gialli e azzurri, sassi, e secondo la stagione petali (primavera), foglie (autunno) e ciuffi di neve (inverno). Quali e dove dipende solo

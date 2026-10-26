@@ -64,7 +64,7 @@ Single user per Mac, no accounts, no network: all data is stored locally under
 | App type | Menu-bar "agent": `LSUIElement = true`, activation policy `.accessory` | `build.sh`, `AppDelegate.applicationDidFinishLaunching` |
 | Signing | Ad-hoc (`codesign --force --sign -`; `build.sh` stops with exit 1 if signing fails); not notarised, no hardened runtime or sandbox | `build.sh`, `README.md` "Scaricare e usare" |
 | Asset tooling | Python 3 scripts using Pillow and NumPy (not run at build time) | `tools/*.py` |
-| Tests | One hand-written Swift executable (`tests/main.swift`, 44 sections, 735 checks) that compiles nineteen Foundation-only source files; no XCTest | `tests/run.sh` |
+| Tests | One hand-written Swift executable (`tests/main.swift`, 44 sections, 772 checks) that compiles twenty Foundation-only source files; no XCTest | `tests/run.sh` |
 | License | MIT (`LICENSE`); bundled music is CC0 (`CREDITS.md`) | `LICENSE`, `CREDITS.md` |
 | Swift toolchain version / Python version | Not pinned anywhere in the repository | **[unknown]** |
 
@@ -147,6 +147,7 @@ FocusFriends/
 │   ├── Garden.swift              giardino.json v3: copies found per object, drop counters, unseen/pending gifts, copies on the island (tile + turned), companion tiles; v1/v2 migration (Foundation only)
 │   ├── GardenCorners.swift       the garden's "corners": which things placed close together make something happen, and which of them the placements form now (Foundation only)
 │   ├── GardenCompanions.swift    what the companions do at a corner: the poses (which frames, how fast, how long), who likes which corner, the standing places around a thing and the shortest walk there (Foundation only)
+│   ├── GardenVisitors.swift      the animal guests: who can come at which hour and season, what attracts each (a thing on the island, or a corner for the two rare ones), the entry route (Foundation only)
 │   ├── GardenSky.swift           the garden's sky: light by hour and season (`GardenSky.light`), lamps and fireflies, the motion of petals, leaves, snow and fireflies (Foundation only)
 │   ├── GardenGrid.swift          the island: GardenTile, GardenFootprint, GardenIsland (size, path), GardenLayout (canPlace, nearest free tile, legacy-spot mapping), legacy GardenSpot/GardenScene (Foundation only)
 │   ├── GardenDrops.swift         the end-of-focus drop: rarities, chances, pity, deterministic roll (FNV-1a + Mulberry32), simulate(), the sentences (Foundation only)
@@ -157,7 +158,7 @@ FocusFriends/
 │   ├── MusicLibrary.swift        MusicSource, MusicLibrary (file discovery, shuffle, titles), MusicSettings  (Foundation only)
 │   └── MusicPlayer.swift         AVAudioPlayer-based music playback with queue and fades
 ├── tests/
-│   ├── main.swift                hand-rolled test executable (check()/section()), 44 sections, 735 checks
+│   ├── main.swift                hand-rolled test executable (check()/section()), 44 sections, 772 checks
 │   ├── run.sh                    compiles 17 source files + tests/main.swift into build/tests/stats and runs it
 │   ├── genera-attesi.sh          builds and runs tests/genera-attesi/main.swift: for every folder in tests/fixtures/ writes what this app derives from it (the expected results the Windows port is compared with)
 │   ├── simula-regali.sh          simulates the end-of-focus drops over 30/60/90 days of studying (how long an album takes; used to tune GardenDrops)
@@ -173,6 +174,8 @@ FocusFriends/
 │   ├── cutout_giardino.py        the three 4×3 object sheets (white or magenta background) → one PNG per object + the 2× meadow
 │   ├── cutout_paesaggio.py       the landscape sheets, summer and winter (house, trees, firs, bushes, hedges, fence, logs on magenta, not in a grid) → paesaggio_<name>.png, paesaggio_inverno_<name>.png
 │   ├── prepara_sfondo.py         sfondo_original.png → sfondo.png (2× upscale, covers the lake islet, composes the cottage and trees) and the same for the frozen lake → sfondo_inverno.png; prints the chimney/window positions
+│   ├── prepara_collina.py        the hill under the island: Gemini's sheet (hill with a magenta diamond hole on top) → collina_<season>.png: magenta removed, the slopes shortened, the hole's outline erased, the flanks' outline made a thin brown line and the bottom edge faded; prints the hole's corners (for `GardenHill`)
+│   ├── cutout_visitatori.py      the sheet of 12 animal guests (4×3, magenta; the pieces are grouped by connection because the fox's tail leaves its cell) → visitatore_<name>.png
 │   ├── cutout_bordo.py           the strips of earth edge (on white), for the grass and for the winter sheet → bordo_1..3.png, bordo_neve_1..3.png: background removed, same size, faded ends
 │   ├── cutout_dettagli.py        the 6×4 sheet of small details on magenta → dettaglio_1..24.png (uses cutout_giardino's magenta removal)
 │   ├── cutout_tessere.py         the terrain sheets (top-down squares in a grid with a dark outline) → 320×160 diamond tiles: crops each cell's centre, squares it, maps it to a 2:1 diamond (affine, antialiased edge)
@@ -188,7 +191,7 @@ FocusFriends/
 │   ├── ciccio/                   walk_original.png, flap_original.png, frame1..13.png, picked(.png/_original.png)
 │   ├── gattino/                  idle/walk/eat/sleep/groom_original.png sheets, frame1..23.png, picked(.png/_original.png)
 │   ├── garden/                   garden_<pet>_1..5.png (ciccio, porcellino), growth_porcellino_1..5.png, *_original sheets (live growth)
-│   ├── giardino/                 fiori/compagni/arredi_original.png sheets, prato_original.png, 36 object PNGs, prato.png, erba_original.png and sentiero_original.png (terrain sheets), tessera_erba_1..12.png, tessera_sentiero_1..8.png, tessera_neve_1..12.png and tessera_sentiero_neve_1..8.png (diamond tiles), bordo_original.png, bordo_1..3.png, bordo_neve_original.png and bordo_neve_1..3.png (earth edge strips), sfondo_original.png, sfondo.png and paesaggio_original.png with the 12 paesaggio_<name>.png pieces, sfondo_inverno_original.png, sfondo_inverno.png and paesaggio_inverno_original.png with the 9 paesaggio_inverno_<name>.png pieces, neve_original.png and sentiero_neve_original.png (the snow sheets), dettagli_original.png and dettaglio_1..24.png (the scattered details)
+│   ├── giardino/                 fiori/compagni/arredi_original.png sheets, prato_original.png, 36 object PNGs, prato.png, erba_original.png and sentiero_original.png (terrain sheets), tessera_erba_1..12.png, tessera_sentiero_1..8.png, tessera_neve_1..12.png and tessera_sentiero_neve_1..8.png (diamond tiles), bordo_original.png, bordo_1..3.png, bordo_neve_original.png and bordo_neve_1..3.png (earth edge strips), sfondo_original.png, sfondo.png and paesaggio_original.png with the 12 paesaggio_<name>.png pieces, sfondo_inverno_original.png, sfondo_inverno.png and paesaggio_inverno_original.png with the 9 paesaggio_inverno_<name>.png pieces, neve_original.png and sentiero_neve_original.png (the snow sheets), dettagli_original.png and dettaglio_1..24.png (the scattered details), visitatori_original.png and the 12 visitatore_<name>.png guests, collina_original.png and collina_autunno/primavera/estate/inverno.png (the hill)
 │   ├── album/                    copertina(.png/_original.png), doppia_pagina(.png/_original.png), guida_doppia_pagina_original.png (layout guide given to the image generator)
 │   └── music/                    5 AAC (.m4a) tracks: boredom, love, night-driving, old-age, opinions
 ├── docs/images/                  PNG screenshots/logo used only by README.md (sample data); giardino.png and album.png are the garden and the album, da-fare.png the to-do page
@@ -570,6 +573,15 @@ code. All UI code runs on the main thread; the only other thread is the audio re
   space converts every pixel every frame; (5) `GardenView.warmUp()` (called from `AppDelegate` on a utility queue at launch) decodes all terrain/edge/detail images
   (`GardenSprites.loadImage`, `kCGImageSourceShouldCacheImmediately`), analyses all sprites and renders the garden's and the album's backdrops; (6) the timer runs at 30 Hz, but
   the screen is redrawn at 15 Hz when only the air moves (wind, smoke, snow) and at 30 Hz when a companion walks or something is dragged.
+  **Moving the camera** (with the hill and the world backdrop the first version cost 79 ms a frame when panning and 116 ms when zooming: the whole scene was rebuilt at every
+  step, and a profile (`sample`) showed a third of the time in decoding the hill's PNG *at every draw* — an `NSImage` read from a file does that — and the rest in high-quality
+  scaling of the hill and the backdrop): (7) the hill is decoded **once** into a bitmap in the screen's colour space (`decoded`) and drawn with low-quality interpolation, as is the
+  backdrop; (8) `SceneCache` is the fixed scene (backdrop, hill, ground, tint) rendered **larger than the window** (30 % more on each side, `sceneMargin`) at the camera of that
+  moment; `placement(of:)` says where it falls now (`pan`/`zoom` changed since: the same affine as everything else) and, if it still covers the window and the zoom is the same,
+  drawing is one copy at whole pixels — about 14 ms of work a frame instead of 52 —, rebuilt only when the edge gets near; (9) while the zoom changes the cache is drawn scaled
+  (`.low`, a preview) and rebuilt sharp 0.14 s after the last change (`scheduleSettle`); (10) the dark corners and the night's gradient are an `overlayCache` (they stay on the
+  window, not in the world), and when the view does not move (two identical placements in a row) `stillCache` holds the window already composed, so an idle frame is a single copy.
+  A frame of a still garden costs about 8 ms of drawing (15 Hz: roughly 10–12 % of one core), mostly the scene copy and the swaying plants.
 - **Mouse:** `mouseDown` → zoom buttons, the tray pill/cell (taking one opens a `.fresh` carry and collapses the tray), the front-most entity whose
   **drawn** pixels (mask, ±1 cell) contain the point, or the background (double click: zoom in / back; drag: pan). While dragging, `carryTarget()` gives
   the origin tile (`round(grid − footprint/2)`), the tiles and whether it is valid (`Garden.canPlace`, an available copy for `.fresh`, a walkable tile not
@@ -602,6 +614,33 @@ code. All UI code runs on the main thread; the only other thread is the audio re
   (a breadth-first walk over free tiles, at most 16 steps) the shortest way to a free tile around the corner's object (`standingTiles(around:size:)`), walks it one
   tile at a time, does the pose for `GardenPose.duration` seconds and goes back to wandering. If the corner dissolves, the route or the pose stops; dragging the companion
   resets it. `entities()` draws the pose frame of the moment (and the still image if a frame is missing). With Reduce Motion nobody walks, so nobody goes.
+- **The hill** (`GardenHill` in `GardenGrid.swift`, pure and tested; `drawHill`, `Iso`): the island is the flat top of a grassy hill. `collina_<season>.png` (1497×720: Gemini's picture is ~1000 px wide, so the tool enlarges it ×1.5 with Lanczos and sharpens it; from
+  `tools/prepara_collina.py`; autumn is Gemini's painting, the other three are for now the same colour-graded — Gemini can repaint them: same name, size and hole) has a
+  transparent diamond hole (2.05:1, corners in `GardenHill.hole…`) where the island goes. `GardenHill.frame(islandLeft:islandRight:)` scales the picture so the hole is 86 % of
+  the island's width (the island covers the hole's edge and the flat band of grass Gemini painted around it, about 7 % per side, so the slope starts right at the tiles: no seam, no
+  dark line, no gap) and puts the hole's centre on the island's centre. `drawHill` (in `drawStaticScene`, after the
+  backdrop and before the ground, directly in the scene image and not in the ground cache: a cache of a picture 1.8× wider than the island would be huge when zoomed)
+  draws a soft shadow and the picture, then three mist ellipses at the foot. With the hill the island's old earth strips, plain sides and oval shadow are not drawn.
+  The flanks' outline stays crisp and the foot is soft. `Iso` takes the hill into account: at zoom 1 the whole hill fits (width `GardenHill.widthRatio` ≈ 1.79 islands,
+  height `heightRatio`), so the island is about a quarter smaller than without it, and starts higher (`Iso.hillTop` 104); zooming in lets the hill go off the window.
+  Without `collina_autunno.png` in the bundle (`GardenView.hasHill`) everything is drawn as before.
+  **The camera moves the whole world**: the backdrop is not nailed to the window. `MeadowBackdrop.world(size:blur:season:)` renders the landscape once, larger than the
+  window by `worldMargin` (480 pt at the sides, 340 above, 230 below; the margins are the copies of the picture mirrored around it, so it never ends), at one pixel per point, and
+  `drawWorld(in:zoom:pan:…)` draws it with the same transform as the island (`p' = centre + (p − centre) · zoom + pan`, `Iso.origin`), then the veil and the dark corners on the
+  screen. The chimney smoke and the cottage windows go through the same transform (`cameraPoint`, sizes times `zoom`), so they stay glued to the house. With the hill the zoom
+  range is 0.8…2.5 (below 0.8 the world margins would not be enough).
+- **Guests** (`GardenVisitors.swift`, Foundation only, tested; `Garden.guests`; lifecycle in `GardenView`): twelve animals — hedgehog, robin, wild rabbit, fox,
+  squirrel, frog, owl, tortoise, mouse, great tit, duckling, lizard — come to visit while the window is open. `GardenVisitors.all` says for each the seasons and the
+  `GardenDaySlot`s (morning 6–10, day 10–17, evening 17–21, night) in which it can come, and what attracts it: the ten common ones a thing on the island (one of a
+  list), the two rare ones (owl, fox) a formed corner (`GardenVisitorHaunt`: the corner and the thing they stop by). `arrival(day:slot:…)` is deterministic: for the
+  same day, slot and island it gives the same guest (80 % of the slots with a candidate have one, the rare ones weigh 0.4), so opening the window twice in a slot finds
+  the same animal. `GardenView` checks 3 s after opening (`advanceVisitor`, called by the 30 Hz timer): the guest enters from a free border tile whose route
+  to a free tile next to the attracting thing is about 7 steps (`entryRoute`), walks one tile per second with a small hop (mirrored when it goes left), stays 70–130 s
+  and walks back out, fading; a pulsing star above it says it has not been greeted. A tap (`greetVisitor`) greets it: the **first time** of a species it goes into the
+  diary (`Garden.welcomeGuest`: date, visits, what attracted it — `guests` in `giardino.json`, optional, still version 3) and leaves a **gift** (a roll with the fixed id
+  `OSPITE-<species>`, never "nothing", so each species always leaves the same one: twelve gifts in all, not farmable), with the stars and "Nuovo ospite"; the
+  following times it only greets and counts the visit. If its thing is removed or something is put under it, it leaves. With Reduce Motion it appears already at its
+  place. Not yet: the diary page in the album.
 - **Sky and seasons** (`GardenSky.swift`, Foundation only, tested; drawn by `GardenView`): `skyState()` takes the hour and the season from
   `now()` (or from the hidden preferences `gardenHour` / `gardenSeason`). `GardenSky.light(hour:season:)` interpolates between keyframes built
   from the season's `sunrise`/`sunset` (night 0.55 darkness, dawn, day 0, golden hour, dusk, night) and gives a tint colour, how strongly it tints
@@ -1351,7 +1390,7 @@ file/UserDefaults writes, windows, timers, sound, global state.
 ### 5.9 Tests, build and tools
 
 #### `tests/main.swift` (1,056) and `tests/run.sh` (7)
-- A single executable: `check(_:_:line:)`, `section(_:)`, 44 sections (735 checks) covering subjects, log persistence,
+- A single executable: `check(_:_:line:)`, `section(_:)`, 44 sections (772 checks) covering subjects, log persistence,
   in-progress recovery, periods, summaries, streaks, texts, garden rules, format versions/migration, subject merging, backups and
   delete-all, time zones, profile, ratings/notes/insights/CSV, timer dial math, seasons, ambient settings, music
   library/settings, focus notes, paused-time recovery, companion rewards (including the developer flag), break cycle,
@@ -1843,7 +1882,7 @@ code is clear. Items without a mark still describe the current code.
 
 ### 7.8 Test coverage as it exists
 
-- Covered (44 sections, 735 checks in `tests/main.swift`): everything in the Foundation-only files listed in §4.1,
+- Covered (44 sections, 772 checks in `tests/main.swift`): everything in the Foundation-only files listed in §4.1,
   including the new damaged-data cases and the developer flag.
 - Not covered by any automated test in the repository: `Pomodoro` (timer, pause, grace, the sleep-gap rule, cycle
   wiring), `Speaker` (including when a to-do reminder replaces a phrase), `Walker`, `PetWindow`/`PetView`, `MenuController`,

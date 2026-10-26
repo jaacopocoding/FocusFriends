@@ -225,7 +225,8 @@ Versione 3 (Mac 0.10.0). Il giardino non ha più punti né negozio né prato lib
     { "id" : "00000000-0000-4000-8000-0000000000A1", "item" : "margherite", "col" : 4, "row" : 1, "turned" : false }
   ],
   "companions" : { "gattino" : { "col" : 3, "row" : 4 } },
-  "corners" : ["te", "orto"]
+  "corners" : ["te", "orto"],
+  "guests" : { "riccio" : { "first" : "2026-10-26", "visits" : 2, "reason" : "Funghi" } }
 }
 ```
 
@@ -246,6 +247,10 @@ Versione 3 (Mac 0.10.0). Il giardino non ha più punti né negozio né prato lib
 - `corners` (facoltativo; assente se non se n'è sbloccato nessuno): gli **angoli** sbloccati, nell'ordine in cui si sono trovati (`te`, `lettura`, `orto`, `gatto`, `porcellino`,
   `uccelli`, `prato-fiorito`, `bosco`, `festa`, `rose`). Non cambia la versione: un'app che non lo conosce lo ignora (e, riscrivendo il file, lo perde: gli angoli
   si risbloccano). Quali cose formano un angolo e quanto devono stare vicine sta in `GardenCorners.swift`, e va ripetuto uguale su Windows.
+- `guests` (facoltativo): gli **ospiti** salutati, per specie (`pettirosso`, `cinciallegra`, `coniglio`, `riccio`, `rana`, `anatroccolo`, `lucertola`, `tartaruga`, `topolino`,
+  `scoiattolo`, `civetta`, `volpe`): `first` il giorno della prima visita (`AAAA-MM-GG`), `visits` quante volte l'hai salutato, `reason` cosa l'aveva attirato (il nome di una
+  cosa o di un angolo). La prima volta lascia un regalo, che è già dentro `drops` e `placements`: il regalo è deterministico (come per i punti, un tiro con
+  l'identificativo fisso `OSPITE-<specie>` in maiuscolo, che non può dare «niente»). Non cambia la versione; chi non lo conosce lo ignora (e, riscrivendo il file, lo perde).
 - `companions`: la tessera di «casa» dei compagni (gli altri stanno sul sentiero, a posti fissi); camminando si spostano di una tessera alla volta, ma non si
   salva.
 - **La dotazione** (le quattro cose a prezzo 0) parte su tessere fisse: margherite (5, 3), trifoglio (2, 5), erba alta (1, 1), mughetti (6, 6).
