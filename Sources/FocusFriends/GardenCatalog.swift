@@ -18,14 +18,27 @@ struct GardenItem: Equatable {
     let id: String
     let name: String
     let category: GardenCategory
-    /// Quanto è alto, nelle unità del disegno: sull'isola si disegna alto `height × larghezza di una tessera ÷ 115`.
+    /// Quanto è alto, nelle unità del disegno: sull'isola si disegna alto `height × larghezza di una tessera ÷ 115`. (0 per quelli che stanno sul lato: la lunghezza è un lato
+    /// della tessera, e l'altezza ne viene.)
     let height: Double
     /// Quanti punti costa sbloccarlo; 0 = c'è fin dall'inizio. I prezzi sono provvisori: stanno tutti qui.
     let price: Int
     /// Si disegna l'ombra sul prato (no per le cose piatte, come il tappeto).
     var castsShadow = true
-    /// Quante tessere occupa (da girato, larghezza e profondità si scambiano).
+    /// Quante tessere occupa (da girato, larghezza e profondità si scambiano). Nel catalogo sono tutti una tessera, tranne l'amaca e l'arco di rose (2×1, in fila lungo un asse): un oggetto
+    /// sta sulla sua casella, e il disegno non è più largo di una tessera e poco più (per questo `height` dei più larghi è ridotta); la regola è nelle prove.
     var footprint = GardenFootprint(cols: 1, rows: 1)
+    /// Una cosa piatta che sta sul lato della tessera, da un lato all'altro (la staccionata, le bandierine; l'amaca e l'arco di rose su due tessere in fila), mai da un angolo all'altro: si disegna adagiata sull'asse
+    /// (`GardenSprites.axial`), e girata va sull'altro asse. Non fa ombra, e ha la base che passa per il centro della tessera.
+    var axial = false
+    /// Quanto si inclina il disegno adagiato sul lato: 0,5 è la pendenza dei lati dei rombi (giusta per le cose piatte, come la staccionata); le cose il cui disegno ha già una sua
+    /// prospettiva (l'amaca, l'arco di rose) si storcono, e ne vogliono meno.
+    var slope = 0.5
+    /// Una volta trovata, se ne mettono quante si vuole (una staccionata sola non serve a niente): niente copie da contare, e i regali non la danno più.
+    var repeatable = false
+    /// Si unisce alle uguali che ha accanto (la staccionata): un pezzo ha un braccio verso ogni vicino, e così fa gli angoli, le T e le croci da solo (`GardenLinks`). Con un vicino
+    /// solo prosegue dritto; senza vicini va nel verso scelto girandolo.
+    var joins = false
     /// L'isola dell'animale a cui appartiene (l'id del compagno): quell'oggetto si mette solo sulla sua isola. `nil` = universale, va su qualunque isola.
     var island: String?
 
@@ -51,8 +64,18 @@ struct GardenItem: Equatable {
         return phrase.prefix(1).uppercased() + phrase.dropFirst() + " sta solo sull'isola di \(ownerName)."
     }
 
-    /// Il nome dell'immagine nel bundle (`assets/giardino/<id>.png`, copiata da build.sh).
+    /// Il nome dell'immagine nel bundle (`assets/giardino/<id>.png`, copiata da build.sh): quella di fronte, che sta nell'album e nella cassetta.
     var resource: String { "giardino_" + id }
+
+    /// Quanti lati di tessera è lunga una cosa sul lato (una, o due per l'amaca e l'arco di rose).
+    var sides: Int { max(footprint.cols, footprint.rows) }
+
+    /// Il disegno con cui sta sull'isola: per le cose sul lato quello adagiato sull'asse (con la sua lunghezza in lati, se più di uno: `giardino_amaca@asse2`).
+    var gardenResource: String { axial ? resource + Self.axialSuffix + (sides > 1 ? "\(sides)" : "") : resource }
+    static let axialSuffix = "@asse"
+
+    /// Il disegno di un pezzo che si unisce ai vicini, con i bracci che ha (vedi `GardenLinks`): `giardino_cancelletto@asse#10`.
+    func gardenResource(arms: GardenLinks.Arms) -> String { gardenResource + "#\(arms.rawValue)" }
 }
 
 /// Una copia di un oggetto messa sull'isola: la tessera dove sta il suo angolo in fondo, e se è girata.
@@ -132,9 +155,10 @@ enum GardenCatalog {
     static func companionHeight(for petID: String) -> Double { companionHeights[petID] ?? 100 }
 
     private static func item(_ id: String, _ name: String, _ category: GardenCategory, height: Double, price: Int,
-                             shadow: Bool = true, cols: Int = 1, rows: Int = 1, island: String? = nil) -> GardenItem {
+                             shadow: Bool = true, cols: Int = 1, rows: Int = 1, axial: Bool = false, slope: Double = 0.5, repeatable: Bool = false, joins: Bool = false,
+                             island: String? = nil) -> GardenItem {
         GardenItem(id: id, name: name, category: category, height: height, price: price, castsShadow: shadow,
-                   footprint: GardenFootprint(cols: cols, rows: rows), island: island)
+                   footprint: GardenFootprint(cols: cols, rows: rows), axial: axial, slope: slope, repeatable: repeatable, joins: joins, island: island)
     }
 
     /// Tutti gli oggetti, nell'ordine in cui compaiono nel negozio. I prezzi sono provvisori.
@@ -160,24 +184,24 @@ enum GardenCatalog {
         item("altalena-uccelli", "Altalena uccelli", .companions, height: 85, price: 3, island: "ciccio"),
         item("vaso-grande", "Vaso grande", .companions, height: 70, price: 3, island: "pianty"),
         item("bagnetto", "Bagnetto uccelli", .companions, height: 75, price: 4, island: "ciccio"),
-        item("aiuola", "Aiuola rialzata", .companions, height: 75, price: 4, cols: 2, island: "pianty"),
+        item("aiuola", "Aiuola rialzata", .companions, height: 75, price: 4, island: "pianty"),
         item("tiragraffi", "Tiragraffi", .companions, height: 115, price: 5, island: "gattino"),
         item("casetta-uccelli", "Casa per uccelli", .companions, height: 95, price: 5, island: "ciccio"),
-        item("casetta-gatto", "Casa del gatto", .companions, height: 115, price: 6, cols: 2, rows: 2, island: "gattino"),
-        item("casetta-porcellino", "Casa porcellino", .companions, height: 100, price: 6, cols: 2, rows: 2, island: "porcellino"),
+        item("casetta-gatto", "Casa del gatto", .companions, height: 115, price: 6, island: "gattino"),
+        item("casetta-porcellino", "Casa porcellino", .companions, height: 88, price: 6, island: "porcellino"),
         // Arredi
-        item("picnic", "Tappeto da picnic", .furniture, height: 70, price: 4, shadow: false, cols: 2, rows: 2),
-        item("bandierine", "Bandierine", .furniture, height: 110, price: 4, cols: 2),
-        item("cancelletto", "Cancelletto", .furniture, height: 95, price: 4, cols: 2),
+        item("picnic", "Tappeto da picnic", .furniture, height: 70, price: 4, shadow: false),
+        item("bandierine", "Bandierine", .furniture, height: 0, price: 4, shadow: false, axial: true),
+        item("cancelletto", "Cancelletto", .furniture, height: 0, price: 4, shadow: false, axial: true, repeatable: true, joins: true),
         item("tavolino", "Tavolino da tè", .furniture, height: 95, price: 5),
         item("sdraio", "Sdraio", .furniture, height: 110, price: 5),
         item("carillon", "Carillon a vento", .furniture, height: 120, price: 5),
-        item("panchina", "Panchina", .furniture, height: 95, price: 6, cols: 2),
+        item("panchina", "Panchina", .furniture, height: 95, price: 6),
         item("lampione", "Lampione", .furniture, height: 170, price: 6),
-        item("ponticello", "Ponticello", .furniture, height: 110, price: 8, cols: 2),
-        item("amaca", "Amaca", .furniture, height: 150, price: 9, cols: 2, rows: 2),
-        item("altalena", "Altalena", .furniture, height: 190, price: 10, cols: 2, rows: 2),
-        item("arco-rose", "Arco di rose", .furniture, height: 210, price: 12, cols: 2),
+        item("ponticello", "Ponticello", .furniture, height: 82, price: 8),
+        item("amaca", "Amaca", .furniture, height: 0, price: 9, shadow: false, cols: 2, axial: true, slope: 0.3),
+        item("altalena", "Altalena", .furniture, height: 0, price: 10, shadow: false, axial: true),
+        item("arco-rose", "Arco di rose", .furniture, height: 0, price: 12, shadow: false, cols: 2, axial: true, slope: 0.3),
     ]
 
     /// Gli oggetti universali (su qualunque isola) e quelli di un animale (solo sulla sua isola).

@@ -650,31 +650,32 @@
         "row" : 0
       },
       {
-        "col" : 7,
+        "col" : 6,
         "girata" : false,
         "oggetto" : "lampione",
         "row" : 1
       },
       {
-        "col" : 4,
+        "col" : 3,
         "girata" : false,
         "oggetto" : "erbe",
         "row" : 2
       },
       {
-        "col" : 3,
+        "col" : 4,
         "girata" : false,
         "oggetto" : "bandierine",
         "row" : 6
       },
       {
-        "col" : 3,
+        "col" : 2,
         "girata" : false,
         "oggetto" : "cancelletto",
         "row" : 4
       }
     ],
     "daMettere" : {
+      "cancelletto" : 1,
       "erba-alta" : 1,
       "mughetti" : 1,
       "trifoglio" : 1,

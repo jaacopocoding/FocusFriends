@@ -10,6 +10,12 @@ struct GardenSprite {
     let mask: [Bool]
     let columns: Int
     let rows: Int
+    /// Solo per i disegni «sul lato» (`GardenSprites.axial`): quanto sta sotto i piedi il fondo dell'immagine (la base è obliqua: i piedi sono a metà), in frazioni della sua altezza.
+    var footDrop: CGFloat = 0
+    /// Solo per i disegni «sul lato»: dove stanno i piedi dentro la parte visibile, in frazioni della sua larghezza (a metà, tranne per i pezzi fatti di soli bracci).
+    var feetAcross: CGFloat = 0.5
+    /// Solo per i disegni «sul lato»: quanti pixel dell'immagine (intera, non la parte visibile) fanno un lato di tessera: da qui viene la grandezza a cui si disegna.
+    var sideWidth: CGFloat?
     var aspect: CGFloat { source.width / max(source.height, 1) }
 
     /// C'è qualcosa di disegnato in (u, v), dentro la parte visibile (v dall'alto), o a una cella di distanza?
@@ -143,6 +149,11 @@ enum GardenSprites {
     }
 
     static func sprite(_ resource: String) -> GardenSprite? {
+        if let marker = resource.range(of: GardenItem.axialSuffix) {
+            // «giardino_cancelletto@asse», «giardino_amaca@asse2» (due lati) o, con i bracci, «giardino_cancelletto@asse#10»
+            let rest = resource[marker.upperBound...].split(separator: "#", omittingEmptySubsequences: false)
+            return axial(String(resource[..<marker.lowerBound]), sides: Int(rest.first ?? "") ?? 1, arms: rest.count > 1 ? Int(rest[1]) : nil)
+        }
         lock.lock()
         let known = cache[resource]
         lock.unlock()
@@ -153,6 +164,79 @@ enum GardenSprites {
         cache[resource] = made
         lock.unlock()
         return made
+    }
+
+    /// Quanto si allunga in verticale un disegno di fronte quando lo si adagia su un lato con la pendenza `slope`: con quella dei lati dei rombi (0,5; i rombi sono larghi il doppio che
+    /// alti) l'altezza pesa un quarto in più della lunghezza (1,22), e ci si arriva piano piano.
+    private static func axialStretch(slope: CGFloat) -> CGFloat { 1 + 0.44 * slope }
+    /// Un pezzo solo sul lato è un po' più lungo del lato della tessera, perché i pezzi di fila si tocchino.
+    private static let sideOverlap: CGFloat = 1.04
+
+    /// Il disegno di una cosa piatta (la staccionata, le bandierine), disegnata di fronte, «adagiato» sul lato di una tessera: di fronte, in giardino andrebbe da un angolo
+    /// all'altro del rombo; piegato, con la base che scende di mezza larghezza (come i lati dei rombi), va da un lato all'altro. Specchiato (`turned`) va sull'altro lato.
+    /// Con `arms` (per le cose che si uniscono ai vicini, vedi `GardenLinks`) è fatto solo dei bracci che servono: ognuno è una metà del pezzo dritto, dal centro della tessera
+    /// al suo lato (le due metà specchiate danno gli altri due bracci), e il disegno resta nel posto che avrebbe da intero.
+    static func axial(_ resource: String, sides: Int = 1, arms: Int? = nil) -> GardenSprite? {
+        let key = resource + GardenItem.axialSuffix + (sides > 1 ? "\(sides)" : "") + (arms.map { "#\($0)" } ?? "")
+        lock.lock()
+        let known = cache[key]
+        lock.unlock()
+        if let known { return known }
+        guard let flat = sprite(resource), let cg = flat.image.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return nil }
+        let sx = CGFloat(cg.width) / flat.image.size.width, sy = CGFloat(cg.height) / flat.image.size.height
+        let crop = CGRect(x: flat.source.minX * sx, y: CGFloat(cg.height) - flat.source.maxY * sy, width: flat.source.width * sx, height: flat.source.height * sy).integral
+        guard let part = cg.cropping(to: crop) else { return nil }
+        let slope = CGFloat(GardenCatalog.items.first { $0.resource == resource }?.slope ?? 0.5)
+        let w = CGFloat(part.width), h = CGFloat(part.height) * axialStretch(slope: slope)
+        guard let context = CGContext(data: nil, width: Int(w), height: Int((h + slope * w).rounded(.up)), bitsPerComponent: 8, bytesPerRow: 0,
+                                      space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return nil }
+        context.interpolationQuality = .high
+        // con l'origine in basso: andando a destra tutto scende di mezza larghezza
+        context.saveGState()
+        context.concatenate(CGAffineTransform(a: 1, b: -slope, c: 0, d: 1, tx: 0, ty: 0))
+        context.draw(part, in: CGRect(x: 0, y: slope * w, width: w, height: h))
+        context.restoreGState()
+        guard let whole = context.makeImage() else { return nil }
+        var result = whole
+        if let arms {
+            guard let joined = joinedArms(of: whole, arms: GardenLinks.Arms(rawValue: arms)) else { return nil }
+            result = joined
+        }
+        var made = analyze(NSImage(cgImage: result, size: NSSize(width: result.width, height: result.height)))
+        // la base passa da (0, mezza larghezza) a (larghezza, 0): i piedi sono a metà, un quarto di larghezza sopra il fondo dell'immagine
+        made.footDrop = (slope * w / 2 - made.source.minY) / max(made.source.height, 1)
+        if arms != nil { made.feetAcross = (CGFloat(result.width) / 2 - made.source.minX) / max(made.source.width, 1) }
+        // un pezzo solo è un po' più lungo del lato (così quelli di fila si toccano); una cosa su più lati sta giusta
+        made.sideWidth = CGFloat(result.width) / (CGFloat(sides) * (sides == 1 ? sideOverlap : 1))
+        lock.lock()
+        cache[key] = made
+        lock.unlock()
+        return made
+    }
+
+    /// Dal pezzo dritto lungo le colonne (la metà a sinistra va in alto a sinistra, quella a destra in basso a destra) ai soli bracci chiesti: gli altri due lati sono le stesse metà specchiate.
+    /// Si disegna prima ciò che sta dietro (in alto) e poi ciò che sta davanti.
+    private static func joinedArms(of whole: CGImage, arms: GardenLinks.Arms) -> CGImage? {
+        let w = whole.width, h = whole.height, mid = w / 2
+        guard let left = whole.cropping(to: CGRect(x: 0, y: 0, width: mid, height: h)),
+              let right = whole.cropping(to: CGRect(x: mid, y: 0, width: w - mid, height: h)),
+              let context = CGContext(data: nil, width: w, height: h, bitsPerComponent: 8, bytesPerRow: 0,
+                                      space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return nil }
+        context.interpolationQuality = .high
+        func draw(_ half: CGImage, at x: Int, mirrored: Bool) {
+            context.saveGState()
+            if mirrored {
+                context.translateBy(x: CGFloat(w), y: 0)
+                context.scaleBy(x: -1, y: 1)
+            }
+            context.draw(half, in: CGRect(x: x, y: 0, width: half.width, height: h))
+            context.restoreGState()
+        }
+        if arms.contains(.upLeft) { draw(left, at: 0, mirrored: false) }
+        if arms.contains(.upRight) { draw(left, at: 0, mirrored: true) }
+        if arms.contains(.downLeft) { draw(right, at: mid, mirrored: true) }
+        if arms.contains(.downRight) { draw(right, at: mid, mirrored: false) }
+        return context.makeImage()
     }
 
     /// Cerca i pixel non trasparenti: i compagni hanno un bordo vuoto intorno, e i piedi devono stare dove dice il

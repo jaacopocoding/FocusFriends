@@ -642,7 +642,8 @@ final class AlbumView: NSView {
         if garden.copies(of: item.id) > 0 {
             let copies = garden.copies(of: item.id)
             let placed = garden.count(of: item.id)
-            flash("\(item.name) · n. \(number) · \(item.rarity.title) · \(rule) · \(copies == 1 ? "1 copia" : "\(copies) copie")\(placed > 0 ? ", \(placed) nel prato" : "")")
+            let amount = item.repeatable ? "se ne mettono quante vuoi" : (copies == 1 ? "1 copia" : "\(copies) copie")
+            flash("\(item.name) · n. \(number) · \(item.rarity.title) · \(rule) · \(amount)\(placed > 0 ? ", \(placed) nel prato" : "")")
         } else if let owner = item.island, !profile.isCompanionUnlocked(owner) {
             // le cose di un animale non sbloccato non escono ai regali: si aspetta il compagno
             flash("n. \(number) · \(item.rarity.title) · \(rule): ancora da trovare. Esce a fine focus quando sblocchi \(ownerName(owner)).")

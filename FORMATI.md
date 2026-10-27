@@ -261,9 +261,20 @@ Versione 3 (Mac 0.10.0): il giardino non ha più punti né negozio né prato lib
   «La casa del gatto sta solo sull'isola di Gattino.» e la copia resta dov'è), quando un regalo sceglie dove cadere (sull'isola del suo animale, o su quella di casa se è universale; il regalo di
   benvenuto va sull'isola nuova, vedi `welcomed`) e nella cassetta «Da mettere» (su un'isola si vedono solo le copie che ci stanno: le universali e quelle del suo animale). Leggendo un file non si
   scarta niente: una cosa di un animale sull'isola sbagliata si sistema **una volta sola** (vedi `islandRules`).
-- `placements`: le copie sulle isole (al massimo **150** per isola). `col`, `row`: la tessera dove sta l'angolo in fondo dell'oggetto; `turned`: se è girato (larghezza e
-  profondità si scambiano). Un oggetto occupa `cols × rows` tessere del catalogo (`footprint`: 1×1 quasi sempre; 2×1 panchina, bandierine, cancelletto,
-  ponticello, aiuola, arco di rose; 2×2 casette del gatto e del porcellino, altalena, amaca, tappeto da picnic). Di un oggetto se ne possono mettere
+- `placements`: le copie sulle isole (al massimo **150** per isola). `col`, `row`: la tessera dove sta l'angolo in fondo dell'oggetto; `turned`: se è girato (il disegno si
+  specchia; con un ingombro più grande di una tessera, larghezza e profondità si scambierebbero). **Ogni oggetto del catalogo occupa una sola tessera** (`footprint` 1×1, la staccionata come
+  l'altalena: un oggetto sta sulla sua casella, il disegno non è più largo di una tessera e poco più), **tranne `amaca` e `arco-rose`, che occupano due tessere in fila (2×1: `col` e `col + 1`, a
+  `row`; girati 1×2: `row` e `row + 1`, a `col`)**, da un capo all'altro. Girare le cose da una tessera non cambia mai le tessere occupate e riesce sempre; girare quelle da due le
+  sposta sull'altra fila, e riesce solo se la tessera in più è libera. (Prima sette oggetti prendevano 2 o 4 tessere: le copie già messe tengono la `col`/`row`, e occupano la tessera, o le due, del
+  catalogo di adesso.)
+  **Cinque cose stanno sul lato** della tessera, da un lato all'altro e mai da un angolo all'altro: `cancelletto` (la staccionata), `bandierine`, `arco-rose`, `amaca`, `altalena`. Il loro disegno,
+  di fronte, si adagia sull'asse: in orizzontale si scala a un lato di tessera (poco più, perché i pezzi di fila si tocchino; due lati interi, senza il poco più, per l'amaca e l'arco di rose), in verticale si allunga di un quarto in più (`1,22`), e la base
+  scende di mezza larghezza per ogni larghezza (la pendenza dei lati dei rombi, `0,5`). **`amaca` e `arco-rose`**, il cui disegno ha già una sua prospettiva e con `0,5` si storce, si inclinano di `0,3` e si
+  allungano di `1 + 0,44 × pendenza` (1,13); per gli altri vale la regola `1 + 0,44 × 0,5 = 1,22`. Il piede è il centro della tessera (senza lo scarto in giù delle altre cose), non fanno ombra. `turned` le
+  mette sull'altro asse (disegno specchiato). **La staccionata si unisce da sola ai vicini** (`GardenLinks.arms`): a ogni lato del rombo con una staccionata accanto (stessa colonna ±1 o stessa riga ±1, non le diagonali) il pezzo ha un braccio, mezzo pezzo dritto
+  dal centro della tessera al lato. Senza vicini va dritta, e `turned` sceglie il verso (falso: dal lato in alto a sinistra a quello in basso a destra, cioè lungo le colonne; vero: lungo le righe); con un vicino
+  solo prosegue dritta nel suo verso (`turned` non conta); con due ad angolo fa un angolo, con tre una T, con quattro una croce. La forma non sta nel file: si ricava dalle copie sull'isola. **La staccionata si ripete**: una volta trovata (anche una sola copia) se ne mettono quante si vuole, fino al massimo di 150 per isola; il contatore
+  delle copie trovate non conta quelle messe (in lettura, di una cosa che si ripete basta una copia trovata, non si alza al numero di quelle messe). Di tutte le altre se ne possono mettere
   **al massimo quante copie si sono trovate**. In lettura, una copia che sta sul sentiero o sulla casa della sua isola si sposta sulla tessera libera più vicina; si toglie
   (torna tra quelle da mettere) solo se è fuori dall'isola o sopra un'altra; una di un oggetto sconosciuto si tiene. (Una cosa di un animale sull'isola sbagliata non si tocca qui: vedi `islandRules`.)
 - `corners` (facoltativo; assente se non se n'è sbloccato nessuno): gli **angoli** sbloccati, nell'ordine in cui si sono trovati (`te`, `lettura`, `orto`, `gatto`, `porcellino`,
@@ -321,6 +332,8 @@ Versione 3 (Mac 0.10.0): il giardino non ha più punti né negozio né prato lib
   stesso focus dà un altro regalo** (la rarità si pesca fra quelli dell'elenco, e «uno che non hai ancora» pure), quindi due app che non usano lo stesso elenco danno regali diversi sugli stessi dati: chi porta
   il giardino su Windows deve calcolare l'elenco allo stesso modo (`Garden.dropPool`). Vale per i regali di fine focus, per gli ospiti e per i regali dei punti convertiti; il regalo di benvenuto non tira (è
   il primo oggetto dell'animale che manca). I file di `tests/fixtures/attesi/` sono calcolati con l'elenco intero (tutte le isole aperte).
+  **Le cose che si ripetono, una volta trovate, escono dall'elenco** (oggi la staccionata: una seconda non serve a niente, e il regalo servirebbe a poco): vale per ogni tiro, quindi anche questo
+  cambia il regalo di uno stesso focus rispetto a chi non l'ha ancora trovata.
 - **Versioni vecchie**: si leggono ancora. La **2** aveva il prato libero: `placements` con `x`, `y` (frazioni della scena) e `companions` con `x`, `y`; ogni
   cosa va sulla tessera libera più vicina (`GardenLayout.tile(fromLegacy:size:)`, poi `nearestOrigin`), nell'ordine del file, e quello che non ci sta torna
   tra le copie da mettere. La **1** (`unlocked`, `spent`): gli oggetti sbloccati diventano trovati (con tante copie quante ne erano nel prato, almeno una),

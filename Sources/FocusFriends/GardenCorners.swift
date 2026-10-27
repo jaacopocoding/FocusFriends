@@ -55,7 +55,7 @@ enum GardenCorners {
     }
 
     /// La distanza fra due copie in tessere (la maggiore tra colonne e righe): 1 se si toccano, 2 se c'è una tessera libera in mezzo,
-    /// 0 se sono la stessa. Conta il bordo dell'ingombro, non il centro: due cose da 2×2 vicine si toccano.
+    /// 0 se sono la stessa. Conta il bordo dell'ingombro, non il centro (oggi ogni cosa sta su una tessera sola: bordo e centro coincidono).
     static func distance(_ a: GardenPlacement, _ b: GardenPlacement) -> Int {
         guard let first = box(of: a), let second = box(of: b) else { return Int.max }
         if a.id == b.id { return 0 }

@@ -188,9 +188,10 @@ final class Garden {
             }
             if contents.version >= 2, let saved = contents.drops {
                 drops = saved
-                // Mai meno copie trovate di quante ne stanno sull'isola.
-                for (item, count) in Dictionary(grouping: allPlacements, by: { $0.item }).mapValues({ $0.count }) where (drops.found[item] ?? 0) < count {
-                    drops.found[item] = count
+                // Mai meno copie trovate di quante ne stanno sull'isola (di una cosa che si ripete basta che ce ne sia una: se ne mettono quante si vuole).
+                for (item, placed) in Dictionary(grouping: allPlacements, by: { $0.item }).mapValues({ $0.count }) {
+                    let needed = GardenCatalog.item(withID: item)?.repeatable == true ? 1 : placed
+                    if (drops.found[item] ?? 0) < needed { drops.found[item] = needed }
                 }
                 lastRolled = contents.lastRolled
                 unseen = Set(contents.unseen ?? [])
@@ -385,9 +386,10 @@ final class Garden {
         drops.found[id] ?? 0
     }
 
-    /// Quante sono ancora da mettere nel prato.
+    /// Quante sono ancora da mettere nel prato. Di una cosa che si ripete (la staccionata), una volta trovata, ce n'è sempre una: se ne mettono quante si vuole.
     func available(_ id: String) -> Int {
-        max(copies(of: id) - count(of: id), 0)
+        if GardenCatalog.item(withID: id)?.repeatable == true, copies(of: id) > 0 { return 1 }
+        return max(copies(of: id) - count(of: id), 0)
     }
 
     /// L'oggetto è nell'album? (In modalità sviluppatore sono tutti.)
@@ -413,10 +415,13 @@ final class Garden {
     /// Le isole aperte: quelle dei compagni sbloccati (tutte, se nessuno ha detto chi è sbloccato).
     private func isOpen(_ island: String) -> Bool { isIslandOpen?(island) ?? true }
 
-    /// Gli oggetti che un regalo può essere: gli universali e quelli degli animali sbloccati, nell'ordine del catalogo. Con un altro elenco lo stesso focus dà un altro
-    /// regalo: l'elenco fa parte del tiro (vedi FORMATI.md).
+    /// Gli oggetti che un regalo può essere: gli universali e quelli degli animali sbloccati, nell'ordine del catalogo, tranne quelli che si ripetono e ci sono già (una seconda
+    /// staccionata non servirebbe a niente). Con un altro elenco lo stesso focus dà un altro regalo: l'elenco fa parte del tiro (vedi FORMATI.md).
     var dropPool: [GardenItem] {
-        GardenCatalog.items.filter { item in item.island.map(isOpen) ?? true }
+        GardenCatalog.items.filter { item in
+            guard !(item.repeatable && copies(of: item.id) > 0) else { return false }
+            return item.island.map(isOpen) ?? true
+        }
     }
 
     /// Il regalo di un focus appena finito: tira (una volta sola per focus), e se esce qualcosa lo mette subito nel prato.

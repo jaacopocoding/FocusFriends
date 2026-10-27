@@ -815,7 +815,7 @@ section("Giardino: catalogo e scena")
 let allItems = GardenCatalog.items
 check(Set(allItems.map { $0.id }).count == allItems.count, "id tutti diversi")
 check(allItems.count == 36 && GardenCategory.allCases.allSatisfy { !GardenCatalog.items(in: $0).isEmpty }, "36 oggetti, ogni scheda ne ha")
-check(allItems.allSatisfy { $0.height > 0 && $0.price >= 0 && !$0.name.isEmpty }, "altezze, prezzi e nomi sensati")
+check(allItems.allSatisfy { ($0.height > 0 || $0.axial) && $0.price >= 0 && !$0.name.isEmpty }, "altezze (tranne quelle sul lato), prezzi e nomi sensati")
 check(allItems.filter { $0.price == 0 }.count == 4, "quattro oggetti ci sono fin dall'inizio")
 check(GardenCatalog.item(withID: "tulipani")?.resource == "giardino_tulipani" && GardenCatalog.item(withID: "no") == nil, "le risorse")
 check(allItems.allSatisfy { FileManager.default.fileExists(atPath: "assets/giardino/\($0.id).png") }
@@ -824,9 +824,22 @@ check(GardenCatalog.companionHeight(for: "gattino") > 0 && GardenCatalog.compani
 
 // l'isola a tessere: impronte, sentiero, dove ci stanno le cose
 section("Giardino: l'isola a tessere")
-check(allItems.allSatisfy { (1...2).contains($0.footprint.cols) && (1...2).contains($0.footprint.rows) }, "ogni oggetto occupa una o due tessere per lato")
-check(GardenCatalog.item(withID: "altalena")?.footprint == GardenFootprint(cols: 2, rows: 2) && GardenCatalog.item(withID: "panchina")?.footprint == GardenFootprint(cols: 2, rows: 1)
-      && GardenCatalog.item(withID: "lampione")?.footprint == GardenFootprint(cols: 1, rows: 1), "le impronte (altalena 2×2, panchina 2×1, lampione 1×1)")
+let longItems = ["amaca", "arco-rose"]
+check(allItems.filter { $0.footprint != GardenFootprint(cols: 1, rows: 1) }.map { $0.id }.sorted() == longItems
+      && longItems.allSatisfy { GardenCatalog.item(withID: $0)?.footprint == GardenFootprint(cols: 2, rows: 1) },
+      "ogni oggetto occupa una sola tessera, tranne l'amaca e l'arco di rose: due in fila (2×1), da un capo all'altro")
+check(GardenCatalog.item(withID: "altalena")?.footprint == GardenFootprint(cols: 1, rows: 1) && GardenCatalog.item(withID: "panchina")?.footprint == GardenFootprint(cols: 1, rows: 1)
+      && GardenCatalog.item(withID: "picnic")?.footprint == GardenFootprint(cols: 1, rows: 1) && GardenCatalog.item(withID: "cancelletto")?.footprint == GardenFootprint(cols: 1, rows: 1),
+      "anche quelli che prima ne prendevano due o quattro (altalena, panchina, tappeto da picnic, staccionata)")
+check(GardenCatalog.item(withID: "amaca")?.sides == 2 && GardenCatalog.item(withID: "cancelletto")?.sides == 1
+      && GardenCatalog.item(withID: "amaca")?.gardenResource == "giardino_amaca@asse2" && GardenCatalog.item(withID: "arco-rose")?.gardenResource == "giardino_arco-rose@asse2"
+      && GardenCatalog.item(withID: "bandierine")?.gardenResource == "giardino_bandierine@asse", "le cose lunghe due lati hanno il disegno lungo due lati")
+check(allItems.allSatisfy { $0.slope > 0 && $0.slope <= 0.5 } && allItems.filter { $0.slope != 0.5 }.map { $0.id }.sorted() == ["amaca", "arco-rose"],
+      "i lati dei rombi pendono di 0,5; solo l'amaca e l'arco di rose, già disegnati in prospettiva, si inclinano meno (0,3)")
+let hammockPlacement = GardenPlacement(item: "amaca", tile: GardenTile(col: 2, row: 1))
+check(GardenLayout.occupiedTiles([hammockPlacement]) == [GardenTile(col: 2, row: 1), GardenTile(col: 3, row: 1)]
+      && GardenLayout.occupiedTiles([GardenPlacement(item: "arco-rose", tile: GardenTile(col: 2, row: 1), turned: true)]) == [GardenTile(col: 2, row: 1), GardenTile(col: 2, row: 2)],
+      "l'amaca occupa due tessere in fila lungo le colonne, e girata lungo le righe")
 check(GardenFootprint(cols: 2, rows: 1).turned == GardenFootprint(cols: 1, rows: 2) && GardenFootprint(cols: 2, rows: 1).applying(turned: false) == GardenFootprint(cols: 2, rows: 1),
       "girata, l'impronta scambia larghezza e profondità")
 check(GardenIsland.size(completedSpreads: 0) == 8 && GardenIsland.size(completedSpreads: 1) == 9 && GardenIsland.size(completedSpreads: 2) == 10
@@ -846,11 +859,13 @@ check(!GardenLayout.canPlace(two, at: GardenTile(col: 7, row: 7), size: 8, occup
       && !GardenLayout.canPlace(two, at: GardenTile(col: 2, row: 2), size: 8, occupied: noTiles), "un 2×2 deve starci tutto, e senza toccare il sentiero")
 let swingPlacement = GardenPlacement(item: "altalena", tile: GardenTile(col: 1, row: 1))
 let swingTiles = GardenLayout.occupiedTiles([swingPlacement])
-check(swingTiles == [GardenTile(col: 1, row: 1), GardenTile(col: 2, row: 1), GardenTile(col: 1, row: 2), GardenTile(col: 2, row: 2)], "l'altalena occupa quattro tessere")
-check(!GardenLayout.canPlace(one, at: GardenTile(col: 2, row: 2), size: 8, occupied: swingTiles) && GardenLayout.canPlace(one, at: GardenTile(col: 0, row: 0), size: 8, occupied: swingTiles)
+check(swingTiles == [GardenTile(col: 1, row: 1)], "l'altalena occupa una tessera")
+check(Set(GardenLayout.tiles(of: two, at: GardenTile(col: 1, row: 1))) == [GardenTile(col: 1, row: 1), GardenTile(col: 2, row: 1), GardenTile(col: 1, row: 2), GardenTile(col: 2, row: 2)],
+      "un 2×2 (la griglia sa farlo, anche se nel catalogo non ce ne sono) occupa quattro tessere")
+check(!GardenLayout.canPlace(one, at: GardenTile(col: 1, row: 1), size: 8, occupied: swingTiles) && GardenLayout.canPlace(one, at: GardenTile(col: 2, row: 2), size: 8, occupied: swingTiles)
       && GardenLayout.occupiedTiles([swingPlacement], skipping: swingPlacement.id).isEmpty, "non si copre un'altra cosa (ma si ignora quella che si sta spostando)")
 let benchTurned = GardenPlacement(item: "panchina", tile: GardenTile(col: 1, row: 0), turned: true)
-check(GardenLayout.occupiedTiles([benchTurned]) == [GardenTile(col: 1, row: 0), GardenTile(col: 1, row: 1)], "la panchina girata occupa due tessere in fila nell'altro senso")
+check(GardenLayout.occupiedTiles([benchTurned]) == [GardenTile(col: 1, row: 0)], "la panchina girata occupa la stessa tessera")
 check(GardenLayout.nearestOrigin(to: GardenTile(col: 3, row: 3), footprint: one, size: 8, occupied: noTiles) == GardenTile(col: 3, row: 2), "il posto libero più vicino a una tessera del sentiero")
 check(GardenLayout.nearestOrigin(to: GardenTile(col: 1, row: 1), footprint: one, size: 8, occupied: noTiles) == GardenTile(col: 1, row: 1), "se il posto è libero, è quello")
 check(GardenLayout.nearestOrigin(to: GardenTile(col: 0, row: 0), footprint: two, size: 2, occupied: noTiles) == GardenTile(col: 0, row: 0)
@@ -957,18 +972,18 @@ check(crowd.islandSize == 10, "sviluppatore: l'album è tutto completo, l'isola 
 for tile in allTiles10 { _ = crowd.place("erba-alta", at: tile) }
 check(crowd.placements.count == 100 - GardenPaths.tiles(island: crowd.homeIsland, size: 10).count, "tutta l'isola riempita, tranne le tessere del sentiero")
 check(crowd.place("erba-alta", at: GardenTile(col: 0, row: 0)) == nil, "e poi non ci sta più niente")
-// girare: la panchina (2×1) girata ha bisogno dell'altra tessera
+// girare: una cosa sta su una tessera, quindi si gira sul posto (è lo specchio del disegno), anche con altre cose tutt'attorno, e si ricorda
 let turnDir = tempDirectory()
 let turnGarden = Garden(directory: turnDir)
-let turnBench = turnGarden.place("panchina", at: GardenTile(col: 0, row: 0))
-check(turnBench != nil && turnGarden.occupiedTiles() .contains(GardenTile(col: 1, row: 0)), "la panchina occupa due tessere")
+let turnBench = turnGarden.place("panchina", at: GardenTile(col: 1, row: 1))
+check(turnBench != nil && turnGarden.occupiedTiles().contains(GardenTile(col: 1, row: 1)) && !turnGarden.occupiedTiles().contains(GardenTile(col: 2, row: 1)), "la panchina occupa una tessera")
 if let turnBench {
-    _ = turnGarden.place("lampione", at: GardenTile(col: 0, row: 1))
-    check(!turnGarden.rotate(turnBench.id) && turnGarden.placements.first(where: { $0.id == turnBench.id })?.turned == false, "girata, ci darebbe contro il lampione: resta com'era")
-    if let lamp = turnGarden.placements.first(where: { $0.item == "lampione" }) { turnGarden.remove(lamp.id) }
+    for (col, row) in [(0, 1), (2, 1), (1, 0), (1, 2)] { _ = turnGarden.place("lampione", at: GardenTile(col: col, row: row)) }
+    let around = turnGarden.occupiedTiles()
     check(turnGarden.rotate(turnBench.id) && turnGarden.placements.first(where: { $0.id == turnBench.id })?.turned == true
-          && turnGarden.occupiedTiles().contains(GardenTile(col: 0, row: 1)) && !turnGarden.occupiedTiles().contains(GardenTile(col: 1, row: 0)), "girata, occupa l'altro senso")
+          && turnGarden.placements.first(where: { $0.id == turnBench.id })?.tile == GardenTile(col: 1, row: 1) && turnGarden.occupiedTiles() == around, "girata resta sulla sua tessera, anche con altre cose accanto")
     check(Garden(directory: turnDir).placements.first(where: { $0.id == turnBench.id })?.turned == true, "e si ricorda alla riapertura")
+    check(turnGarden.rotate(turnBench.id) && turnGarden.placements.first(where: { $0.id == turnBench.id })?.turned == false, "girata ancora, torna com'era")
 }
 UserDefaults.standard.removeObject(forKey: Profile.developerKey)
 // l'isola cresce con le doppie pagine complete (e non si rimpicciolisce sotto a quello che c'è già)
@@ -1339,9 +1354,9 @@ let cornerTable = put("tavolino", 1, 1)
 check(GardenCorners.distance(cornerTable, cornerTable) == 0, "da sé stessa: 0")
 check(GardenCorners.distance(cornerTable, put("sdraio", 2, 1)) == 1 && GardenCorners.distance(cornerTable, put("sdraio", 2, 2)) == 1, "attaccate (anche in diagonale): 1")
 check(GardenCorners.distance(cornerTable, put("sdraio", 3, 1)) == 2 && GardenCorners.distance(cornerTable, put("sdraio", 4, 1)) == 3, "una tessera libera in mezzo: 2; due: 3")
-check(GardenCorners.distance(put("panchina", 2, 1), put("lampione", 4, 1)) == 1 && GardenCorners.distance(put("panchina", 2, 1), put("lampione", 4, 3)) == 2,
-      "una cosa da due tessere conta fino al suo bordo")
-check(GardenCorners.distance(put("panchina", 2, 1, turned: true), put("lampione", 3, 3)) == 1, "e girata cambia l'ingombro")
+check(GardenCorners.distance(put("panchina", 2, 1), put("lampione", 4, 1)) == 2 && GardenCorners.distance(put("panchina", 2, 1), put("lampione", 4, 3)) == 2,
+      "ogni cosa sta su una tessera: si conta da quella")
+check(GardenCorners.distance(put("panchina", 2, 1, turned: true), put("lampione", 4, 1)) == 2, "e girata la distanza non cambia")
 // un angolo si forma, o no
 check(GardenCorners.formed(by: []).isEmpty && GardenCorners.formed(by: [cornerTable]).isEmpty, "da sole le cose non fanno angoli")
 let teaCorner = GardenCorners.formed(by: [cornerTable, put("sdraio", 3, 1)])
@@ -2572,7 +2587,7 @@ var migDrops = GardenDropState.starting()
 for id in migEntries where GardenCatalog.item(withID: id)?.isStarter != true { migDrops.found[id, default: 0] += 1 }
 migDrops.found["tiragraffi"] = 3            // due copie ancora da mettere
 migDrops.found["cesto-cuscino"] = 2
-let migPlacements = scatteredPlacements(migEntries, island: "ciccio", omitIsland: true)
+let migPlacements = scatteredPlacements(migEntries, island: "ciccio", stride: 27, omitIsland: true)
 check(migPlacements.count == migEntries.count, "le prove: tutte le copie hanno un posto sull'isola di casa")
 func migFile(_ dir: URL, extra: [String: Any] = ["home": "ciccio"], placements: [[String: Any]] = migPlacements) {
     writeRawGarden(dir, extra: extra, drops: migDrops, placements: placements)
@@ -2769,6 +2784,60 @@ for offset in 0..<365 {
     }
 }
 check(Double(hostsSeen) / Double(hostsDays) <= 3.5, "con le cose di un'isola curata vengono al massimo tre o quattro ospiti al giorno (\(Double(hostsSeen) / Double(hostsDays)))")
+
+// ---------------------------------------------------------------- le cose sul lato e la staccionata che si ripete
+section("Giardino: le cose sul lato e la staccionata che si ripete")
+let sideItems = GardenCatalog.items.filter { $0.axial }
+check(sideItems.map { $0.id }.sorted() == ["altalena", "amaca", "arco-rose", "bandierine", "cancelletto"], "le cose piatte stanno sul lato, da un lato all'altro della tessera (staccionata, bandierine, arco di rose, amaca, altalena)")
+check(sideItems.allSatisfy { $0.height == 0 && !$0.castsShadow } && GardenCatalog.items.filter { !$0.axial }.allSatisfy { $0.height > 0 }, "sul lato l'altezza viene dal disegno e non c'è ombra; le altre cose hanno la loro altezza")
+check(GardenCatalog.item(withID: "cancelletto")?.gardenResource == "giardino_cancelletto@asse" && GardenCatalog.item(withID: "cancelletto")?.resource == "giardino_cancelletto"
+      && GardenCatalog.item(withID: "lampione")?.gardenResource == "giardino_lampione", "sull'isola il disegno è quello sul lato; nell'album e nella cassetta quello di fronte")
+check(GardenCatalog.items.filter { $0.repeatable }.map { $0.id } == ["cancelletto"], "una sola cosa si ripete: la staccionata")
+// una volta trovata, se ne mettono quante si vuole
+let fenceDir = tempDirectory()
+var fenceDrops = GardenDropState.starting()
+fenceDrops.found["cancelletto"] = 1
+fenceDrops.found["lampione"] = 1
+writeRawGarden(fenceDir, extra: ["home": "ciccio"], drops: fenceDrops, placements: [])
+let fenceGarden = Garden(directory: fenceDir)
+check(fenceGarden.available("cancelletto") == 1 && fenceGarden.tray(on: "ciccio").contains { $0.item.id == "cancelletto" }, "la staccionata trovata è sempre nella cassetta")
+for index in 0..<12 { _ = fenceGarden.place("cancelletto", at: freeTile(fenceGarden, on: "ciccio"), turned: index % 3 == 0, on: "ciccio") }
+check(fenceGarden.count(of: "cancelletto") == 12 && fenceGarden.copies(of: "cancelletto") == 1 && fenceGarden.available("cancelletto") == 1, "se ne mettono dodici con una copia sola, e ce n'è ancora")
+check(fenceGarden.allPlacements.filter { $0.item == "cancelletto" }.filter { $0.turned }.count == 4, "ognuna girata come si è voluto")
+let reopenedFence = Garden(directory: fenceDir)
+check(reopenedFence.count(of: "cancelletto") == 12 && reopenedFence.copies(of: "cancelletto") == 1, "alla riapertura sono ancora dodici, e le copie trovate non si gonfiano")
+_ = fenceGarden.place("lampione", at: freeTile(fenceGarden, on: "ciccio"), on: "ciccio")
+check(fenceGarden.place("lampione", at: freeTile(fenceGarden, on: "ciccio"), on: "ciccio") == nil, "le altre cose restano quante sono le copie trovate")
+let noFence = Garden(directory: tempDirectory())
+check(noFence.available("cancelletto") == 0 && noFence.place("cancelletto", at: GardenTile(col: 0, row: 7), on: "ciccio") == nil, "prima di trovarla non c'è")
+// i regali: una seconda staccionata non servirebbe, quindi non esce più
+check(noFence.dropPool.contains { $0.id == "cancelletto" } && !fenceGarden.dropPool.contains { $0.id == "cancelletto" }, "trovata, la staccionata esce dall'elenco dei regali")
+var fenceGifts = 0
+var fenceState = fenceGarden.drops
+for number in 0..<400 {
+    if GardenDrops.roll(sessionID: "STACCIONATA-\(number)", streakDays: 1 + number % 9, seconds: 3600, state: &fenceState, pool: fenceGarden.dropPool)?.item == "cancelletto" { fenceGifts += 1 }
+}
+check(fenceGifts == 0, "e in quattrocento tiri non è mai uscita")
+// la staccionata si unisce da sola ai vicini: dritta, angolo, T, croce
+check(GardenCatalog.items.filter { $0.joins }.map { $0.id } == ["cancelletto"], "una sola cosa si unisce alle uguali: la staccionata")
+check(GardenCatalog.item(withID: "cancelletto")?.gardenResource(arms: [.upLeft, .downRight]) == "giardino_cancelletto@asse#9"
+      && GardenCatalog.item(withID: "cancelletto")?.gardenResource(arms: [.upRight, .downLeft]) == "giardino_cancelletto@asse#6", "il disegno dice quali bracci ha")
+func fenceTile(_ col: Int, _ row: Int) -> GardenTile { GardenTile(col: col, row: row) }
+let fenceHere = fenceTile(3, 3)
+check(GardenLinks.arms(at: fenceHere, among: [], turned: false) == [.upLeft, .downRight] && GardenLinks.arms(at: fenceHere, among: [], turned: true) == [.upRight, .downLeft],
+      "da sola va dritta, in un verso o nell'altro come la si gira")
+check(GardenLinks.arms(at: fenceHere, among: [fenceTile(4, 3)], turned: true) == [.upLeft, .downRight] && GardenLinks.arms(at: fenceHere, among: [fenceTile(2, 3)], turned: true) == [.upLeft, .downRight]
+      && GardenLinks.arms(at: fenceHere, among: [fenceTile(3, 2)], turned: false) == [.upRight, .downLeft] && GardenLinks.arms(at: fenceHere, among: [fenceTile(3, 4)], turned: false) == [.upRight, .downLeft],
+      "con un vicino solo prosegue dritta nel suo verso (e la girata non conta)")
+check(GardenLinks.arms(at: fenceHere, among: [fenceTile(2, 3), fenceTile(4, 3)], turned: true) == [.upLeft, .downRight]
+      && GardenLinks.arms(at: fenceHere, among: [fenceTile(3, 2), fenceTile(3, 4)], turned: false) == [.upRight, .downLeft], "con due vicini di fila resta dritta")
+check(GardenLinks.arms(at: fenceHere, among: [fenceTile(2, 3), fenceTile(3, 4)], turned: false) == [.upLeft, .downLeft]
+      && GardenLinks.arms(at: fenceHere, among: [fenceTile(2, 3), fenceTile(3, 2)], turned: false) == [.upLeft, .upRight]
+      && GardenLinks.arms(at: fenceHere, among: [fenceTile(4, 3), fenceTile(3, 4)], turned: false) == [.downRight, .downLeft]
+      && GardenLinks.arms(at: fenceHere, among: [fenceTile(4, 3), fenceTile(3, 2)], turned: false) == [.downRight, .upRight], "con due vicini ad angolo fa l'angolo, nei quattro versi")
+check(GardenLinks.arms(at: fenceHere, among: [fenceTile(2, 3), fenceTile(4, 3), fenceTile(3, 4)], turned: false) == [.upLeft, .downRight, .downLeft]
+      && GardenLinks.arms(at: fenceHere, among: [fenceTile(2, 3), fenceTile(4, 3), fenceTile(3, 2), fenceTile(3, 4)], turned: false).rawValue == 15, "con tre vicini una T, con quattro una croce")
+check(GardenLinks.arms(at: fenceHere, among: [fenceTile(4, 4), fenceTile(2, 2), fenceTile(4, 2), fenceTile(2, 4)], turned: false) == [.upLeft, .downRight], "i vicini in diagonale non contano")
 
 print("\n\(checks) controlli, \(failures) falliti")
 exit(failures == 0 ? 0 : 1)

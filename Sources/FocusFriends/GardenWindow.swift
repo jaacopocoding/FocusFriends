@@ -44,6 +44,8 @@ final class GardenView: NSView, NSViewToolTipOwner {
     private var carryMoved = false
     /// Se la copia che si trascina è girata (R, o il tasto destro).
     private var carryTurned = false
+    /// Come stava girata l'ultima cosa che si ripete (la staccionata): la prossima parte così, perché una fila si fa tutta nello stesso verso.
+    private var repeatTurned = false
 
     // Il fumetto di un compagno toccato.
     private var bubble: (petID: String, text: String)?
@@ -441,12 +443,39 @@ final class GardenView: NSView, NSViewToolTipOwner {
         var island = ""
     }
 
+    /// Dove stanno i piedi di un oggetto: al centro dell'ingombro, un po' sotto (una cosa sul lato ha la base che passa per il centro della tessera, proprio lì).
+    /// Le tessere di un'isola con una cosa che si unisce alle uguali (la staccionata), per oggetto; senza quella che si sta spostando (non conta per i vicini).
+    private func linkedTiles(on island: String) -> [String: Set<GardenTile>] {
+        var result: [String: Set<GardenTile>] = [:]
+        for placement in garden.placements(on: island) where GardenCatalog.item(withID: placement.item)?.joins == true {
+            if carryMoved, carry == .placed(placement.id) { continue }
+            result[placement.item, default: []].insert(placement.tile)
+        }
+        return result
+    }
+
+    /// Il disegno di una copia e se si specchia: quelle che si uniscono ai vicini hanno i bracci che servono (e non si specchiano: la girata è già nei bracci).
+    private func look(of item: GardenItem, at tile: GardenTile, turned: Bool, linked: [String: Set<GardenTile>]) -> (resource: String, turned: Bool) {
+        guard item.joins else { return (item.gardenResource, turned) }
+        return (item.gardenResource(arms: GardenLinks.arms(at: tile, among: linked[item.id] ?? [], turned: turned)), false)
+    }
+
+    private func standingPoint(of item: GardenItem, ground: NSPoint, iso: Iso) -> NSPoint {
+        NSPoint(x: ground.x, y: ground.y + iso.tileH * (item.axial ? 0 : Self.feetOffset))
+    }
+
     private func entity(kind: Kind, resource: String, referenceHeight: Double, feet: NSPoint, shadowWidth: CGFloat?, turned: Bool,
                         depth: Double, iso: Iso) -> Entity? {
         guard let sprite = GardenSprites.sprite(resource) else { return nil }
-        let height = CGFloat(referenceHeight) * iso.scale
-        let width = height * sprite.aspect
-        let rect = NSRect(x: feet.x - width / 2, y: feet.y - height, width: width, height: height)
+        var height = CGFloat(referenceHeight) * iso.scale
+        var width = height * sprite.aspect
+        // una cosa sul lato è larga un lato di tessera, e la sua base obliqua ha i piedi a metà
+        if let side = sprite.sideWidth {
+            let scale = iso.tileW / 2 / side
+            width = sprite.source.width * scale
+            height = sprite.source.height * scale
+        }
+        let rect = NSRect(x: feet.x - sprite.feetAcross * width, y: feet.y - height + sprite.footDrop * height, width: width, height: height)
         var shadow: NSRect?
         if let shadowWidth {
             let shadowHeight = max(shadowWidth * 0.34, 5)
@@ -478,16 +507,18 @@ final class GardenView: NSView, NSViewToolTipOwner {
         var result: [Entity] = []
         // le bandierine di una festa in giardino ondeggiano di più
         let party = Set(garden.formedCorners["festa"] ?? [])
+        let linked = linkedTiles(on: garden.shownIsland)
         for placement in garden.placements {
             guard let item = GardenCatalog.item(withID: placement.item) else { continue }
             if carryMoved, carry == .placed(placement.id) { continue }
             let footprint = item.footprint.applying(turned: placement.turned)
             let ground = iso.point(col: Double(placement.col) + Double(footprint.cols) / 2, row: Double(placement.row) + Double(footprint.rows) / 2)
-            let feet = NSPoint(x: ground.x, y: ground.y + iso.tileH * Self.feetOffset)
+            let feet = standingPoint(of: item, ground: ground, iso: iso)
             let front = Double(placement.col + footprint.cols - 1 + placement.row + footprint.rows - 1)
             let shadowWidth = item.castsShadow ? min(iso.tileW * 0.62 * CGFloat(max(footprint.cols, footprint.rows)), iso.tileW * 1.3) : nil
-            guard var made = entity(kind: .placed(placement.id), resource: item.resource, referenceHeight: item.height, feet: feet,
-                                    shadowWidth: shadowWidth, turned: placement.turned, depth: front + 0.5, iso: iso) else { continue }
+            let drawn = look(of: item, at: placement.tile, turned: placement.turned, linked: linked)
+            guard var made = entity(kind: .placed(placement.id), resource: drawn.resource, referenceHeight: item.height, feet: feet,
+                                    shadowWidth: shadowWidth, turned: drawn.turned, depth: front + 0.5, iso: iso) else { continue }
             made.sway = item.swayStrength * (party.contains(placement.id) ? 1.7 : 1)
             made.seed = Double(GardenDrops.hash(placement.id.uuidString) % 1000) / 1000
             made.tile = placement.tile
@@ -874,6 +905,8 @@ final class GardenView: NSView, NSViewToolTipOwner {
         if isCarryingPlaced { drawRemoveZone() }
         if let message {
             drawHint(message)
+        } else if carryMoved, !isCarryingCompanion, carry != nil {
+            drawHint("R per girarla", width: 200)
         } else if garden.placements.isEmpty && carry == nil {
             drawHint("Trova le figurine a fine focus: si mettono qui da sole.")
         }
@@ -940,7 +973,10 @@ final class GardenView: NSView, NSViewToolTipOwner {
         } else {
             _ = grassImages; _ = pathImages; _ = edgeImages; _ = darkEdgeImages
         }
-        for item in GardenCatalog.items { _ = GardenSprites.sprite(item.resource) }
+        for item in GardenCatalog.items {
+            _ = GardenSprites.sprite(item.resource)
+            if item.axial { _ = GardenSprites.sprite(item.gardenResource) }
+        }
         for pet in Pet.all { _ = GardenSprites.sprite(pet.iconResource) }
         let season = Season.of(Date())
         // le colline tinte (una per isola e quella al buio delle isole chiuse), le case e i pezzi dei ponti: senza, il primo disegno li prepara tutti insieme
@@ -1877,15 +1913,16 @@ final class GardenView: NSView, NSViewToolTipOwner {
         var height: Double = 100
         var shadowWidth: CGFloat? = iso.tileW * 0.5
         var footprint = GardenFootprint(cols: 1, rows: 1)
+        var ghostItem: GardenItem?
         switch current {
         case .placed(let id):
             if let placement = garden.placements.first(where: { $0.id == id }), let item = GardenCatalog.item(withID: placement.item) {
-                resource = item.resource; height = item.height; footprint = item.footprint.applying(turned: carryTurned)
+                resource = item.gardenResource; height = item.height; footprint = item.footprint.applying(turned: carryTurned); ghostItem = item
                 shadowWidth = item.castsShadow ? min(iso.tileW * 0.62 * CGFloat(max(footprint.cols, footprint.rows)), iso.tileW * 1.3) : nil
             }
         case .fresh(let id):
             if let item = GardenCatalog.item(withID: id) {
-                resource = item.resource; height = item.height; footprint = item.footprint.applying(turned: carryTurned)
+                resource = item.gardenResource; height = item.height; footprint = item.footprint.applying(turned: carryTurned); ghostItem = item
                 shadowWidth = item.castsShadow ? min(iso.tileW * 0.62 * CGFloat(max(footprint.cols, footprint.rows)), iso.tileW * 1.3) : nil
             }
         case .companion(let petID):
@@ -1893,17 +1930,23 @@ final class GardenView: NSView, NSViewToolTipOwner {
                 resource = pet.iconResource; height = GardenCatalog.companionHeight(for: petID)
             }
         }
-        guard let resource else { return }
+        guard var resource else { return }
+        var mirrored = carryTurned && { if case .companion = current { return false } else { return true } }()
+        // una staccionata che si sta mettendo si vede già unita ai vicini della tessera dove cadrebbe
+        if let ghostItem, ghostItem.joins {
+            let drawn = look(of: ghostItem, at: target.valid ? target.origin : GardenTile(col: -9, row: -9), turned: carryTurned, linked: linkedTiles(on: garden.shownIsland))
+            resource = drawn.resource
+            mirrored = drawn.turned
+        }
         let feet: NSPoint
         if target.valid {
             let ground = iso.point(col: Double(target.origin.col) + Double(footprint.cols) / 2, row: Double(target.origin.row) + Double(footprint.rows) / 2)
-            feet = NSPoint(x: ground.x, y: ground.y + iso.tileH * Self.feetOffset)
+            feet = ghostItem.map { standingPoint(of: $0, ground: ground, iso: iso) } ?? NSPoint(x: ground.x, y: ground.y + iso.tileH * Self.feetOffset)
         } else {
             feet = carryFeet
         }
         guard let made = entity(kind: .placed(UUID()), resource: resource, referenceHeight: height, feet: feet, shadowWidth: shadowWidth,
-                                turned: carryTurned && { if case .companion = current { return false } else { return true } }(),
-                                depth: 0, iso: iso) else { return }
+                                turned: mirrored, depth: 0, iso: iso) else { return }
         drawEntity(made, alpha: target.valid ? 0.95 : 0.6, lift: 6)
     }
 
@@ -1955,8 +1998,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
         }
     }
 
-    private func drawHint(_ string: String, y: CGFloat? = nil) {
-        let width: CGFloat = 520
+    private func drawHint(_ string: String, y: CGFloat? = nil, width: CGFloat = 520) {
         let rect = NSRect(x: (sceneW - width) / 2, y: y ?? sceneH - 50 - (trayVisible ? Self.trayHeight : 0), width: width, height: 34)
         let pill = NSBezierPath(roundedRect: rect, xRadius: 17, yRadius: 17)
         Paper.paper.withAlphaComponent(0.88).setFill()
@@ -2015,12 +2057,13 @@ final class GardenView: NSView, NSViewToolTipOwner {
 
     private func drawTrayPill() {
         let rect = trayPillRect
-        let count = trayItems().reduce(0) { $0 + $1.count }
+        // le cose che si ripetono ci sono sempre: non sono «da mettere» (e se ci sono solo quelle, niente numero)
+        let count = trayItems().filter { !$0.item.repeatable }.reduce(0) { $0 + $1.count }
         drawChip(rect, fill: NSColor(calibratedRed: 1, green: 0.99, blue: 0.94, alpha: 0.96), stroke: Paper.paperEdge)
         if let tray = tinted("tray.and.arrow.down", size: 13, color: Paper.accentPressed) {
             tray.draw(in: NSRect(x: rect.minX + 12, y: rect.midY - tray.size.height / 2, width: tray.size.width, height: tray.size.height))
         }
-        text("Da mettere · \(count)", in: NSRect(x: rect.minX + 34, y: rect.minY + 8, width: rect.width - 42, height: 16), font: smallFont)
+        text(count > 0 ? "Da mettere · \(count)" : "Da mettere", in: NSRect(x: rect.minX + 34, y: rect.minY + 8, width: rect.width - 42, height: 16), font: smallFont)
     }
 
     private func drawTrayCell(_ item: GardenItem, count: Int, in rect: NSRect) {
@@ -2041,8 +2084,8 @@ final class GardenView: NSView, NSViewToolTipOwner {
         var font = NSFont.systemFont(ofSize: 10, weight: .semibold)
         if (item.name as NSString).size(withAttributes: [.font: font]).width > rect.width - 8 { font = NSFont.systemFont(ofSize: 8.5, weight: .semibold) }
         text(item.name, in: NSRect(x: rect.minX + 2, y: rect.maxY - 17, width: rect.width - 4, height: 13), font: font, alignment: .center)
-        if count > 1 {
-            let label = "×\(count)"
+        if count > 1 || item.repeatable {
+            let label = item.repeatable ? "∞" : "×\(count)"
             let badgeFont = NSFont.systemFont(ofSize: 9.5, weight: .bold)
             let width = ceil((label as NSString).size(withAttributes: [.font: badgeFont]).width) + 10
             let badge = NSRect(x: rect.maxX - width - 3, y: rect.minY + 3, width: width, height: 15)
@@ -2105,6 +2148,11 @@ final class GardenView: NSView, NSViewToolTipOwner {
         }
         switch found.kind {
         case .placed(let id):
+            // due tocchi su una copia la girano
+            if event.clickCount == 2 {
+                turn(id)
+                return
+            }
             carry = .placed(id)
             carryTurned = garden.placements.first(where: { $0.id == id })?.turned ?? false
         case .companion(let petID):
@@ -2130,7 +2178,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
         }
         // Si prende una copia: un tocco la mette sull'isola, trascinando la si mette dove si lascia.
         carry = .fresh(cell.item.id)
-        carryTurned = false
+        carryTurned = cell.item.repeatable && repeatTurned
         carryGrab = .zero
         carryFeet = p
         needsDisplay = true
@@ -2201,6 +2249,11 @@ final class GardenView: NSView, NSViewToolTipOwner {
                 }
             } else if let target, target.valid {
                 garden.place(id, at: target.origin, turned: carryTurned)
+                // una staccionata si ripete: la cassetta resta a portata, e la prossima parte girata come questa
+                if GardenCatalog.item(withID: id)?.repeatable == true {
+                    repeatTurned = carryTurned
+                    trayOpen = true
+                }
             } else if sceneRect.contains(p), !overTray {
                 flash(wrongIslandLine(for: id) ?? "Lì non ci sta: serve una tessera libera, fuori dal sentiero.")
             }
@@ -2255,7 +2308,19 @@ final class GardenView: NSView, NSViewToolTipOwner {
 
     @objc private func turnFromMenu(_ sender: NSMenuItem) {
         guard let id = sender.representedObject as? UUID else { return }
+        turn(id)
+    }
+
+    private func turn(_ id: UUID) {
         if !garden.rotate(id) { flash("Girata non ci sta: c'è qualcosa accanto.") }
+        // una staccionata con dei vicini segue la fila: da sola non cambia
+        if let placement = garden.placements.first(where: { $0.id == id }), let item = GardenCatalog.item(withID: placement.item), item.joins {
+            let among = linkedTiles(on: garden.shownIsland)[item.id] ?? []
+            if GardenLinks.arms(at: placement.tile, among: among, turned: false) == GardenLinks.arms(at: placement.tile, among: among, turned: true) {
+                flash("La staccionata segue quelle accanto.")
+            }
+        }
+        needsDisplay = true
     }
 
     private func speak(_ petID: String) {
@@ -3121,17 +3186,19 @@ extension GardenView {
         let base = corner.col + corner.row
         let visible = sceneRect.insetBy(dx: -80, dy: -140)
         var result: [Entity] = []
+        let linked = linkedTiles(on: id)
         for placement in garden.placements(on: id) {
             guard let item = GardenCatalog.item(withID: placement.item) else { continue }
             if carryMoved, carry == .placed(placement.id) { continue }
             let footprint = item.footprint.applying(turned: placement.turned)
             let ground = iso.point(col: Double(placement.col) + Double(footprint.cols) / 2, row: Double(placement.row) + Double(footprint.rows) / 2)
             guard visible.contains(ground) else { continue }
-            let feet = NSPoint(x: ground.x, y: ground.y + iso.tileH * Self.feetOffset)
+            let feet = standingPoint(of: item, ground: ground, iso: iso)
             let front = Double(placement.col + footprint.cols - 1 + placement.row + footprint.rows - 1)
             let shadowWidth = item.castsShadow ? min(iso.tileW * 0.62 * CGFloat(max(footprint.cols, footprint.rows)), iso.tileW * 1.3) : nil
-            if var made = entity(kind: .placed(placement.id), resource: item.resource, referenceHeight: item.height, feet: feet, shadowWidth: shadowWidth,
-                                 turned: placement.turned, depth: base + front + 0.5, iso: iso) {
+            let drawn = look(of: item, at: placement.tile, turned: placement.turned, linked: linked)
+            if var made = entity(kind: .placed(placement.id), resource: drawn.resource, referenceHeight: item.height, feet: feet, shadowWidth: shadowWidth,
+                                 turned: drawn.turned, depth: base + front + 0.5, iso: iso) {
                 made.island = id
                 made.tile = placement.tile
                 result.append(made)

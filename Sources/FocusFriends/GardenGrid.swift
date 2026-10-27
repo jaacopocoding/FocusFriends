@@ -170,6 +170,36 @@ enum GardenLayout {
     ]
 }
 
+/// Le cose che si uniscono a quelle uguali accanto (la staccionata): da quali lati della tessera parte un pezzo, e quindi se è dritto, un angolo, una T o una croce. Solo Foundation, con prove.
+/// I lati sono quelli del rombo: una cosa dritta lungo le colonne va dal lato in alto a sinistra a quello in basso a destra, una lungo le righe da quello in alto a destra a quello in basso a sinistra.
+enum GardenLinks {
+    struct Arms: OptionSet, Hashable {
+        let rawValue: Int
+        /// Verso la tessera con una colonna in meno, una riga in meno, una riga in più, una colonna in più.
+        static let upLeft = Arms(rawValue: 1), upRight = Arms(rawValue: 2), downLeft = Arms(rawValue: 4), downRight = Arms(rawValue: 8)
+        var opposite: Arms {
+            var result: Arms = []
+            if contains(.upLeft) { result.insert(.downRight) }
+            if contains(.downRight) { result.insert(.upLeft) }
+            if contains(.upRight) { result.insert(.downLeft) }
+            if contains(.downLeft) { result.insert(.upRight) }
+            return result
+        }
+    }
+
+    /// I lati da cui parte il pezzo in `tile`: verso ogni vicino uguale (`among` sono le tessere con una cosa uguale). Senza vicini va dritto, nel verso scelto girandolo; con un vicino solo
+    /// prosegue dritto, nel verso del vicino (la girata non conta: il pezzo segue la fila).
+    static func arms(at tile: GardenTile, among linked: Set<GardenTile>, turned: Bool) -> Arms {
+        var arms: Arms = []
+        if linked.contains(GardenTile(col: tile.col - 1, row: tile.row)) { arms.insert(.upLeft) }
+        if linked.contains(GardenTile(col: tile.col, row: tile.row - 1)) { arms.insert(.upRight) }
+        if linked.contains(GardenTile(col: tile.col, row: tile.row + 1)) { arms.insert(.downLeft) }
+        if linked.contains(GardenTile(col: tile.col + 1, row: tile.row)) { arms.insert(.downRight) }
+        if arms.isEmpty { return turned ? [.upRight, .downLeft] : [.upLeft, .downRight] }
+        return arms.rawValue.nonzeroBitCount == 1 ? arms.union(arms.opposite) : arms
+    }
+}
+
 /// Il terreno dell'isola: quale delle tessere d'erba disegnate (assets/giardino/tessera_erba_<n>.png, dodici) va su ogni tessera. Sempre la
 /// stessa per la stessa tessera (non cambia da un'apertura all'altra) e non due uguali una accanto all'altra, quasi mai.
 enum GardenTerrain {
