@@ -64,7 +64,7 @@ Single user per Mac, no accounts, no network: all data is stored locally under
 | App type | Menu-bar "agent": `LSUIElement = true`, activation policy `.accessory` | `build.sh`, `AppDelegate.applicationDidFinishLaunching` |
 | Signing | Ad-hoc (`codesign --force --sign -`; `build.sh` stops with exit 1 if signing fails); not notarised, no hardened runtime or sandbox | `build.sh`, `README.md` "Scaricare e usare" |
 | Asset tooling | Python 3 scripts using Pillow and NumPy (not run at build time) | `tools/*.py` |
-| Tests | One hand-written Swift executable (`tests/main.swift`, 44 sections, 827 checks) that compiles twenty Foundation-only source files; no XCTest | `tests/run.sh` |
+| Tests | One hand-written Swift executable (`tests/main.swift`, 45 sections, 871 checks) that compiles twenty Foundation-only source files; no XCTest | `tests/run.sh` |
 | License | MIT (`LICENSE`); bundled music is CC0 (`CREDITS.md`) | `LICENSE`, `CREDITS.md` |
 | Swift toolchain version / Python version | Not pinned anywhere in the repository | **[unknown]** |
 
@@ -133,7 +133,7 @@ FocusFriends/
 │   ├── SubjectPrompt.swift       "What are you studying now?" card shown when a focus starts
 │   ├── ReflectionCard.swift      "How did it go?" card after a completed focus
 │   ├── DashboardWindow.swift     statistics window: DashboardView, DiaryView, DashboardController
-│   ├── GardenWindow.swift        garden window: GardenView (isometric island, placed objects, walking companions, the "Da mettere" tray, drag, zoom and pan), GardenController
+│   ├── GardenWindow.swift        garden window: GardenView (the world of four islands seen at an angle with one camera: scene cache, hills, grounds, houses, bridges and the arrival ceremony, placed objects, walking companions, guests, corners' stars, the "Da mettere" tray, drag, zoom and pan, island labels and padlocks), GardenController
 │   ├── AlbumWindow.swift         the album: AlbumView (cover, double pages, 3D opening and page turns on Core Animation layers), MeadowBackdrop (the meadow behind the book and the island), AlbumController
 │   ├── Sticker.swift             the figurina card (cream card, rarity border, number, name, ×N, NUOVA), drawn in a flipped view
 │   ├── GiftCard.swift            the figurina that appears beside the pet at the end of a focus (flip, shine), click-through panel
@@ -144,22 +144,22 @@ FocusFriends/
 │   ├── CustomTimers.swift        user-defined timer durations + TimerDialMath                           (Foundation only)
 │   ├── BreakCycle.swift          four-focus cycle counter for the long break                            (Foundation only)
 │   ├── CompanionRewards.swift    thresholds for unlocking companions                                    (Foundation only)
-│   ├── Garden.swift              giardino.json v3: copies found per object, drop counters, unseen/pending gifts, copies on the island (tile + turned), companion tiles; v1/v2 migration (Foundation only)
+│   ├── Garden.swift              giardino.json v4: copies found per object, drop counters, unseen/pending gifts, copies on each island (island + tile + turned), the home island, companion tiles, corners, guests, the built bridges and welcomed islands (with the welcome gifts); v1/v2/v3 migration (Foundation only)
 │   ├── GardenCorners.swift       the garden's "corners": which things placed close together make something happen, and which of them the placements form now (Foundation only)
 │   ├── GardenCompanions.swift    what the companions do at a corner: the poses (which frames, how fast, how long), who likes which corner, the standing places around a thing and the shortest walk there (Foundation only)
 │   ├── GardenVisitors.swift      the animal guests: who can come at which hour and season, what attracts each (a thing on the island, or a corner for the two rare ones), the entry route (Foundation only)
 │   ├── GardenSky.swift           the garden's sky: light by hour and season (`GardenSky.light`), lamps and fireflies, the motion of petals, leaves, snow and fireflies (Foundation only)
-│   ├── GardenGrid.swift          the island: GardenTile, GardenFootprint, GardenIsland (size, path), GardenLayout (canPlace, nearest free tile, legacy-spot mapping), legacy GardenSpot/GardenScene (Foundation only)
+│   ├── GardenGrid.swift          the islands and the world: GardenTile, GardenFootprint, GardenIsland (size, the old fixed path), GardenLayout (canPlace, nearest free tile, starter tiles, legacy-spot mapping), GardenTerrain (grass, path and detail tiles), GardenHill, GardenIslands (the four ids), GardenPaths (each island's own path), GardenLandmarks (each island's house), GardenBridge and GardenWorld (the 2×2 map, the four bridges, pending bridges and who is welcomed), legacy GardenSpot/GardenScene (Foundation only)
 │   ├── GardenDrops.swift         the end-of-focus drop: rarities, chances, pity, deterministic roll (FNV-1a + Mulberry32), simulate(), the sentences (Foundation only)
-│   ├── GardenCatalog.swift       the 36 objects (id, name, category, height, footprint, price → rarity), GardenPlacement (tile + turned) + GardenAlbum pages (Foundation only)
+│   ├── GardenCatalog.swift       the 36 objects (id, name, category, height, footprint, price → rarity, the animal's island), the welcome gift of an island, GardenPlacement (island + tile + turned) + GardenAlbum pages (Foundation only)
 │   ├── GardenPoints.swift        StudyStreak (streak with one frozen day) + GardenPoints (hours × multiplier)  (Foundation only)
 │   ├── AmbientSound.swift        AmbientSound, AmbientSettings, BackgroundChoice                        (Foundation only)
 │   ├── AmbientPlayer.swift       NoiseSynth (real-time synthesis) + AmbientPlayer (AVAudioEngine wrapper)
 │   ├── MusicLibrary.swift        MusicSource, MusicLibrary (file discovery, shuffle, titles), MusicSettings  (Foundation only)
 │   └── MusicPlayer.swift         AVAudioPlayer-based music playback with queue and fades
 ├── tests/
-│   ├── main.swift                hand-rolled test executable (check()/section()), 44 sections, 827 checks
-│   ├── run.sh                    compiles 17 source files + tests/main.swift into build/tests/stats and runs it
+│   ├── main.swift                hand-rolled test executable (check()/section()), 45 sections, 871 checks
+│   ├── run.sh                    compiles 20 source files + tests/main.swift into build/tests/stats and runs it
 │   ├── genera-attesi.sh          builds and runs tests/genera-attesi/main.swift: for every folder in tests/fixtures/ writes what this app derives from it (the expected results the Windows port is compared with)
 │   ├── simula-regali.sh          simulates the end-of-focus drops over 30/60/90 days of studying (how long an album takes; used to tune GardenDrops)
 │   ├── genera-rumore.sh          same idea for the ambient-noise synthesiser (tests/fixtures/rumore.json)
@@ -175,6 +175,8 @@ FocusFriends/
 │   ├── cutout_paesaggio.py       the landscape sheets, summer and winter (house, trees, firs, bushes, hedges, fence, logs on magenta, not in a grid) → paesaggio_<name>.png, paesaggio_inverno_<name>.png
 │   ├── prepara_sfondo.py         sfondo_original.png → sfondo.png (2× upscale, covers the lake islet, composes the cottage and trees) and the same for the frozen lake → sfondo_inverno.png; prints the chimney/window positions
 │   ├── prepara_collina.py        the hill under the island: Gemini's sheet (hill with a magenta diamond hole on top) → collina_<season>.png: magenta removed, the slopes shortened, the hole's outline erased, the flanks' outline made a thin brown line and the bottom edge faded; prints the hole's corners (for `GardenHill`)
+│   ├── cutout_ponte.py           the bridge sheet (8 pieces on magenta) → ponte_colonna_1/2.png (the two middle pieces, same perspective, so the posts line up when chained every 2 tiles) and ponte_riga_1/2.png (mirrored, for the other axis)
+│   ├── cutout_case.py            each island's house (casa_<isola>_original.png on magenta) → casa_<isola>.png; prints the plinth's diamond (centre, half width, half height) that goes into `GardenLandmarks.art`
 │   ├── cutout_visitatori.py      the sheet of 12 animal guests (4×3, magenta; the pieces are grouped by connection because the fox's tail leaves its cell) → visitatore_<name>.png
 │   ├── cutout_bordo.py           the strips of earth edge (on white), for the grass and for the winter sheet → bordo_1..3.png, bordo_neve_1..3.png: background removed, same size, faded ends
 │   ├── cutout_dettagli.py        the 6×4 sheet of small details on magenta → dettaglio_1..24.png (uses cutout_giardino's magenta removal)
@@ -510,12 +512,13 @@ code. All UI code runs on the main thread; the only other thread is the audio re
   collapsible tray at the bottom left ("Da mettere · N", `trayOpen`, `trayLayout`, `drawTray`) lists them. Copies are dragged onto
   tiles, moved, turned, or dropped on a dashed zone at the bottom left to remove them (they become available again). Unlocked
   companions walk on the free tiles and speak when tapped. The album is a separate window, opened by the "Album" button (`onShowAlbum`).
-- **Entry point:** `MenuController.showGarden` → `GardenController.show()` (which first calls `Garden.openPendingGifts()`, announces
-  what the migration gave, `announceGifts`, and resets the camera) → `GardenView.reload()`.
+- **Entry point:** `MenuController.showGarden` → `GardenController.show(canCelebrate:)` (`false` during a focus; it first calls `Garden.openPendingGifts()`, announces
+  what the migration gave, `announceGifts`, resets the camera and, if a companion was unlocked since the last visit, starts the arrival ceremony, `beginArrivalCeremony`) → `GardenView.reload()`.
 - **The rules** (`GardenGrid.swift`, Foundation only, tested): `GardenTile(col,row)` with `col` towards the bottom right and `row`
   towards the bottom left, (0,0) the back corner. `GardenIsland.size(completedSpreads:)` = 8 + completed double pages of the album, at
-  most 10 (`Garden.islandSize` also never goes below what is already placed); `GardenIsland.isPath` is a fixed path (row 3 cols 0–3,
-  col 3 rows 3–5, row 5 cols ≥ 3) that is walkable but not buildable and does not move when the island grows. Each `GardenItem` has a
+  most 10 (`Garden.islandSize` also never goes below what is already placed); `GardenIsland.isPath` is the **old fixed path** (row 3 cols 0–3,
+  col 3 rows 3–5, row 5 cols ≥ 3), still used when no island is given (the contract fixtures and the Windows port): the garden itself uses each island's own path
+  (`GardenPaths`, see "Islands" below), walkable but not buildable and not moving when the island grows. Each `GardenItem` has a
   `footprint` (1×1 mostly, 2×1, 2×2); `turned` swaps it. `GardenLayout.canPlace` = inside the island, not on the path, not over another
   footprint; `nearestOrigin`/`nearestWalkable` search rings by Manhattan distance, ties by (row, col); `tile(fromLegacy:size:)` maps a point of
   the old free lawn (`u`, `v` of the lawn rectangle) to `col = n(v+u−½)`, `row = n(v−u+½)`.
@@ -607,8 +610,8 @@ code. All UI code runs on the main thread; the only other thread is the audio re
   also the ⤢ button and `0`). The **shown island** (`Garden.shownIsland`) is the live one — companions walk, objects sway, things are dragged — and follows the camera
   (`updateFocus`: the open island nearest the window centre, with a 0.75-tile hysteresis), or a tap on it or on something of it (`touchIsland`), or a drag over it (`mouseDragged`);
   `focus(_:)` only calls `Garden.showIsland` and restarts the visitor, the camera does not move. The scene cache (`renderScene`) draws the painting, the four hills (darkened, `darkHillImage`,
-  for the closed ones — companion not unlocked), the four grounds (`groundCaches`, shared by islands of the same size) with a dark veil on the closed ones, and the bridges between two open islands
-  (`drawBridges`); its key has `worldSignature()` (sizes and open flags) but not which island is shown, so a focus change does not redraw it. Objects and companions of the other open islands
+  for the closed ones — companion not unlocked), the four grounds (`groundCaches`, shared by islands of the same size) with a dark veil on the closed ones, and the built bridges between two open islands
+  (`drawBridges`); its key has `worldSignature()` (sizes, open flags and built bridges) but not which island is shown, so a focus change does not redraw it. Objects and companions of the other open islands
   are `staticEntities(on:)` (still, depth = world depth like the live ones, `Entity.island`), live every frame. Padlocks and «si sblocca a N focus» (`CompanionRewards.need`) are drawn on the
   screen over closed islands (`drawIslandLabels`), names over all of them when zoom < 0.8. The backdrop is **one painting at 1.9×** (`backdropScale`, `backdropBounds`; smoke and window lights
   use `backdropPoint`; `MeadowBackdrop.worldMargin.bottom` is 520), so the world is a single landscape. A companion lives only on its own island (`companionsHere()`) and cannot be dragged onto
@@ -631,9 +634,31 @@ code. All UI code runs on the main thread; the only other thread is the audio re
   Gattino's cat house; `built` is what is active (tests empty it so the rest of the garden is tested without houses); `art` has, in pixels of the cut image, the centre and the half width and half
   height of the plinth's diamond (top surface: the slab thickness is taken off) and where the lights shine. `GardenView.drawLandmark` draws the house in the scene cache after all the grounds (the roof
   goes over the hill), scaling the plinth onto the 3×3 diamond with separate x and y factors (like the bridges), darkened on closed islands; `drawLandmarkLights` makes its windows glow at dusk.
-  Not yet: the bridge as something *built* (a saved state, the ceremony at the first entry after an unlock, the welcome gift), the rule "an animal's object only on its island" (`GardenItem.fits(island:)`
-  exists, `place`/`move` do not enforce it), gifts drawn from the unlocked animals' objects only, the tray filtered per island, visitors and corners per island's companion, a size per island, the
-  Windows port.
+  **Bridges are built and companions welcomed** (step 3; `giardino.json` `bridges` and `welcomed`, still version 4). `GardenBridge.id` is `<first>-<second>` (`pianty-porcellino`, `pianty-ciccio`,
+  `porcellino-gattino`, `ciccio-gattino`); `Garden.bridges` lists the built ones, in the order they were built, and a bridge is drawn only if it is built **and** both islands are open (`shownBridges`, part of
+  `worldSignature()`, so building one redraws the scene cache). `GardenWorld.pending(open:built:)` (pure, tested) gives the bridges that can be built now. **The welcome gift is separate from the
+  bridge**: `Garden.welcomed` lists the islands already welcomed (the home island, which gets no gift, and the ones open when the lists were computed, then one per companion unlocked), and
+  `GardenWorld.newcomers(open:welcomed:home:)` the islands to welcome now — so a companion that is diagonal to every open island (Gattino first, Pianty second) still gets its gift the first time the garden
+  is entered, with no bridge, and when a neighbour arrives later the bridges are built together without a second gift for the ones already welcomed (Gattino, Pianty, Porcellino: two bridges, one gift).
+  The gift is `GardenCatalog.welcomeGift`: the animal's first object, in catalogue order, that you do not own yet, or, if you own all three, one more copy of the first;
+  `Garden.buildBridges(_:welcoming:)` marks bridges built and islands welcomed, adds the copy, marks it unseen (NUOVA) and puts it on a free tile of the new island (`autoPlace(_:on:salt:)`, salt
+  `BENVENUTO-<island>`), with one save (either list may be empty). **Both lists are always written** (empty too) and computed once: a file missing either leaves `bridgesUnsettled`/`welcomedUnsettled` set,
+  `Garden.save()` then leaves the key out, and `Garden.settleBridges(open:)` — called at launch from `AppDelegate` once `Profile` is decided (and again when the garden window opens, after "Cancella tutto")
+  — fills them with the bridges among the islands already open and those islands as welcomed (so no ceremony and no gift for who already has several companions) and **saves at once**, keeping the old
+  file as `giardino-prima-dei-ponti.json` (a version-3 file already has its `giardino-formato3.json`). Without it, one companion who closed the app would find, the day they unlock another, the bridge already
+  built and the gift already given.
+  **The ceremony** (`GardenView.beginArrivalCeremony(allowed:)`, called by `GardenController.show(canCelebrate:)`; `allowed` is false while a focus runs, checked in `MenuController.showGarden` with
+  `pomodoro.phase != .focus`): it settles the lists, takes `pendingBridges` and `pendingWelcomes`, and glides the camera (`camera(framing:)`, or `islandCamera` for one island, 1.2 s) to frame the islands
+  involved; the pieces of each bridge, in order, then appear one after the other (0.38 s apart, each dropping into place and fading in over 0.5 s, `drawArrivalCeremony` over the cached scene, tinted with
+  `currentTint`), and `advanceCeremony` (called by the 30 Hz timer, and by hand in the benches with a fake `effectsClock`) ends it after a short pause with `finishArrival`: `Garden.buildBridges`, the new
+  island becomes the live one, and a `Celebration` per welcomed island ("Nuovo ponte: un regalo per …" if a bridge of the ceremony reaches it, "Nuova isola: un regalo per …" if not; the gift's name; stars from
+  the new copy). With no bridge it is only the glide, a short pause and the gift. Nothing is saved before the end, so closing the window midway restarts it at the next visit; touching the camera stops the
+  glide only; with "Riduci movimento" (`motionReduced`, injectable) the camera jumps and everything is done at once. Two hidden keys replay it (they are read and removed at the next entry, never during a
+  focus): `defaults write com.jacopo.focusfriends replayBridges -string <island id>` (`Garden.replayBridgesKey`) **rehearses** the building of that island's bridges and touches nothing — no gift, no save, the
+  chip says "Prova: ponti rifatti, niente salvato" — and `replayWelcome` (`Garden.replayWelcomeKey`) redoes the whole arrival with the gift for real (the next object the animal has not given, then a copy of the
+  first: the album gets one more copy each time).
+  Not yet: the rule "an animal's object only on its island" (`GardenItem.fits(island:)` exists, `place`/`move` do not enforce it), gifts drawn from the unlocked animals' objects only, the tray filtered per
+  island, visitors and corners per island's companion, a size per island, the door of the house towards the path, the Windows port.
 - **Corners** (`GardenCorners.swift`, Foundation only, tested; unlocked by `Garden`, drawn by `GardenView`): certain things placed close together form an
   *angolo*, which the user is never told about: it is found by moving things around, and when one forms, stars burst from it with "Hai sbloccato «…»".
   `GardenCorners.all` has ten, each a list of needs (`.oneOf([ids])`, a copy of any of those items, or `.different(category, n)`, n different items of a category):
@@ -758,8 +783,8 @@ code. All UI code runs on the main thread; the only other thread is the audio re
     `lipo -create` into `Contents/MacOS/FocusFriends` → copy bubble, phrase files, icon, pet frames (prefixed names),
     music (`music_*`), garden/growth art, Pianty stage frames → write `Info.plist` via heredoc →
     `codesign --force --sign -` (a failure prints an error and exits 1) → print the path.
-  - `tests/run.sh`: `swiftc -O -o build/tests/stats` on fourteen source files + `tests/main.swift` →
-    `build/tests/stats` (prints `• <section>` lines and `N controlli, M falliti`, exit code 0/1; 687 checks now).
+  - `tests/run.sh`: `swiftc -O -o build/tests/stats` on twenty source files + `tests/main.swift` →
+    `build/tests/stats` (prints `• <section>` lines and `N controlli, M falliti`, exit code 0/1; 871 checks now).
   - Tools: described in §5.9; they read `assets/**/*_original.png` / sheets and write processed PNGs or the icon.
 
 ### 3.22 To-do list ("Da fare")
@@ -1326,15 +1351,21 @@ file/UserDefaults writes, windows, timers, sound, global state.
 - **Side effects:** modal `NSAlert`/`NSSavePanel`; writes through `SessionLog` / `Profile.reset()`; registers a
   log observer.
 
-#### `GardenWindow.swift` (874)
-- **Responsibility:** `GardenView` (the meadow, placed objects, unlocked companions, the shop panel, drag and drop,
-  tooltips, speech bubble) and `GardenController` (window, scaling on narrow screens, widening for the shop).
-- **Key members:** `reload`, `setShopOpen`, `entities()` / `entity(at:)` (sorted by feet `y`, mask hit-test),
-  `shopLayout`, `hudLayout`, `drawEntity/drawHUD/drawShop/drawCard/drawBubble`, `mouseDown/Dragged/Up`,
-  `scrollWheel`, `menu(for:)`, `cancelOperation`, `view(_:stringForToolTip:point:userData:)`; `Sprite`/`analyze`
-  (opaque rect + coarse mask); `GardenController.scale(forScreenWidth:)`.
-- **Side effects:** window resizes (shop), `Garden` writes (place, move, remove, unlock, companion spots), a 4 s timer for
-  the shop message and a 5 s timer for a companion's phrase, reading phrase files through `Quotes.load`.
+#### `GardenWindow.swift` (3,223)
+- **Responsibility:** `GardenView` (the **world of four islands** seen at an angle through **one camera**, `zoom` and `pan`; everything the garden shows and does) and `GardenController` (window,
+  scaling on narrow screens, `show(canCelebrate:)`). The view draws a cached **scene** (painting, four hills, grounds, houses, built bridges, light: `drawStaticScene`, `renderScene`, `SceneCache`,
+  `groundCaches`, key `worldSignature()`), then, every frame, what lives on top: the shown island's objects and companions (`entities()`), the other open islands' still ones (`staticEntities(on:)`),
+  guests, wind, smoke, water, glows, fireflies, the arrival ceremony, the island labels and padlocks, the HUD, the "Da mettere" tray and the celebrations (corner stars, new guest, new bridge).
+- **Main class** (`MARK`s): data (`reload`), geometry, the camera (`zoom(by:at:)`, `resetCamera`, `clampCamera`), what is on the island (`entities`, `entity(at:)`, `companionsHere`), the walking companions
+  (`advanceWalkers`, errands from `GardenCompanions`), the tray (`trayLayout`, `drawTray`), the controls at the top (`hudLayout`, `captionRect`), drawing, the sky and seasons (`skyState`, `drawWeather`,
+  `drawLampGlows`, `drawFireflies`), still life (sway, water, chimney smoke), the island (terrain, edge, hill, highlight, ghost, `drawEntity`), and the mouse (`mouseDown/Dragged/Up`, `scrollWheel`, `magnify`,
+  `menu(for:)`, `cancelOperation`, `keyDown`: `M`, `+`, `-`, `0`, `R`).
+- **Extensions:** *corners* (`drawCornerEffects`, `drawCelebration`, the `Celebration` queue), *guests* (`advanceVisitor`, `tryArrival`, `drawVisitorHint`), and *the world* (`worldBase`, `worldView`, `isoOf`,
+  `worldIslands`, `islandCamera`, `worldCamera`, `camera(framing:)`, `toggleWorldView`, `updateFocus`/`focus`/`touchIsland`, `drawBridges`/`shownBridges`/`bridgePieces`/`drawBridgePiece`, the ceremony
+  `beginArrivalCeremony`/`advanceCeremony`/`drawArrivalCeremony`/`finishArrival`, `drawHill`, `drawIslandGround`, `drawLandmark`/`drawLandmarkLights`, `drawIslandLabels`).
+- **Side effects:** `Garden` writes (place, move — also to another island —, rotate, remove, companion tiles, `buildBridges`); a 30 Hz timer (walkers, visitor, ceremony, sky), a 4 s timer for the message, a
+  5 s one for a companion's phrase and 0.14 s to resharpen the scene after a zoom; reads and removes the `replayBridges`/`replayWelcome` defaults; reads `NSWorkspace` "Reduce motion"; phrase files through `Quotes.load`;
+  `effectsClock` is injectable (the benches drive time by hand). `GardenController.scale(forScreenWidth:height:)` shrinks the scene on narrow screens.
 
 ### 5.7 `Sources/FocusFriends/` — domain (Foundation-only) and storage
 
@@ -1380,21 +1411,28 @@ file/UserDefaults writes, windows, timers, sound, global state.
   2 h reset), static `isEnabled` (UserDefaults `longBreakEnabled`).
 
 #### `Garden.swift`
-- **Responsibility:** `final class Garden` — what the user owns and where it is: `drops` (copies found, counters), `unseen`,
-  `pendingGifts`, `placements` (tile + turned), `companionTiles`. `copies/available/isFound` (`Profile.isDeveloper` = all found),
-  `islandSize`, `canPlace/place/placeSomewhere/move/rotate/remove`, `count(of:)`, `companionTile/setCompanionTile`, `rollGift`,
-  `convertLegacyPoints`, `openPendingGifts`, `reset`, `addObserver`, `onProblem`.
-- **Side effects:** reads in `init` (unreadable → read-only + message; malformed → moved aside; newer version → read-only),
-  atomic writes of `giardino.json` (a failure is reported once and the copies stay in memory), `reset` deletes the file.
+- **Responsibility:** `final class Garden` — what the user owns and where it is: `drops` (copies found, counters), `unseen`, `pendingGifts`, `allPlacements` (island + tile + turned; `placements(on:)`,
+  `placements` for the shown island), `home`/`adoptHome`, `shownIsland`/`showIsland`, `companionTiles`, `corners`, `guests`, and the **built bridges and welcomed islands** (`bridges`, `isBuilt`, `settleBridges(open:)`,
+  `pendingBridges(open:)`, `welcomed`, `pendingWelcomes(open:)`, `buildBridges(_:welcoming:)`, `GardenBridgeWelcome`). `copies/available/isFound` (`Profile.isDeveloper` = all found), `islandSize(of:)`,
+  `canPlace/place/placeSomewhere/move/rotate/remove` (each with an optional island), `count(of:)`, `companionTile/setCompanionTile`, `rollGift`, `convertLegacyPoints`, `openPendingGifts`, `reset`,
+  `addObserver`, `onProblem`; the hidden keys `quickGifts`, `replayBridges` and `replayWelcome`.
+- **Side effects:** reads in `init` (unreadable → read-only + message; malformed → moved aside; newer version → read-only; an older file or one without `bridges` is kept as `giardino-formato<N>.json` /
+  `giardino-prima-dei-ponti.json` before the first rewrite), atomic writes of `giardino.json` (a failure is reported once and the copies stay in memory), `reset` deletes the file.
 
 #### `GardenCatalog.swift`
 - **Responsibility:** `GardenCategory`, `GardenItem` (id, name, category, reference height, price, shadow flag, `footprint`,
   `resource`), `GardenPlacement` (tile + turned; reads the old `x`/`y`), `GardenCompanionPlace`, `GardenAlbum` (pages, completed
   spreads) and `GardenCatalog.items` (36 objects, prices provisional).
 
-#### `GardenGrid.swift`
-- **Responsibility:** `GardenTile`, `GardenFootprint`, `GardenIsland` (8…10, the path), `GardenLayout` (see §3.17) and the legacy
-  `GardenSpot`/`GardenScene.lawn` kept only to read version-1/2 files.
+#### `GardenGrid.swift` (714)
+- **Responsibility:** the rules of the islands and of the world, all Foundation only and tested. `GardenTile`, `GardenFootprint`, `GardenIsland` (size 8…10, the **old fixed path** `isPath`), `GardenLayout`
+  (see §3.17: `canPlace`, `freeOrigins`, `nearestOrigin`, `nearestWalkable`, `defaultCompanionTile`, the starter tiles `starterOrigins` — (7,2), (0,7), (7,0), (2,7) —, legacy mapping), `GardenTerrain` (grass, path and
+  detail tiles per tile, with the island's tag in the hashes), `GardenHill` (the hill's frame), and the legacy `GardenSpot`/`GardenScene.lawn` kept only to read version-1/2 files.
+- **The islands:** `GardenIslands` (`all` = `pianty`, `porcellino`, `ciccio`, `gattino`, `fallbackHome`, `terrainTag`); `GardenPaths` (each island's own path: a wide curve joining the two tiles where its bridges land,
+  the sixth row or column of each face, `landings`, `tiles(island:size:)`, `contains`; it keeps clear of the house); `GardenLandmarks` (each island's house, 3×3 tiles in the top corner, `tiles(island:)`, `shipped`/`built`,
+  `art` = the plinth's diamond in the cut image and where the windows light up).
+- **The world:** `GardenBridge` (two neighbouring islands, `id`, `touches`) and `GardenWorld` (the 2×2 map: `slot`, `corner`, `bridges`, `span(of:…)`, `pieceCenters`; `pending(open:built:)` and `newcomers(open:welcomed:home:)`
+  decide which bridges can be built and who gets the welcome gift).
 
 #### `GardenPoints.swift` (142)
 - **Responsibility:** `StudyStreak.analyze` (per-day streak counts; a missed day freezes the streak once every
@@ -1435,8 +1473,8 @@ file/UserDefaults writes, windows, timers, sound, global state.
 
 ### 5.9 Tests, build and tools
 
-#### `tests/main.swift` (1,056) and `tests/run.sh` (7)
-- A single executable: `check(_:_:line:)`, `section(_:)`, 44 sections (827 checks) covering subjects, log persistence,
+#### `tests/main.swift` (2,391) and `tests/run.sh` (7)
+- A single executable: `check(_:_:line:)`, `section(_:)`, 45 sections (871 checks) covering subjects, log persistence,
   in-progress recovery, periods, summaries, streaks, texts, garden rules, format versions/migration, subject merging, backups and
   delete-all, time zones, profile, ratings/notes/insights/CSV, timer dial math, seasons, ambient settings, music
   library/settings, focus notes, paused-time recovery, companion rewards (including the developer flag), break cycle,
@@ -1928,7 +1966,7 @@ code is clear. Items without a mark still describe the current code.
 
 ### 7.8 Test coverage as it exists
 
-- Covered (44 sections, 827 checks in `tests/main.swift`): everything in the Foundation-only files listed in §4.1,
+- Covered (45 sections, 871 checks in `tests/main.swift`): everything in the Foundation-only files listed in §4.1,
   including the new damaged-data cases and the developer flag.
 - Not covered by any automated test in the repository: `Pomodoro` (timer, pause, grace, the sleep-gap rule, cycle
   wiring), `Speaker` (including when a to-do reminder replaces a phrase), `Walker`, `PetWindow`/`PetView`, `MenuController`,
