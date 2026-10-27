@@ -75,7 +75,7 @@ costruiscono quando sblocchi i compagni. I compagni sbloccati camminano sulla lo
 <p align="center">
   <img src="docs/images/album.png" width="560" alt="L'album delle figurine, aperto su una doppia pagina">
   &nbsp;&nbsp;
-  <img src="docs/images/giardino.png" width="560" alt="Il giardino con i compagni e gli oggetti trovati">
+  <img src="docs/images/giardino.png" width="560" alt="Un'isola del giardino con la sua casa, i ponti e gli oggetti trovati">
 </p>
 
 > Le schermate usano dati di esempio.
@@ -338,7 +338,7 @@ che trovi. Non conta i focus e non misura niente: le cifre dello studio stanno n
 l'album sono due finestre diverse: il libro serve a collezionare e a guardare, le isole a mettere le cose dove vuoi.
 
 <p align="center">
-  <img src="docs/images/giardino.png" width="760" alt="Il giardino: l'isola a tessere">
+  <img src="docs/images/giardino.png" width="760" alt="Un'isola del giardino: la serra di Pianty, i ponti e le cose trovate">
 </p>
 
 ### I regali di fine focus
@@ -389,6 +389,10 @@ telecamera sola** e si passa da un'isola all'altra allontanandosi con lo zoom e 
 del compagno che hai scelto all'inizio (per chi usava già l'app, quello che usava). Le altre sono sulla mappa fin da
 subito, ma **al buio, con un lucchetto** e la scritta di quanto manca («si sblocca a 20 focus»): si aprono quando sblocchi
 il compagno (`GardenWorld` e `GardenIslands`, in `GardenGrid.swift`).
+
+<p align="center">
+  <img src="docs/images/mondo.png" width="760" alt="Il mondo di quattro isole, unite da ponti, ognuna con la sua casa">
+</p>
 
 - **Ognuna è diversa.** Ha la sua tinta (verde fresco per Pianty, paglia per Porcellino, verde acqua per Ciccio, blu-lilla
   per Gattino), la sua erba e i suoi dettagli, il suo **sentiero** (una curva larga, non una riga dritta, che unisce i due
