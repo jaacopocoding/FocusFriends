@@ -257,13 +257,15 @@ Versione 3 (Mac 0.10.0): il giardino non ha più punti né negozio né prato lib
 - `home`: l'isola di casa; assente nei file della 3 finché non si decide. `placements[].island`: l'isola della copia (omesso se vuoto = casa).
 - **Oggetti universali e di un animale** (nel catalogo, non nel file): i 24 fiori e arredi stanno su qualunque isola; i 12 «per i compagni» sono 3 per animale e si mettono solo
   sulla sua isola (annaffiatoio, vaso grande e aiuola rialzata: `pianty`; cesto di carote, tunnel con fieno e casa porcellino: `porcellino`; altalena uccelli, bagnetto e casa per
-  uccelli: `ciccio`; cesto con cuscino, tiragraffi e casa del gatto: `gattino`). I regali di fine focus, per ora, restano sull'isola di casa, e l'app non fa ancora rispettare la
-  regola «un oggetto di un animale solo sulla sua isola»; il regalo di benvenuto va invece sull'isola nuova (vedi `welcomed`).
+  uccelli: `ciccio`; cesto con cuscino, tiragraffi e casa del gatto: `gattino`). La regola vale quando si mette, si sposta o si trascina una copia (su un'altra isola l'app dice
+  «La casa del gatto sta solo sull'isola di Gattino.» e la copia resta dov'è), quando un regalo sceglie dove cadere (sull'isola del suo animale, o su quella di casa se è universale; il regalo di
+  benvenuto va sull'isola nuova, vedi `welcomed`) e nella cassetta «Da mettere» (su un'isola si vedono solo le copie che ci stanno: le universali e quelle del suo animale). Leggendo un file non si
+  scarta niente: una cosa di un animale sull'isola sbagliata si sistema **una volta sola** (vedi `islandRules`).
 - `placements`: le copie sulle isole (al massimo **150** per isola). `col`, `row`: la tessera dove sta l'angolo in fondo dell'oggetto; `turned`: se è girato (larghezza e
   profondità si scambiano). Un oggetto occupa `cols × rows` tessere del catalogo (`footprint`: 1×1 quasi sempre; 2×1 panchina, bandierine, cancelletto,
   ponticello, aiuola, arco di rose; 2×2 casette del gatto e del porcellino, altalena, amaca, tappeto da picnic). Di un oggetto se ne possono mettere
   **al massimo quante copie si sono trovate**. In lettura, una copia che sta sul sentiero o sulla casa della sua isola si sposta sulla tessera libera più vicina; si toglie
-  (torna tra quelle da mettere) solo se è fuori dall'isola o sopra un'altra; una di un oggetto sconosciuto si tiene.
+  (torna tra quelle da mettere) solo se è fuori dall'isola o sopra un'altra; una di un oggetto sconosciuto si tiene. (Una cosa di un animale sull'isola sbagliata non si tocca qui: vedi `islandRules`.)
 - `corners` (facoltativo; assente se non se n'è sbloccato nessuno): gli **angoli** sbloccati, nell'ordine in cui si sono trovati (`te`, `lettura`, `orto`, `gatto`, `porcellino`,
   `uccelli`, `prato-fiorito`, `bosco`, `festa`, `rose`). Non cambia la versione: un'app che non lo conosce lo ignora (e, riscrivendo il file, lo perde: gli angoli
   si risbloccano). Quali cose formano un angolo e quanto devono stare vicine sta in `GardenCorners.swift`, e va ripetuto uguale su Windows.
@@ -285,6 +287,21 @@ Versione 3 (Mac 0.10.0): il giardino non ha più punti né negozio né prato lib
   isole già aperte sono già costruiti e le isole già aperte già accolte, la casa compresa: niente cerimonia e niente regali) e **li salva subito**, senza aspettare un altro cambiamento,
   tenendo il file com'era in `giardino-prima-dei-ponti.json` (un file della 3 ha già il suo `giardino-formato3.json`). Altrimenti chi ha un compagno solo e chiude l'app troverebbe, il
   giorno che ne sblocca un altro, il ponte già costruito e il regalo già dato. Finché non sono calcolati non si scrivono nel file e non c'è niente da costruire né da regalare.
+- `islandRules` (facoltativo; manca nei file di prima): la **versione delle regole delle isole** già applicata alle copie, oggi **1** = «una cosa di un animale solo sulla sua isola». Un giardino nuovo o
+  cancellato lo scrive subito. **Un file senza** si sistema **una sola volta**, all'avvio, quando si sa qual è la casa e chi è sbloccato (senza la casa, o in sola lettura, non si fa niente); non cambia la versione,
+  e chi non lo conosce lo ignora (riscrivendo il file lo perde, e all'avvio dopo la sistemazione si rifà). Una copia è **fuori posto** se il suo oggetto è di un animale (il catalogo dice quale) e la sua `island`
+  (vuota = casa) non è quella; un oggetto sconosciuto o universale non lo è mai. Se non ce n'è nessuna si scrive solo `islandRules` (niente copia da parte, niente riga). Altrimenti:
+  1. il file com'è si tiene come `giardino-prima-delle-regole.json` accanto agli altri (se non c'è già);
+  2. per ogni animale, **nell'ordine dei compagni** (`pianty`, `porcellino`, `ciccio`, `gattino`), le sue copie fuori posto si tolgono dalle isole dove stanno e si rimettono **vicine fra loro** sulla sua isola:
+     il **punto** è la media delle loro `col` e `row` (arrotondata all'intero più vicino, mezzi in su) tenuta dentro l'isola (da 0 a `n − 1`); si rimettono **le più grandi per prime** (`cols × rows`), poi per
+     numero nell'album (la posizione nel catalogo), poi nell'ordine del file, ognuna sulla tessera libera **più vicina al punto** (`nearestOrigin`: a anelli sempre più larghi, a parità la riga e poi la colonna
+     più piccole; la casa e il sentiero dell'isola contano come occupati) per la sua forma, girata com'era; l'identificativo e `turned` restano, `island` diventa quella dell'animale;
+  3. se l'isola dell'animale è **chiusa** (il compagno non è sbloccato; con la modalità sviluppatore sono tutte aperte), o ha già 150 copie, o non ha un posto libero, la copia si toglie dall'isola e torna tra quelle da
+     mettere (`drops.found` non cambia: **nessuna copia si perde**, cambia solo dov'è; una copia da mettere si vede nella cassetta solo sull'isola dove può stare);
+  4. si salva **subito**, con `islandRules` e `rulesNotice`.
+- `rulesNotice` (facoltativo, c'è solo finché non è stato detto): `{ "moved" : n, "returned" : m }`, cosa ha fatto la sistemazione. Alla prima entrata nel giardino l'app dice una riga e toglie la chiave:
+  con tutte e due «Le cose degli animali sono andate sulle loro isole, o nella cassetta.», solo `moved` «Le cose degli animali sono andate sulle loro isole.», solo `returned` «Le cose di isole ancora chiuse sono
+  tornate nella cassetta.».
 - `companions`: la tessera di «casa» dei compagni (chi non c'è parte sul sentiero della **sua** isola, a un posto fisso per compagno; un compagno sta solo sulla sua isola);
   camminando si spostano di una tessera alla volta, ma non si salva.
 - **La dotazione** (le quattro cose a prezzo 0) parte su tessere fisse, fuori dal sentiero e dalla casa di ogni isola a tutte le grandezze: margherite (7, 2), trifoglio (0, 7),
@@ -292,7 +309,12 @@ Versione 3 (Mac 0.10.0): il giardino non ha più punti né negozio né prato lib
 - **Il tiro è deterministico**: FNV-1a a 32 bit sull'identificativo della sessione in **maiuscolo** (byte UTF-8) come seme di un Mulberry32; i quattro numeri
   (niente, rarità, nuovo, scelta) si estraggono in quest'ordine. Mac e Windows devono dare gli stessi regali sugli stessi dati
   (il blocco `giardino` dei file in `tests/fixtures/attesi/`). Anche **dove cade** la copia trovata è deterministico (FNV-1a di «posto-» più
-  l'identificativo, sulle tessere libere in ordine di riga e colonna).
+  l'identificativo, sulle tessere libere in ordine di riga e colonna **dell'isola dove va**: quella del suo animale se l'oggetto è di un animale, altrimenti quella di casa).
+- **L'elenco da cui si tira fa parte del tiro.** Il quarto numero (la scelta) e la rarità lavorano su un elenco di oggetti (`pool`), che è **il catalogo senza le cose degli animali non sbloccati**: gli universali
+  e quelli dei compagni sbloccati, nell'ordine del catalogo (tutti i 36 se tutti i compagni sono sbloccati, o con la modalità sviluppatore, o se non si sa chi è sbloccato: com'era prima). Cambiando l'elenco **lo
+  stesso focus dà un altro regalo** (la rarità si pesca fra quelli dell'elenco, e «uno che non hai ancora» pure), quindi due app che non usano lo stesso elenco danno regali diversi sugli stessi dati: chi porta
+  il giardino su Windows deve calcolare l'elenco allo stesso modo (`Garden.dropPool`). Vale per i regali di fine focus, per gli ospiti e per i regali dei punti convertiti; il regalo di benvenuto non tira (è
+  il primo oggetto dell'animale che manca). I file di `tests/fixtures/attesi/` sono calcolati con l'elenco intero (tutte le isole aperte).
 - **Versioni vecchie**: si leggono ancora. La **2** aveva il prato libero: `placements` con `x`, `y` (frazioni della scena) e `companions` con `x`, `y`; ogni
   cosa va sulla tessera libera più vicina (`GardenLayout.tile(fromLegacy:size:)`, poi `nearestOrigin`), nell'ordine del file, e quello che non ci sta torna
   tra le copie da mettere. La **1** (`unlocked`, `spent`): gli oggetti sbloccati diventano trovati (con tante copie quante ne erano nel prato, almeno una),
