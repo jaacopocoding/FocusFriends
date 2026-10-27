@@ -37,16 +37,19 @@ struct GardenAffinity: Equatable {
 }
 
 enum GardenCompanions {
-    /// Cosa fanno i compagni negli angoli: il gattino dorme nel suo e si lecca la zampa all'angolo di lettura, il porcellino mangia nell'orto e saltella a casa sua
-    /// e alla festa, Ciccio sbatte le ali vicino al bagnetto e alla festa. Pianty non ha pose: sta dove sta.
+    /// Cosa fanno i compagni negli angoli: il gattino dorme nel suo e nel salotto e si lecca la zampa all'angolo di lettura, il porcellino mangia nell'orto e al picnic e
+    /// saltella a casa sua e alla festa, Ciccio sbatte le ali vicino al bagnetto, alla festa e alla musica del vento. Pianty non ha pose: sta dove sta.
     static let affinities: [GardenAffinity] = [
         GardenAffinity(pet: "gattino", corner: "gatto", item: "casetta-gatto", pose: .sleep),
         GardenAffinity(pet: "gattino", corner: "lettura", item: "panchina", pose: .groom),
+        GardenAffinity(pet: "gattino", corner: "salotto", item: "cesto-cuscino", pose: .sleep),
         GardenAffinity(pet: "porcellino", corner: "orto", item: "aiuola", pose: .eat),
         GardenAffinity(pet: "porcellino", corner: "porcellino", item: "casetta-porcellino", pose: .popcorn),
         GardenAffinity(pet: "porcellino", corner: "festa", item: "picnic", pose: .popcorn),
+        GardenAffinity(pet: "porcellino", corner: "picnic", item: "picnic", pose: .eat),
         GardenAffinity(pet: "ciccio", corner: "uccelli", item: "bagnetto", pose: .wings),
         GardenAffinity(pet: "ciccio", corner: "festa", item: "bandierine", pose: .wings),
+        GardenAffinity(pet: "ciccio", corner: "vento", item: "altalena-uccelli", pose: .wings),
     ]
 
     /// Che numeri di fotogramma (da 1, come `frame<n>.png`) fanno una posa per un compagno; vuoto se non la fa.

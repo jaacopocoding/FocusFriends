@@ -1330,8 +1330,8 @@ func cornerNeedExists(_ need: GardenCorner.Need) -> Bool {
     case .different(let category, let count): return GardenCatalog.items.filter { $0.category == category }.count >= count
     }
 }
-check(GardenCorners.all.count == 10 && Set(GardenCorners.all.map { $0.id }).count == 10 && GardenCorners.all.allSatisfy { !$0.name.isEmpty && !$0.needs.isEmpty },
-      "dieci angoli, ognuno con il suo nome")
+check(GardenCorners.all.count == 18 && Set(GardenCorners.all.map { $0.id }).count == 18 && GardenCorners.all.allSatisfy { !$0.name.isEmpty && !$0.needs.isEmpty },
+      "diciotto angoli, ognuno con il suo nome")
 check(GardenCorners.all.allSatisfy { $0.needs.allSatisfy(cornerNeedExists) }, "ogni angolo chiede oggetti che ci sono nel catalogo")
 check(GardenCorners.corner(withID: "te")?.name == "L'angolo del tè" && GardenCorners.corner(withID: "boh") == nil, "si trova per nome")
 // la distanza: contano i bordi dell'ingombro
@@ -2705,6 +2705,70 @@ let rulesNewerBytes = (try? Data(contentsOf: rulesNewerDir.appendingPathComponen
 let rulesNewer = Garden(directory: rulesNewerDir)
 rulesNewer.settleRules()
 check((try? Data(contentsOf: rulesNewerDir.appendingPathComponent("giardino.json"))) == rulesNewerBytes && rulesNewer.takeRulesNotice() == nil, "un giardino di una versione più nuova non si sistema (è in sola lettura)")
+
+section("Giardino: ospiti e angoli di ogni isola")
+// gli angoli nuovi: due per isola, ognuno con una cosa del suo animale, quindi solo su quell'isola
+let islandCorners: [String: [String]] = ["pianty": ["vivaio", "acqua"], "porcellino": ["picnic", "recinto"], "ciccio": ["vento", "bagno-sole"], "gattino": ["salotto", "palestra"]]
+func owners(of corner: GardenCorner) -> Set<String> {
+    var result = Set<String>()
+    for need in corner.needs {
+        if case .oneOf(let ids) = need { for id in ids { if let owner = GardenCatalog.item(withID: id)?.island { result.insert(owner) } } }
+    }
+    return result
+}
+check(GardenCorners.all.prefix(10).map { $0.id } == ["te", "lettura", "orto", "gatto", "porcellino", "uccelli", "prato-fiorito", "bosco", "festa", "rose"]
+      && GardenCorners.all.suffix(8).map { $0.id } == ["vivaio", "acqua", "picnic", "recinto", "vento", "bagno-sole", "salotto", "palestra"], "i dieci di prima restano com'erano, e gli otto nuovi vengono dopo")
+check(islandCorners.allSatisfy { island, ids in ids.allSatisfy { id in GardenCorners.corner(withID: id).map { owners(of: $0) == [island] } ?? false } },
+      "ogni angolo nuovo ha dentro una cosa di un solo animale: si forma solo sulla sua isola")
+check(GardenCorners.corner(withID: "salotto")?.name == "Il salotto del gatto" && GardenCorners.corner(withID: "acqua")?.name == "L'angolo dell'acqua", "i nomi")
+// si formano da vicino e non da lontano, in fila e uno dopo l'altro
+func line(of corner: GardenCorner, gap: Int = 0) -> [GardenPlacement] {
+    var column = 0
+    var result: [GardenPlacement] = []
+    for need in corner.needs {
+        guard case .oneOf(let ids) = need, let id = ids.first, let item = GardenCatalog.item(withID: id) else { continue }
+        result.append(put(id, column, 0))
+        column += item.footprint.cols + gap
+    }
+    return result
+}
+for corner in GardenCorners.all.suffix(8) {
+    check(GardenCorners.formed(by: line(of: corner))[corner.id] != nil && GardenCorners.formed(by: line(of: corner, gap: 4))[corner.id] == nil, "«\(corner.name)» si forma da vicino, non da lontano")
+}
+// e a Gattino, Ciccio e Porcellino le cose giuste ci sono: nessun angolo nuovo ruba una cosa a un altro animale
+check(Set(GardenCorners.all.suffix(8).flatMap { $0.needs }.compactMap { need -> String? in if case .oneOf(let ids) = need { return ids.first }; return nil }.compactMap { GardenCatalog.item(withID: $0)?.island }) == Set(GardenIslands.all),
+      "ogni isola ha i suoi angoli nuovi")
+// i compagni: pose nei nuovi angoli (le immagini ci sono già)
+check(GardenCompanions.affinities.filter { ["salotto", "picnic", "vento"].contains($0.corner) }.map { "\($0.pet)-\($0.corner)-\($0.pose.rawValue)" }.sorted()
+      == ["ciccio-vento-wings", "gattino-salotto-sleep", "porcellino-picnic-eat"], "Gattino dorme nel salotto, il porcellino mangia al picnic, Ciccio sbatte le ali alla musica del vento")
+// gli ospiti: Pianty e Gattino hanno qualcuno che viene per le loro cose, e chi veniva prima viene ancora
+let hostAttractions: [(String, String, Season, GardenDaySlot, String)] = [
+    ("coniglio", "aiuola", .spring, .morning, "aiuola"), ("rana", "annaffiatoio", .spring, .evening, "annaffiatoio"),
+    ("riccio", "cesto-cuscino", .autumn, .night, "cesto-cuscino"), ("scoiattolo", "tiragraffi", .autumn, .morning, "tiragraffi"),
+]
+for (visitor, item, season, slot, reason) in hostAttractions {
+    let found = GardenVisitors.attractions(placements: [put(item, 3, 3)], formedCorners: [:], season: season, slot: slot)
+    check(found.map { $0.visitor.id } == [visitor] && found.first?.item == reason, "\(GardenVisitors.visitor(withID: visitor)?.name ?? visitor) viene anche per \(GardenCatalog.item(withID: item)?.name ?? item)")
+}
+check(GardenVisitors.attractions(placements: [put("tiragraffi", 3, 3)], formedCorners: [:], season: .winter, slot: .day).isEmpty
+      && GardenVisitors.attractions(placements: [put("aiuola", 3, 3)], formedCorners: [:], season: .winter, slot: .morning).isEmpty, "e con le stagioni e le fasce di sempre: d'inverno non viene")
+let oldReason = GardenVisitors.attractions(placements: [put("aiuola", 0, 0), put("trifoglio", 4, 4)], formedCorners: [:], season: .spring, slot: .morning)
+check(oldReason.first?.item == "trifoglio", "chi aveva già un motivo per venire ha ancora quello (il primo che si trova è quello di prima)")
+check(GardenVisitors.all.allSatisfy { visitor in visitor.items.allSatisfy { GardenCatalog.item(withID: $0) != nil } }
+      && Set(GardenVisitors.all.flatMap { $0.items }.compactMap { GardenCatalog.item(withID: $0)?.island }) == Set(GardenIslands.all), "le cose degli animali che attirano qualcuno sono di tutte e quattro le isole")
+// quanti ne vengono: un ospite per fascia e mai più di due volte su tre (la presenza), anche con le aggiunte
+var hostsSeen = 0, hostsDays = 0
+let hostCalendar = StudyPeriod.calendar()
+for offset in 0..<365 {
+    let when = hostCalendar.date(byAdding: .day, value: offset, to: date(2026, 1, 1, 12))!
+    let day = ToDoDay.string(for: when, calendar: hostCalendar)
+    hostsDays += 1
+    for slot in GardenDaySlot.allCases {
+        if GardenVisitors.arrival(day: day, slot: slot, placements: [put("aiuola", 0, 0), put("annaffiatoio", 2, 0), put("trifoglio", 4, 0), put("cesto-cuscino", 6, 0), put("tiragraffi", 0, 3)],
+                                  formedCorners: [:], season: Season.of(when)) != nil { hostsSeen += 1 }
+    }
+}
+check(Double(hostsSeen) / Double(hostsDays) <= 3.5, "con le cose di un'isola curata vengono al massimo tre o quattro ospiti al giorno (\(Double(hostsSeen) / Double(hostsDays)))")
 
 print("\n\(checks) controlli, \(failures) falliti")
 exit(failures == 0 ? 0 : 1)

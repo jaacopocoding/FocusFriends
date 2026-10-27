@@ -48,16 +48,19 @@ enum GardenVisitors {
     private static let allSeasons = Set(Season.allCases)
     private static let notWinter: Set<Season> = [.spring, .summer, .autumn]
 
+    /// Le cose degli animali che attirano qualcuno stanno ognuna sulla sua isola (`GardenItem.island`): le ultime voci di alcuni ospiti sono per Pianty (l'aiuola e
+    /// l'annaffiatoio) e per Gattino (il cesto con cuscino e il tiragraffi), che altrimenti avrebbero una specie sola in tutto l'anno. Si aggiungono in coda: chi aveva
+    /// già un motivo per venire lo ha ancora, e il primo motivo che si trova resta quello di prima.
     static let all: [GardenVisitor] = [
         GardenVisitor(id: "pettirosso", name: "Il pettirosso", feminine: false, items: ["bagnetto", "casetta-uccelli"], haunts: [],
                       seasons: allSeasons, slots: [.morning, .day, .evening], height: 50, weight: 1),
         GardenVisitor(id: "cinciallegra", name: "La cinciallegra", feminine: true, items: ["casetta-uccelli", "girasole"], haunts: [],
                       seasons: allSeasons, slots: [.morning, .day], height: 46, weight: 1),
-        GardenVisitor(id: "coniglio", name: "Il coniglio", feminine: false, items: ["erba-alta", "trifoglio"], haunts: [],
+        GardenVisitor(id: "coniglio", name: "Il coniglio", feminine: false, items: ["erba-alta", "trifoglio", "aiuola"], haunts: [],
                       seasons: notWinter, slots: [.morning, .evening], height: 62, weight: 1),
-        GardenVisitor(id: "riccio", name: "Il riccio", feminine: false, items: ["funghi", "felci"], haunts: [],
+        GardenVisitor(id: "riccio", name: "Il riccio", feminine: false, items: ["funghi", "felci", "cesto-cuscino"], haunts: [],
                       seasons: notWinter, slots: [.evening, .night], height: 52, weight: 1),
-        GardenVisitor(id: "rana", name: "La rana", feminine: true, items: ["bagnetto", "ponticello"], haunts: [],
+        GardenVisitor(id: "rana", name: "La rana", feminine: true, items: ["bagnetto", "ponticello", "annaffiatoio"], haunts: [],
                       seasons: [.spring, .summer], slots: [.evening], height: 36, weight: 1),
         GardenVisitor(id: "anatroccolo", name: "L'anatroccolo", feminine: false, items: ["ponticello", "bagnetto"], haunts: [],
                       seasons: [.spring], slots: [.morning, .day], height: 42, weight: 1),
@@ -67,7 +70,7 @@ enum GardenVisitors {
                       seasons: [.spring, .summer], slots: [.day], height: 40, weight: 1),
         GardenVisitor(id: "topolino", name: "Il topolino", feminine: false, items: ["cesto-carote", "picnic"], haunts: [],
                       seasons: [.autumn, .winter], slots: [.evening], height: 30, weight: 1),
-        GardenVisitor(id: "scoiattolo", name: "Lo scoiattolo", feminine: false, items: ["altalena", "amaca"], haunts: [],
+        GardenVisitor(id: "scoiattolo", name: "Lo scoiattolo", feminine: false, items: ["altalena", "amaca", "tiragraffi"], haunts: [],
                       seasons: [.spring, .autumn], slots: [.morning, .day], height: 66, weight: 1),
         GardenVisitor(id: "civetta", name: "La civetta", feminine: true, items: [], haunts: [GardenVisitorHaunt(corner: "lettura", item: "panchina")],
                       seasons: allSeasons, slots: [.night], height: 60, weight: 0.4),

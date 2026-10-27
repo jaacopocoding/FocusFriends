@@ -34,6 +34,15 @@ enum GardenCorners {
         GardenCorner(id: "bosco", name: "L'angolo del bosco", needs: [.oneOf(["funghi"]), .oneOf(["felci"]), .oneOf(["erba-alta"])]),
         GardenCorner(id: "festa", name: "La festa in giardino", needs: [.oneOf(["bandierine"]), .oneOf(["picnic"]), .oneOf(["tavolino"])]),
         GardenCorner(id: "rose", name: "L'arco delle rose", needs: [.oneOf(["arco-rose"]), .oneOf(["panchina", "ponticello"])]),
+        // Due per isola, ognuno con una cosa del suo animale (e quindi solo su quell'isola): Pianty, Porcellino, Ciccio, Gattino.
+        GardenCorner(id: "vivaio", name: "Il vivaio", needs: [.oneOf(["vaso-grande"]), .oneOf(["lavanda"]), .oneOf(["tulipani"])]),
+        GardenCorner(id: "acqua", name: "L'angolo dell'acqua", needs: [.oneOf(["annaffiatoio"]), .oneOf(["ponticello"]), .oneOf(["felci"])]),
+        GardenCorner(id: "picnic", name: "Il picnic", needs: [.oneOf(["picnic"]), .oneOf(["cesto-carote"])]),
+        GardenCorner(id: "recinto", name: "Il recinto", needs: [.oneOf(["casetta-porcellino"]), .oneOf(["cancelletto"]), .oneOf(["erba-alta"])]),
+        GardenCorner(id: "vento", name: "La musica del vento", needs: [.oneOf(["carillon"]), .oneOf(["altalena-uccelli"])]),
+        GardenCorner(id: "bagno-sole", name: "Il bagno al sole", needs: [.oneOf(["bagnetto"]), .oneOf(["sdraio"]), .oneOf(["girasole"])]),
+        GardenCorner(id: "salotto", name: "Il salotto del gatto", needs: [.oneOf(["cesto-cuscino"]), .oneOf(["tavolino"]), .oneOf(["lampione"])]),
+        GardenCorner(id: "palestra", name: "La palestra del gatto", needs: [.oneOf(["tiragraffi"]), .oneOf(["amaca"])]),
     ]
 
     static func corner(withID id: String) -> GardenCorner? { all.first { $0.id == id } }
