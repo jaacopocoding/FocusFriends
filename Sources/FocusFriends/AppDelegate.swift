@@ -138,6 +138,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.evaluateCompanionRewards(announce: false)
         // Chi ha già più compagni sbloccati ha i ponti fra le loro isole già costruiti, senza cerimonia: si decide ora (e si salva), una volta sola.
         if Profile.shared.introSeen { Garden.shared.settleBridges(open: Set(GardenIslands.all.filter { Profile.shared.isCompanionUnlocked($0) })) }
+        // I terreni delle isole, come li chiederà il primo ingresso nel giardino, si dipingono ora in silenzio (era la metà dell'attesa).
+        if Profile.shared.introSeen { GardenView.prepareGrounds(garden: .shared) }
 
         // La prima volta (anche per chi la usava già): come ti chiami e chi ti fa compagnia.
         if !Profile.shared.introSeen {

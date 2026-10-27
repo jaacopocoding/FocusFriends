@@ -574,7 +574,7 @@ code. All UI code runs on the main thread; the only other thread is the audio re
   multiply of the premultiplied colours — so the night needs no full-screen blend) and the wind strips from `GardenSprites.strips` (12 cached slices), all copied with
   `GardenBlit`; (4) every cache is built in the destination colour space (`GardenDisplay.colorSpace`, from the window or the main screen), because copying an image of another
   space converts every pixel every frame; (5) `GardenView.warmUp()` (called from `AppDelegate` on a utility queue at launch) decodes all terrain/edge/detail images
-  (`GardenSprites.loadImage`, `kCGImageSourceShouldCacheImmediately`), analyses all sprites and renders the garden's and the album's backdrops; (6) the timer runs at 30 Hz, but
+  (`GardenSprites.loadImage`, `kCGImageSourceShouldCacheImmediately`), analyses all sprites (houses and bridge pieces included), tints the hills (one per island and the dark one) and renders the garden's and the album's backdrops; the four grounds, which were half of the first entry into the garden (~0.45 s in the bench), are painted by `GardenView.prepareGrounds(garden:)` — read on the main thread (sizes of the islands, shown island), painted on a utility queue — into `groundStore`, a static, locked cache shared by every view (key: island, size, tile width, season, `carrying`, scale, colour space), so the first draw finds them ready (~0.26–0.30 s, ~0.15 s per further view); the price is about 50 MB resident from launch instead of from the first entry; (6) the timer runs at 30 Hz, but
   the screen is redrawn at 15 Hz when only the air moves (wind, smoke, snow) and at 30 Hz when a companion walks or something is dragged.
   **Moving the camera** (with the hill and the world backdrop the first version cost 79 ms a frame when panning and 116 ms when zooming: the whole scene was rebuilt at every
   step, and a profile (`sample`) showed a third of the time in decoding the hill's PNG *at every draw* — an `NSImage` read from a file does that — and the rest in high-quality
@@ -610,7 +610,7 @@ code. All UI code runs on the main thread; the only other thread is the audio re
   also the ⤢ button and `0`). The **shown island** (`Garden.shownIsland`) is the live one — companions walk, objects sway, things are dragged — and follows the camera
   (`updateFocus`: the open island nearest the window centre, with a 0.75-tile hysteresis), or a tap on it or on something of it (`touchIsland`), or a drag over it (`mouseDragged`);
   `focus(_:)` only calls `Garden.showIsland` and restarts the visitor, the camera does not move. The scene cache (`renderScene`) draws the painting, the four hills (darkened, `darkHillImage`,
-  for the closed ones — companion not unlocked), the four grounds (`groundCaches`, shared by islands of the same size) with a dark veil on the closed ones, and the built bridges between two open islands
+  for the closed ones — companion not unlocked), the four grounds (`groundStore`, painted by `ground(_:island:…)`, one per island) with a dark veil on the closed ones, and the built bridges between two open islands
   (`drawBridges`); its key has `worldSignature()` (sizes, open flags and built bridges) but not which island is shown, so a focus change does not redraw it. Objects and companions of the other open islands
   are `staticEntities(on:)` (still, depth = world depth like the live ones, `Entity.island`), live every frame. Padlocks and «si sblocca a N focus» (`CompanionRewards.need`) are drawn on the
   screen over closed islands (`drawIslandLabels`), names over all of them when zoom < 0.8. The backdrop is **one painting at 1.9×** (`backdropScale`, `backdropBounds`; smoke and window lights
@@ -1351,10 +1351,10 @@ file/UserDefaults writes, windows, timers, sound, global state.
 - **Side effects:** modal `NSAlert`/`NSSavePanel`; writes through `SessionLog` / `Profile.reset()`; registers a
   log observer.
 
-#### `GardenWindow.swift` (3,223)
+#### `GardenWindow.swift` (3,292)
 - **Responsibility:** `GardenView` (the **world of four islands** seen at an angle through **one camera**, `zoom` and `pan`; everything the garden shows and does) and `GardenController` (window,
   scaling on narrow screens, `show(canCelebrate:)`). The view draws a cached **scene** (painting, four hills, grounds, houses, built bridges, light: `drawStaticScene`, `renderScene`, `SceneCache`,
-  `groundCaches`, key `worldSignature()`), then, every frame, what lives on top: the shown island's objects and companions (`entities()`), the other open islands' still ones (`staticEntities(on:)`),
+  `groundStore`, key `worldSignature()`), then, every frame, what lives on top: the shown island's objects and companions (`entities()`), the other open islands' still ones (`staticEntities(on:)`),
   guests, wind, smoke, water, glows, fireflies, the arrival ceremony, the island labels and padlocks, the HUD, the "Da mettere" tray and the celebrations (corner stars, new guest, new bridge).
 - **Main class** (`MARK`s): data (`reload`), geometry, the camera (`zoom(by:at:)`, `resetCamera`, `clampCamera`), what is on the island (`entities`, `entity(at:)`, `companionsHere`), the walking companions
   (`advanceWalkers`, errands from `GardenCompanions`), the tray (`trayLayout`, `drawTray`), the controls at the top (`hudLayout`, `captionRect`), drawing, the sky and seasons (`skyState`, `drawWeather`,
