@@ -707,7 +707,8 @@ final class MenuController: NSObject, NSMenuDelegate {
     }
 
     @objc private func showGarden() {
-        garden.show()
+        // la cerimonia d'arrivo (ponti e regalo di benvenuto) non parte mentre si studia
+        garden.show(canCelebrate: pomodoro.phase != .focus)
     }
 
     @objc private func showAlbum() {

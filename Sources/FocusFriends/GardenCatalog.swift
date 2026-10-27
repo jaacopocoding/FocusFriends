@@ -165,6 +165,13 @@ enum GardenCatalog {
     static var universalItems: [GardenItem] { items.filter { $0.island == nil } }
     static func items(forIsland island: String) -> [GardenItem] { items.filter { $0.island == island } }
 
+    /// Il regalo di benvenuto di un'isola quando si costruisce il suo ponte: il primo oggetto dell'animale (nell'ordine del catalogo) che non si ha ancora;
+    /// se si hanno già tutti, una copia in più del primo. `copies` dice quante copie di un oggetto si hanno.
+    static func welcomeGift(forIsland island: String, copies: (String) -> Int) -> String? {
+        let own = items(forIsland: island)
+        return (own.first { copies($0.id) == 0 } ?? own.first)?.id
+    }
+
     static func item(withID id: String) -> GardenItem? {
         items.first { $0.id == id }
     }

@@ -22,6 +22,14 @@ struct GardenGuestWelcome: Equatable {
     var gift: GardenDrop?
 }
 
+/// Il regalo di benvenuto che arriva con il ponte di un'isola.
+struct GardenBridgeWelcome: Equatable {
+    var island: String
+    var item: String
+    /// La copia messa sull'isola; nil se non c'era posto (resta tra quelle da mettere).
+    var placement: UUID?
+}
+
 final class Garden {
     /// 4: più isole, una per compagno (ogni copia ricorda la sua, e c'è l'isola di casa). La 3 aveva un'isola sola, la 2 l'album e il prato libero, la 1 i punti
     /// spesi e gli oggetti sbloccati: si portano a 4 al primo salvataggio.
@@ -32,6 +40,12 @@ final class Garden {
     static let shared = Garden(directory: SessionLog.defaultDirectory)
     /// Una chiave nascosta delle preferenze, per provare i regali con focus da un minuto.
     static let quickGiftsKey = "quickGifts"
+    /// Due chiavi nascoste, per rivedere la cerimonia d'arrivo (con la modalità sviluppatore è sempre tutto aperto, i ponti sono già costruiti e tutti già accolti). Il valore è
+    /// l'isola, `defaults write com.jacopo.focusfriends replayBridges -string gattino`, e vale per il prossimo ingresso nel giardino, una volta sola.
+    /// `replayBridges` rifà la costruzione dei ponti di quell'isola **senza toccare niente** (nessun regalo, nessun salvataggio); `replayWelcome` rifà l'arrivo intero, e il regalo
+    /// è vero: una copia in più nell'album.
+    static let replayBridgesKey = "replayBridges"
+    static let replayWelcomeKey = "replayWelcome"
 
     private struct Contents: Codable {
         var version: Int
@@ -52,6 +66,10 @@ final class Garden {
         var corners: [String]?
         /// Gli ospiti che hanno fatto visita (anche questo: facoltativo).
         var guests: [String: GardenGuest]?
+        /// I ponti già costruiti (`GardenBridge.id`). Si scrive sempre, anche vuoto; manca solo nei file di prima (vedi `settleBridges`).
+        var bridges: [String]?
+        /// Le isole che hanno già ricevuto il regalo di benvenuto (la casa e quelle già aperte quando si è calcolato l'elenco, poi una per ogni compagno sbloccato). Come `bridges`.
+        var welcomed: [String]?
     }
 
     private let file: URL
@@ -78,6 +96,14 @@ final class Garden {
     private(set) var corners: [String] = []
     /// Gli ospiti salutati, per specie (`GardenVisitor.id`).
     private(set) var guests: [String: GardenGuest] = [:]
+    /// I ponti già costruiti (`GardenBridge.id`), nell'ordine in cui si sono costruiti. Un ponte compare solo se è qui; finché non si è calcolato (`bridgesUnsettled`) è vuoto.
+    private(set) var bridges: [String] = []
+    /// Le isole che hanno già ricevuto il regalo di benvenuto (`GardenBridge` non c'entra: il regalo arriva anche se non nasce nessun ponte). L'isola di casa non lo riceve, ma c'è.
+    private(set) var welcomed: [String] = []
+    /// Gli elenchi dei ponti e dei benvenuti non ci sono ancora: il file è di prima, o il giardino è nuovo o appena cancellato. `settleBridges` li calcola (chi ha già
+    /// più compagni sbloccati ha i ponti già costruiti e i compagni già accolti, senza cerimonia) e li salva subito; finché non ci sono, non si scrivono nel file e non c'è niente da fare.
+    private var bridgesUnsettled = false
+    private var welcomedUnsettled = false
     /// Gli angoli che le copie sull'isola mostrata formano adesso, con le copie che li formano (si ricalcola a ogni modifica).
     private(set) var formedCorners: [String: [UUID]] = [:]
     /// Gli angoli appena sbloccati e non ancora annunciati dalla finestra del giardino (le stelline).
@@ -153,6 +179,19 @@ final class Garden {
                 legacySpent = max(contents.spent ?? 0, 0)
             }
             if contents.version < Self.formatVersion { legacyBackupName = "giardino-formato\(max(contents.version, 1)).json" }
+            if let saved = contents.bridges {
+                let known = Set(GardenWorld.bridges.map(\.id))
+                bridges = saved.filter { known.contains($0) }
+            } else {
+                bridgesUnsettled = true
+            }
+            if let saved = contents.welcomed {
+                welcomed = saved.filter { GardenIslands.isKnown($0) }
+            } else {
+                welcomedUnsettled = true
+            }
+            // un file della 4 di prima dei ponti si tiene com'era (uno delle versioni vecchie ha già la sua copia)
+            if (bridgesUnsettled || welcomedUnsettled) && legacyBackupName == nil { legacyBackupName = "giardino-prima-dei-ponti.json" }
             corners = contents.corners ?? []
             guests = contents.guests ?? [:]
             settle(legacyCompanions: legacyCompanions)
@@ -185,6 +224,10 @@ final class Garden {
         corners = []
         newCorners = []
         guests = [:]
+        bridges = []
+        welcomed = []
+        bridgesUnsettled = true
+        welcomedUnsettled = true
         for item in GardenCatalog.items.filter({ $0.isStarter }) {
             guard let origin = GardenLayout.starterOrigins[item.id] else { continue }
             allPlacements.append(GardenPlacement(item: item.id, tile: origin))
@@ -384,15 +427,70 @@ final class Garden {
         return opened
     }
 
-    /// Mette una copia appena trovata su una tessera libera dell'isola di casa scelta dal numero (sempre la stessa per lo stesso regalo). Se non c'è posto
-    /// resta tra le copie da mettere.
-    private func autoPlace(_ id: String, salt: String) {
-        let island = homeIsland
-        guard placements(on: island).count < Self.maxPlacements, available(id) > 0, let item = GardenCatalog.item(withID: id) else { return }
+    /// Mette una copia appena trovata su una tessera libera dell'isola `island` (di casa se non si dice) scelta dal numero (sempre la stessa per lo stesso regalo).
+    /// Se non c'è posto resta tra le copie da mettere. Dice quale copia ha messo.
+    @discardableResult
+    private func autoPlace(_ id: String, on island: String? = nil, salt: String) -> UUID? {
+        let island = island ?? homeIsland
+        guard placements(on: island).count < Self.maxPlacements, available(id) > 0, let item = GardenCatalog.item(withID: id) else { return nil }
         let origins = GardenLayout.freeOrigins(for: item.footprint, size: islandSize(of: island), occupied: occupiedTiles(on: island), island: island)
-        guard !origins.isEmpty else { return }
+        guard !origins.isEmpty else { return nil }
         var stream = GardenDrops.Stream(seed: GardenDrops.hash("posto-" + salt.uppercased()))
-        allPlacements.append(GardenPlacement(item: id, tile: origins[min(Int(stream.next() * Double(origins.count)), origins.count - 1)], island: stored(island)))
+        let placement = GardenPlacement(item: id, tile: origins[min(Int(stream.next() * Double(origins.count)), origins.count - 1)], island: stored(island))
+        allPlacements.append(placement)
+        return placement.id
+    }
+
+    // MARK: - I ponti e i benvenuti
+
+    func isBuilt(_ bridge: GardenBridge) -> Bool { bridges.contains(bridge.id) }
+
+    /// Se gli elenchi dei ponti e dei benvenuti mancano (un file di prima, un giardino nuovo o cancellato) li calcola e li salva subito: i ponti fra le isole già aperte sono già
+    /// costruiti e i loro compagni già accolti, senza cerimonia e senza regali. Si chiama all'avvio, quando si sa chi è sbloccato, e di nuovo quando si apre il giardino (dopo
+    /// «Cancella tutto»); se non mancano non fa niente. Va fatto subito e non al primo cambiamento: chi ha un compagno solo e chiude l'app non deve trovare, il giorno che ne
+    /// sblocca un altro, il ponte già costruito e il regalo già dato.
+    func settleBridges(open: Set<String>) {
+        guard bridgesUnsettled || welcomedUnsettled else { return }
+        if bridgesUnsettled {
+            bridges = GardenWorld.pending(open: open, built: []).map(\.id)
+            bridgesUnsettled = false
+        }
+        if welcomedUnsettled {
+            // chi è aperto, chi ha già un ponte (un file della prova con i ponti ma senza benvenuti) e la casa
+            let linked = Set(GardenWorld.bridges.filter { bridges.contains($0.id) }.flatMap { [$0.first, $0.second] })
+            welcomed = GardenIslands.all.filter { open.contains($0) || linked.contains($0) || $0 == homeIsland }
+            welcomedUnsettled = false
+        }
+        save()
+    }
+
+    /// I ponti da costruire adesso: fra due isole aperte e non ancora costruiti. Niente finché l'elenco non è calcolato.
+    func pendingBridges(open: Set<String>) -> [GardenBridge] {
+        bridgesUnsettled ? [] : GardenWorld.pending(open: open, built: Set(bridges))
+    }
+
+    /// Le isole da accogliere adesso, ognuna con il suo regalo: i compagni sbloccati dall'ultima volta, anche se non nasce nessun ponte. Niente finché l'elenco non è calcolato.
+    func pendingWelcomes(open: Set<String>) -> [String] {
+        welcomedUnsettled ? [] : GardenWorld.newcomers(open: open, welcomed: Set(welcomed), home: homeIsland)
+    }
+
+    /// Segna costruiti questi ponti e accolte queste isole, e dà il regalo di benvenuto a ciascuna: il primo oggetto del loro animale che non si ha ancora, o una copia in più
+    /// del primo. Il regalo va sull'isola (se c'è posto). Un salvataggio solo. Ponti e isole sono due cose separate: `built` può essere vuoto (un compagno in diagonale non ha ponte)
+    /// e `islands` può essere vuoto (un ponte fra due isole già accolte).
+    @discardableResult
+    func buildBridges(_ built: [GardenBridge], welcoming islands: [String]) -> [GardenBridgeWelcome] {
+        guard !bridgesUnsettled, !welcomedUnsettled else { return [] }
+        for bridge in built where !bridges.contains(bridge.id) { bridges.append(bridge.id) }
+        var welcomes: [GardenBridgeWelcome] = []
+        for island in islands {
+            if !welcomed.contains(island) { welcomed.append(island) }
+            guard let item = GardenCatalog.welcomeGift(forIsland: island, copies: { copies(of: $0) }) else { continue }
+            drops.found[item, default: 0] += 1
+            unseen.insert(item)
+            welcomes.append(GardenBridgeWelcome(island: island, item: item, placement: autoPlace(item, on: island, salt: "BENVENUTO-" + island)))
+        }
+        save()
+        return welcomes
     }
 
     // MARK: - L'isola e le copie
@@ -588,7 +686,8 @@ final class Garden {
                                     unseen: unseen.sorted(), pendingGifts: pendingGifts, legacySpent: legacySpent,
                                     placements: allPlacements,
                                     companions: companionTiles.mapValues { GardenCompanionPlace(col: $0.col, row: $0.row, x: nil, y: nil) }, home: home,
-                                    corners: corners.isEmpty ? nil : corners, guests: guests.isEmpty ? nil : guests)
+                                    corners: corners.isEmpty ? nil : corners, guests: guests.isEmpty ? nil : guests,
+                                    bridges: bridgesUnsettled ? nil : bridges, welcomed: welcomedUnsettled ? nil : welcomed)
             let encoder = JSONEncoder()
             encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
             do {

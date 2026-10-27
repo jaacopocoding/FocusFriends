@@ -1800,6 +1800,165 @@ for index in 0..<GardenSky.burstStarCount {
 }
 check(starsOK, "le stelline escono dal centro, si allontanano e svaniscono")
 
+// ---------------------------------------------------------------- giardino: ponti e benvenuti
+section("Giardino: ponti e benvenuti")
+UserDefaults.standard.removeObject(forKey: Profile.developerKey)
+check(GardenWorld.bridges.map(\.id) == ["pianty-porcellino", "pianty-ciccio", "porcellino-gattino", "ciccio-gattino"]
+      && GardenWorld.bridges.allSatisfy { $0.touches($0.first) && $0.touches($0.second) && !$0.touches("gatto") }, "i quattro ponti hanno un nome, dai due capi")
+// quali ponti si possono costruire
+check(GardenWorld.pending(open: ["ciccio"], built: []).isEmpty, "un compagno solo: nessun ponte")
+check(GardenWorld.pending(open: ["ciccio", "pianty"], built: []).map(\.id) == ["pianty-ciccio"], "due isole vicine: un ponte")
+check(GardenWorld.pending(open: ["pianty", "gattino"], built: []).isEmpty, "due isole in diagonale: nessun ponte")
+check(GardenWorld.pending(open: Set(GardenIslands.all), built: ["pianty-ciccio"]).map(\.id) == ["pianty-porcellino", "porcellino-gattino", "ciccio-gattino"], "quello già costruito non c'è più")
+// chi si accoglie: i compagni aperti non ancora accolti, tranne la casa, con o senza ponte
+check(GardenWorld.newcomers(open: ["ciccio", "pianty"], welcomed: ["ciccio"], home: "ciccio") == ["pianty"], "il secondo compagno: il regalo va alla sua isola, non a quella di casa")
+check(GardenWorld.newcomers(open: ["ciccio"], welcomed: [], home: "ciccio").isEmpty && GardenWorld.newcomers(open: ["ciccio", "pianty"], welcomed: ["ciccio", "pianty"], home: "ciccio").isEmpty,
+      "la casa non riceve un regalo, e un compagno già accolto non lo riceve due volte")
+check(GardenWorld.newcomers(open: Set(GardenIslands.all), welcomed: [], home: "pianty") == ["porcellino", "ciccio", "gattino"], "tutti insieme: uno per ognuno, nell'ordine dei compagni")
+check(GardenWorld.newcomers(open: ["gattino", "pianty"], welcomed: ["gattino"], home: "gattino") == ["pianty"] && GardenWorld.pending(open: ["gattino", "pianty"], built: []).isEmpty,
+      "un compagno in diagonale si accoglie anche se non nasce nessun ponte")
+// l'oggetto del regalo
+check(GardenCatalog.welcomeGift(forIsland: "pianty", copies: { _ in 0 }) == "annaffiatoio", "il primo oggetto dell'animale, nell'ordine del catalogo")
+check(GardenCatalog.welcomeGift(forIsland: "pianty", copies: { $0 == "annaffiatoio" ? 1 : 0 }) == "vaso-grande", "se ha già il primo, il successivo")
+check(GardenCatalog.welcomeGift(forIsland: "ciccio", copies: { $0 == "casetta-uccelli" ? 0 : 2 }) == "casetta-uccelli", "il primo che manca, anche se non è il primo del catalogo")
+check(GardenCatalog.welcomeGift(forIsland: "pianty", copies: { _ in 2 }) == "annaffiatoio", "se li ha già tutti e tre: una copia in più del primo")
+check(GardenCatalog.welcomeGift(forIsland: "boh", copies: { _ in 0 }) == nil, "un'isola che non c'è non ha regalo")
+func gardenFileObject(_ directory: URL) -> [String: Any] {
+    ((try? JSONSerialization.jsonObject(with: Data(contentsOf: directory.appendingPathComponent("giardino.json")))) as? [String: Any]) ?? [:]
+}
+/// Fa quello che fa la finestra alla prima entrata: i ponti e le isole da accogliere, e li costruisce.
+@discardableResult
+func arrive(_ g: Garden, open: Set<String>) -> (bridges: [GardenBridge], welcomes: [GardenBridgeWelcome]) {
+    let bridges = g.pendingBridges(open: open)
+    return (bridges, g.buildBridges(bridges, welcoming: g.pendingWelcomes(open: open)))
+}
+// un giardino nuovo, con un compagno solo: gli elenchi si scrivono subito, vuoti (o con la casa)
+let bridgeDir = tempDirectory()
+let bridgeGarden = Garden(directory: bridgeDir)
+check(bridgeGarden.bridges.isEmpty && bridgeGarden.pendingBridges(open: ["ciccio", "pianty"]).isEmpty && bridgeGarden.pendingWelcomes(open: ["ciccio", "pianty"]).isEmpty
+      && bridgeGarden.buildBridges(GardenWorld.bridges, welcoming: ["pianty"]).isEmpty, "finché gli elenchi non sono calcolati non c'è niente da fare")
+bridgeGarden.adoptHome("ciccio")
+check(gardenFileObject(bridgeDir)["version"] as? Int == 4 && gardenFileObject(bridgeDir)["bridges"] == nil && gardenFileObject(bridgeDir)["welcomed"] == nil, "e nel file non si scrivono: restano senza elenchi")
+bridgeGarden.settleBridges(open: ["ciccio"])
+check((gardenFileObject(bridgeDir)["bridges"] as? [String]) == [] && (gardenFileObject(bridgeDir)["welcomed"] as? [String]) == ["ciccio"],
+      "gli elenchi ci sono subito nel file (senza aspettare un cambiamento): nessun ponte, la casa già accolta")
+// il giorno dopo: riapre l'app e ne sblocca un altro
+let bridgeNext = Garden(directory: bridgeDir)
+bridgeNext.settleBridges(open: ["ciccio", "pianty"])
+check(bridgeNext.bridges.isEmpty && bridgeNext.welcomed == ["ciccio"], "gli elenchi si calcolano una volta sola: il compagno sbloccato dopo non trova il ponte già fatto né il regalo già dato")
+let bridgeTodo = bridgeNext.pendingBridges(open: ["ciccio", "pianty"])
+check(bridgeTodo.map(\.id) == ["pianty-ciccio"] && bridgeNext.pendingWelcomes(open: ["ciccio", "pianty"]) == ["pianty"] && !bridgeNext.isBuilt(bridgeTodo[0]), "il ponte è da costruire, con il regalo per la sua isola")
+let bridgeBefore = (copies: bridgeNext.copies(of: "annaffiatoio"), placed: bridgeNext.placements(on: "pianty").count, all: bridgeNext.allPlacements.count)
+let bridgeArrival = arrive(bridgeNext, open: ["ciccio", "pianty"])
+let bridgeWelcome = bridgeArrival.welcomes
+check(bridgeWelcome.count == 1 && bridgeWelcome[0].island == "pianty" && bridgeWelcome[0].item == "annaffiatoio" && bridgeWelcome[0].placement != nil
+      && bridgeNext.copies(of: "annaffiatoio") == bridgeBefore.copies + 1 && bridgeNext.unseen.contains("annaffiatoio"), "il regalo è il primo oggetto dell'animale, nell'album come NUOVA")
+if let placed = bridgeWelcome.first?.placement.flatMap({ bridgeNext.placement(withID: $0) }) {
+    check(placed.island == "pianty" && bridgeNext.placements(on: "pianty").count == bridgeBefore.placed + 1 && bridgeNext.allPlacements.count == bridgeBefore.all + 1
+          && GardenIsland.contains(placed.tile, size: bridgeNext.islandSize(of: "pianty")) && !GardenPaths.contains(placed.tile, island: "pianty", size: bridgeNext.islandSize(of: "pianty"))
+          && !GardenLandmarks.tiles(island: "pianty").contains(placed.tile), "e sta sull'isola nuova, su una tessera libera")
+} else {
+    check(false, "il regalo ha una copia messa sull'isola")
+}
+check(bridgeNext.isBuilt(bridgeTodo[0]) && bridgeNext.pendingBridges(open: ["ciccio", "pianty"]).isEmpty && bridgeNext.pendingWelcomes(open: ["ciccio", "pianty"]).isEmpty
+      && (gardenFileObject(bridgeDir)["bridges"] as? [String]) == ["pianty-ciccio"] && (gardenFileObject(bridgeDir)["welcomed"] as? [String]) == ["ciccio", "pianty"], "il ponte è costruito, l'isola accolta, e si salva")
+let bridgeAgain = Garden(directory: bridgeDir)
+check(bridgeAgain.bridges == ["pianty-ciccio"] && bridgeAgain.welcomed == ["ciccio", "pianty"] && bridgeAgain.pendingBridges(open: ["ciccio", "pianty"]).isEmpty
+      && bridgeAgain.pendingWelcomes(open: ["ciccio", "pianty"]).isEmpty && bridgeAgain.copies(of: "annaffiatoio") == bridgeBefore.copies + 1
+      && bridgeAgain.placements(on: "pianty").count == bridgeBefore.placed + 1, "alla riapertura il ponte e il regalo ci sono, e non si ripetono")
+// rifatta con il regalo (la chiave nascosta replayWelcome): il ponte resta uno, l'isola accolta una, il regalo arriva di nuovo (il successivo che manca)
+bridgeAgain.buildBridges(bridgeTodo, welcoming: ["pianty"])
+check(bridgeAgain.bridges == ["pianty-ciccio"] && bridgeAgain.welcomed == ["ciccio", "pianty"] && bridgeAgain.copies(of: "annaffiatoio") == bridgeBefore.copies + 1 && bridgeAgain.copies(of: "vaso-grande") == 1,
+      "la cerimonia rifatta non costruisce un ponte né accoglie un'isola due volte, e il regalo è il successivo che manca")
+// un compagno vicino a due isole aperte: due ponti, un regalo solo
+let bridgeTwoDir = tempDirectory()
+let bridgeTwoGarden = Garden(directory: bridgeTwoDir)
+bridgeTwoGarden.adoptHome("ciccio")
+bridgeTwoGarden.settleBridges(open: ["ciccio", "pianty", "gattino"])
+check(bridgeTwoGarden.bridges == ["pianty-ciccio", "ciccio-gattino"] && bridgeTwoGarden.welcomed == ["pianty", "ciccio", "gattino"],
+      "chi ha già più compagni: i ponti fra le isole aperte sono già costruiti e i compagni già accolti")
+let bridgeTwoCopies = GardenCatalog.items.reduce(0) { $0 + bridgeTwoGarden.copies(of: $1.id) }
+let bridgeTwo = arrive(bridgeTwoGarden, open: Set(GardenIslands.all))
+check(bridgeTwo.bridges.count == 2 && bridgeTwo.welcomes.map { $0.island } == ["porcellino"] && bridgeTwo.welcomes.first?.item == "cesto-carote"
+      && bridgeTwoGarden.bridges.count == 4 && GardenCatalog.items.reduce(0) { $0 + bridgeTwoGarden.copies(of: $1.id) } == bridgeTwoCopies + 1, "due ponti insieme, un regalo solo")
+// chi li ha già tutti e tre: una copia in più del primo
+var bridgeOwnDrops = GardenDropState.starting()
+for id in ["annaffiatoio", "vaso-grande", "aiuola"] { bridgeOwnDrops.found[id] = 1 }
+let bridgeOwnDir = tempDirectory()
+writeGardenFile(bridgeOwnDir, version: 4, drops: bridgeOwnDrops, placements: [])
+let bridgeOwn = Garden(directory: bridgeOwnDir)
+bridgeOwn.adoptHome("ciccio")
+bridgeOwn.settleBridges(open: ["ciccio"])
+let bridgeOwnWelcome = arrive(bridgeOwn, open: ["ciccio", "pianty"]).welcomes
+check(bridgeOwnWelcome.first?.item == "annaffiatoio" && bridgeOwn.copies(of: "annaffiatoio") == 2 && bridgeOwn.copies(of: "vaso-grande") == 1 && bridgeOwn.copies(of: "aiuola") == 1
+      && bridgeOwnWelcome.first?.placement != nil && bridgeOwn.placements(on: "pianty").count == 1, "li ha già tutti e tre: una copia in più del primo, comunque sull'isola nuova")
+// il caso in diagonale: primo compagno Gattino, secondo Pianty (nessun ponte possibile). Il regalo arriva comunque, e la cerimonia ha solo il regalo
+let diagDir = tempDirectory()
+let diag = Garden(directory: diagDir)
+diag.adoptHome("gattino")
+diag.settleBridges(open: ["gattino"])
+check(diag.bridges.isEmpty && diag.welcomed == ["gattino"] && diag.pendingBridges(open: ["gattino"]).isEmpty && diag.pendingWelcomes(open: ["gattino"]).isEmpty, "Gattino da solo: niente ponti, niente regali")
+let diagBefore = (copies: diag.copies(of: "annaffiatoio"), vase: diag.copies(of: "vaso-grande"), all: GardenCatalog.items.reduce(0) { $0 + diag.copies(of: $1.id) })
+check(diag.pendingBridges(open: ["gattino", "pianty"]).isEmpty && diag.pendingWelcomes(open: ["gattino", "pianty"]) == ["pianty"], "sbloccato Pianty (in diagonale): nessun ponte da costruire, ma c'è da accoglierlo")
+let diagSecond = arrive(diag, open: ["gattino", "pianty"])
+check(diagSecond.bridges.isEmpty && diagSecond.welcomes.count == 1 && diagSecond.welcomes[0].island == "pianty" && diagSecond.welcomes[0].item == "annaffiatoio"
+      && diag.copies(of: "annaffiatoio") == diagBefore.copies + 1 && diag.placements(on: "pianty").count == 1 && diag.bridges.isEmpty && diag.welcomed == ["gattino", "pianty"],
+      "il regalo arriva sull'isola di Pianty anche senza ponte, e Pianty risulta accolto")
+check(diag.pendingBridges(open: ["gattino", "pianty"]).isEmpty && diag.pendingWelcomes(open: ["gattino", "pianty"]).isEmpty, "alla prossima entrata non c'è più niente da fare")
+// poi arriva Porcellino, vicino a tutti e due: i ponti si costruiscono insieme (una cerimonia), e il regalo è uno solo, quello del compagno nuovo
+let diagAfterSecond = Garden(directory: diagDir)
+check(diagAfterSecond.welcomed == ["gattino", "pianty"] && diagAfterSecond.copies(of: "annaffiatoio") == diagBefore.copies + 1
+      && diagAfterSecond.pendingWelcomes(open: ["gattino", "pianty"]).isEmpty, "riaperto il giardino, Pianty è già accolto e il regalo c'è")
+let diagBridges = diag.pendingBridges(open: Set(["gattino", "pianty", "porcellino"]))
+check(diagBridges.map(\.id) == ["pianty-porcellino", "porcellino-gattino"] && diag.pendingWelcomes(open: Set(["gattino", "pianty", "porcellino"])) == ["porcellino"], "Gattino, Pianty, Porcellino: due ponti da costruire insieme e un solo compagno nuovo")
+let diagCopies = GardenCatalog.items.reduce(0) { $0 + diag.copies(of: $1.id) }
+let diagLast = arrive(diag, open: Set(["gattino", "pianty", "porcellino"]))
+check(diagLast.bridges.count == 2 && diagLast.welcomes.map { $0.island } == ["porcellino"] && diagLast.welcomes.first?.item == "cesto-carote" && diag.bridges == ["pianty-porcellino", "porcellino-gattino"]
+      && GardenCatalog.items.reduce(0) { $0 + diag.copies(of: $1.id) } == diagCopies + 1 && diag.welcomed == ["gattino", "pianty", "porcellino"]
+      && diag.copies(of: "annaffiatoio") == diagBefore.copies + 1, "un regalo solo (per Porcellino), quello di Pianty non si ripete")
+let diagReopened = Garden(directory: diagDir)
+check(diagReopened.bridges == diag.bridges && diagReopened.welcomed == diag.welcomed && diagReopened.pendingBridges(open: Set(["gattino", "pianty", "porcellino"])).isEmpty
+      && diagReopened.pendingWelcomes(open: Set(["gattino", "pianty", "porcellino"])).isEmpty, "tutto si ricorda alla riapertura")
+// un file di prima dei ponti, con tutti i compagni già aperti: ponti già costruiti e compagni già accolti, file riscritto subito, vecchio tenuto da parte
+let bridgeOldDir = tempDirectory()
+writeGardenFile(bridgeOldDir, version: 4, drops: GardenDropState.starting(), placements: [])
+let bridgeOldText = (try? String(contentsOf: bridgeOldDir.appendingPathComponent("giardino.json"))) ?? ""
+let bridgeOld = Garden(directory: bridgeOldDir)
+check(bridgeOld.bridges.isEmpty && bridgeOld.pendingBridges(open: Set(GardenIslands.all)).isEmpty && bridgeOld.pendingWelcomes(open: Set(GardenIslands.all)).isEmpty
+      && (try? String(contentsOf: bridgeOldDir.appendingPathComponent("giardino.json"))) == bridgeOldText, "leggere un file di prima non lo tocca, e non c'è niente da fare finché non si calcola")
+bridgeOld.settleBridges(open: Set(GardenIslands.all))
+check(bridgeOld.bridges == GardenWorld.bridges.map(\.id) && bridgeOld.welcomed == GardenIslands.all && (gardenFileObject(bridgeOldDir)["bridges"] as? [String]) == bridgeOld.bridges
+      && (gardenFileObject(bridgeOldDir)["welcomed"] as? [String]) == GardenIslands.all
+      && (try? String(contentsOf: bridgeOldDir.appendingPathComponent("giardino-prima-dei-ponti.json"))) == bridgeOldText && !bridgeOldText.isEmpty,
+      "tutti i compagni aperti: i quattro ponti sono già costruiti e tutti già accolti, salvati subito, e il file di prima resta in giardino-prima-dei-ponti.json")
+let bridgeOldAgain = Garden(directory: bridgeOldDir)
+check(bridgeOldAgain.pendingBridges(open: Set(GardenIslands.all)).isEmpty && bridgeOldAgain.pendingWelcomes(open: Set(GardenIslands.all)).isEmpty, "alla riapertura niente cerimonia")
+// il file della prova 38 (ha i ponti ma non i benvenuti): i benvenuti si calcolano, i ponti restano, nessun regalo
+let proofDir = tempDirectory()
+writeGardenFile(proofDir, version: 4, drops: GardenDropState.starting(), placements: [])
+var proofFile = gardenFileObject(proofDir)
+proofFile["bridges"] = ["pianty-ciccio"]
+proofFile["home"] = "ciccio"
+if let data = try? JSONSerialization.data(withJSONObject: proofFile, options: [.sortedKeys]) { try? data.write(to: proofDir.appendingPathComponent("giardino.json")) }
+let proof = Garden(directory: proofDir)
+check(proof.bridges == ["pianty-ciccio"] && proof.welcomed.isEmpty && proof.pendingWelcomes(open: ["ciccio", "pianty", "gattino"]).isEmpty, "un file con i ponti ma senza benvenuti: finché non si calcola, niente regali")
+proof.settleBridges(open: ["ciccio", "pianty"])
+check(proof.bridges == ["pianty-ciccio"] && proof.welcomed == ["pianty", "ciccio"] && (gardenFileObject(proofDir)["welcomed"] as? [String]) == ["pianty", "ciccio"]
+      && proof.pendingWelcomes(open: ["ciccio", "pianty"]).isEmpty, "i benvenuti si calcolano e si salvano subito: chi è già aperto è già accolto, nessun regalo")
+check(proof.pendingWelcomes(open: ["ciccio", "pianty", "gattino"]) == ["gattino"], "e un compagno sbloccato dopo si accoglie")
+// un file della 3: la copia è quella del formato 3, non se ne fa una seconda
+homeGarden.settleBridges(open: ["gattino"])
+check((gardenFileObject(homeDir)["bridges"] as? [String]) == [] && (gardenFileObject(homeDir)["welcomed"] as? [String]) == ["gattino"] && FileManager.default.fileExists(atPath: homeDir.appendingPathComponent("giardino-formato3.json").path)
+      && !FileManager.default.fileExists(atPath: homeDir.appendingPathComponent("giardino-prima-dei-ponti.json").path), "un file della 3: resta la copia del formato 3, senza un'altra")
+// «Cancella tutto»: gli elenchi si ricalcolano
+bridgeNext.reset()
+check(bridgeNext.bridges.isEmpty && bridgeNext.welcomed.isEmpty && bridgeNext.pendingBridges(open: Set(GardenIslands.all)).isEmpty && bridgeNext.pendingWelcomes(open: Set(GardenIslands.all)).isEmpty,
+      "dopo «Cancella tutto» si ricalcola, e intanto non c'è niente da fare")
+bridgeNext.adoptHome("ciccio")        // dopo «Cancella tutto» la presentazione si rifà: la casa si sceglie di nuovo
+bridgeNext.settleBridges(open: ["ciccio"])
+check(bridgeNext.bridges.isEmpty && bridgeNext.pendingBridges(open: ["ciccio", "pianty"]).count == 1 && bridgeNext.pendingWelcomes(open: ["ciccio", "pianty"]).count == 1,
+      "con un compagno solo si riparte senza ponti né regali")
+
 // ---------------------------------------------------------------- da fare
 section("Da fare: giorni e testi")
 check(ToDoDay.isValid("2026-10-23") && ToDoDay.isValid("2028-02-29"), "giorni che esistono")

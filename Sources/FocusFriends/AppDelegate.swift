@@ -136,6 +136,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // L'isola di casa è quella del compagno scelto all'inizio (per chi usava già l'app, quella del compagno che usa): si decide una volta sola.
         if Profile.shared.introSeen { Garden.shared.adoptHome(Profile.shared.firstCompanion ?? Pet.saved.id) }
         menu.evaluateCompanionRewards(announce: false)
+        // Chi ha già più compagni sbloccati ha i ponti fra le loro isole già costruiti, senza cerimonia: si decide ora (e si salva), una volta sola.
+        if Profile.shared.introSeen { Garden.shared.settleBridges(open: Set(GardenIslands.all.filter { Profile.shared.isCompanionUnlocked($0) })) }
 
         // La prima volta (anche per chi la usava già): come ti chiami e chi ti fa compagnia.
         if !Profile.shared.introSeen {
@@ -147,6 +149,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     Profile.shared.markIntroSeen()
                     Profile.shared.chooseFirstCompanion(pet.id)
                     Garden.shared.adoptHome(pet.id)
+                    Garden.shared.settleBridges(open: Set(GardenIslands.all.filter { Profile.shared.isCompanionUnlocked($0) }))
                     if pet != window.pet {
                         menu.selectPet(pet)
                     } else {

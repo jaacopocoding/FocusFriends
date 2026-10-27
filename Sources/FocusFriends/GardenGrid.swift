@@ -631,6 +631,11 @@ struct GardenBridge: Equatable {
     let second: String
     /// Se le due isole stanno una di seguito all'altra lungo le colonne (il ponte scende verso destra) o lungo le righe (scende verso sinistra).
     let alongColumns: Bool
+
+    /// Come il ponte si scrive in `giardino.json` (`bridges`): le due isole, nell'ordine di `first` e `second`.
+    var id: String { first + "-" + second }
+
+    func touches(_ island: String) -> Bool { first == island || second == island }
 }
 
 /// Il mondo: le quattro isole in una griglia di 2×2 celle, sempre nelle stesse posizioni (come le tessere di un'isola: la seconda cella lungo le colonne sta a
@@ -683,6 +688,18 @@ enum GardenWorld {
         let landing = Double(GardenPaths.landingIndex) + 0.5
         if bridge.alongColumns { return (a.col + Double(firstSize), b.col, Double(slot.row * cell) + landing) }
         return (a.row + Double(firstSize), b.row, Double(slot.col * cell) + landing)
+    }
+
+    /// I ponti che si possono costruire adesso: quelli fra due isole aperte che non sono già costruiti, nell'ordine di `bridges`.
+    static func pending(open: Set<String>, built: Set<String>) -> [GardenBridge] {
+        bridges.filter { open.contains($0.first) && open.contains($0.second) && !built.contains($0.id) }
+    }
+
+    /// Le isole che ricevono adesso il regalo di benvenuto: quelle aperte (il compagno è sbloccato) che non l'hanno ancora ricevuto, tranne l'isola di casa. Il regalo non
+    /// dipende dal ponte: arriva anche se non nasce nessun ponte (il compagno è in diagonale rispetto alle isole aperte) e una volta sola per compagno, anche se poi ne
+    /// arrivano altri. Nell'ordine di `GardenIslands.all`.
+    static func newcomers(open: Set<String>, welcomed: Set<String>, home: String) -> [String] {
+        GardenIslands.all.filter { $0 != home && open.contains($0) && !welcomed.contains($0) }
     }
 
     /// Ogni pezzo di ponte copre due tessere lungo l'asse.

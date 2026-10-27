@@ -114,6 +114,27 @@ final class GardenView: NSView, NSViewToolTipOwner {
     /// Quanto dura la scritta (le stelline, un po' meno).
     private static let celebrationLength = 4.6
 
+    /// L'arrivo di un compagno, alla prima entrata nel giardino dopo averlo sbloccato: la telecamera scivola a inquadrare le isole, gli eventuali ponti compaiono pezzo per pezzo e
+    /// alla fine i ponti si salvano come costruiti, l'isola è accolta e arriva il regalo di benvenuto. I ponti possono mancare (un compagno in diagonale rispetto alle isole aperte non
+    /// ne ha: resta il regalo, con la scritta «Nuova isola») e gli accolti possono mancare (un ponte fra due isole già accolte). Prima della fine non si salva niente: se la finestra si
+    /// chiude a metà, riparte. Le prove a vuoto (`rehearsalIsland`, la chiave `replayBridges`) rifanno la costruzione senza salvare né regalare niente.
+    private struct ArrivalCeremony {
+        var bridges: [GardenBridge]
+        /// Le isole che ricevono il regalo (una per compagno appena sbloccato).
+        var welcomed: [String]
+        var from: (zoom: CGFloat, pan: NSPoint)
+        var to: (zoom: CGFloat, pan: NSPoint)
+        /// Quando è cominciata (`effectsClock`) e quanti pezzi di ponte compaiono in tutto.
+        var start: Double
+        var pieces: Int
+        /// La telecamera sta scivolando; si ferma se chi guarda la sposta lui.
+        var gliding = true
+        /// La prova a vuoto (`replayBridges`): l'isola che si prova. Non si salva né si regala niente.
+        var rehearsalIsland: String?
+    }
+    private var ceremony: ArrivalCeremony?
+    private static let ceremonyGlide = 1.2, ceremonyPieceGap = 0.38, ceremonyPieceFade = 0.5, ceremonyHold = 0.6
+
     private let albumButton: PillIconButton
     /// Chiamata dal pulsante «‹ Menu»: la finestra si chiude e si torna alla scheda del menu.
     var onBack: (() -> Void)?
@@ -334,6 +355,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
 
     /// Dopo uno zoom o uno spostamento: il centro della finestra resta nel mondo, e l'isola viva è quella più vicina al centro.
     private func cameraMoved() {
+        ceremony?.gliding = false
         clampCamera()
         updateFocus()
         needsDisplay = true
@@ -611,7 +633,8 @@ final class GardenView: NSView, NSViewToolTipOwner {
             guard let self, let window = self.window, window.isVisible, window.occlusionState.contains(.visible) else { return }
             let elapsed = min(Date().timeIntervalSince(self.lastWalkTick), 0.2)
             self.lastWalkTick = Date()
-            let walking = self.advanceWalkers(by: elapsed) || self.advanceVisitor(by: elapsed)
+            let building = self.advanceCeremony()
+            let walking = self.advanceWalkers(by: elapsed) || self.advanceVisitor(by: elapsed) || building
             // di tanto in tanto si guarda se la luce è cambiata (sta calando la sera): altrimenti si ridisegna solo se qualcosa si muove
             self.skyTicks += 1
             var changed = false
@@ -814,6 +837,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
         currentTint = GardenTint(multiplier: sky.light.multiplier)
         currentSeason = sky.season
         drawStaticScene(iso, season: sky.season, light: sky.light)
+        drawArrivalCeremony()
         drawChimneySmoke(season: sky.season, iso: iso)
         drawHighlight(target, iso: iso)
         let laid = entities()
@@ -1029,7 +1053,9 @@ final class GardenView: NSView, NSViewToolTipOwner {
     // MARK: - La vita ferma: piante nel vento, acqua che luccica, fumo dal camino
 
     /// Chi ha chiesto «Riduci movimento» nelle impostazioni di accessibilità: niente vento, fumo, neve, lucciole né passeggiate.
-    private var reduceMotion: Bool { NSWorkspace.shared.accessibilityDisplayShouldReduceMotion }
+    private var reduceMotion: Bool { motionReduced() }
+    /// «Riduci movimento» del sistema; i banchi di prova lo cambiano per vedere i due modi.
+    var motionReduced: () -> Bool = { NSWorkspace.shared.accessibilityDisplayShouldReduceMotion }
 
     /// Disegna una pianta piegata dal vento: a strisce orizzontali, ognuna spostata di lato un po' di più della sottostante, così la base
     /// sta ferma e la cima oscilla.
@@ -2705,6 +2731,7 @@ extension GardenView {
     /// Cosa fa rifare la scena preparata, oltre alla stagione e alla luce: la grandezza delle isole e quali sono aperte.
     private func worldSignature() -> String {
         GardenIslands.all.map { "\($0):\(garden.islandSize(of: $0))\(isIslandOpen($0) ? "a" : "c")" }.joined(separator: ",")
+            + "|" + shownBridges().map(\.id).joined(separator: ",")
     }
 
     /// L'isola è aperta se il suo compagno è sbloccato; le altre sono al buio.
@@ -2834,24 +2861,37 @@ extension GardenView {
 
     // MARK: Ponti e cose sulle altre isole
 
-    /// I ponti fra le isole aperte vicine.
+    /// I ponti costruiti che si disegnano nella scena: quelli che la cerimonia sta costruendo (o rifacendo) compaiono pezzo per pezzo, a parte (`drawArrivalCeremony`).
+    private func shownBridges() -> [GardenBridge] {
+        let building = Set(ceremony?.bridges.map(\.id) ?? [])
+        return GardenWorld.bridges.filter { garden.isBuilt($0) && !building.contains($0.id) }
+    }
+
+    /// I ponti costruiti fra le isole aperte vicine.
     private func drawBridges(_ islands: [(id: String, iso: Iso, open: Bool)]) {
-        for bridge in GardenWorld.bridges {
-            guard let first = islands.first(where: { $0.id == bridge.first }), let second = islands.first(where: { $0.id == bridge.second }),
-                  first.open, second.open,
-                  let span = GardenWorld.span(of: bridge, firstSize: first.iso.size, secondSize: second.iso.size),
-                  let view = Optional(worldView(zoom: zoom, pan: pan)) else { continue }
-            let world = Iso(size: GardenWorld.extent, tileW: view.tileW, origin: view.origin)
-            for (index, center) in GardenWorld.pieceCenters(from: span.from, to: span.to).enumerated() {
-                let point = bridge.alongColumns ? world.point(col: center, row: span.across) : world.point(col: span.across, row: center)
-                drawBridgePiece(alongColumns: bridge.alongColumns, variant: index % 2 + 1, at: point, tileW: world.tileW)
+        for bridge in shownBridges() {
+            for piece in bridgePieces(bridge, islands: islands) {
+                drawBridgePiece(alongColumns: bridge.alongColumns, variant: piece.variant, at: piece.point, tileW: piece.tileW)
             }
+        }
+    }
+
+    /// Dove stanno i pezzi di un ponte alla vista di adesso (niente se una delle due isole è chiusa).
+    private func bridgePieces(_ bridge: GardenBridge, islands: [(id: String, iso: Iso, open: Bool)]) -> [(point: NSPoint, variant: Int, tileW: CGFloat)] {
+        guard let first = islands.first(where: { $0.id == bridge.first }), let second = islands.first(where: { $0.id == bridge.second }),
+              first.open, second.open,
+              let span = GardenWorld.span(of: bridge, firstSize: first.iso.size, secondSize: second.iso.size) else { return [] }
+        let view = worldView(zoom: zoom, pan: pan)
+        let world = Iso(size: GardenWorld.extent, tileW: view.tileW, origin: view.origin)
+        return GardenWorld.pieceCenters(from: span.from, to: span.to).enumerated().map { index, center in
+            (bridge.alongColumns ? world.point(col: center, row: span.across) : world.point(col: span.across, row: center), index % 2 + 1, world.tileW)
         }
     }
 
     /// Un pezzo di ponte, con il centro della sua striscia (lunga due tessere, larga una) su `center`. Il disegno è più alto che largo rispetto alla griglia
     /// (122×75 pixel per due tessere): si scala a parte in larghezza e in altezza, così i paletti di un pezzo coincidono con quelli del successivo.
-    private func drawBridgePiece(alongColumns: Bool, variant: Int, at center: NSPoint, tileW: CGFloat) {
+    /// Nella scena la luce si dà dopo, su tutto; un pezzo che compare da solo (`alpha`, `lift` = quanto è ancora in alto) prende la tinta della luce come le cose.
+    private func drawBridgePiece(alongColumns: Bool, variant: Int, at center: NSPoint, tileW: CGFloat, alpha: CGFloat = 1, lift: CGFloat = 0, tint: GardenTint = .none) {
         let resource = "giardino_ponte_\(alongColumns ? "colonna" : "riga")_\(variant)"
         guard let sprite = GardenSprites.sprite(resource) else { return }
         let sx = tileW / 122, sy = tileW / 150
@@ -2859,10 +2899,145 @@ extension GardenView {
         // il centro della striscia nel disegno (dall'alto a sinistra): 119,5 e 127; nello specchiato, da destra
         let anchorX = (alongColumns ? 119.5 : sprite.image.size.width - 119.5) - sprite.source.minX
         let anchorY = 127 - (sprite.image.size.height - sprite.source.maxY)
-        let rect = NSRect(x: center.x - anchorX * sx, y: center.y - anchorY * sy, width: width, height: height)
+        let rect = NSRect(x: center.x - anchorX * sx, y: center.y - anchorY * sy - lift, width: width, height: height)
         guard let scaled = GardenSprites.scaled(sprite, resource: resource, pixelWidth: max(1, Int((width * backingScale).rounded())),
-                                                pixelHeight: max(1, Int((height * backingScale).rounded()))) else { return }
-        GardenBlit.draw(scaled, in: rect)
+                                                pixelHeight: max(1, Int((height * backingScale).rounded())), tint: tint) else { return }
+        GardenBlit.draw(scaled, in: rect, alpha: alpha)
+    }
+
+    // MARK: La costruzione del ponte
+
+    /// Quanti pezzi ha un ponte (dipende dalla grandezza delle due isole).
+    private func pieceCount(of bridge: GardenBridge) -> Int {
+        guard let span = GardenWorld.span(of: bridge, firstSize: garden.islandSize(of: bridge.first), secondSize: garden.islandSize(of: bridge.second)) else { return 0 }
+        return GardenWorld.pieceCenters(from: span.from, to: span.to).count
+    }
+
+    /// La vista che inquadra le isole dette (come `worldCamera` fa con tutte e quattro).
+    private func camera(framing islands: [String]) -> (zoom: CGFloat, pan: NSPoint) {
+        let base = worldBase
+        var left = CGFloat.infinity, right = -CGFloat.infinity, top = CGFloat.infinity, bottom = -CGFloat.infinity
+        for id in islands {
+            let size = garden.islandSize(of: id)
+            guard let corner = GardenWorld.corner(of: id, size: size) else { continue }
+            for (dc, dr) in [(0, 0), (size, 0), (0, size), (size, size)] {
+                let col = corner.col + Double(dc), row = corner.row + Double(dr)
+                let x = CGFloat(col - row) * base.tileW / 2, y = CGFloat(col + row) * base.tileW / 4
+                left = min(left, x); right = max(right, x); top = min(top, y); bottom = max(bottom, y)
+            }
+        }
+        guard left < right else { return islandCamera(garden.shownIsland) }
+        top -= base.tileW * 1.6          // le cose alte, la casa
+        bottom += base.tileW * 0.6       // il bordo di terra
+        let zoom = min(max(min((sceneW - 90) / (right - left), (sceneH - 170) / (bottom - top)), Self.zoomRange.lowerBound), Self.zoomRange.upperBound)
+        let center = NSPoint(x: sceneW / 2, y: sceneH / 2)
+        let box = NSPoint(x: base.origin.x + (left + right) / 2, y: base.origin.y + (top + bottom) / 2)
+        let want = NSPoint(x: sceneW / 2, y: sceneH / 2 + 14)
+        return (zoom, NSPoint(x: want.x - center.x - (box.x - center.x) * zoom, y: want.y - center.y - (box.y - center.y) * zoom))
+    }
+
+    /// Alla prima entrata nel giardino dopo uno sblocco (`allowed` è falso durante un focus): se c'è un compagno da accogliere o ci sono ponti da costruire, la telecamera inquadra
+    /// le isole, i pezzi dei ponti compaiono uno dopo l'altro (i ponti in fila) e poi si salva tutto, con il regalo di benvenuto (uno per compagno appena sbloccato, anche
+    /// senza ponte). Con «Riduci movimento» compare tutto insieme. Le chiavi nascoste `replayBridges` e `replayWelcome` (vedi `Garden.replayBridgesKey`) rifanno la cerimonia di
+    /// un'isola già costruita: la prima senza toccare niente, la seconda con il regalo vero. Le chiavi non si consumano durante un focus.
+    func beginArrivalCeremony(allowed: Bool) {
+        ceremony = nil          // la finestra si era chiusa a metà: si riparte da capo
+        guard allowed, profile.introSeen else { return }
+        let open = Set(GardenIslands.all.filter { isIslandOpen($0) })
+        garden.settleBridges(open: open)
+        var bridges = garden.pendingBridges(open: open)
+        var welcomed = garden.pendingWelcomes(open: open)
+        var rehearsalIsland: String?
+        let defaults = UserDefaults.standard
+        let replayBridges = defaults.string(forKey: Garden.replayBridgesKey), replayWelcome = defaults.string(forKey: Garden.replayWelcomeKey)
+        defaults.removeObject(forKey: Garden.replayBridgesKey)
+        defaults.removeObject(forKey: Garden.replayWelcomeKey)
+        func touching(_ island: String) -> [GardenBridge] {
+            GardenWorld.bridges.filter { $0.touches(island) && open.contains($0.first) && open.contains($0.second) }
+        }
+        if let wanted = replayWelcome, open.contains(wanted) {
+            bridges = touching(wanted)
+            welcomed = [wanted]
+        } else if let wanted = replayBridges, open.contains(wanted), !touching(wanted).isEmpty {
+            bridges = touching(wanted)
+            welcomed = []
+            rehearsalIsland = wanted
+        }
+        guard !bridges.isEmpty || !welcomed.isEmpty else { return }
+        let involved = Array(Set(bridges.flatMap { [$0.first, $0.second] } + welcomed))
+        let target = involved.count == 1 ? islandCamera(involved[0]) : camera(framing: involved)
+        let done = ArrivalCeremony(bridges: bridges, welcomed: welcomed, from: (zoom, pan), to: target, start: effectsClock(),
+                                   pieces: bridges.reduce(0) { $0 + pieceCount(of: $1) }, rehearsalIsland: rehearsalIsland)
+        if reduceMotion {
+            zoom = target.zoom
+            pan = target.pan
+            clampCamera()
+            finishArrival(done)
+        } else {
+            ceremony = done
+        }
+        needsDisplay = true
+    }
+
+    /// Quanto dura la costruzione: la telecamera, un pezzo dopo l'altro (l'ultimo ha il tempo di comparire) e un attimo di pausa.
+    private func ceremonyLength(_ current: ArrivalCeremony) -> Double {
+        Self.ceremonyGlide + Double(max(current.pieces - 1, 0)) * Self.ceremonyPieceGap + Self.ceremonyPieceFade + Self.ceremonyHold
+    }
+
+    /// Un passo della costruzione (a ogni fotogramma): la telecamera scivola, e alla fine i ponti si salvano. Dice se qualcosa si muove. (Non è privato perché i
+    /// banchi di prova lo fanno girare a mano, con un orologio finto, invece di aspettare il timer.)
+    func advanceCeremony() -> Bool {
+        guard let current = ceremony else { return false }
+        let elapsed = effectsClock() - current.start
+        if current.gliding {
+            let t = min(max(elapsed / Self.ceremonyGlide, 0), 1)
+            let eased = CGFloat(t < 0.5 ? 2 * t * t : 1 - pow(-2 * t + 2, 2) / 2)
+            zoom = current.from.zoom + (current.to.zoom - current.from.zoom) * eased
+            pan = NSPoint(x: current.from.pan.x + (current.to.pan.x - current.from.pan.x) * eased, y: current.from.pan.y + (current.to.pan.y - current.from.pan.y) * eased)
+            clampCamera()
+            if t >= 1 { ceremony?.gliding = false }
+        }
+        if elapsed >= ceremonyLength(current) { finishArrival(current) }
+        return true
+    }
+
+    /// I pezzi che stanno comparendo: ognuno scende al suo posto e si fa vedere piano.
+    private func drawArrivalCeremony() {
+        guard let current = ceremony else { return }
+        let elapsed = effectsClock() - current.start
+        let islands = worldIslands()
+        var index = 0
+        for bridge in current.bridges {
+            for piece in bridgePieces(bridge, islands: islands) {
+                let appear = (elapsed - Self.ceremonyGlide - Double(index) * Self.ceremonyPieceGap) / Self.ceremonyPieceFade
+                index += 1
+                guard appear > 0 else { continue }
+                let shown = CGFloat(min(appear, 1))
+                drawBridgePiece(alongColumns: bridge.alongColumns, variant: piece.variant, at: piece.point, tileW: piece.tileW, alpha: shown,
+                                lift: (1 - shown) * (1 - shown) * piece.tileW * 0.5, tint: currentTint)
+            }
+        }
+    }
+
+    /// L'arrivo è finito: i ponti si salvano costruiti e le isole accolte (con il regalo), la nuova isola diventa quella viva e una scritta con le stelline sul regalo lo dice.
+    /// Una prova a vuoto non salva né regala niente.
+    private func finishArrival(_ done: ArrivalCeremony) {
+        ceremony = nil
+        var welcomes: [GardenBridgeWelcome] = []
+        if done.rehearsalIsland == nil { welcomes = garden.buildBridges(done.bridges, welcoming: done.welcomed) }
+        if let island = done.welcomed.first ?? done.rehearsalIsland { focus(island) }
+        for welcome in welcomes {
+            // con un ponte che arriva a quell'isola è «Nuovo ponte», senza è «Nuova isola»
+            let kind = done.bridges.contains { $0.touches(welcome.island) } ? "Nuovo ponte" : "Nuova isola"
+            celebrations.append(Celebration(caption: "\(kind): un regalo per \(petName(welcome.island))", title: GardenCatalog.item(withID: welcome.item)?.name ?? welcome.item,
+                                            members: welcome.placement.map { [$0] } ?? [], visitor: nil, start: nil))
+        }
+        if let island = done.rehearsalIsland {
+            celebrations.append(Celebration(caption: "Prova: ponti rifatti, niente salvato", title: "Isola di \(petName(island))", members: [], visitor: nil, start: nil))
+        } else if welcomes.isEmpty, let bridge = done.bridges.first {
+            celebrations.append(Celebration(caption: "Nuovo ponte", title: "\(petName(bridge.first)) e \(petName(bridge.second))", members: [], visitor: nil, start: nil))
+        }
+        needsDisplay = true
     }
 
     /// Gli oggetti e il compagno di un'isola che non è quella viva: fermi, con la profondità del mondo.
@@ -3027,7 +3202,8 @@ final class GardenController {
         min(1, max(min((width - 40) / GardenView.sceneSize.width, (height - 90) / GardenView.sceneSize.height), 0.5))
     }
 
-    func show() {
+    /// `canCelebrate`: falso durante un focus (la cerimonia d'arrivo aspetta la prossima entrata).
+    func show(canCelebrate: Bool = true) {
         if window == nil {
             let scale = Self.scale(forScreenWidth: NSScreen.main?.visibleFrame.width ?? 1440, height: NSScreen.main?.visibleFrame.height ?? 900)
             let size = NSSize(width: GardenView.sceneSize.width * scale, height: GardenView.sceneSize.height * scale)
@@ -3062,6 +3238,7 @@ final class GardenController {
         view?.resetVisitors()
         view?.reload()
         view?.announceGifts(gifts.count)
+        view?.beginArrivalCeremony(allowed: canCelebrate)
         NSApp.activate(ignoringOtherApps: true)
         window?.makeKeyAndOrderFront(nil)
     }
