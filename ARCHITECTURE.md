@@ -64,7 +64,7 @@ Single user per Mac, no accounts, no network: all data is stored locally under
 | App type | Menu-bar "agent": `LSUIElement = true`, activation policy `.accessory` | `build.sh`, `AppDelegate.applicationDidFinishLaunching` |
 | Signing | Ad-hoc (`codesign --force --sign -`; `build.sh` stops with exit 1 if signing fails); not notarised, no hardened runtime or sandbox | `build.sh`, `README.md` "Scaricare e usare" |
 | Asset tooling | Python 3 scripts using Pillow and NumPy (not run at build time) | `tools/*.py` |
-| Tests | One hand-written Swift executable (`tests/main.swift`, 46 sections, 917 checks) that compiles twenty Foundation-only source files; no XCTest | `tests/run.sh` |
+| Tests | One hand-written Swift executable (`tests/main.swift`, 47 sections, 938 checks) that compiles twenty Foundation-only source files; no XCTest | `tests/run.sh` |
 | License | MIT (`LICENSE`); bundled music is CC0 (`CREDITS.md`) | `LICENSE`, `CREDITS.md` |
 | Swift toolchain version / Python version | Not pinned anywhere in the repository | **[unknown]** |
 
@@ -158,7 +158,7 @@ FocusFriends/
 │   ├── MusicLibrary.swift        MusicSource, MusicLibrary (file discovery, shuffle, titles), MusicSettings  (Foundation only)
 │   └── MusicPlayer.swift         AVAudioPlayer-based music playback with queue and fades
 ├── tests/
-│   ├── main.swift                hand-rolled test executable (check()/section()), 46 sections, 917 checks
+│   ├── main.swift                hand-rolled test executable (check()/section()), 47 sections, 938 checks
 │   ├── run.sh                    compiles 20 source files + tests/main.swift into build/tests/stats and runs it
 │   ├── genera-attesi.sh          builds and runs tests/genera-attesi/main.swift: for every folder in tests/fixtures/ writes what this app derives from it (the expected results the Windows port is compared with)
 │   ├── simula-regali.sh          simulates the end-of-focus drops over 30/60/90 days of studying (how long an album takes; used to tune GardenDrops)
@@ -669,14 +669,17 @@ code. All UI code runs on the main thread; the only other thread is the audio re
   available ones (`drops.found` never changes: no copy is lost). It saves at once, keeps the old file as `giardino-prima-delle-regole.json` (only if something moved) and leaves a `rulesNotice` that the window
   says once at the first entry (`announceRules`, six seconds). The album marks every sticker (`Sticker.Placing`: «universale», or a pill «solo Gattino» in the island's colour; the tap line says «solo sull'isola
   di Gattino», and for an animal not yet unlocked that the object «esce a fine focus quando sblocchi …»). Bench: invented data, drag with synthesised mouse events (`GardenView.feetPoint`, `carryVerdict`,
-  `shownMessage` are not private for it). Not yet: visitors and corners per island's companion, a size per island, the door of the house towards the path, the Windows port.
+  `shownMessage` are not private for it). **Guests and corners per island** (see "Guests" and "Corners"): the lists of what attracts a guest end with the animals' things, and each island has two corners of its own. Not yet: a size per island, the door of the house towards the path, the diary page, the Windows port.
 - **Corners** (`GardenCorners.swift`, Foundation only, tested; unlocked by `Garden`, drawn by `GardenView`): certain things placed close together form an
   *angolo*, which the user is never told about: it is found by moving things around, and when one forms, stars burst from it with "Hai sbloccato «…»".
-  `GardenCorners.all` has ten, each a list of needs (`.oneOf([ids])`, a copy of any of those items, or `.different(category, n)`, n different items of a category):
+  `GardenCorners.all` has eighteen (the ten first, then two per island), each a list of needs (`.oneOf([ids])`, a copy of any of those items, or `.different(category, n)`, n different items of a category):
   the tea corner (tavolino + sdraio), reading (panchina + lampione), the vegetable patch (aiuola + erbe + annaffiatoio), the cat's (casetta-gatto + tiragraffi +
   cesto-cuscino), the guinea pig's house (casetta-porcellino + tunnel + cesto-carote), the birds' (bagnetto + casetta-uccelli + altalena-uccelli), the
   flowery meadow (four different flowers), the wood (funghi + felci + erba-alta), the party (bandierine + picnic + tavolino) and the rose arch (arco-rose + panchina
-  or ponticello). `GardenCorners.formed(by:)` tries every placement as the **centre**: the corner is formed if its needs are met by distinct copies within
+  or ponticello). **Two more for each island**, each with a thing of that island's animal (so each forms only there, by the rule «an animal's object only on its island»):
+  Pianty's *vivaio* (vaso-grande + lavanda + tulipani) and *acqua* (annaffiatoio + ponticello + felci), Porcellino's *picnic* (picnic + cesto-carote) and *recinto* (casetta-porcellino + cancelletto +
+  erba-alta), Ciccio's *vento* (carillon + altalena-uccelli) and *bagno-sole* (bagnetto + sdraio + girasole), Gattino's *salotto* (cesto-cuscino + tavolino + lampione) and *palestra* (tiragraffi + amaca):
+  no new art, and no special effect (stars and the pill only). `GardenCorners.formed(by:)` tries every placement as the **centre**: the corner is formed if its needs are met by distinct copies within
   `reach` = 2 of the centre (`distance` is the larger of the column and row gaps between the footprints' edges: 1 touching, 2 with one free tile between), so
   the result depends only on the placements, and the same copy can be in two corners. `Garden` recomputes `formedCorners` (corner → the copies forming it) at
   every `save()`, unlocks the new ones (`corners`, in the order found, saved as the optional `corners` key of `giardino.json` — still version 3), and hands them to
@@ -688,8 +691,8 @@ code. All UI code runs on the main thread; the only other thread is the audio re
   from the bunting (which also sways 1.7× as much), rose petals and a pink glow at night under the arch; the reading corner's lamp is lit 1.45× wider. The
   motion is `GardenSky.drift(index:time:period:)` (falling or rising things) and `butterfly`, pure functions of time. The effects stop with Reduce Motion.
   **The companions at the corners** (`GardenCompanions.swift`, pure and tested; behaviour in `advanceWalkers`): `GardenCompanions.affinities` says who likes which
-  corner and what they do there (the cat sleeps at hers and grooms at the reading corner, the guinea pig eats in the vegetable patch and hops at her house
-  and at the party, the budgie flaps his wings at the bird bath and at the party; Pianty has no poses). The poses are the frames the desktop companions already
+  corner and what they do there (the cat sleeps at hers and in the salotto and grooms at the reading corner, the guinea pig eats in the vegetable patch and at the picnic and hops at her house
+  and at the party, the budgie flaps his wings at the bird bath, at the party and at the wind music; Pianty has no poses). The poses are the frames the desktop companions already
   have (`<pet>_frame<n>`, same canvas as the still image: `frames(pet:pose:)`, `resource(pet:pose:time:)` at `GardenPose.framesPerSecond`). A walker now also has
   an `errand` (the rest of the route) and an `activity` (the pose and the seconds left), plus `idle`: when a companion would take its next step, after at least 25 s
   without a pose it has a 40 % chance to pick an affinity whose corner is formed and not already taken by another companion, finds with `route(from:to:size:occupied:)`
@@ -714,7 +717,10 @@ code. All UI code runs on the main thread; the only other thread is the audio re
 - **Guests** (`GardenVisitors.swift`, Foundation only, tested; `Garden.guests`; lifecycle in `GardenView`): twelve animals — hedgehog, robin, wild rabbit, fox,
   squirrel, frog, owl, tortoise, mouse, great tit, duckling, lizard — come to visit while the window is open. `GardenVisitors.all` says for each the seasons and the
   `GardenDaySlot`s (morning 6–10, day 10–17, evening 17–21, night) in which it can come, and what attracts it: the ten common ones a thing on the island (one of a
-  list), the two rare ones (owl, fox) a formed corner (`GardenVisitorHaunt`: the corner and the thing they stop by). `arrival(day:slot:…)` is deterministic: for the
+  list), the two rare ones (owl, fox) a formed corner (`GardenVisitorHaunt`: the corner and the thing they stop by). The lists end with things of the animals, since those stay on their
+  island and Pianty and Gattino would otherwise have one species all year: the rabbit also comes for the aiuola and the frog for the annaffiatoio (Pianty), the hedgehog for the cesto-cuscino and the
+  squirrel for the tiragraffi (Gattino); appended at the end, so whoever already had a reason to come keeps it (and the first reason found is the same as before). A well-kept island has about three
+  guests a day however many species can come (four slots × 80 %, one at a time): the additions give variety, not crowds (a year simulated with the real `arrival`). `arrival(day:slot:…)` is deterministic: for the
   same day, slot and island it gives the same guest (80 % of the slots with a candidate have one, the rare ones weigh 0.4), so opening the window twice in a slot finds
   the same animal. `GardenView` checks 3 s after opening (`advanceVisitor`, called by the 30 Hz timer): the guest enters from a free border tile whose route
   to a free tile next to the attracting thing is about 7 steps (`entryRoute`), walks one tile per second with a small hop (mirrored when it goes left), stays 70–130 s
@@ -722,7 +728,7 @@ code. All UI code runs on the main thread; the only other thread is the audio re
   diary (`Garden.welcomeGuest`: date, visits, what attracted it — `guests` in `giardino.json`, optional, still version 3) and leaves a **gift** (a roll with the fixed id
   `OSPITE-<species>`, never "nothing", so each species always leaves the same one: twelve gifts in all, not farmable), with the stars and "Nuovo ospite"; the
   following times it only greets and counts the visit. If its thing is removed or something is put under it, it leaves. With Reduce Motion it appears already at its
-  place. Not yet: the diary page in the album.
+  place. Not yet: the diary page in the album (the diary is saved but nothing shows it).
 - **Sky and seasons** (`GardenSky.swift`, Foundation only, tested; drawn by `GardenView`): `skyState()` takes the hour and the season from
   `now()` (or from the hidden preferences `gardenHour` / `gardenSeason`). `GardenSky.light(hour:season:)` interpolates between keyframes built
   from the season's `sunrise`/`sunset` (night 0.55 darkness, dawn, day 0, golden hour, dusk, night) and gives a tint colour, how strongly it tints
@@ -795,7 +801,7 @@ code. All UI code runs on the main thread; the only other thread is the audio re
     music (`music_*`), garden/growth art, Pianty stage frames → write `Info.plist` via heredoc →
     `codesign --force --sign -` (a failure prints an error and exits 1) → print the path.
   - `tests/run.sh`: `swiftc -O -o build/tests/stats` on twenty source files + `tests/main.swift` →
-    `build/tests/stats` (prints `• <section>` lines and `N controlli, M falliti`, exit code 0/1; 917 checks now).
+    `build/tests/stats` (prints `• <section>` lines and `N controlli, M falliti`, exit code 0/1; 938 checks now).
   - Tools: described in §5.9; they read `assets/**/*_original.png` / sheets and write processed PNGs or the icon.
 
 ### 3.22 To-do list ("Da fare")
@@ -1486,7 +1492,7 @@ file/UserDefaults writes, windows, timers, sound, global state.
 ### 5.9 Tests, build and tools
 
 #### `tests/main.swift` (2,391) and `tests/run.sh` (7)
-- A single executable: `check(_:_:line:)`, `section(_:)`, 46 sections (917 checks) covering subjects, log persistence,
+- A single executable: `check(_:_:line:)`, `section(_:)`, 47 sections (938 checks) covering subjects, log persistence,
   in-progress recovery, periods, summaries, streaks, texts, garden rules, format versions/migration, subject merging, backups and
   delete-all, time zones, profile, ratings/notes/insights/CSV, timer dial math, seasons, ambient settings, music
   library/settings, focus notes, paused-time recovery, companion rewards (including the developer flag), break cycle,
@@ -1978,7 +1984,7 @@ code is clear. Items without a mark still describe the current code.
 
 ### 7.8 Test coverage as it exists
 
-- Covered (46 sections, 917 checks in `tests/main.swift`): everything in the Foundation-only files listed in §4.1,
+- Covered (47 sections, 938 checks in `tests/main.swift`): everything in the Foundation-only files listed in §4.1,
   including the new damaged-data cases and the developer flag.
 - Not covered by any automated test in the repository: `Pomodoro` (timer, pause, grace, the sleep-gap rule, cycle
   wiring), `Speaker` (including when a to-do reminder replaces a phrase), `Walker`, `PetWindow`/`PetView`, `MenuController`,

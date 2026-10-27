@@ -267,8 +267,14 @@ Versione 3 (Mac 0.10.0): il giardino non ha più punti né negozio né prato lib
   **al massimo quante copie si sono trovate**. In lettura, una copia che sta sul sentiero o sulla casa della sua isola si sposta sulla tessera libera più vicina; si toglie
   (torna tra quelle da mettere) solo se è fuori dall'isola o sopra un'altra; una di un oggetto sconosciuto si tiene. (Una cosa di un animale sull'isola sbagliata non si tocca qui: vedi `islandRules`.)
 - `corners` (facoltativo; assente se non se n'è sbloccato nessuno): gli **angoli** sbloccati, nell'ordine in cui si sono trovati (`te`, `lettura`, `orto`, `gatto`, `porcellino`,
-  `uccelli`, `prato-fiorito`, `bosco`, `festa`, `rose`). Non cambia la versione: un'app che non lo conosce lo ignora (e, riscrivendo il file, lo perde: gli angoli
-  si risbloccano). Quali cose formano un angolo e quanto devono stare vicine sta in `GardenCorners.swift`, e va ripetuto uguale su Windows.
+  `uccelli`, `prato-fiorito`, `bosco`, `festa`, `rose`, e i due di ogni isola: `vivaio` e `acqua` per Pianty, `picnic` e `recinto` per Porcellino, `vento` e `bagno-sole` per Ciccio, `salotto` e
+  `palestra` per Gattino). Non cambia la versione: un'app che non lo conosce lo ignora (e, riscrivendo il file, lo perde: gli angoli si risbloccano). Quali cose formano un angolo e quanto devono
+  stare vicine sta in `GardenCorners.swift`, e va ripetuto uguale su Windows: i diciotto angoli sono, con le cose che vogliono (una copia diversa per ognuna, tutte entro due tessere da una «di mezzo»),
+  `te` (tavolino, sdraio), `lettura` (panchina, lampione), `orto` (aiuola, erbe, annaffiatoio), `gatto` (casetta-gatto, tiragraffi, cesto-cuscino), `porcellino` (casetta-porcellino, tunnel, cesto-carote),
+  `uccelli` (bagnetto, casetta-uccelli, altalena-uccelli), `prato-fiorito` (quattro fiori diversi), `bosco` (funghi, felci, erba-alta), `festa` (bandierine, picnic, tavolino), `rose` (arco-rose, e panchina
+  o ponticello), `vivaio` (vaso-grande, lavanda, tulipani), `acqua` (annaffiatoio, ponticello, felci), `picnic` (picnic, cesto-carote), `recinto` (casetta-porcellino, cancelletto, erba-alta), `vento` (carillon,
+  altalena-uccelli), `bagno-sole` (bagnetto, sdraio, girasole), `salotto` (cesto-cuscino, tavolino, lampione), `palestra` (tiragraffi, amaca). Gli otto nuovi hanno ognuno una cosa di un animale, quindi si
+  formano solo sull'isola di quell'animale. Un giardino che ne forma già uno nuovo quando si apre la finestra lo sblocca (con le stelline) senza che si sposti niente.
 - `guests` (facoltativo): gli **ospiti** salutati, per specie (`pettirosso`, `cinciallegra`, `coniglio`, `riccio`, `rana`, `anatroccolo`, `lucertola`, `tartaruga`, `topolino`,
   `scoiattolo`, `civetta`, `volpe`): `first` il giorno della prima visita (`AAAA-MM-GG`), `visits` quante volte l'hai salutato, `reason` cosa l'aveva attirato (il nome di una
   cosa o di un angolo). La prima volta lascia un regalo, che è già dentro `drops` e `placements`: il regalo è deterministico (come per i punti, un tiro con
