@@ -497,7 +497,7 @@ final class AlbumView: NSView {
         for (slot, item) in zip(slots(isLeft: isLeft), page.items) {
             let number = GardenCatalog.number(of: item.id) ?? 0
             let look = Sticker.Look(item: item, number: number, found: garden.copies(of: item.id) > 0, copies: garden.copies(of: item.id),
-                                    isNew: newOnes.contains(item.id))
+                                    isNew: newOnes.contains(item.id), placing: placing(of: item))
             if look.found {
                 // incollata un po' storta, sempre nello stesso modo
                 let tilt = (CGFloat(GardenDrops.hash(item.id) % 9) - 4) * 0.45
@@ -628,14 +628,26 @@ final class AlbumView: NSView {
         }
     }
 
+    /// Il nome dell'animale a cui appartiene un'isola.
+    private func ownerName(_ island: String) -> String { Pet.all.first { $0.id == island }?.name ?? island }
+
+    /// Il segno sulla figurina: universale, o solo sull'isola del suo animale.
+    private func placing(of item: GardenItem) -> Sticker.Placing {
+        item.island.map { .onlyOn(island: $0, name: ownerName($0)) } ?? .everywhere
+    }
+
     private func describe(_ item: GardenItem) {
         let number = GardenCatalog.number(of: item.id) ?? 0
+        let rule = item.islandRule(ownerName: item.island.map(ownerName) ?? "")
         if garden.copies(of: item.id) > 0 {
             let copies = garden.copies(of: item.id)
             let placed = garden.count(of: item.id)
-            flash("\(item.name) · n. \(number) · \(item.rarity.title) · \(copies == 1 ? "1 copia" : "\(copies) copie")\(placed > 0 ? ", \(placed) nel prato" : "")")
+            flash("\(item.name) · n. \(number) · \(item.rarity.title) · \(rule) · \(copies == 1 ? "1 copia" : "\(copies) copie")\(placed > 0 ? ", \(placed) nel prato" : "")")
+        } else if let owner = item.island, !profile.isCompanionUnlocked(owner) {
+            // le cose di un animale non sbloccato non escono ai regali: si aspetta il compagno
+            flash("n. \(number) · \(item.rarity.title) · \(rule): ancora da trovare. Esce a fine focus quando sblocchi \(ownerName(owner)).")
         } else {
-            flash("n. \(number) · \(item.rarity.title): ancora da trovare. Esce a fine focus.")
+            flash("n. \(number) · \(item.rarity.title) · \(rule): ancora da trovare. Esce a fine focus.")
         }
     }
 

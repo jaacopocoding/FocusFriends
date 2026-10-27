@@ -32,6 +32,25 @@ struct GardenItem: Equatable {
     /// Può stare su questa isola? Gli universali sì, ovunque; quelli di un animale solo sulla sua.
     func fits(island other: String) -> Bool { island == nil || island == other }
 
+    /// Il nome con l'articolo, per le frasi: «il cesto di carote», «la casa del gatto», «l'annaffiatoio». (Le cose degli animali sono dodici: la regola
+    /// basta, e le prove le controllano tutte.)
+    var nameWithArticle: String {
+        let lower = name.prefix(1).lowercased() + name.dropFirst()
+        if let first = lower.first, "aeiou".contains(first) { return "l'" + lower }
+        return (lower.hasPrefix("casa ") ? "la " : "il ") + lower
+    }
+
+    /// Dove si può mettere, a parole (per l'album): «universale», o «solo sull'isola di Gattino». `ownerName` è il nome dell'animale a cui appartiene.
+    func islandRule(ownerName: String) -> String {
+        island == nil ? "universale" : "solo sull'isola di \(ownerName)"
+    }
+
+    /// La riga quando si prova a mettere una cosa di un animale su un'altra isola: «La casa del gatto sta solo sull'isola di Gattino.»
+    func wrongIslandLine(ownerName: String) -> String {
+        let phrase = nameWithArticle
+        return phrase.prefix(1).uppercased() + phrase.dropFirst() + " sta solo sull'isola di \(ownerName)."
+    }
+
     /// Il nome dell'immagine nel bundle (`assets/giardino/<id>.png`, copiata da build.sh).
     var resource: String { "giardino_" + id }
 }

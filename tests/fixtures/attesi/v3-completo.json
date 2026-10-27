@@ -650,25 +650,7 @@
         "row" : 0
       },
       {
-        "col" : 5,
-        "girata" : false,
-        "oggetto" : "casetta-porcellino",
-        "row" : 4
-      },
-      {
-        "col" : 4,
-        "girata" : false,
-        "oggetto" : "tiragraffi",
-        "row" : 6
-      },
-      {
-        "col" : 3,
-        "girata" : false,
-        "oggetto" : "cesto-cuscino",
-        "row" : 2
-      },
-      {
-        "col" : 6,
+        "col" : 7,
         "girata" : false,
         "oggetto" : "lampione",
         "row" : 1
@@ -680,13 +662,13 @@
         "row" : 2
       },
       {
-        "col" : 0,
+        "col" : 3,
         "girata" : false,
         "oggetto" : "bandierine",
-        "row" : 7
+        "row" : 6
       },
       {
-        "col" : 1,
+        "col" : 3,
         "girata" : false,
         "oggetto" : "cancelletto",
         "row" : 4

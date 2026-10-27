@@ -30,10 +30,26 @@ struct GardenBridgeWelcome: Equatable {
     var placement: UUID?
 }
 
+/// Cosa ha fatto la sistemazione delle cose degli animali (`Garden.settleRules`): quante copie sono passate sull'isola giusta e quante sono tornate nella cassetta
+/// (perché l'isola giusta è ancora chiusa, o piena). La finestra del giardino lo dice una volta, alla prima entrata.
+struct GardenRulesReport: Codable, Equatable {
+    var moved: Int
+    var returned: Int
+
+    /// La riga che lo racconta.
+    var line: String {
+        if moved > 0 && returned > 0 { return "Le cose degli animali sono andate sulle loro isole, o nella cassetta." }
+        if moved > 0 { return "Le cose degli animali sono andate sulle loro isole." }
+        return "Le cose di isole ancora chiuse sono tornate nella cassetta."
+    }
+}
+
 final class Garden {
     /// 4: più isole, una per compagno (ogni copia ricorda la sua, e c'è l'isola di casa). La 3 aveva un'isola sola, la 2 l'album e il prato libero, la 1 i punti
     /// spesi e gli oggetti sbloccati: si portano a 4 al primo salvataggio.
     static let formatVersion = 4
+    /// La versione delle regole delle isole che il file ha già avuto (`islandRules`): la 1 è «un oggetto di un animale solo sulla sua isola».
+    static let islandRulesVersion = 1
     /// Un tetto di sicurezza alle copie su ogni isola (un file a mano non deve poter riempire la memoria).
     static let maxPlacements = 150
 
@@ -70,6 +86,10 @@ final class Garden {
         var bridges: [String]?
         /// Le isole che hanno già ricevuto il regalo di benvenuto (la casa e quelle già aperte quando si è calcolato l'elenco, poi una per ogni compagno sbloccato). Come `bridges`.
         var welcomed: [String]?
+        /// La versione delle regole delle isole già applicata alle copie (vedi `settleRules`). Manca nei file di prima: allora le cose degli animali sull'isola sbagliata si spostano.
+        var islandRules: Int?
+        /// Cosa ha spostato `settleRules`, finché la finestra del giardino non l'ha detto (solo allora c'è).
+        var rulesNotice: GardenRulesReport?
     }
 
     private let file: URL
@@ -104,6 +124,13 @@ final class Garden {
     /// più compagni sbloccati ha i ponti già costruiti e i compagni già accolti, senza cerimonia) e li salva subito; finché non ci sono, non si scrivono nel file e non c'è niente da fare.
     private var bridgesUnsettled = false
     private var welcomedUnsettled = false
+    /// Le regole delle isole non sono ancora state applicate a questo file (`settleRules`): le copie di un animale possono stare su un'isola che non è la sua.
+    private var rulesUnsettled = false
+    /// Quello che ha fatto `settleRules`, da dire alla prossima entrata nel giardino (`takeRulesNotice`).
+    private var rulesNotice: GardenRulesReport?
+    /// Dice se un'isola è aperta (il suo compagno è sbloccato). `Garden` non conosce il profilo: lo imposta chi lo conosce (`AppDelegate`, con `Profile.isCompanionUnlocked`).
+    /// Senza, sono tutte aperte. Serve al sorteggio dei regali (escono solo cose degli animali sbloccati) e a `settleRules`.
+    var isIslandOpen: ((String) -> Bool)?
     /// Gli angoli che le copie sull'isola mostrata formano adesso, con le copie che li formano (si ricalcola a ogni modifica).
     private(set) var formedCorners: [String: [UUID]] = [:]
     /// Gli angoli appena sbloccati e non ancora annunciati dalla finestra del giardino (le stelline).
@@ -192,6 +219,8 @@ final class Garden {
             }
             // un file della 4 di prima dei ponti si tiene com'era (uno delle versioni vecchie ha già la sua copia)
             if (bridgesUnsettled || welcomedUnsettled) && legacyBackupName == nil { legacyBackupName = "giardino-prima-dei-ponti.json" }
+            rulesUnsettled = (contents.islandRules ?? 0) < Self.islandRulesVersion
+            rulesNotice = contents.rulesNotice
             corners = contents.corners ?? []
             guests = contents.guests ?? [:]
             settle(legacyCompanions: legacyCompanions)
@@ -228,6 +257,9 @@ final class Garden {
         welcomed = []
         bridgesUnsettled = true
         welcomedUnsettled = true
+        // un giardino nuovo ha solo la dotazione (universale): non c'è niente da spostare
+        rulesUnsettled = false
+        rulesNotice = nil
         for item in GardenCatalog.items.filter({ $0.isStarter }) {
             guard let origin = GardenLayout.starterOrigins[item.id] else { continue }
             allPlacements.append(GardenPlacement(item: item.id, tile: origin))
@@ -378,6 +410,15 @@ final class Garden {
 
     // MARK: - I regali
 
+    /// Le isole aperte: quelle dei compagni sbloccati (tutte, se nessuno ha detto chi è sbloccato).
+    private func isOpen(_ island: String) -> Bool { isIslandOpen?(island) ?? true }
+
+    /// Gli oggetti che un regalo può essere: gli universali e quelli degli animali sbloccati, nell'ordine del catalogo. Con un altro elenco lo stesso focus dà un altro
+    /// regalo: l'elenco fa parte del tiro (vedi FORMATI.md).
+    var dropPool: [GardenItem] {
+        GardenCatalog.items.filter { item in item.island.map(isOpen) ?? true }
+    }
+
     /// Il regalo di un focus appena finito: tira (una volta sola per focus), e se esce qualcosa lo mette subito nel prato.
     @discardableResult
     func rollGift(for session: StudySession, streakDays: Int) -> GardenGift {
@@ -385,7 +426,7 @@ final class Garden {
         let minimum = UserDefaults.standard.bool(forKey: Self.quickGiftsKey) ? SessionLog.minimumSeconds : GardenDrops.minimumSeconds
         guard GardenDrops.isEligible(session, minimumSeconds: minimum), lastRolled != session.id.uuidString else { return .notEligible }
         var state = drops
-        let drop = GardenDrops.roll(sessionID: session.id.uuidString, streakDays: streakDays, seconds: session.seconds, state: &state)
+        let drop = GardenDrops.roll(sessionID: session.id.uuidString, streakDays: streakDays, seconds: session.seconds, state: &state, pool: dropPool)
         drops = state
         lastRolled = session.id.uuidString
         guard let drop else {
@@ -412,9 +453,10 @@ final class Garden {
         guard pendingGifts > 0 else { return [] }
         var opened: [GardenDrop] = []
         var state = drops
+        let pool = dropPool
         for number in 1...pendingGifts {
             let id = "REGALO-\(number)"
-            if let drop = GardenDrops.roll(sessionID: id, streakDays: 1, seconds: GardenDrops.minimumSeconds, state: &state, allowNothing: false) {
+            if let drop = GardenDrops.roll(sessionID: id, streakDays: 1, seconds: GardenDrops.minimumSeconds, state: &state, pool: pool, allowNothing: false) {
                 opened.append(drop)
                 unseen.insert(drop.item)
                 drops = state
@@ -427,12 +469,13 @@ final class Garden {
         return opened
     }
 
-    /// Mette una copia appena trovata su una tessera libera dell'isola `island` (di casa se non si dice) scelta dal numero (sempre la stessa per lo stesso regalo).
-    /// Se non c'è posto resta tra le copie da mettere. Dice quale copia ha messo.
+    /// Mette una copia appena trovata su una tessera libera scelta dal numero (sempre la stessa per lo stesso regalo): una cosa di un animale sull'isola di quell'animale,
+    /// una universale sull'isola di casa (o su `island`, se si dice). Se non c'è posto resta tra le copie da mettere. Dice quale copia ha messo.
     @discardableResult
     private func autoPlace(_ id: String, on island: String? = nil, salt: String) -> UUID? {
-        let island = island ?? homeIsland
-        guard placements(on: island).count < Self.maxPlacements, available(id) > 0, let item = GardenCatalog.item(withID: id) else { return nil }
+        guard let item = GardenCatalog.item(withID: id) else { return nil }
+        let island = island ?? item.island ?? homeIsland
+        guard item.fits(island: island), placements(on: island).count < Self.maxPlacements, available(id) > 0 else { return nil }
         let origins = GardenLayout.freeOrigins(for: item.footprint, size: islandSize(of: island), occupied: occupiedTiles(on: island), island: island)
         guard !origins.isEmpty else { return nil }
         var stream = GardenDrops.Stream(seed: GardenDrops.hash("posto-" + salt.uppercased()))
@@ -493,6 +536,79 @@ final class Garden {
         return welcomes
     }
 
+    // MARK: - Le cose degli animali
+
+    /// Una volta sola per file (manca `islandRules`): le copie di un animale che stanno su un'isola che non è la sua passano sull'isola giusta, **vicine fra loro** (ogni animale
+    /// ha un punto, la media di dove stavano, e le sue copie si dispongono attorno a quello, le più grandi per prime: così gli angoli — gatto, porcellino, uccelli, orto — si riformano
+    /// e i compagni rifanno le pose). Se quell'isola è chiusa (o non ha più posto) la copia torna tra quelle da mettere: nessuna copia si perde, cambia solo dov'è. Salva subito, tenendo il
+    /// file com'era in `giardino-prima-delle-regole.json` (solo se si è spostato qualcosa), e lascia da dire alla prossima entrata nel giardino cosa è successo (`takeRulesNotice`).
+    /// Si chiama all'avvio, dopo aver deciso la casa e `isIslandOpen` (le copie senza isola sono di casa); non fa niente se il file non si può scrivere.
+    func settleRules() {
+        guard rulesUnsettled, !isReadOnly, home != nil else { return }
+        rulesUnsettled = false
+        var misplaced: [GardenPlacement] = []
+        var staying: [GardenPlacement] = []
+        for placement in allPlacements {
+            if let owner = GardenCatalog.item(withID: placement.item)?.island, resolved(placement.island) != owner {
+                misplaced.append(placement)
+            } else {
+                staying.append(placement)
+            }
+        }
+        guard !misplaced.isEmpty else {
+            save()
+            return
+        }
+        keepCopy(named: "giardino-prima-delle-regole.json")
+        allPlacements = staying
+        var moved = 0, returned = 0
+        for owner in GardenIslands.all {
+            let group = misplaced.enumerated().filter { GardenCatalog.item(withID: $0.element.item)?.island == owner }
+            guard !group.isEmpty else { continue }
+            // il punto: dov'erano in media (dentro l'isola), poi le più grandi per prime, nell'ordine del catalogo
+            let size = islandSize(of: owner)
+            let meanCol = Double(group.reduce(0) { $0 + $1.element.col }) / Double(group.count)
+            let meanRow = Double(group.reduce(0) { $0 + $1.element.row }) / Double(group.count)
+            let anchor = GardenTile(col: min(max(Int(meanCol.rounded()), 0), size - 1), row: min(max(Int(meanRow.rounded()), 0), size - 1))
+            let order = group.sorted { a, b in
+                let itemA = GardenCatalog.item(withID: a.element.item), itemB = GardenCatalog.item(withID: b.element.item)
+                let areaA = (itemA?.footprint.cols ?? 1) * (itemA?.footprint.rows ?? 1), areaB = (itemB?.footprint.cols ?? 1) * (itemB?.footprint.rows ?? 1)
+                if areaA != areaB { return areaA > areaB }
+                let indexA = GardenCatalog.number(of: a.element.item) ?? 0, indexB = GardenCatalog.number(of: b.element.item) ?? 0
+                return indexA != indexB ? indexA < indexB : a.offset < b.offset
+            }
+            for entry in order {
+                guard isOpen(owner), placements(on: owner).count < Self.maxPlacements, let item = GardenCatalog.item(withID: entry.element.item),
+                      let origin = GardenLayout.nearestOrigin(to: anchor, footprint: item.footprint.applying(turned: entry.element.turned), size: size,
+                                                              occupied: occupiedTiles(on: owner), island: owner) else {
+                    returned += 1
+                    continue
+                }
+                var made = entry.element
+                made.tile = origin
+                made.island = stored(owner)
+                allPlacements.append(made)
+                moved += 1
+            }
+        }
+        rulesNotice = GardenRulesReport(moved: moved, returned: returned)
+        save()
+    }
+
+    /// Cosa ha fatto `settleRules`, una volta sola: la finestra del giardino lo dice alla prima entrata, e poi non c'è più (anche nel file).
+    func takeRulesNotice() -> GardenRulesReport? {
+        guard let report = rulesNotice else { return nil }
+        rulesNotice = nil
+        save()
+        return report
+    }
+
+    /// Tiene da parte il file com'è adesso, con questo nome, accanto agli altri (se c'è già una copia con quel nome non la tocca).
+    private func keepCopy(named name: String) {
+        let backup = directory.appendingPathComponent(name)
+        if FileManager.default.fileExists(atPath: file.path), !FileManager.default.fileExists(atPath: backup.path) { try? FileManager.default.copyItem(at: file, to: backup) }
+    }
+
     // MARK: - L'isola e le copie
 
     /// Quante tessere per lato: 8, e una in più per ogni doppia pagina dell'album completata, fino a 10 (e mai meno di quanto serve
@@ -519,10 +635,21 @@ final class Garden {
     /// Le tessere coperte sull'isola mostrata.
     func occupiedTiles(ignoring: UUID? = nil) -> Set<GardenTile> { occupiedTiles(on: shownIsland, ignoring: ignoring) }
 
-    /// Ci sta una copia di `id` con l'angolo in fondo su `tile`, su quell'isola (se non si dice, la mostrata)?
+    /// Le copie ancora da mettere che si possono mettere su quell'isola (se non si dice, la mostrata): le universali e quelle del suo animale, nell'ordine dell'album.
+    func tray(on island: String? = nil) -> [(item: GardenItem, count: Int)] {
+        let target = island.map(resolved) ?? shownIsland
+        return GardenCatalog.items.compactMap { item in
+            let count = item.fits(island: target) ? available(item.id) : 0
+            return count > 0 ? (item, count) : nil
+        }
+    }
+
+    /// Ci sta una copia di `id` con l'angolo in fondo su `tile`, su quell'isola (se non si dice, la mostrata)? Una cosa di un animale sta solo sulla sua isola, una
+    /// universale ovunque: la regola è qui, e `place`, `placeSomewhere` e `move` passano da qui.
     func canPlace(_ id: String, at tile: GardenTile, turned: Bool = false, on island: String? = nil, ignoring: UUID? = nil) -> Bool {
         guard let item = GardenCatalog.item(withID: id) else { return false }
         let target = island.map(resolved) ?? shownIsland
+        guard item.fits(island: target) else { return false }
         return GardenLayout.canPlace(item.footprint.applying(turned: turned), at: tile, size: islandSize(of: target), occupied: occupiedTiles(on: target, ignoring: ignoring), island: target)
     }
 
@@ -652,7 +779,7 @@ final class Garden {
         guests[id] = GardenGuest(first: day, visits: 1, reason: reason)
         var state = drops
         let salt = "OSPITE-\(id)"
-        let gift = GardenDrops.roll(sessionID: salt, streakDays: 1, seconds: GardenDrops.minimumSeconds, state: &state, allowNothing: false)
+        let gift = GardenDrops.roll(sessionID: salt, streakDays: 1, seconds: GardenDrops.minimumSeconds, state: &state, pool: dropPool, allowNothing: false)
         if let gift {
             drops = state
             unseen.insert(gift.item)
@@ -679,15 +806,15 @@ final class Garden {
             if let name = legacyBackupName {
                 legacyBackupName = nil
                 // Il file di una versione vecchia si tiene com'era, prima di riscriverlo nella 3.
-                let backup = directory.appendingPathComponent(name)
-                if !FileManager.default.fileExists(atPath: backup.path) { try? FileManager.default.copyItem(at: file, to: backup) }
+                keepCopy(named: name)
             }
             let contents = Contents(version: Self.formatVersion, unlocked: nil, spent: nil, drops: drops, lastRolled: lastRolled,
                                     unseen: unseen.sorted(), pendingGifts: pendingGifts, legacySpent: legacySpent,
                                     placements: allPlacements,
                                     companions: companionTiles.mapValues { GardenCompanionPlace(col: $0.col, row: $0.row, x: nil, y: nil) }, home: home,
                                     corners: corners.isEmpty ? nil : corners, guests: guests.isEmpty ? nil : guests,
-                                    bridges: bridgesUnsettled ? nil : bridges, welcomed: welcomedUnsettled ? nil : welcomed)
+                                    bridges: bridgesUnsettled ? nil : bridges, welcomed: welcomedUnsettled ? nil : welcomed,
+                                    islandRules: rulesUnsettled ? nil : Self.islandRulesVersion, rulesNotice: rulesNotice)
             let encoder = JSONEncoder()
             encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
             do {

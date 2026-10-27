@@ -238,6 +238,18 @@ final class GardenView: NSView, NSViewToolTipOwner {
                          : "Il giardino è cambiato: ci sono \(count) figurine nuove per i punti che avevi. Le trovi nell'album.")
     }
 
+    /// Le cose degli animali sono appena passate sulle loro isole (`Garden.settleRules`): una riga lo dice, una volta sola.
+    func announceRules() {
+        guard let report = garden.takeRulesNotice() else { return }
+        flash(report.line, seconds: 6)
+    }
+
+    /// Se la cosa non può stare sull'isola mostrata perché è di un altro animale: la riga che lo dice («La casa del gatto sta solo sull'isola di Gattino.»).
+    private func wrongIslandLine(for itemID: String?) -> String? {
+        guard let itemID, let item = GardenCatalog.item(withID: itemID), let owner = item.island, !item.fits(island: garden.shownIsland) else { return nil }
+        return item.wrongIslandLine(ownerName: petName(owner))
+    }
+
     private func cancelCarry() {
         carry = nil
         carryMoved = false
@@ -701,12 +713,9 @@ final class GardenView: NSView, NSViewToolTipOwner {
     private static let trayHeight: CGFloat = 96
     private static let trayCell = NSSize(width: 84, height: 78)
 
-    /// Le copie ancora da mettere nel prato, nell'ordine dell'album.
+    /// Le copie ancora da mettere che stanno sull'isola mostrata (le universali e quelle del suo animale), nell'ordine dell'album.
     private func trayItems() -> [(item: GardenItem, count: Int)] {
-        GardenCatalog.items.compactMap { item in
-            let count = garden.available(item.id)
-            return count > 0 ? (item, count) : nil
-        }
+        garden.tray()
     }
 
     /// La fascia si vede solo aperta (toglierne una dall'isola è un'altra cosa: `removeZoneRect`).
@@ -2047,10 +2056,10 @@ final class GardenView: NSView, NSViewToolTipOwner {
 
     // MARK: - Il mouse
 
-    private func flash(_ string: String) {
+    private func flash(_ string: String, seconds: TimeInterval = 4) {
         message = string
         messageTimer?.invalidate()
-        messageTimer = Timer.scheduledTimer(withTimeInterval: 4, repeats: false) { [weak self] _ in
+        messageTimer = Timer.scheduledTimer(withTimeInterval: seconds, repeats: false) { [weak self] _ in
             self?.message = nil
             self?.needsDisplay = true
         }
@@ -2171,7 +2180,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
                 } else if let target, target.valid {
                     garden.move(id, to: target.origin, turned: carryTurned, on: garden.shownIsland)
                 } else if sceneRect.contains(p) {
-                    flash("Lì non ci sta: serve una tessera libera, fuori dal sentiero.")
+                    flash(wrongIslandLine(for: garden.placement(withID: id)?.item) ?? "Lì non ci sta: serve una tessera libera, fuori dal sentiero.")
                 }
             }
         case .companion(let petID):
@@ -2185,11 +2194,15 @@ final class GardenView: NSView, NSViewToolTipOwner {
             }
         case .fresh(let id):
             if !wasMoved {
-                if garden.placeSomewhere(id) == nil { flash("Non c'è più posto sull'isola: togli qualcosa, o completa una doppia pagina dell'album per allargarla.") }
+                if let line = wrongIslandLine(for: id) {
+                    flash(line)
+                } else if garden.placeSomewhere(id) == nil {
+                    flash("Non c'è più posto sull'isola: togli qualcosa, o completa una doppia pagina dell'album per allargarla.")
+                }
             } else if let target, target.valid {
                 garden.place(id, at: target.origin, turned: carryTurned)
             } else if sceneRect.contains(p), !overTray {
-                flash("Lì non ci sta: serve una tessera libera, fuori dal sentiero.")
+                flash(wrongIslandLine(for: id) ?? "Lì non ci sta: serve una tessera libera, fuori dal sentiero.")
             }
         }
         carryTurned = false
@@ -3048,6 +3061,21 @@ extension GardenView {
         return true
     }
 
+    // MARK: - Per i banchi di prova (non sono privati perché i banchi li usano per far finta di prendere le cose con il mouse)
+
+    /// Dove sta nella vista la tessera `col`, `row` di un'isola (il punto dove poggiano i piedi di una cosa messa lì), con la telecamera com'è.
+    func feetPoint(island: String, col: Int, row: Int, cols: Int = 1, rows: Int = 1) -> NSPoint? {
+        guard let iso = isoOf(island) else { return nil }
+        let ground = iso.point(col: Double(col) + Double(cols) / 2, row: Double(row) + Double(rows) / 2)
+        return NSPoint(x: ground.x, y: ground.y + iso.tileH * Self.feetOffset)
+    }
+
+    /// La riga che si vede adesso in basso (quella che sparisce da sola).
+    var shownMessage: String? { message }
+
+    /// Se la cosa che si sta trascinando cadrebbe in un posto valido (nil se non se ne trascina nessuna).
+    var carryVerdict: Bool? { carryTarget()?.valid }
+
     /// I pezzi che stanno comparendo: ognuno scende al suo posto e si fa vedere piano.
     private func drawArrivalCeremony() {
         guard let current = ceremony else { return }
@@ -3285,6 +3313,7 @@ final class GardenController {
         view?.resetVisitors()
         view?.reload()
         view?.announceGifts(gifts.count)
+        view?.announceRules()
         view?.beginArrivalCeremony(allowed: canCelebrate)
         NSApp.activate(ignoringOtherApps: true)
         window?.makeKeyAndOrderFront(nil)

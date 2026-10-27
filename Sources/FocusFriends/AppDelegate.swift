@@ -44,6 +44,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         SessionLog.shared.onProblem = { [weak speaker] in speaker?.say($0) }
         Profile.shared.onProblem = { [weak speaker] in speaker?.say($0) }
         Garden.shared.onProblem = { [weak speaker] in speaker?.say($0) }
+        // Il giardino non conosce il profilo: sapere quali isole sono aperte gli serve per i regali (escono solo cose degli animali sbloccati) e per sistemare le cose degli animali.
+        Garden.shared.isIslandOpen = { Profile.shared.isCompanionUnlocked($0) }
         // Chi aveva il giardino della versione 1: i punti non spesi diventano figurine da aprire (una volta sola).
         Garden.shared.convertLegacyPoints(earned: GardenPoints.earned(sessions: SessionLog.shared.sessions, now: Date()))
         ToDoList.shared.onProblem = { [weak speaker] in speaker?.say($0) }
@@ -137,7 +139,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if Profile.shared.introSeen { Garden.shared.adoptHome(Profile.shared.firstCompanion ?? Pet.saved.id) }
         menu.evaluateCompanionRewards(announce: false)
         // Chi ha già più compagni sbloccati ha i ponti fra le loro isole già costruiti, senza cerimonia: si decide ora (e si salva), una volta sola.
-        if Profile.shared.introSeen { Garden.shared.settleBridges(open: Set(GardenIslands.all.filter { Profile.shared.isCompanionUnlocked($0) })) }
+        if Profile.shared.introSeen {
+            Garden.shared.settleBridges(open: Set(GardenIslands.all.filter { Profile.shared.isCompanionUnlocked($0) }))
+            // Le cose degli animali che stanno su un'isola che non è la loro passano su quella giusta (una volta sola, salvando subito: se ne dice la prossima entrata nel giardino).
+            Garden.shared.settleRules()
+        }
         // I terreni delle isole, come li chiederà il primo ingresso nel giardino, si dipingono ora in silenzio (era la metà dell'attesa).
         if Profile.shared.introSeen { GardenView.prepareGrounds(garden: .shared) }
 
@@ -152,6 +158,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     Profile.shared.chooseFirstCompanion(pet.id)
                     Garden.shared.adoptHome(pet.id)
                     Garden.shared.settleBridges(open: Set(GardenIslands.all.filter { Profile.shared.isCompanionUnlocked($0) }))
+                    Garden.shared.settleRules()
                     if pet != window.pet {
                         menu.selectPet(pet)
                     } else {

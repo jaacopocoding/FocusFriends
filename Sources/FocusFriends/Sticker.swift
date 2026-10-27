@@ -11,6 +11,14 @@ enum Sticker {
         /// Quante copie si sono trovate e quante sono nel prato.
         var copies: Int
         var isNew: Bool
+        /// Dove si può mettere, se la scheda lo dice (l'album sì, il regalo no).
+        var placing: Placing?
+    }
+
+    /// Un segno sulla figurina: una cosa universale sta su qualunque isola, una di un animale solo sulla sua (`name` è il nome dell'animale).
+    enum Placing: Equatable {
+        case everywhere
+        case onlyOn(island: String, name: String)
     }
 
     static let card = NSColor(calibratedRed: 1, green: 0.99, blue: 0.94, alpha: 1)
@@ -27,6 +35,20 @@ enum Sticker {
 
     private static let numberFont = NSFont.systemFont(ofSize: 9, weight: .semibold)
     private static let badgeFont = NSFont.systemFont(ofSize: 9.5, weight: .bold)
+    private static let placingFont = NSFont.systemFont(ofSize: 8.5, weight: .semibold)
+    /// Quanto spazio prende la riga del segno sotto il disegno.
+    private static let placingRow: CGFloat = 12
+
+    /// Il colore di un'isola (lo stesso della sua tinta nel giardino), per il segno «solo …».
+    private static func islandTint(_ island: String) -> NSColor {
+        switch island {
+        case "pianty": return NSColor(calibratedRed: 96 / 255, green: 200 / 255, blue: 84 / 255, alpha: 1)
+        case "porcellino": return NSColor(calibratedRed: 238 / 255, green: 150 / 255, blue: 96 / 255, alpha: 1)
+        case "ciccio": return NSColor(calibratedRed: 70 / 255, green: 170 / 255, blue: 214 / 255, alpha: 1)
+        case "gattino": return NSColor(calibratedRed: 112 / 255, green: 132 / 255, blue: 204 / 255, alpha: 1)
+        default: return Paper.paperEdge
+        }
+    }
 
     private static func text(_ string: String, in rect: NSRect, font: NSFont, color: NSColor, alignment: NSTextAlignment = .center) {
         let para = NSMutableParagraphStyle()
@@ -80,6 +102,27 @@ enum Sticker {
         star.fill()
     }
 
+    /// Il segno di dove si può mettere: «universale» (solo scritto, in piccolo) o «solo Gattino» su una pastiglia del colore della sua isola.
+    private static func drawPlacing(_ placing: Placing, found: Bool, in rect: NSRect) {
+        let dim: CGFloat = found ? 1 : 0.75
+        switch placing {
+        case .everywhere:
+            text("universale", in: rect, font: placingFont, color: Paper.inkLight.withAlphaComponent(0.85 * dim))
+        case .onlyOn(let island, let name):
+            let label = "solo " + name
+            let width = min(ceil((label as NSString).size(withAttributes: [.font: placingFont]).width) + 10, rect.width)
+            let pill = NSRect(x: rect.midX - width / 2, y: rect.minY, width: width, height: rect.height - 1)
+            let tint = islandTint(island)
+            tint.withAlphaComponent(0.30 * dim).setFill()
+            NSBezierPath(roundedRect: pill, xRadius: pill.height / 2, yRadius: pill.height / 2).fill()
+            tint.withAlphaComponent(0.85 * dim).setStroke()
+            let outline = NSBezierPath(roundedRect: pill.insetBy(dx: 0.4, dy: 0.4), xRadius: pill.height / 2, yRadius: pill.height / 2)
+            outline.lineWidth = 0.8
+            outline.stroke()
+            text(label, in: NSRect(x: pill.minX, y: pill.minY + 0.5, width: pill.width, height: pill.height), font: placingFont, color: Paper.ink.withAlphaComponent(dim))
+        }
+    }
+
     /// Disegna la figurina nel rettangolo. `shine` (da 0 a 1) è dove sta la luce che passa; senza, ce n'è una ferma e leggera.
     static func draw(_ look: Look, in rect: NSRect, shine: CGFloat? = nil) {
         let rarity = look.item.rarity
@@ -113,8 +156,9 @@ enum Sticker {
         text(String(format: "n. %02d", look.number), in: NSRect(x: rect.minX + 8, y: rect.minY + 5, width: 40, height: 12), font: numberFont,
              color: look.found ? Paper.inkLight : Paper.inkLight.withAlphaComponent(0.8), alignment: .left)
 
-        // il disegno (o la sagoma)
-        let box = NSRect(x: rect.minX + 8, y: rect.minY + 19, width: rect.width - 16, height: rect.height - 19 - 24)
+        // il disegno (o la sagoma); se c'è il segno di dove si può mettere, ha una riga sotto il disegno
+        let marked = look.placing != nil
+        let box = NSRect(x: rect.minX + 8, y: rect.minY + 19, width: rect.width - 16, height: rect.height - 19 - 24 - (marked ? placingRow : 0))
         if let sprite = GardenSprites.sprite(look.item.resource) {
             let scale = min(box.width / max(sprite.source.width, 1), box.height / max(sprite.source.height, 1))
             let size = NSSize(width: sprite.source.width * scale, height: sprite.source.height * scale)
@@ -142,6 +186,8 @@ enum Sticker {
                  font: NSFont.systemFont(ofSize: 10, weight: .semibold), color: tint)
         }
 
+        if let placing = look.placing { drawPlacing(placing, found: look.found, in: NSRect(x: rect.minX + 6, y: rect.maxY - 20 - placingRow - 1, width: rect.width - 12, height: placingRow)) }
+
         guard look.found else { return }
         // il luccichio dell'oro
         if rarity == .legendary {
@@ -152,7 +198,7 @@ enum Sticker {
         if look.copies > 1 {
             let label = "×\(look.copies)"
             let width = ceil((label as NSString).size(withAttributes: [.font: badgeFont]).width) + 10
-            let badge = NSRect(x: rect.maxX - width - 5, y: rect.maxY - 41, width: width, height: 15)
+            let badge = NSRect(x: rect.maxX - width - 5, y: rect.maxY - 41 - (marked ? placingRow : 0), width: width, height: 15)
             Paper.accent.setFill()
             NSBezierPath(roundedRect: badge, xRadius: 7.5, yRadius: 7.5).fill()
             text(label, in: NSRect(x: badge.minX, y: badge.minY + 2, width: badge.width, height: 12), font: badgeFont, color: .white)
