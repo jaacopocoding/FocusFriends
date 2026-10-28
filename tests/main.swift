@@ -814,7 +814,7 @@ check(GardenPoints.finishLine(beforeMinutes: 10, afterMinutes: 30, factor: 1.5).
 section("Giardino: catalogo e scena")
 let allItems = GardenCatalog.items
 check(Set(allItems.map { $0.id }).count == allItems.count, "id tutti diversi")
-check(allItems.count == 36 && GardenCategory.allCases.allSatisfy { !GardenCatalog.items(in: $0).isEmpty }, "36 oggetti, ogni scheda ne ha")
+check(allItems.count == 39 && GardenCategory.allCases.allSatisfy { !GardenCatalog.items(in: $0).isEmpty }, "39 oggetti, ogni scheda ne ha")
 check(allItems.allSatisfy { ($0.height > 0 || $0.axial) && $0.price >= 0 && !$0.name.isEmpty }, "altezze (tranne quelle sul lato), prezzi e nomi sensati")
 check(allItems.filter { $0.price == 0 }.count == 4, "quattro oggetti ci sono fin dall'inizio")
 check(GardenCatalog.item(withID: "tulipani")?.resource == "giardino_tulipani" && GardenCatalog.item(withID: "no") == nil, "le risorse")
@@ -890,18 +890,20 @@ check(starting.placements.count == 4 && Set(starting.placements.map { $0.tile })
 
 // le pagine dell'album: sei figurine per pagina, una sezione per volta
 let albumSpreads = GardenAlbum.spreads()
-check(albumSpreads.count == 3 && albumSpreads.allSatisfy { $0.right != nil && $0.left.items.count == 6 && $0.right!.items.count == 6 },
-      "36 oggetti: tre doppie pagine da dodici, una per sezione")
-check(albumSpreads.map { $0.left.category } == GardenCategory.allCases && albumSpreads.flatMap { $0.left.items + ($0.right?.items ?? []) }.map { $0.id } == GardenCatalog.items.map { $0.id },
+check(albumSpreads.count == 4 && albumSpreads.prefix(3).allSatisfy { $0.right != nil && $0.left.items.count == 6 && $0.right!.items.count == 6 }
+      && albumSpreads[3].left.items.count == 3 && albumSpreads[3].right == nil && albumSpreads[3].left.category == .furniture,
+      "39 oggetti: tre doppie pagine da dodici, e una quarta degli arredi con tre figurine (le luci) e la pagina di destra vuota")
+check(albumSpreads.map { $0.left.category } == GardenCategory.allCases + [.furniture] && albumSpreads.flatMap { $0.left.items + ($0.right?.items ?? []) }.map { $0.id } == GardenCatalog.items.map { $0.id },
       "nell'ordine del catalogo (i numeri non cambiano)")
-let albumExtra = GardenCatalog.items + (0..<3).map { GardenItem(id: "extra\($0)", name: "Extra", category: .furniture, height: 50, price: 3) }
+let albumExtra = GardenCatalog.items + (0..<10).map { GardenItem(id: "extra\($0)", name: "Extra", category: .furniture, height: 50, price: 3) }
 let albumLonger = GardenAlbum.spreads(catalog: albumExtra)
-check(albumLonger.count == 4 && albumLonger[3].left.items.count == 3 && albumLonger[3].right == nil, "una sezione più lunga: una doppia pagina in più, con la pagina di destra vuota")
-check(GardenCatalog.number(of: "margherite") == 1 && GardenCatalog.number(of: "arco-rose") == 36 && GardenCatalog.number(of: "no") == nil, "i numeri delle figurine")
+check(albumLonger.count == 5 && albumLonger[4].left.items.count == 1 && albumLonger[4].right == nil, "una sezione più lunga: una doppia pagina in più, con la pagina di destra vuota")
+check(GardenCatalog.number(of: "margherite") == 1 && GardenCatalog.number(of: "arco-rose") == 36 && GardenCatalog.number(of: "braciere") == 39 && GardenCatalog.number(of: "no") == nil, "i numeri delle figurine")
 let firstSpreadItems = albumSpreads[0].left.items + albumSpreads[0].right!.items
-check(GardenAlbum.completedSpreads(isFound: { _ in false }) == 0 && GardenAlbum.completedSpreads(isFound: { _ in true }) == 3
+check(GardenAlbum.completedSpreads(isFound: { _ in false }) == 0 && GardenAlbum.completedSpreads(isFound: { _ in true }) == 4
       && GardenAlbum.completedSpreads(isFound: { id in firstSpreadItems.contains { $0.id == id } }) == 1
-      && GardenAlbum.completedSpreads(isFound: { id in id != firstSpreadItems[0].id }) == 2, "le doppie pagine complete")
+      && GardenAlbum.completedSpreads(isFound: { id in id != firstSpreadItems[0].id }) == 3
+      && GardenAlbum.completedSpreads(isFound: { id in !["alberello-lucine", "lanterna-ceppo", "braciere"].contains(id) }) == 3, "le doppie pagine complete (senza le luci, chi aveva tutte e 36 ne ha ancora tre)")
 
 // ---------------------------------------------------------------- giardino: l'album e le copie
 section("Giardino: l'album e le copie")
@@ -1594,8 +1596,8 @@ check(GardenHill.widthRatio > 1.4 && GardenHill.widthRatio < 2.1 && GardenHill.b
 // le isole: una per compagno
 check(GardenIslands.all == petIDs && GardenIslands.all.contains(GardenIslands.fallbackHome) && GardenIslands.isKnown("gattino") && !GardenIslands.isKnown("boh"),
       "quattro isole, una per compagno, nell'ordine dei compagni")
-check(GardenCatalog.items.count == 36 && GardenCatalog.universalItems.count == 24
-      && GardenIslands.all.allSatisfy { GardenCatalog.items(forIsland: $0).count == 3 }, "36 oggetti: 24 universali e 3 per ogni animale")
+check(GardenCatalog.items.count == 39 && GardenCatalog.universalItems.count == 27
+      && GardenIslands.all.allSatisfy { GardenCatalog.items(forIsland: $0).count == 3 }, "39 oggetti: 27 universali e 3 per ogni animale")
 check(GardenCatalog.items(forIsland: "gattino").map { $0.id }.sorted() == ["casetta-gatto", "cesto-cuscino", "tiragraffi"]
       && GardenCatalog.items(forIsland: "ciccio").map { $0.id }.sorted() == ["altalena-uccelli", "bagnetto", "casetta-uccelli"]
       && GardenCatalog.items(forIsland: "porcellino").map { $0.id }.sorted() == ["casetta-porcellino", "cesto-carote", "tunnel"]
@@ -2397,8 +2399,8 @@ func gdSession(_ minutes: Int, completed: Bool = true, day: Int = 5) -> StudySes
 }
 check(!GardenDrops.isEligible(gdSession(19)) && GardenDrops.isEligible(gdSession(20)) && !GardenDrops.isEligible(gdSession(50, completed: false)),
       "tira solo un focus completato con almeno 20 minuti: un interrotto non dà niente")
-check(GardenCatalog.items.filter { $0.rarity == .common }.count == 16 && GardenCatalog.items.filter { $0.rarity == .rare }.count == 15
-      && GardenCatalog.items.filter { $0.rarity == .legendary }.count == 5, "36 oggetti: 16 comuni, 15 rari, 5 leggendari (dal vecchio prezzo)")
+check(GardenCatalog.items.filter { $0.rarity == .common }.count == 16 && GardenCatalog.items.filter { $0.rarity == .rare }.count == 17
+      && GardenCatalog.items.filter { $0.rarity == .legendary }.count == 6, "39 oggetti: 16 comuni, 17 rari, 6 leggendari (dal vecchio prezzo)")
 let gdStart = GardenDropState.starting()
 check(gdStart.found.count == 4 && gdStart.found["margherite"] == 1 && gdStart.nothingInARow == 0, "l'album parte con la dotazione (4 oggetti)")
 
@@ -2425,7 +2427,7 @@ for i in 0..<2000 {
 }
 check(gdLongest <= 2, "mai più di due focus di fila senza regalo (\(gdLongest))")
 check(gdNothing > 300 && gdNothing < 500, "circa un focus su cinque non dà niente (\(gdNothing) su 2000)")
-check(gdState.found.values.reduce(0, +) == 4 + gdGifts && gdState.found.count == 36 && gdNew == 32, "le copie tornano, e l'album si completa (\(gdState.found.count) di 36)")
+check(gdState.found.values.reduce(0, +) == 4 + gdGifts && gdState.found.count == 39 && gdNew == 35, "le copie tornano, e l'album si completa (\(gdState.found.count) di 39)")
 
 // le garanzie
 var gdPity = GardenDropState.starting()
@@ -2445,7 +2447,7 @@ var gdDuplicates = 0
 for i in 0..<200 {
     if let drop = GardenDrops.roll(sessionID: String(format: "33333333-0000-4000-8000-%012d", i), streakDays: 1, seconds: 1800, state: &gdFull), !drop.isNew { gdDuplicates += 1 }
 }
-check(gdDuplicates > 100 && gdFull.found.count == 36, "con l'album completo i regali sono copie in più")
+check(gdDuplicates > 100 && gdFull.found.count == 39, "con l'album completo i regali sono copie in più")
 var gdTiny = GardenDropState()
 check(GardenDrops.roll(sessionID: "44444444-0000-4000-8000-000000000000", streakDays: 1, seconds: 1800, state: &gdTiny, pool: [GardenCatalog.items[4]])?.item == "tulipani", "con un solo oggetto possibile esce quello (si scende o si sale di rarità)")
 check(GardenDrops.roll(sessionID: "55555555-0000-4000-8000-000000000000", streakDays: 1, seconds: 1800, state: &gdTiny, pool: []) == nil, "senza oggetti non esce niente")
@@ -2460,7 +2462,7 @@ section("Giardino: le cose degli animali sulle loro isole")
 UserDefaults.standard.removeObject(forKey: Profile.developerKey)
 // le frasi: il nome con l'articolo, il segno per l'album, la riga del trascinamento
 let animalItems = GardenCatalog.items.filter { $0.island != nil }
-check(animalItems.count == 12 && GardenCatalog.universalItems.count == 24, "dodici cose degli animali e ventiquattro universali")
+check(animalItems.count == 12 && GardenCatalog.universalItems.count == 27, "dodici cose degli animali e ventisette universali")
 check(animalItems.map { $0.nameWithArticle } == ["il cesto di carote", "l'annaffiatoio", "il cesto con cuscino", "il tunnel con fieno", "l'altalena uccelli", "il vaso grande",
                                                   "il bagnetto uccelli", "l'aiuola rialzata", "il tiragraffi", "la casa per uccelli", "la casa del gatto", "la casa porcellino"],
       "il nome con l'articolo, per tutte e dodici")
@@ -2530,11 +2532,11 @@ if let cat = ruleGarden.allPlacements.first(where: { $0.item == "tiragraffi" }),
 // il sorteggio: universali e animali sbloccati, nell'ordine del catalogo
 let poolGarden = Garden(directory: tempDirectory())
 poolGarden.adoptHome("ciccio")
-check(poolGarden.dropPool.count == 36, "senza dire chi è sbloccato, tutte le isole sono aperte: il tiro è quello di prima")
+check(poolGarden.dropPool.count == 39, "senza dire chi è sbloccato, tutte le isole sono aperte: il tiro è quello di prima")
 poolGarden.isIslandOpen = { $0 == "ciccio" || $0 == "pianty" }
 let poolIDs = poolGarden.dropPool.map { $0.id }
-check(poolIDs.count == 30 && poolIDs.contains("annaffiatoio") && poolIDs.contains("bagnetto") && poolIDs.contains("margherite") && !poolIDs.contains("tiragraffi") && !poolIDs.contains("tunnel")
-      && poolIDs == GardenCatalog.items.map { $0.id }.filter { poolIDs.contains($0) }, "con Ciccio e Pianty: 24 universali e 6 loro, nell'ordine del catalogo")
+check(poolIDs.count == 33 && poolIDs.contains("annaffiatoio") && poolIDs.contains("bagnetto") && poolIDs.contains("margherite") && !poolIDs.contains("tiragraffi") && !poolIDs.contains("tunnel")
+      && poolIDs == GardenCatalog.items.map { $0.id }.filter { poolIDs.contains($0) }, "con Ciccio e Pianty: 27 universali e 6 loro, nell'ordine del catalogo")
 var poolFull = GardenDropState.starting(), poolNarrow = GardenDropState.starting()
 var poolDifferent = 0, poolLeaked = 0, poolSame = 0
 for i in 0..<300 {
@@ -2838,6 +2840,25 @@ check(GardenLinks.arms(at: fenceHere, among: [fenceTile(2, 3), fenceTile(3, 4)],
 check(GardenLinks.arms(at: fenceHere, among: [fenceTile(2, 3), fenceTile(4, 3), fenceTile(3, 4)], turned: false) == [.upLeft, .downRight, .downLeft]
       && GardenLinks.arms(at: fenceHere, among: [fenceTile(2, 3), fenceTile(4, 3), fenceTile(3, 2), fenceTile(3, 4)], turned: false).rawValue == 15, "con tre vicini una T, con quattro una croce")
 check(GardenLinks.arms(at: fenceHere, among: [fenceTile(4, 4), fenceTile(2, 2), fenceTile(4, 2), fenceTile(2, 4)], turned: false) == [.upLeft, .downRight], "i vicini in diagonale non contano")
+
+// ---------------------------------------------------------------- le luci della sera
+section("Giardino: le luci della sera")
+let litItems = GardenCatalog.items.filter { $0.glow != nil }
+check(litItems.map { $0.id } == ["lampione", "alberello-lucine", "lanterna-ceppo", "braciere"], "fanno luce la sera il lampione e i tre nuovi: l'alberello di lucine, la lanterna sul ceppo e il braciere")
+check(GardenCatalog.item(withID: "lampione")?.glow == GardenGlow(red: 255, green: 196, blue: 104, radius: 1.25, top: 0.10, strength: 1),
+      "la luce del lampione è quella di sempre (255, 196, 104; alone largo 1,25 tessere, in alto)")
+check(litItems.allSatisfy { glow in
+    guard let g = glow.glow else { return false }
+    return [g.red, g.green, g.blue].allSatisfy { (0...255).contains($0) } && g.radius > 0 && (0..<1).contains(g.top) && g.strength > 0 && g.strength <= 1
+}, "colori, raggio, altezza e forza sensati")
+check(litItems.filter { $0.glow?.flickers == true }.map { $0.id } == ["braciere"], "solo il braciere vibra come una fiamma")
+check(GardenCatalog.items.filter { $0.litDrawing }.map { $0.id } == ["braciere"] && GardenCatalog.item(withID: "braciere")?.litResource == "giardino_braciere-acceso"
+      && GardenCatalog.item(withID: "lampione")?.litResource == nil, "solo il braciere ha il disegno acceso")
+check(GardenCatalog.items.filter { $0.litDrawing }.allSatisfy { FileManager.default.fileExists(atPath: "assets/giardino/\($0.id)-acceso.png") }, "e il disegno acceso c'è")
+let newLights = ["alberello-lucine", "lanterna-ceppo", "braciere"].compactMap { GardenCatalog.item(withID: $0) }
+check(newLights.count == 3 && newLights.allSatisfy { $0.island == nil && $0.category == .furniture && $0.footprint == GardenFootprint(cols: 1, rows: 1) && !$0.axial && $0.height > 0 }
+      && newLights.map { GardenCatalog.number(of: $0.id) } == [37, 38, 39], "le tre luci sono universali, arredi da una tessera, in fondo al catalogo (figurine 37, 38 e 39)")
+check(newLights.map { $0.rarity } == [.rare, .rare, .legendary], "alberello e lanterna rari, braciere leggendario")
 
 print("\n\(checks) controlli, \(failures) falliti")
 exit(failures == 0 ? 0 : 1)

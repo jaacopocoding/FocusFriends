@@ -454,10 +454,23 @@ final class GardenView: NSView, NSViewToolTipOwner {
         return result
     }
 
-    /// Il disegno di una copia e se si specchia: quelle che si uniscono ai vicini hanno i bracci che servono (e non si specchiano: la girata è già nei bracci).
-    private func look(of item: GardenItem, at tile: GardenTile, turned: Bool, linked: [String: Set<GardenTile>]) -> (resource: String, turned: Bool) {
-        guard item.joins else { return (item.gardenResource, turned) }
-        return (item.gardenResource(arms: GardenLinks.arms(at: tile, among: linked[item.id] ?? [], turned: turned)), false)
+    /// Da quanta luce (`GardenLight.lamp`) in su si vedono accese le cose con il disegno acceso (il braciere), e fanno luce.
+    private static let litThreshold = 0.25
+
+    /// Il disegno di una copia, se si specchia e quanto è alta: quelle che si uniscono ai vicini hanno i bracci che servono (e non si specchiano: la girata è già nei bracci);
+    /// quelle con il disegno acceso lo mostrano quando `lit` (di sera).
+    private func look(of item: GardenItem, at tile: GardenTile, turned: Bool, linked: [String: Set<GardenTile>], lit: Bool) -> (resource: String, turned: Bool, height: Double) {
+        if item.joins {
+            return (item.gardenResource(arms: GardenLinks.arms(at: tile, among: linked[item.id] ?? [], turned: turned)), false, item.height)
+        }
+        if lit, let litResource = item.litResource { return (litResource, turned, item.height * litHeightFactor(of: item)) }
+        return (item.gardenResource, turned, item.height)
+    }
+
+    /// Il disegno acceso è più alto di quello spento (la fiamma) ma ha gli stessi piedi e la stessa larghezza: per disegnarlo alla stessa scala si alza in proporzione.
+    private func litHeightFactor(of item: GardenItem) -> Double {
+        guard let litResource = item.litResource, let on = GardenSprites.sprite(litResource), let off = GardenSprites.sprite(item.resource) else { return 1 }
+        return Double(on.source.height / max(off.source.height, 1))
     }
 
     private func standingPoint(of item: GardenItem, ground: NSPoint, iso: Iso) -> NSPoint {
@@ -508,6 +521,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
         // le bandierine di una festa in giardino ondeggiano di più
         let party = Set(garden.formedCorners["festa"] ?? [])
         let linked = linkedTiles(on: garden.shownIsland)
+        let lit = skyState().light.lamp >= Self.litThreshold
         for placement in garden.placements {
             guard let item = GardenCatalog.item(withID: placement.item) else { continue }
             if carryMoved, carry == .placed(placement.id) { continue }
@@ -516,8 +530,8 @@ final class GardenView: NSView, NSViewToolTipOwner {
             let feet = standingPoint(of: item, ground: ground, iso: iso)
             let front = Double(placement.col + footprint.cols - 1 + placement.row + footprint.rows - 1)
             let shadowWidth = item.castsShadow ? min(iso.tileW * 0.62 * CGFloat(max(footprint.cols, footprint.rows)), iso.tileW * 1.3) : nil
-            let drawn = look(of: item, at: placement.tile, turned: placement.turned, linked: linked)
-            guard var made = entity(kind: .placed(placement.id), resource: drawn.resource, referenceHeight: item.height, feet: feet,
+            let drawn = look(of: item, at: placement.tile, turned: placement.turned, linked: linked, lit: lit)
+            guard var made = entity(kind: .placed(placement.id), resource: drawn.resource, referenceHeight: drawn.height, feet: feet,
                                     shadowWidth: shadowWidth, turned: drawn.turned, depth: front + 0.5, iso: iso) else { continue }
             made.sway = item.swayStrength * (party.contains(placement.id) ? 1.7 : 1)
             made.seed = Double(GardenDrops.hash(placement.id.uuidString) % 1000) / 1000
@@ -976,6 +990,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
         for item in GardenCatalog.items {
             _ = GardenSprites.sprite(item.resource)
             if item.axial { _ = GardenSprites.sprite(item.gardenResource) }
+            if let lit = item.litResource { _ = GardenSprites.sprite(lit) }
         }
         for pet in Pet.all { _ = GardenSprites.sprite(pet.iconResource) }
         let season = Season.of(Date())
@@ -1054,26 +1069,38 @@ final class GardenView: NSView, NSViewToolTipOwner {
     private func drawLampGlows(_ laid: [Entity], iso: Iso, light: GardenLight) {
         let strength = CGFloat(light.lamp)
         guard strength > 0.01 else { return }
-        let lamps = Set(GardenIslands.all.flatMap { garden.placements(on: $0) }.filter { $0.item == "lampione" }.map { $0.id })
+        // chi fa luce (il lampione, la lanterna, l'alberello, il braciere): quelli con il disegno acceso brillano solo da accesi
+        var glowing: [UUID: (glow: GardenGlow, needsLit: Bool)] = [:]
+        for placement in GardenIslands.all.flatMap({ garden.placements(on: $0) }) {
+            guard let item = GardenCatalog.item(withID: placement.item), let glow = item.glow else { continue }
+            glowing[placement.id] = (glow, item.litDrawing)
+        }
+        guard !glowing.isEmpty else { return }
         // il lampione dell'angolo di lettura fa più luce, e più calda
         let reading = Set(garden.formedCorners["lettura"] ?? [])
+        let time = effectsClock()
         NSGraphicsContext.saveGraphicsState()
         NSGraphicsContext.current?.cgContext.setBlendMode(.plusLighter)
-        let warm = Self.color(255, 196, 104)
         for entity in laid {
-            guard case .placed(let id) = entity.kind, lamps.contains(id) else { continue }
+            guard case .placed(let id) = entity.kind, let (glow, needsLit) = glowing[id] else { continue }
+            if needsLit && light.lamp < Self.litThreshold { continue }
             let boost: CGFloat = reading.contains(id) ? 1.45 : 1
-            let top = NSPoint(x: entity.rect.midX, y: entity.rect.minY + entity.rect.height * 0.10)
-            NSGradient(colors: [warm.withAlphaComponent(0.48 * strength * min(boost, 1.2)), warm.withAlphaComponent(0.14 * strength * min(boost, 1.2)), warm.withAlphaComponent(0)])?
-                .draw(fromCenter: top, radius: 0, toCenter: top, radius: iso.tileW * 1.25 * boost, options: [])
+            // una fiamma vibra piano (non con «Riduci movimento»)
+            let flicker: CGFloat = glow.flickers && !reduceMotion ? 1 + 0.09 * CGFloat(sin(time * 6.1 + entity.seed * 40) + 0.6 * sin(time * 11.3 + entity.seed * 17)) : 1
+            let power = strength * CGFloat(glow.strength) * flicker
+            let warm = Self.color(CGFloat(glow.red), CGFloat(glow.green), CGFloat(glow.blue))
+            let radius = iso.tileW * CGFloat(glow.radius)
+            let top = NSPoint(x: entity.rect.midX, y: entity.rect.minY + entity.rect.height * CGFloat(glow.top))
+            NSGradient(colors: [warm.withAlphaComponent(0.48 * power * min(boost, 1.2)), warm.withAlphaComponent(0.14 * power * min(boost, 1.2)), warm.withAlphaComponent(0)])?
+                .draw(fromCenter: top, radius: 0, toCenter: top, radius: radius * boost, options: [])
             // la pozza di luce sul prato, schiacciata come l'isola
             NSGraphicsContext.saveGraphicsState()
             let squash = NSAffineTransform()
             squash.translateX(by: entity.feet.x, yBy: entity.feet.y)
             squash.scaleX(by: 1, yBy: 0.5)
             squash.concat()
-            NSGradient(colors: [warm.withAlphaComponent(0.34 * strength), warm.withAlphaComponent(0)])?
-                .draw(fromCenter: .zero, radius: 0, toCenter: .zero, radius: iso.tileW * 1.5 * boost, options: [])
+            NSGradient(colors: [warm.withAlphaComponent(0.34 * power), warm.withAlphaComponent(0)])?
+                .draw(fromCenter: .zero, radius: 0, toCenter: .zero, radius: radius * 1.2 * boost, options: [])
             NSGraphicsContext.restoreGraphicsState()
         }
         NSGraphicsContext.restoreGraphicsState()
@@ -1934,7 +1961,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
         var mirrored = carryTurned && { if case .companion = current { return false } else { return true } }()
         // una staccionata che si sta mettendo si vede già unita ai vicini della tessera dove cadrebbe
         if let ghostItem, ghostItem.joins {
-            let drawn = look(of: ghostItem, at: target.valid ? target.origin : GardenTile(col: -9, row: -9), turned: carryTurned, linked: linkedTiles(on: garden.shownIsland))
+            let drawn = look(of: ghostItem, at: target.valid ? target.origin : GardenTile(col: -9, row: -9), turned: carryTurned, linked: linkedTiles(on: garden.shownIsland), lit: false)
             resource = drawn.resource
             mirrored = drawn.turned
         }
@@ -3187,6 +3214,7 @@ extension GardenView {
         let visible = sceneRect.insetBy(dx: -80, dy: -140)
         var result: [Entity] = []
         let linked = linkedTiles(on: id)
+        let lit = skyState().light.lamp >= Self.litThreshold
         for placement in garden.placements(on: id) {
             guard let item = GardenCatalog.item(withID: placement.item) else { continue }
             if carryMoved, carry == .placed(placement.id) { continue }
@@ -3196,8 +3224,8 @@ extension GardenView {
             let feet = standingPoint(of: item, ground: ground, iso: iso)
             let front = Double(placement.col + footprint.cols - 1 + placement.row + footprint.rows - 1)
             let shadowWidth = item.castsShadow ? min(iso.tileW * 0.62 * CGFloat(max(footprint.cols, footprint.rows)), iso.tileW * 1.3) : nil
-            let drawn = look(of: item, at: placement.tile, turned: placement.turned, linked: linked)
-            if var made = entity(kind: .placed(placement.id), resource: drawn.resource, referenceHeight: item.height, feet: feet, shadowWidth: shadowWidth,
+            let drawn = look(of: item, at: placement.tile, turned: placement.turned, linked: linked, lit: lit)
+            if var made = entity(kind: .placed(placement.id), resource: drawn.resource, referenceHeight: drawn.height, feet: feet, shadowWidth: shadowWidth,
                                  turned: drawn.turned, depth: base + front + 0.5, iso: iso) {
                 made.island = id
                 made.tile = placement.tile

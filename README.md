@@ -366,8 +366,8 @@ ancora studiato non si giudica niente: la giornata non è finita.
 
 Si apre dalla riga **Album** del menu (sotto «Da fare») o dal pulsante nel giardino (`AlbumWindow.swift`). Si vede
 prima la copertina, che dice quante figurine hai e quante sono nuove; un tocco la apre, girando attorno al dorso, sulla
-doppia pagina delle figurine nuove. Ogni sezione del catalogo (**Fiori**, **Per i compagni**, **Arredi**: 36 figurine
-in tutto, per ora) occupa una doppia pagina da sei per lato. Le figurine trovate sono incollate un po' storte, con il
+doppia pagina delle figurine nuove. Ogni sezione del catalogo (**Fiori**, **Per i compagni**, **Arredi**: 39 figurine
+in tutto, per ora) occupa una doppia pagina da sei per lato (gli arredi sono quindici: la terza pagina ha le ultime tre, le luci). Le figurine trovate sono incollate un po' storte, con il
 numero, il nome e un ×2 se ne hai due copie; le altre sono caselle tratteggiate con la sagoma e la rarità. Si sfoglia con
 le frecce, le linguette delle sezioni, la tastiera o due dita sul trackpad; un tocco su una figurina dice quante copie hai.
 Quando una doppia pagina è tutta trovata compare un sigillo «completa».
@@ -498,7 +498,7 @@ o quella che tocchi o su cui trascini; la targhetta «Isola di …» (o il tasto
 
 **Luce e stagioni.** Il giardino segue l'orologio e la data (`GardenSky.swift`): alba rosata, giorno, tramonto dorato, crepuscolo e
 notte blu, con il sole che sorge e tramonta a ore diverse (d'inverno alle 17 è già buio, d'estate alle 21 c'è ancora luce). Con il buio
-i **lampioni** si accendono, con un alone in cima e una pozza di luce sul prato, e compaiono le **lucciole** (tante d'estate, poche in
+i **lampioni** si accendono, con un alone in cima e una pozza di luce sul prato (e con loro l'alberello di lucine, la lanterna sul ceppo e il **braciere**, che da spento diventa acceso, con la fiamma che vibra piano), e compaiono le **lucciole** (tante d'estate, poche in
 autunno, mai d'inverno). La stagione cambia l'erba e il velo sullo sfondo: in primavera cadono i petali, in autunno le foglie, in inverno
 la neve e l'isola è bianca. Per provare un'ora o una stagione: `defaults write com.jacopo.focusfriends gardenHour -float 21` (l'ora, con
 la virgola) e `gardenSeason -string winter` (`spring`, `summer`, `autumn`, `winter`); `defaults delete …` le toglie.
@@ -509,7 +509,7 @@ d'estate), con un'onda che attraversa l'isola; l'**acqua del bagnetto** luccica 
 nelle impostazioni di accessibilità tutto sta fermo (anche neve, lucciole e compagni che camminano); il giardino si ridisegna solo con la
 finestra visibile e non coperta.
 
-Sopra l'isola, due etichette: quante figurine hai (N/36) e la serie di giorni. Gli oggetti, le impronte e le rarità stanno
+Sopra l'isola, due etichette: quante figurine hai (N/39) e la serie di giorni. Gli oggetti, le impronte e le rarità stanno
 in `GardenCatalog.swift` (per ora la rarità si ricava dal vecchio prezzo: fino a 3 comune, fino a 6 raro, oltre leggendario).
 
 ### Chi veniva dal negozio
@@ -734,7 +734,7 @@ Sources/FocusFriends/
   Garden.swift          il giardino di chi usa l'app: figurine trovate, copie su ogni isola, compagni, ponti, angoli e ospiti (solo Foundation, con prove)
   GardenGrid.swift      le isole e il mondo: tessere, sentieri, case, ponti, terreno e collina (solo Foundation, con prove)
   GardenDrops.swift     il regalo di fine focus: rarità, probabilità, garanzie e un tiro uguale su Mac e Windows (solo Foundation, con prove)
-  GardenCatalog.swift   i 36 oggetti (24 universali e 12 di un animale), la rarità e il regalo di benvenuto (solo Foundation, con prove)
+  GardenCatalog.swift   i 39 oggetti (27 universali e 12 di un animale), la rarità e il regalo di benvenuto (solo Foundation, con prove)
   GardenCorners.swift   gli angoli: quali cose vicine fanno qualcosa insieme (solo Foundation, con prove)
   GardenCompanions.swift  cosa fanno i compagni agli angoli: pose, gusti e percorsi (solo Foundation, con prove)
   GardenVisitors.swift  gli ospiti: chi viene, a che ora e in che stagione, e cosa lo attira (solo Foundation, con prove)

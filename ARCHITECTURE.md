@@ -64,7 +64,7 @@ Single user per Mac, no accounts, no network: all data is stored locally under
 | App type | Menu-bar "agent": `LSUIElement = true`, activation policy `.accessory` | `build.sh`, `AppDelegate.applicationDidFinishLaunching` |
 | Signing | Ad-hoc (`codesign --force --sign -`; `build.sh` stops with exit 1 if signing fails); not notarised, no hardened runtime or sandbox | `build.sh`, `README.md` "Scaricare e usare" |
 | Asset tooling | Python 3 scripts using Pillow and NumPy (not run at build time) | `tools/*.py` |
-| Tests | One hand-written Swift executable (`tests/main.swift`, 48 sections, 962 checks) that compiles twenty Foundation-only source files; no XCTest | `tests/run.sh` |
+| Tests | One hand-written Swift executable (`tests/main.swift`, 49 sections, 970 checks) that compiles twenty Foundation-only source files; no XCTest | `tests/run.sh` |
 | License | MIT (`LICENSE`); bundled music is CC0 (`CREDITS.md`) | `LICENSE`, `CREDITS.md` |
 | Swift toolchain version / Python version | Not pinned anywhere in the repository | **[unknown]** |
 
@@ -151,14 +151,14 @@ FocusFriends/
 │   ├── GardenSky.swift           the garden's sky: light by hour and season (`GardenSky.light`), lamps and fireflies, the motion of petals, leaves, snow and fireflies (Foundation only)
 │   ├── GardenGrid.swift          the islands and the world: GardenTile, GardenFootprint, GardenIsland (size, the old fixed path), GardenLayout (canPlace, nearest free tile, starter tiles, legacy-spot mapping), GardenLinks (a joined piece's arms from its neighbours), GardenTerrain (grass, path and detail tiles), GardenHill, GardenIslands (the four ids), GardenPaths (each island's own path), GardenLandmarks (each island's house), GardenBridge and GardenWorld (the 2×2 map, the four bridges, pending bridges and who is welcomed), legacy GardenSpot/GardenScene (Foundation only)
 │   ├── GardenDrops.swift         the end-of-focus drop: rarities, chances, pity, deterministic roll (FNV-1a + Mulberry32), simulate(), the sentences (Foundation only)
-│   ├── GardenCatalog.swift       the 36 objects (id, name, category, height, footprint, price → rarity, the animal's island), the welcome gift of an island, GardenPlacement (island + tile + turned) + GardenAlbum pages (Foundation only)
+│   ├── GardenCatalog.swift       the 39 objects (id, name, category, height, footprint, price → rarity, the animal's island, `glow`, `litDrawing`), the welcome gift of an island, GardenPlacement (island + tile + turned) + GardenAlbum pages (Foundation only)
 │   ├── GardenPoints.swift        StudyStreak (streak with one frozen day) + GardenPoints (hours × multiplier)  (Foundation only)
 │   ├── AmbientSound.swift        AmbientSound, AmbientSettings, BackgroundChoice                        (Foundation only)
 │   ├── AmbientPlayer.swift       NoiseSynth (real-time synthesis) + AmbientPlayer (AVAudioEngine wrapper)
 │   ├── MusicLibrary.swift        MusicSource, MusicLibrary (file discovery, shuffle, titles), MusicSettings  (Foundation only)
 │   └── MusicPlayer.swift         AVAudioPlayer-based music playback with queue and fades
 ├── tests/
-│   ├── main.swift                hand-rolled test executable (check()/section()), 48 sections, 962 checks
+│   ├── main.swift                hand-rolled test executable (check()/section()), 49 sections, 970 checks
 │   ├── run.sh                    compiles 20 source files + tests/main.swift into build/tests/stats and runs it
 │   ├── genera-attesi.sh          builds and runs tests/genera-attesi/main.swift: for every folder in tests/fixtures/ writes what this app derives from it (the expected results the Windows port is compared with)
 │   ├── simula-regali.sh          simulates the end-of-focus drops over 30/60/90 days of studying (how long an album takes; used to tune GardenDrops)
@@ -171,7 +171,7 @@ FocusFriends/
 │   ├── cutout_gattino.py         Gattino sheets (idle, walk, eat, sleep, groom) → frame1..23 on a common canvas
 │   ├── cutout_picked.py          "picked up by hands" drawing cut-out (generic, takes paths)
 │   ├── cutout_garden.py          5-stage collection sheet → garden_<pet>_1..5 on the 208×341 canvas (used for the live growth during a focus)
-│   ├── cutout_giardino.py        the three 4×3 object sheets (white or magenta background) → one PNG per object + the 2× meadow
+│   ├── cutout_giardino.py        the object sheets (the three 4×3 ones, plus `luci_original.png` 2×2 and `luci2_original.png` 3×2 with cells to skip; white or magenta background) → one PNG per object + the 2× meadow; the fire bowl's two drawings are cut together (same width, same bottom)
 │   ├── cutout_paesaggio.py       the landscape sheets, summer and winter (house, trees, firs, bushes, hedges, fence, logs on magenta, not in a grid) → paesaggio_<name>.png, paesaggio_inverno_<name>.png
 │   ├── prepara_sfondo.py         sfondo_original.png → sfondo.png (2× upscale, covers the lake islet, composes the cottage and trees) and the same for the frozen lake → sfondo_inverno.png; prints the chimney/window positions
 │   ├── prepara_collina.py        the hill under the island: Gemini's sheet (hill with a magenta diamond hole on top) → collina_<season>.png: magenta removed, the slopes shortened, the hole's outline erased, the flanks' outline made a thin brown line and the bottom edge faded; prints the hole's corners (for `GardenHill`)
@@ -193,7 +193,7 @@ FocusFriends/
 │   ├── ciccio/                   walk_original.png, flap_original.png, frame1..13.png, picked(.png/_original.png)
 │   ├── gattino/                  idle/walk/eat/sleep/groom_original.png sheets, frame1..23.png, picked(.png/_original.png)
 │   ├── garden/                   garden_<pet>_1..5.png (ciccio, porcellino), growth_porcellino_1..5.png, *_original sheets (live growth)
-│   ├── giardino/                 fiori/compagni/arredi_original.png sheets, prato_original.png, 36 object PNGs, prato.png, erba_original.png and sentiero_original.png (terrain sheets), tessera_erba_1..12.png, tessera_sentiero_1..8.png, tessera_neve_1..12.png and tessera_sentiero_neve_1..8.png (diamond tiles), bordo_original.png, bordo_1..3.png, bordo_neve_original.png and bordo_neve_1..3.png (earth edge strips), sfondo_original.png, sfondo.png and paesaggio_original.png with the 12 paesaggio_<name>.png pieces, sfondo_inverno_original.png, sfondo_inverno.png and paesaggio_inverno_original.png with the 9 paesaggio_inverno_<name>.png pieces, neve_original.png and sentiero_neve_original.png (the snow sheets), dettagli_original.png and dettaglio_1..24.png (the scattered details), visitatori_original.png and the 12 visitatore_<name>.png guests, collina_original.png and collina_autunno/primavera/estate/inverno.png (the hill)
+│   ├── giardino/                 fiori/compagni/arredi/luci/luci2_original.png sheets, prato_original.png, 39 object PNGs + `braciere-acceso.png`, prato.png, erba_original.png and sentiero_original.png (terrain sheets), tessera_erba_1..12.png, tessera_sentiero_1..8.png, tessera_neve_1..12.png and tessera_sentiero_neve_1..8.png (diamond tiles), bordo_original.png, bordo_1..3.png, bordo_neve_original.png and bordo_neve_1..3.png (earth edge strips), sfondo_original.png, sfondo.png and paesaggio_original.png with the 12 paesaggio_<name>.png pieces, sfondo_inverno_original.png, sfondo_inverno.png and paesaggio_inverno_original.png with the 9 paesaggio_inverno_<name>.png pieces, neve_original.png and sentiero_neve_original.png (the snow sheets), dettagli_original.png and dettaglio_1..24.png (the scattered details), visitatori_original.png and the 12 visitatore_<name>.png guests, collina_original.png and collina_autunno/primavera/estate/inverno.png (the hill)
 │   ├── album/                    copertina(.png/_original.png), doppia_pagina(.png/_original.png), guida_doppia_pagina_original.png (layout guide given to the image generator)
 │   └── music/                    5 AAC (.m4a) tracks: boredom, love, night-driving, old-age, opinions
 ├── docs/images/                  PNG screenshots/logo used only by README.md (sample data); giardino.png and album.png are the garden and the album, da-fare.png the to-do page
@@ -738,7 +738,7 @@ code. All UI code runs on the main thread; the only other thread is the audio re
   autumn 0.35, winter 0). In `draw`: the backdrop with a **season veil** and the island with the season's `Palette` → entities → ghost →
   `drawWeather` (petals, leaves or snow from `GardenSky.particle(kind:index:time:…)`, pure functions of time) → `applyLight` (the scene multiplied by the
   tint with the CoreGraphics blend mode `.multiply`, plus darker corners at night) → `drawLampGlows` and `drawFireflies` (`.plusLighter`, only on top of
-  placed `lampione` copies and on the fireflies' own positions) → bubble → HUD. The 30 Hz timer asks for a redraw only when something walks or moves in
+  placed copies of the objects with a `glow` — the lamp post, the fairy-light tree, the stump lantern, the fire bowl, whose glow is a `GardenGlow` (colour, radius, height in the drawing, strength, flicker) scaled by `GardenLight.lamp` — and on the fireflies' own positions) → bubble → HUD. The 30 Hz timer asks for a redraw only when something walks or moves in
   the sky (`skyIsAnimated`), and every second for a change of light; `effectsClock` lets a bench freeze the time of the effects.
 - **Idle life** (`GardenSky.wind/sway/sparkle/ripple/smoke`, pure functions of time, tested): `GardenItem.swayStrength` (flowers and grass 1, flags and
   chimes 1.8, mushrooms and pots 0) and `waterSpot` (the bird bath's water oval, as fractions of the sprite) are catalog data. `drawSwaying` draws a plant as
@@ -803,7 +803,7 @@ code. All UI code runs on the main thread; the only other thread is the audio re
     music (`music_*`), garden/growth art, Pianty stage frames → write `Info.plist` via heredoc →
     `codesign --force --sign -` (a failure prints an error and exits 1) → print the path.
   - `tests/run.sh`: `swiftc -O -o build/tests/stats` on twenty source files + `tests/main.swift` →
-    `build/tests/stats` (prints `• <section>` lines and `N controlli, M falliti`, exit code 0/1; 962 checks now).
+    `build/tests/stats` (prints `• <section>` lines and `N controlli, M falliti`, exit code 0/1; 970 checks now).
   - Tools: described in §5.9; they read `assets/**/*_original.png` / sheets and write processed PNGs or the icon.
 
 ### 3.22 To-do list ("Da fare")
@@ -1370,7 +1370,7 @@ file/UserDefaults writes, windows, timers, sound, global state.
 - **Side effects:** modal `NSAlert`/`NSSavePanel`; writes through `SessionLog` / `Profile.reset()`; registers a
   log observer.
 
-#### `GardenWindow.swift` (3,388)
+#### `GardenWindow.swift` (3,416)
 - **Responsibility:** `GardenView` (the **world of four islands** seen at an angle through **one camera**, `zoom` and `pan`; everything the garden shows and does) and `GardenController` (window,
   scaling on narrow screens, `show(canCelebrate:)`). The view draws a cached **scene** (painting, four hills, grounds, houses, built bridges, light: `drawStaticScene`, `renderScene`, `SceneCache`,
   `groundStore`, key `worldSignature()`), then, every frame, what lives on top: the shown island's objects and companions (`entities()`), the other open islands' still ones (`staticEntities(on:)`),
@@ -1442,7 +1442,7 @@ file/UserDefaults writes, windows, timers, sound, global state.
 #### `GardenCatalog.swift`
 - **Responsibility:** `GardenCategory`, `GardenItem` (id, name, category, reference height, price, shadow flag, `footprint`, `axial` — lies on a tile's side, drawn by `GardenSprites.axial`, height 0 — and `repeatable` — the fence: once found, unlimited copies, out of the gift pool —, the animal's `island` and `fits(island:)`,
   `nameWithArticle`, `islandRule`, `wrongIslandLine`, `resource`, `gardenResource`), `GardenPlacement` (tile + turned; reads the old `x`/`y`), `GardenCompanionPlace`, `GardenAlbum` (pages, completed
-  spreads) and `GardenCatalog.items` (36 objects, prices provisional).
+  spreads) and `GardenCatalog.items` (39 objects, prices provisional).
 
 #### `GardenGrid.swift` (714)
 - **Responsibility:** the rules of the islands and of the world, all Foundation only and tested. `GardenTile`, `GardenFootprint`, `GardenIsland` (size 8…10, the **old fixed path** `isPath`), `GardenLayout`
@@ -1494,7 +1494,7 @@ file/UserDefaults writes, windows, timers, sound, global state.
 ### 5.9 Tests, build and tools
 
 #### `tests/main.swift` (2,391) and `tests/run.sh` (7)
-- A single executable: `check(_:_:line:)`, `section(_:)`, 48 sections (962 checks) covering subjects, log persistence,
+- A single executable: `check(_:_:line:)`, `section(_:)`, 49 sections (970 checks) covering subjects, log persistence,
   in-progress recovery, periods, summaries, streaks, texts, garden rules, format versions/migration, subject merging, backups and
   delete-all, time zones, profile, ratings/notes/insights/CSV, timer dial math, seasons, ambient settings, music
   library/settings, focus notes, paused-time recovery, companion rewards (including the developer flag), break cycle,
@@ -1528,7 +1528,7 @@ file/UserDefaults writes, windows, timers, sound, global state.
   Frames are aligned on the torso (eyes are not always both visible), brought to one height, and the idle drawing is
   scaled to the walk; neighbouring cats whose whiskers touch are split by ink valley or by connected component, and
   detached specks (the "z", drops) are removed. `--preview` writes a check sheet in `build/`.
-- `cutout_giardino.py` (≈ 190): cuts the 12 objects of each 4×3 sheet by cell; white-background sheets (flowers) drop the
+- `cutout_giardino.py` (≈ 215): cuts the objects of each sheet by cell (12 per 4×3 sheet; the lights sheets name only the cells that are used; `PAIRS` crops the fire bowl's lit and unlit drawings to the same width and bottom); white-background sheets (flowers) drop the
   white that is reachable from the border and the enclosed pockets (except inside white flowers), magenta sheets are
   keyed on "minimum of red and blue minus green" and cleaned of pink fringes; writes `assets/giardino/<id>.png` and the 2×
   meadow.
@@ -1986,7 +1986,7 @@ code is clear. Items without a mark still describe the current code.
 
 ### 7.8 Test coverage as it exists
 
-- Covered (48 sections, 962 checks in `tests/main.swift`): everything in the Foundation-only files listed in §4.1,
+- Covered (49 sections, 970 checks in `tests/main.swift`): everything in the Foundation-only files listed in §4.1,
   including the new damaged-data cases and the developer flag.
 - Not covered by any automated test in the repository: `Pomodoro` (timer, pause, grace, the sleep-gap rule, cycle
   wiring), `Speaker` (including when a to-do reminder replaces a phrase), `Walker`, `PetWindow`/`PetView`, `MenuController`,

@@ -1,6 +1,6 @@
 #!/bin/bash
 # Simula quanto ci vuole a completare l'album del giardino con le regole dei regali (GardenDrops.swift), per tre modi di studiare.
-# uso:  tests/simula-regali.sh [numero di oggetti dell'album, default 36]
+# uso:  tests/simula-regali.sh [numero di oggetti dell'album, default: quelli di adesso]
 set -euo pipefail
 cd "$(dirname "$0")/.."
 mkdir -p build/simula

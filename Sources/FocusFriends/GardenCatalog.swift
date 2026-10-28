@@ -13,6 +13,23 @@ enum GardenCategory: String, CaseIterable {
     }
 }
 
+/// La luce che fa un oggetto la sera (quando brillano i lampioni, vedi `GardenSky`): un alone caldo attorno a un punto del disegno e una pozza di luce sul prato.
+struct GardenGlow: Equatable {
+    var red: Int
+    var green: Int
+    var blue: Int
+    /// Quanto è larga l'alone, in larghezze di tessera (la pozza sul prato è un quinto più larga).
+    var radius: Double
+    /// Dove sta la luce nel disegno: da 0 in cima a 1 ai piedi.
+    var top: Double
+    /// Quanto è forte (1 = come il lampione).
+    var strength: Double
+    /// Vibra piano come una fiamma (non con «Riduci movimento»).
+    var flickers = false
+
+    static let lamp = GardenGlow(red: 255, green: 196, blue: 104, radius: 1.25, top: 0.10, strength: 1)
+}
+
 /// Un tipo di oggetto del giardino. Si trova una volta (a fine focus, o c'è fin dall'inizio) e poi se ne possono mettere quante sono le copie trovate.
 struct GardenItem: Equatable {
     let id: String
@@ -39,6 +56,10 @@ struct GardenItem: Equatable {
     /// Si unisce alle uguali che ha accanto (la staccionata): un pezzo ha un braccio verso ogni vicino, e così fa gli angoli, le T e le croci da solo (`GardenLinks`). Con un vicino
     /// solo prosegue dritto; senza vicini va nel verso scelto girandolo.
     var joins = false
+    /// Fa luce la sera (il lampione, l'alberello di lucine, la lanterna, il braciere).
+    var glow: GardenGlow?
+    /// Ha un secondo disegno, «acceso» (`giardino_<id>-acceso`), che si vede quando fa buio: il braciere con la fiamma. Fa luce solo da acceso.
+    var litDrawing = false
     /// L'isola dell'animale a cui appartiene (l'id del compagno): quell'oggetto si mette solo sulla sua isola. `nil` = universale, va su qualunque isola.
     var island: String?
 
@@ -69,6 +90,9 @@ struct GardenItem: Equatable {
 
     /// Quanti lati di tessera è lunga una cosa sul lato (una, o due per l'amaca e l'arco di rose).
     var sides: Int { max(footprint.cols, footprint.rows) }
+
+    /// Il disegno da acceso (stessa larghezza e stessi piedi di quello spento, ma più alto: c'è la fiamma).
+    var litResource: String? { litDrawing ? resource + "-acceso" : nil }
 
     /// Il disegno con cui sta sull'isola: per le cose sul lato quello adagiato sull'asse (con la sua lunghezza in lati, se più di uno: `giardino_amaca@asse2`).
     var gardenResource: String { axial ? resource + Self.axialSuffix + (sides > 1 ? "\(sides)" : "") : resource }
@@ -156,9 +180,9 @@ enum GardenCatalog {
 
     private static func item(_ id: String, _ name: String, _ category: GardenCategory, height: Double, price: Int,
                              shadow: Bool = true, cols: Int = 1, rows: Int = 1, axial: Bool = false, slope: Double = 0.5, repeatable: Bool = false, joins: Bool = false,
-                             island: String? = nil) -> GardenItem {
+                             glow: GardenGlow? = nil, litDrawing: Bool = false, island: String? = nil) -> GardenItem {
         GardenItem(id: id, name: name, category: category, height: height, price: price, castsShadow: shadow,
-                   footprint: GardenFootprint(cols: cols, rows: rows), axial: axial, slope: slope, repeatable: repeatable, joins: joins, island: island)
+                   footprint: GardenFootprint(cols: cols, rows: rows), axial: axial, slope: slope, repeatable: repeatable, joins: joins, glow: glow, litDrawing: litDrawing, island: island)
     }
 
     /// Tutti gli oggetti, nell'ordine in cui compaiono nel negozio. I prezzi sono provvisori.
@@ -197,11 +221,18 @@ enum GardenCatalog {
         item("sdraio", "Sdraio", .furniture, height: 110, price: 5),
         item("carillon", "Carillon a vento", .furniture, height: 120, price: 5),
         item("panchina", "Panchina", .furniture, height: 95, price: 6),
-        item("lampione", "Lampione", .furniture, height: 170, price: 6),
+        item("lampione", "Lampione", .furniture, height: 170, price: 6, glow: .lamp),
         item("ponticello", "Ponticello", .furniture, height: 82, price: 8),
         item("amaca", "Amaca", .furniture, height: 0, price: 9, shadow: false, cols: 2, axial: true, slope: 0.3),
         item("altalena", "Altalena", .furniture, height: 0, price: 10, shadow: false, axial: true),
         item("arco-rose", "Arco di rose", .furniture, height: 0, price: 12, shadow: false, cols: 2, axial: true, slope: 0.3),
+        // Le luci (il lampione è fra gli arredi, più su): si aggiungono in fondo, perché il numero di una figurina non cambia mai.
+        item("alberello-lucine", "Alberello di lucine", .furniture, height: 135, price: 5,
+             glow: GardenGlow(red: 255, green: 230, blue: 160, radius: 0.85, top: 0.40, strength: 0.8)),
+        item("lanterna-ceppo", "Lanterna sul ceppo", .furniture, height: 105, price: 4,
+             glow: GardenGlow(red: 255, green: 190, blue: 100, radius: 0.8, top: 0.32, strength: 0.85)),
+        item("braciere", "Braciere", .furniture, height: 80, price: 7, shadow: false,
+             glow: GardenGlow(red: 255, green: 150, blue: 70, radius: 1.15, top: 0.35, strength: 1, flickers: true), litDrawing: true),
     ]
 
     /// Gli oggetti universali (su qualunque isola) e quelli di un animale (solo sulla sua isola).

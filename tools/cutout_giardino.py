@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
 """Ritaglia gli oggetti del giardino: assets/giardino/<foglio>_original.png -> assets/giardino/<id>.png
 
-Ogni foglio ha 12 oggetti in una griglia di 4 colonne per 3 righe, in ordine di lettura, ognuno nella sua cella:
+Ogni foglio ha i suoi oggetti in una griglia (di solito 4 colonne per 3 righe), in ordine di lettura, ognuno nella sua cella:
   fiori_original.png       su fondo bianco
   compagni_original.png    su fondo magenta (#FF00FF): le case e le cose per i compagni
   arredi_original.png      su fondo magenta
+  luci_original.png        su fondo magenta, 2 colonne per 2 righe: del braciere, spento e acceso (le altre due celle non servono)
+  luci2_original.png       su fondo magenta, 3 colonne per 2 righe: dell'alberello di lucine e della lanterna sul ceppo (le altre celle non servono)
+Le celle senza id (None) si saltano. Il braciere acceso e quello spento sono lo stesso disegno con la fiamma: si ritagliano insieme (stessa larghezza e stesso fondo),
+perché in giardino si scambiano di sera senza che si muova niente.
 
 Il fondo magenta si toglie meglio di quello bianco (non confonde i petali o le campanule bianche con lo sfondo);
 sul bianco, invece, il bianco chiuso fra gli steli e le foglie è sfondo, tranne dove sta dentro un fiore bianco
@@ -19,22 +23,25 @@ import numpy as np
 from PIL import Image
 
 DIR = "assets/giardino"
-# (foglio, sfondo, gli id degli oggetti in ordine di lettura, oggetti con il bianco chiuso da tenere)
+# (foglio, sfondo, gli id degli oggetti in ordine di lettura (None = cella da saltare), oggetti con il bianco chiuso da tenere, colonne, righe)
 SHEETS = [
     ("fiori_original.png", "white",
      ["margherite", "tulipani", "lavanda", "girasole", "papaveri", "erbe", "funghi", "felci", "rosaio", "trifoglio",
       "mughetti", "erba-alta"],
-     {"margherite", "mughetti"}),
+     {"margherite", "mughetti"}, 4, 3),
     ("compagni_original.png", "magenta",
      ["casetta-gatto", "tiragraffi", "cesto-cuscino", "casetta-porcellino", "tunnel", "cesto-carote", "casetta-uccelli",
       "altalena-uccelli", "bagnetto", "vaso-grande", "annaffiatoio", "aiuola"],
-     set()),
+     set(), 4, 3),
     ("arredi_original.png", "magenta",
      ["panchina", "altalena", "amaca", "tavolino", "picnic", "sdraio", "lampione", "bandierine", "carillon",
       "cancelletto", "arco-rose", "ponticello"],
-     set()),
+     set(), 4, 3),
+    ("luci_original.png", "magenta", [None, None, "braciere", "braciere-acceso"], set(), 2, 2),
+    ("luci2_original.png", "magenta", ["alberello-lucine", None, "lanterna-ceppo", None, None, None], set(), 3, 2),
 ]
-COLUMNS, ROWS = 4, 3
+# Coppie che si scambiano senza muoversi: stessa larghezza e stesso fondo (la cima può essere diversa).
+PAIRS = [("braciere", "braciere-acceso")]
 BG_MIN = 240            # sul bianco: sopra questo canale minimo un pixel è sfondo
 MIN_SPECK = 25          # macchioline staccate più piccole di così si tolgono (sfondo bianco)
 MIN_PIECE = 150         # idem sul magenta: i pezzi veri (le aste delle bandierine) sono più grandi
@@ -131,26 +138,41 @@ def magenta_object(rgb):
     return np.dstack([np.clip(out, 0, 255), alpha * 255]).astype(np.uint8)
 
 
-def crop(rgba):
+def bounds(rgba):
+    """(x0, x1, y0, y1) del disegno, senza margine (estremo escluso)."""
     ys, xs = np.where(rgba[..., 3] > 25)
-    y0, y1 = max(ys.min() - PAD, 0), min(ys.max() + PAD + 1, rgba.shape[0])
-    x0, x1 = max(xs.min() - PAD, 0), min(xs.max() + PAD + 1, rgba.shape[1])
-    return rgba[y0:y1, x0:x1]
+    return xs.min(), xs.max() + 1, ys.min(), ys.max() + 1
+
+
+def crop(rgba, box=None):
+    x0, x1, y0, y1 = box or bounds(rgba)
+    return rgba[max(y0 - PAD, 0):min(y1 + PAD, rgba.shape[0]), max(x0 - PAD, 0):min(x1 + PAD, rgba.shape[1])]
 
 
 def main():
     written = 0
-    for name, background, ids, keep in SHEETS:
+    cut = {}
+    for name, background, ids, keep, columns, rows in SHEETS:
         sheet = np.asarray(Image.open(f"{DIR}/{name}").convert("RGB")).astype(np.float32)
         height, width, _ = sheet.shape
-        ch, cw = height / ROWS, width / COLUMNS
-        assert len(ids) == COLUMNS * ROWS, f"{name}: servono {COLUMNS * ROWS} id"
+        ch, cw = height / rows, width / columns
+        assert len(ids) == columns * rows, f"{name}: servono {columns * rows} id"
         for n, item in enumerate(ids):
-            row, col = divmod(n, COLUMNS)
+            if item is None:
+                continue
+            row, col = divmod(n, columns)
             cell = sheet[int(row * ch):int((row + 1) * ch), int(col * cw):int((col + 1) * cw)]
-            rgba = white_object(cell, item in keep) if background == "white" else magenta_object(cell)
-            Image.fromarray(crop(rgba), "RGBA").save(f"{DIR}/{item}.png", optimize=True)
-            written += 1
+            cut[item] = white_object(cell, item in keep) if background == "white" else magenta_object(cell)
+    boxes = {item: bounds(rgba) for item, rgba in cut.items()}
+    for first, second in PAIRS:
+        # stessa larghezza (l'unione) e stesso fondo; ognuno tiene la sua cima
+        x0, x1 = min(boxes[first][0], boxes[second][0]), max(boxes[first][1], boxes[second][1])
+        y1 = max(boxes[first][3], boxes[second][3])
+        for item in (first, second):
+            boxes[item] = (x0, x1, boxes[item][2], y1)
+    for item, rgba in cut.items():
+        Image.fromarray(crop(rgba, boxes[item]), "RGBA").save(f"{DIR}/{item}.png", optimize=True)
+        written += 1
     meadow = Image.open(f"{DIR}/prato_original.png").convert("RGB")
     meadow.resize((meadow.width * 2, meadow.height * 2), Image.LANCZOS).save(f"{DIR}/prato.png", optimize=True)
     print(f"Scritti {written} oggetti e il prato in {DIR}/")
