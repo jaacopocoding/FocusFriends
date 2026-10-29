@@ -476,7 +476,7 @@ final class MenuController: NSObject, NSMenuDelegate {
             guard let id = item.representedObject as? String, let pet = Pet.all.first(where: { $0.id == id }) else { continue }
             item.state = id == window.pet.id ? .on : .off
             if let lock = locks[id] {
-                item.title = "\(pet.name) · \(lock)"
+                item.title = "\(AvatarRoster.hiddenName) · \(lock)"
                 item.isEnabled = false
             } else {
                 item.title = pet.name
@@ -571,6 +571,7 @@ final class MenuController: NSObject, NSMenuDelegate {
         let todo = ToDoCardState(sections: ToDoList.shared.sections(today: todayDay), done: ToDoList.shared.doneItems,
                                  openCount: ToDoList.shared.openCount,
                                  today: todayDay, recentSubjects: SessionLog.shared.recentSubjects())
+        let avatars = AvatarRoster.entries(first: Profile.shared.firstCompanion, all: Pet.all.map(\.id), isUnlocked: { Profile.shared.isCompanionUnlocked($0) })
         return MenuCardState(
             pet: window.pet, allPets: Pet.all, userName: Profile.shared.name, isPetVisible: window.isVisible,
             phase: pomodoro.phase, subject: pomodoro.subject, remaining: pomodoro.remainingText,
@@ -583,7 +584,7 @@ final class MenuController: NSObject, NSMenuDelegate {
             ambient: AmbientPlayer.shared.sound, ambientVolume: AmbientPlayer.shared.volume,
             music: MusicPlayer.shared.source, musicLabel: MusicPlayer.shared.label, musicVolume: MusicPlayer.shared.volume,
             focusProgress: pomodoro.phaseProgress, phaseRange: pomodoro.phaseRangeText, focusMinutes: pomodoro.focusMinutes,
-            isPaused: pomodoro.isFocusPaused, isLongBreak: pomodoro.isLongBreak, cycleDone: pomodoro.cycleDone, companionLocks: companionLocks(),
+            isPaused: pomodoro.isFocusPaused, isLongBreak: pomodoro.isLongBreak, cycleDone: pomodoro.cycleDone, avatars: avatars, focusesDone: totalFocuses(),
             notes: pomodoro.notes, background: background, backgroundVolume: background == .music
                 ? MusicPlayer.shared.volume : AmbientPlayer.shared.volume,
             lastFocusMinutes: pomodoro.lastFocus?.minutes, lastFocusSubject: pomodoro.lastFocus?.subject,

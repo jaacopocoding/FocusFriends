@@ -2891,6 +2891,9 @@ extension GardenView {
 
     private func petName(_ island: String) -> String { Pet.all.first { $0.id == island }?.name ?? island }
 
+    /// Il nome sul cartellino di un'isola: quella chiusa non ha ancora un nome (non si sa chi ci abita).
+    private func labelName(_ island: String, open: Bool) -> String { open ? petName(island) : AvatarRoster.hiddenName }
+
     private func totalFocuses() -> Int {
         CompanionRewards.focuses(totalSeconds: log.sessions.reduce(0) { $0 + $1.seconds })
     }
@@ -3007,7 +3010,7 @@ extension GardenView {
             focus(id)
         } else {
             let need = CompanionRewards.need(for: id, first: profile.firstCompanion, all: Pet.all.map(\.id))
-            flash("L'isola di \(petName(id)) è chiusa: si sblocca a \(need) focus pieni di studio (ne hai \(min(totalFocuses(), need))).")
+            flash("Questa isola è chiusa: si sblocca a \(need) focus pieni di studio (ne hai \(min(totalFocuses(), need))).")
         }
     }
 
@@ -3323,7 +3326,7 @@ extension GardenView {
         }
         let n = Double(iso.size)
         let front = iso.point(col: n, row: n)
-        let nameWidth = ceil((petName(id) as NSString).size(withAttributes: [.font: Paper.markerFont(17)]).width)
+        let nameWidth = ceil((labelName(id, open: open) as NSString).size(withAttributes: [.font: Paper.markerFont(17)]).width)
         let subtitleWidth = subtitle.map { ceil(($0 as NSString).size(withAttributes: [.font: smallFont]).width) } ?? 0
         let width = max(nameWidth, subtitleWidth) + 30
         let height: CGFloat = subtitle == nil ? 28 : 46
@@ -3348,7 +3351,7 @@ extension GardenView {
             let open = entry.open
             drawChip(label.rect, fill: open ? NSColor(calibratedRed: 1, green: 0.99, blue: 0.94, alpha: 0.95) : NSColor(calibratedRed: 0.20, green: 0.22, blue: 0.30, alpha: 0.90),
                      stroke: entry.id == garden.shownIsland ? Paper.accent : (open ? Paper.paperEdge : NSColor(calibratedRed: 0.45, green: 0.48, blue: 0.60, alpha: 1)))
-            text(petName(entry.id), in: NSRect(x: label.rect.minX, y: label.rect.minY + (label.subtitle == nil ? 3 : 4), width: label.rect.width, height: 24), font: Paper.markerFont(17),
+            text(labelName(entry.id, open: open), in: NSRect(x: label.rect.minX, y: label.rect.minY + (label.subtitle == nil ? 3 : 4), width: label.rect.width, height: 24), font: Paper.markerFont(17),
                  color: open ? Paper.ink : NSColor(calibratedWhite: 0.92, alpha: 1), alignment: .center)
             if let subtitle = label.subtitle {
                 text(subtitle, in: NSRect(x: label.rect.minX, y: label.rect.minY + 26, width: label.rect.width, height: 16), font: smallFont,

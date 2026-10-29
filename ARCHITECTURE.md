@@ -64,7 +64,7 @@ Single user per Mac, no accounts, no network: all data is stored locally under
 | App type | Menu-bar "agent": `LSUIElement = true`, activation policy `.accessory` | `build.sh`, `AppDelegate.applicationDidFinishLaunching` |
 | Signing | Ad-hoc (`codesign --force --sign -`; `build.sh` stops with exit 1 if signing fails); not notarised, no hardened runtime or sandbox | `build.sh`, `README.md` "Scaricare e usare" |
 | Asset tooling | Python 3 scripts using Pillow and NumPy (not run at build time) | `tools/*.py` |
-| Tests | One hand-written Swift executable (`tests/main.swift`, 49 sections, 972 checks) that compiles twenty Foundation-only source files; no XCTest | `tests/run.sh` |
+| Tests | One hand-written Swift executable (`tests/main.swift`, 49 sections, 979 checks) that compiles twenty Foundation-only source files; no XCTest | `tests/run.sh` |
 | License | MIT (`LICENSE`); bundled music is CC0 (`CREDITS.md`) | `LICENSE`, `CREDITS.md` |
 | Swift toolchain version / Python version | Not pinned anywhere in the repository | **[unknown]** |
 
@@ -125,7 +125,8 @@ FocusFriends/
 │   ├── ExtendPrompt.swift        the "+5 minutes?" prompt shown for 10 s when a focus expires
 │   ├── MenuController.swift      status-bar item, classic NSMenu, builds MenuCardState/Actions, rewards, music selection
 │   ├── MenuHeader.swift          header view of the classic menu (avatar + name + status)
-│   ├── MenuCard.swift            the paper "card" UI: main page, timer-dial page, focus page, rest page, to-do page (hosts ToDoPageView); MenuCard panel
+│   ├── MenuCard.swift            the paper "card" UI: main page (with the "Avatar" row), avatar page, timer-dial page, focus page, rest page, to-do page (hosts ToDoPageView); MenuCard panel
+│   ├── AvatarStage.swift         `AvatarFigures` (full-figure sprites trimmed to the drawing, blurred black silhouettes via CoreImage) and `AvatarStageView` (the carousel: drag, trackpad scroll, tap a neighbour, animated)
 │   ├── ToDoPage.swift            ToDoPageView: the "Da fare" page of the card (list with the "+", the new/edit form with due/subject chips and a date picker, list rows)
 │   ├── FocusScreenViews.swift    FocusPalette, FocusTomatoView, PostItView, FocusDraw (stickers, holes), CycleDotsView
 │   ├── PaperUI.swift             shared look: Paper colours/fonts, PillButton, TextButton, ChipButton, PaperCardView, KeyablePanel, FaceIcon, RatingButton, BackToMenuButton
@@ -158,7 +159,7 @@ FocusFriends/
 │   ├── MusicLibrary.swift        MusicSource, MusicLibrary (file discovery, shuffle, titles), MusicSettings  (Foundation only)
 │   └── MusicPlayer.swift         AVAudioPlayer-based music playback with queue and fades
 ├── tests/
-│   ├── main.swift                hand-rolled test executable (check()/section()), 49 sections, 972 checks
+│   ├── main.swift                hand-rolled test executable (check()/section()), 49 sections, 979 checks
 │   ├── run.sh                    compiles 20 source files + tests/main.swift into build/tests/stats and runs it
 │   ├── genera-attesi.sh          builds and runs tests/genera-attesi/main.swift: for every folder in tests/fixtures/ writes what this app derives from it (the expected results the Windows port is compared with)
 │   ├── simula-regali.sh          simulates the end-of-focus drops over 30/60/90 days of studying (how long an album takes; used to tune GardenDrops)
@@ -769,8 +770,10 @@ code. All UI code runs on the main thread; the only other thread is the audio re
 - **Execution path:** launch: `keepAllCompanions` (only if `introSeen` and `unlocked == nil`) then silent evaluation.
   Intro: `chooseFirstCompanion(pet.id)` sets `unlocked = [id]`. After each recorded focus:
   `totalFocuses()` (sum of all session seconds / 3000) → `CompanionRewards.earned` → `Profile.unlock` → phrase after 9 s.
-  UI: `MenuController.companionLocks()` → `MenuCardState.companionLocks` → lock icon + hint in `addCompanions`;
-  classic menu items disabled with the same text. `selectPet` rejects locked pets.
+  UI: `AvatarRoster.entries` (unlock order; pure, in `CompanionRewards.swift`) → `MenuCardState.avatars` + `focusesDone` → the "Avatar" row
+  (`addAvatarRow`) and the avatar page (`buildAvatars`, `addAvatarInfo`). A locked companion has **no name anywhere**: the page shows `???` and a blurred
+  black silhouette; the garden's closed-island labels, its flash text, the album's sticker pill and flash lines, and the classic menu items
+  (`companionLocks()`, disabled, `??? · si sblocca a …`) all use `AvatarRoster.hiddenName` / "un nuovo compagno". `selectPet` rejects locked pets.
 
 ### 3.19 First-run intro, name and titles
 
@@ -803,7 +806,7 @@ code. All UI code runs on the main thread; the only other thread is the audio re
     music (`music_*`), garden/growth art, Pianty stage frames → write `Info.plist` via heredoc →
     `codesign --force --sign -` (a failure prints an error and exits 1) → print the path.
   - `tests/run.sh`: `swiftc -O -o build/tests/stats` on twenty source files + `tests/main.swift` →
-    `build/tests/stats` (prints `• <section>` lines and `N controlli, M falliti`, exit code 0/1; 972 checks now).
+    `build/tests/stats` (prints `• <section>` lines and `N controlli, M falliti`, exit code 0/1; 979 checks now).
   - Tools: described in §5.9; they read `assets/**/*_original.png` / sheets and write processed PNGs or the icon.
 
 ### 3.22 To-do list ("Da fare")
@@ -1031,7 +1034,7 @@ Layering as it exists in the code (not enforced by the compiler):
 - **Timer state** lives only in `Pomodoro` private properties (`phase`, `phaseStart`, `endDate`, `graceUntil`,
   `isFocusPaused`, `pausedTotal`, `plannedFocusMinutes`, `extensions`, `subject`, `notes`, `lastFocus`, `cycle`,
   `isLongBreak`, `discarding`). It is not persisted except through `SessionLog.beginInProgress` snapshots.
-- **UI state** is local to the views: `MenuCardView` (`page`, `dialKind`, `dialMinutes`, `timerMessage`, `lockHint`,
+- **UI state** is local to the views: `MenuCardView` (`page`, `dialKind`, `dialMinutes`, `timerMessage`, `avatarIndex`, `avatarStage`,
   `draftNote`, `shownPhase`, `shownRunning`, `shownPaused`), `DashboardView` (`kind`, `period`, `showsDiary`),
   `GardenView` (`category`, `isShopOpen`, `scrollOffset`, `confirming`, the carried thing, the open speech bubble).
 - **Snapshot-in-closures pattern for the card:** `MenuCard` receives `state: () -> MenuCardState`,
@@ -1313,12 +1316,12 @@ file/UserDefaults writes, windows, timers, sound, global state.
 - **Responsibility:** `MenuHeaderView` (264×62): paper-coloured header with circular avatar, name and status for the
   classic menu. Has its own private copies of the paper/ink colours.
 
-#### `MenuCard.swift` (1,516)
+#### `MenuCard.swift` (1,752)
 - **Responsibility:** the card UI. Contains `MenuCardState` (value snapshot), `MenuCardLiveState` (the four fields the
   1 s refresh needs), `MenuCardActions` (closure bag),
-  private `CardButton`, private `MenuCardView` (pages `main`, `timers`, `focus`, `rest`, `todo`), `MenuCard` (panel
+  private `CardButton`, private `MenuCardView` (pages `main`, `timers`, `focus`, `rest`, `todo`, `avatars`), `MenuCard` (panel
   lifecycle, anchoring, monitors, 1 s refresh), private `TimerDial`, private `VolumeSlider`.
-- **Key members:** `MenuCardView.rebuild`, `addCompanions` (one line, or two lines of two names), `addDurations`, `addRunning`, `addOption`, `addVolume`,
+- **Key members:** `MenuCardView.rebuild`, `addAvatarRow` (the heads, the count and the distance to the next companion), `buildAvatars`/`addAvatarInfo` (the page; the `AvatarStageView` is kept alive across rebuilds like the dial), `addDurations`, `addRunning`, `addOption`, `addVolume`,
   `buildTimers`, `buildToDo` + `fit(toDoHeight:)` (host the kept-alive `todoPage`), `buildFocus`, `buildRest` (the latter
   two in a `private extension`), `refreshLive`; `MenuCard.show`,
   `toggle`, `reopen`, `reposition`, `close`.
@@ -1493,8 +1496,8 @@ file/UserDefaults writes, windows, timers, sound, global state.
 
 ### 5.9 Tests, build and tools
 
-#### `tests/main.swift` (2,876) and `tests/run.sh` (7)
-- A single executable: `check(_:_:line:)`, `section(_:)`, 49 sections (972 checks) covering subjects, log persistence,
+#### `tests/main.swift` (2,891) and `tests/run.sh` (7)
+- A single executable: `check(_:_:line:)`, `section(_:)`, 49 sections (979 checks) covering subjects, log persistence,
   in-progress recovery, periods, summaries, streaks, texts, garden rules, format versions/migration, subject merging, backups and
   delete-all, time zones, profile, ratings/notes/insights/CSV, timer dial math, seasons, ambient settings, music
   library/settings, focus notes, paused-time recovery, companion rewards (including the developer flag), break cycle,
@@ -1973,7 +1976,7 @@ code is clear. Items without a mark still describe the current code.
   therefore follows a pet that continues to walk.
 - A new companion needs edits in more places than the README's "Aggiungere o cambiare un personaggio" suggests:
   `Pet.swift`, `build.sh` (frames, picked drawing and phrase file are copied by name), and the pickers, which had to
-  be adapted for a fourth entry (`IntroCard` width, `MenuCardView.addCompanions` wrapping).
+  be adapted for a fourth entry (`IntroCard` width); the menu's "Avatar" page scales by itself (the row never changes size; the stage scrolls; beyond ~8 avatars the dots become "3 / 12").
 
 ### 7.7 Documentation and code discrepancies
 
@@ -1986,7 +1989,7 @@ code is clear. Items without a mark still describe the current code.
 
 ### 7.8 Test coverage as it exists
 
-- Covered (49 sections, 972 checks in `tests/main.swift`): everything in the Foundation-only files listed in §4.1,
+- Covered (49 sections, 979 checks in `tests/main.swift`): everything in the Foundation-only files listed in §4.1,
   including the new damaged-data cases and the developer flag.
 - Not covered by any automated test in the repository: `Pomodoro` (timer, pause, grace, the sleep-gap rule, cycle
   wiring), `Speaker` (including when a to-do reminder replaces a phrase), `Walker`, `PetWindow`/`PetView`, `MenuController`,

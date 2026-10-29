@@ -26,8 +26,12 @@
 Alla prima apertura scegli il tuo compagno, ed è libero. Gli altri si guadagnano studiando: il **secondo a 20
 focus**, il **terzo a 50** e il **quarto a 100**, dove un «focus» sono 50 minuti di studio (contano
 tutti i minuti, anche quelli dei focus interrotti, e un timer da 5 minuti non sblocca niente più in fretta). Nella
-scheda del menu i compagni ancora bloccati hanno un lucchetto e la frase di quanto manca («Porcellino si sblocca a 20
-focus: ne hai 12»); quando arriva il momento, a fine focus il personaggio lo annuncia. Lo sblocco si ricorda
+scheda del menu c'è una riga **Avatar** che apre una pagina a parte: i compagni stanno in fila sul palco, quello scelto grande al
+centro e i vicini più piccoli ai lati, e si scorre da uno all'altro (trascinando, con due dita sul trackpad, toccando un vicino o
+con le frecce). Chi non c'è ancora è una **sagoma nera sfocata, senza nome** (si vede solo «???»), con la barra di quanto manca
+(«ancora 18 focus pieni, circa 15 h») e la promessa della sua isola; il nome non si sa finché non lo sblocchi, e così nel giardino, nell'album e
+nel menu classico. Sotto la riga Avatar, nella scheda, c'è sempre il conto («2 con te · 2 da sbloccare») e quanto manca al prossimo. Quando arriva
+il momento, a fine focus il personaggio lo annuncia. Lo sblocco si ricorda
 (`profilo.json`) e non si richiude, anche se poi cancelli delle sessioni; chi usava già l'app li ha tutti da subito.
 Le regole sono in `CompanionRewards.swift` (solo Foundation, con prove). *Cancella tutto…* rifà la presentazione,
 e quindi anche la scelta del primo compagno. Ogni compagno ha anche la sua **isola** nel giardino: sbloccarlo la apre
@@ -387,7 +391,7 @@ Le isole sono **quattro, una per compagno** (Pianty, Porcellino, Ciccio e Gattin
 2×2: Pianty in alto, Porcellino a destra, Ciccio a sinistra, Gattino in basso. Non è una schermata a parte: c'è **una
 telecamera sola** e si passa da un'isola all'altra allontanandosi con lo zoom e scorrendo. L'isola di **casa** è quella
 del compagno che hai scelto all'inizio (per chi usava già l'app, quello che usava). Le altre sono sulla mappa fin da
-subito, ma **al buio, con un lucchetto** e la scritta di quanto manca («si sblocca a 20 focus»): si aprono quando sblocchi
+subito, ma **al buio, con un lucchetto**, senza nome (solo «???») e con la scritta di quanto manca («si sblocca a 20 focus»): si aprono quando sblocchi
 il compagno (`GardenWorld` e `GardenIslands`, in `GardenGrid.swift`).
 
 <p align="center">
@@ -730,7 +734,8 @@ Sources/FocusFriends/
   AmbientPlayer.swift   il motore audio: rumore filtrato in tempo reale
   MusicLibrary.swift    la musica: quali file e in che ordine (solo Foundation, con prove)
   BreakCycle.swift      il ciclo dei quattro focus e la pausa lunga (solo Foundation, con prove)
-  CompanionRewards.swift  quando si sbloccano i compagni: 20, 50 e 100 focus (solo Foundation, con prove)
+  CompanionRewards.swift  quando si sbloccano i compagni: 20, 50 e 100 focus, e l'elenco degli avatar della pagina «Avatar» (solo Foundation, con prove)
+  AvatarStage.swift       le figure intere dei compagni, le sagome sfocate e il palco che scorre della pagina «Avatar» del menu
   Garden.swift          il giardino di chi usa l'app: figurine trovate, copie su ogni isola, compagni, ponti, angoli e ospiti (solo Foundation, con prove)
   GardenGrid.swift      le isole e il mondo: tessere, sentieri, case, ponti, terreno e collina (solo Foundation, con prove)
   GardenDrops.swift     il regalo di fine focus: rarità, probabilità, garanzie e un tiro uguale su Mac e Windows (solo Foundation, con prove)

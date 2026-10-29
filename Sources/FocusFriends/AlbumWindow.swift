@@ -629,11 +629,15 @@ final class AlbumView: NSView {
     }
 
     /// Il nome dell'animale a cui appartiene un'isola.
-    private func ownerName(_ island: String) -> String { Pet.all.first { $0.id == island }?.name ?? island }
+    /// Il nome dell'animale a cui appartiene una cosa; se non è ancora sbloccato, non si sa chi è.
+    private func ownerName(_ island: String) -> String {
+        profile.isCompanionUnlocked(island) ? (Pet.all.first { $0.id == island }?.name ?? island) : "un nuovo compagno"
+    }
 
     /// Il segno sulla figurina: universale, o solo sull'isola del suo animale.
     private func placing(of item: GardenItem) -> Sticker.Placing {
-        item.island.map { .onlyOn(island: $0, name: ownerName($0)) } ?? .everywhere
+        // sulla pastiglia della figurina, chi non c'è ancora resta «solo ???»
+        item.island.map { .onlyOn(island: $0, name: profile.isCompanionUnlocked($0) ? ownerName($0) : AvatarRoster.hiddenName) } ?? .everywhere
     }
 
     private func describe(_ item: GardenItem) {

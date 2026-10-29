@@ -598,6 +598,21 @@ check(CompanionRewards.earned(first: "ciccio", all: pets, focuses: 20) == ["cicc
 check(CompanionRewards.need(for: "ciccio", first: "pianty", all: pets) == 50 && CompanionRewards.need(for: "porcellino", first: "pianty", all: pets) == 20
       && CompanionRewards.need(for: "pianty", first: "pianty", all: pets) == 0, "quanto serve a ciascuno")
 check(CompanionRewards.threshold(at: 3) == 100 && CompanionRewards.threshold(at: 4) == 150, "oltre il terzo: altri 50 a testa")
+// la pagina «Avatar»: l'ordine di sblocco, le distanze e i testi (senza mai fare il nome di chi non c'è ancora)
+let roster = AvatarRoster.entries(first: "ciccio", all: pets, isUnlocked: { $0 == "ciccio" || $0 == "pianty" })
+check(roster.map { $0.id } == ["ciccio", "pianty", "porcellino"] && roster.map { $0.need } == [0, 20, 50] && roster.map { $0.isUnlocked } == [true, true, false],
+      "gli avatar nell'ordine di sblocco, con quanto serve e chi c'è già")
+check(AvatarRoster.next(in: roster)?.id == "porcellino" && AvatarRoster.next(in: roster.map { Entry in AvatarRoster.Entry(id: Entry.id, need: Entry.need, isUnlocked: true) }) == nil,
+      "il prossimo è il primo bloccato; se sono tutti sbloccati non c'è")
+check(AvatarRoster.remainingText(need: 50, have: 32) == "ancora 18 focus pieni" && AvatarRoster.remainingText(need: 50, have: 49) == "ancora 1 focus pieno"
+      && AvatarRoster.remainingText(need: 50, have: 80) == "ancora 1 focus pieno", "ancora N focus pieni, al singolare quando ne manca uno (mai zero)")
+check(AvatarRoster.hoursText(need: 50, have: 32) == "circa 15 h" && AvatarRoster.hoursText(need: 50, have: 49) == "circa 1 h", "le ore che mancano, almeno una")
+check(AvatarRoster.progress(need: 50, have: 32) == 0.64 && AvatarRoster.progress(need: 50, have: 90) == 1 && AvatarRoster.progress(need: 0, have: 0) == 1, "la strada fatta, da 0 a 1")
+check(AvatarRoster.nextLine(need: 20, have: 12) == "Prossimo compagno: ancora 8 focus pieni" && AvatarRoster.countLine(unlocked: 2, locked: 2) == "2 con te · 2 da sbloccare"
+      && AvatarRoster.countLine(unlocked: 4, locked: 0) == "4 con te", "le righe del menu")
+let hiddenTexts = [AvatarRoster.nextLine(need: 20, have: 12), AvatarRoster.remainingText(need: 50, have: 32), AvatarRoster.hoursText(need: 50, have: 32),
+                   AvatarRoster.countLine(unlocked: 2, locked: 2)]
+check(AvatarRoster.hiddenName == "???" && !hiddenTexts.contains { text in ["Pianty", "Porcellino", "Ciccio", "Gattino"].contains { text.contains($0) } }, "i testi di chi non c'è ancora non fanno nomi")
 // il profilo ricorda cosa è sbloccato
 let rwDir = tempDirectory()
 let freshProfile = Profile(directory: rwDir)

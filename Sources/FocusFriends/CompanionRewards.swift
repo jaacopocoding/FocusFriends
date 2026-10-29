@@ -43,3 +43,62 @@ enum CompanionRewards {
         return threshold(at: position)
     }
 }
+
+/// Gli avatar della pagina «Avatar» del menu, nell'ordine in cui si sbloccano (prima il primo scelto), e i testi che dicono quanto manca:
+/// chi non è ancora sbloccato resta senza nome (si vede solo una sagoma sfocata), quindi i testi non lo nominano mai.
+/// Solo Foundation: lavora su identificatori (con prove).
+enum AvatarRoster {
+    struct Entry: Equatable {
+        let id: String
+        /// Quanti focus pieni servono per sbloccarlo (0 = fin dall'inizio).
+        let need: Int
+        let isUnlocked: Bool
+    }
+
+    /// Al posto del nome di un compagno che non c'è ancora.
+    static let hiddenName = "???"
+
+    /// Gli avatar nell'ordine di sblocco; `isUnlocked` dice se uno c'è già (il profilo: conta anche la modalità sviluppatore).
+    static func entries(first: String?, all: [String], isUnlocked: (String) -> Bool) -> [Entry] {
+        CompanionRewards.order(first: first, all: all).map {
+            Entry(id: $0, need: CompanionRewards.need(for: $0, first: first, all: all), isUnlocked: isUnlocked($0))
+        }
+    }
+
+    /// Il prossimo da sbloccare: il primo bloccato nell'ordine (è anche quello che chiede meno focus).
+    static func next(in entries: [Entry]) -> Entry? {
+        entries.first { !$0.isUnlocked }
+    }
+
+    /// Quanti focus pieni mancano (almeno uno: se sono già abbastanza, si sbloccherà al prossimo controllo).
+    static func remaining(need: Int, have: Int) -> Int {
+        max(need - have, 1)
+    }
+
+    /// «ancora 18 focus pieni», «ancora 1 focus pieno».
+    static func remainingText(need: Int, have: Int) -> String {
+        let rest = remaining(need: need, have: have)
+        return rest == 1 ? "ancora 1 focus pieno" : "ancora \(rest) focus pieni"
+    }
+
+    /// «circa 15 h»: lo studio che manca, in ore (almeno una).
+    static func hoursText(need: Int, have: Int) -> String {
+        let minutes = remaining(need: need, have: have) * CompanionRewards.minutesPerFocus
+        return "circa \(max(Int((Double(minutes) / 60).rounded()), 1)) h"
+    }
+
+    /// Quanta strada è fatta, da 0 a 1.
+    static func progress(need: Int, have: Int) -> Double {
+        need > 0 ? min(max(Double(have) / Double(need), 0), 1) : 1
+    }
+
+    /// Sotto la riga «Avatar» del menu: «Prossimo compagno: ancora 18 focus pieni».
+    static func nextLine(need: Int, have: Int) -> String {
+        "Prossimo compagno: \(remainingText(need: need, have: have))"
+    }
+
+    /// «2 con te · 2 da sbloccare».
+    static func countLine(unlocked: Int, locked: Int) -> String {
+        locked > 0 ? "\(unlocked) con te · \(locked) da sbloccare" : "\(unlocked) con te"
+    }
+}

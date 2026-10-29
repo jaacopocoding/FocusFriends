@@ -39,8 +39,9 @@ struct MenuCardState {
     var isLongBreak: Bool
     /// Focus fatti del ciclo dei quattro (nil = pausa lunga spenta).
     var cycleDone: Int?
-    /// I compagni ancora bloccati e cosa manca («si sblocca a 20 focus: ne hai 12»).
-    var companionLocks: [String: String] = [:]
+    /// Gli avatar nell'ordine in cui si sbloccano (chi c'è già e chi no) e quanti focus pieni di studio ci sono in tutto.
+    var avatars: [AvatarRoster.Entry] = []
+    var focusesDone = 0
     var notes: [String]
     var background: BackgroundChoice
     var backgroundVolume: Double
@@ -152,14 +153,15 @@ private final class MenuCardView: NSView {
     private let perform: (_ close: Bool, _ action: () -> Void) -> Void
     var onResize: ((CGFloat) -> Void)?
 
-    private enum Page { case main, timers, focus, rest, todo }
+    private enum Page { case main, timers, focus, rest, todo, avatars }
     private var page: Page = .main
     /// In cima alla carta: il compagno sbuca dal bordo nella scheda e nel quadrante; le schermate del quaderno no.
     static let pageTop: CGFloat = 2
     private var cardTop: CGFloat { page == .focus || page == .rest ? Self.pageTop : Self.overflow }
     private var tomato: FocusTomatoView?
-    /// Il messaggio mostrato sotto i compagni quando se ne tocca uno bloccato.
-    private var lockHint: String?
+    /// La pagina «Avatar»: il compagno al centro del palco (nil = quello che c'è adesso) e il palco, che resta quando la pagina si ricostruisce.
+    private var avatarIndex: Int?
+    private var avatarStage: AvatarStageView?
     private var noteField: NSTextField?
     private var draftNote = ""
 
@@ -285,9 +287,10 @@ private final class MenuCardView: NSView {
     /// Ricostruisce tutta la scheda dallo stato attuale (dopo un tocco, o quando cambia fase del timer).
     func rebuild() {
         if let field = noteField { draftNote = field.stringValue }
-        for view in subviews where !(page == .timers && view === dial) && !(page == .todo && view === todoPage) { view.removeFromSuperview() }
+        for view in subviews where !(page == .timers && view === dial) && !(page == .todo && view === todoPage) && !(page == .avatars && view === avatarStage) { view.removeFromSuperview() }
         if page != .timers { dial = nil }
         if page != .todo { todoPage = nil }
+        if page != .avatars { avatarStage = nil }
         if page != .timers { todoFocus = nil }
         statusLabel = nil
         clockLabel = nil
@@ -305,6 +308,9 @@ private final class MenuCardView: NSView {
             return
         case .todo:
             buildToDo(s)
+            return
+        case .avatars:
+            buildAvatars(s)
             return
         case .focus:
             buildFocus(s)
@@ -332,16 +338,8 @@ private final class MenuCardView: NSView {
                             frame: NSRect(x: pad, y: y, width: inner, height: 16))
         y += 24
 
-        // I compagni: i nomi, quello scelto sottolineato.
-        y = addCompanions(s, y: y)
-        if !s.companionLocks.isEmpty {
-            // Il prossimo da sbloccare (quello che richiede meno), o il compagno bloccato appena toccato.
-            let next = s.allPets.first(where: { s.companionLocks[$0.id] != nil })
-            let hint = lockHint ?? next.flatMap { pet in s.companionLocks[pet.id].map { "\(pet.name) \($0)" } } ?? ""
-            _ = label(hint, font: NSFont.systemFont(ofSize: 11), color: Paper.inkLight,
-                      frame: NSRect(x: pad, y: y + 4, width: inner, height: 15))
-            y += 22
-        }
+        // Gli avatar: una riga che apre la pagina, e quanto manca al prossimo da sbloccare.
+        y = addAvatarRow(s, y: y)
         y += 14
 
         // Focus e pausa, oppure il timer che sta andando.
@@ -460,67 +458,234 @@ private final class MenuCardView: NSView {
         }
     }
 
-    private func addCompanions(_ s: MenuCardState, y: CGFloat) -> CGFloat {
-        let font = NSFont.systemFont(ofSize: 13, weight: .medium)
-        let separator: CGFloat = 20
-        let lockWidth: CGFloat = 14
-        let widths = s.allPets.map {
-            ceil(($0.name as NSString).size(withAttributes: [.font: font]).width) + 8 + (s.companionLocks[$0.id] != nil ? lockWidth : 0)
+    // MARK: - Avatar
+
+    /// Una barra di avanzamento: la pista e la parte fatta (mai più stretta di un pallino).
+    private static func drawBar(_ rect: NSRect, fraction: CGFloat) {
+        Paper.track.setFill()
+        NSBezierPath(roundedRect: rect, xRadius: rect.height / 2, yRadius: rect.height / 2).fill()
+        Paper.accent.setFill()
+        NSBezierPath(roundedRect: NSRect(x: rect.minX, y: rect.minY, width: max(rect.width * min(max(fraction, 0), 1), rect.height), height: rect.height),
+                     xRadius: rect.height / 2, yRadius: rect.height / 2).fill()
+    }
+
+    /// La riga «Avatar»: le teste dei compagni che ci sono, e un tocco apre la pagina per sceglierli. Sotto, quanto manca al prossimo da sbloccare
+    /// (senza dire chi è). Con più avatar e più isole la riga resta la stessa: cambia solo il conto.
+    private func addAvatarRow(_ s: MenuCardState, y: CGFloat) -> CGFloat {
+        let pad = Self.pad
+        let inner = Self.width - 2 * pad
+        let unlocked = s.avatars.filter(\.isUnlocked)
+        let subtitle = AvatarRoster.countLine(unlocked: unlocked.count, locked: s.avatars.count - unlocked.count)
+        let others = unlocked.compactMap { entry in s.allPets.first { $0.id == entry.id } }.filter { $0.id != s.pet.id }
+        let heads: [(pet: Pet, icon: NSImage?)] = ([s.pet] + others).prefix(3).map { ($0, MenuController.menuIcon(for: $0, height: 80)) }
+        let open: () -> Void = { [weak self] in
+            guard let self else { return }
+            self.avatarIndex = nil
+            self.page = .avatars
+            self.rebuild()
         }
-        func lineWidth(_ range: Range<Int>) -> CGFloat {
-            widths[range].reduce(0, +) + separator * CGFloat(max(range.count - 1, 0))
+        add(NSRect(x: pad, y: y, width: inner, height: 46), label: "Avatar: \(subtitle)", open) { rect, pressed, hovered in
+            let shape = NSBezierPath(roundedRect: rect.insetBy(dx: 0.5, dy: 0.5), xRadius: 14, yRadius: 14)
+            (pressed ? Paper.accent.withAlphaComponent(0.2) : hovered ? Paper.accent.withAlphaComponent(0.1)
+                : NSColor(calibratedRed: 1, green: 0.98, blue: 0.94, alpha: 1)).setFill()
+            shape.fill()
+            Paper.paperEdge.setStroke()
+            shape.lineWidth = 1
+            shape.stroke()
+            // le teste si sovrappongono: la prima sta sopra
+            for (i, head) in heads.enumerated().reversed() {
+                let circle = NSRect(x: rect.minX + 10 + CGFloat(i) * 21, y: rect.midY - 15, width: 30, height: 30)
+                let path = NSBezierPath(ovalIn: circle)
+                NSColor(calibratedRed: 1, green: 0.99, blue: 0.94, alpha: 1).setFill()
+                path.fill()
+                if let icon = head.icon {
+                    NSGraphicsContext.saveGraphicsState()
+                    path.addClip()
+                    let scale = circle.height / icon.size.height * 1.12
+                    let size = NSSize(width: icon.size.width * scale, height: icon.size.height * scale)
+                    icon.draw(in: NSRect(origin: NSPoint(x: circle.midX - size.width * head.pet.iconFocus, y: circle.midY - size.height * 0.48), size: size),
+                              from: .zero, operation: .sourceOver, fraction: 1, respectFlipped: true, hints: nil)
+                    NSGraphicsContext.restoreGraphicsState()
+                }
+                Paper.paperEdge.setStroke()
+                path.lineWidth = 1.5
+                path.stroke()
+            }
+            let textX = rect.minX + 10 + CGFloat(max(heads.count - 1, 0)) * 21 + 30 + 10
+            Self.text("Avatar", in: NSRect(x: textX, y: rect.minY + 7, width: rect.maxX - textX - 30, height: 17),
+                      font: NSFont.systemFont(ofSize: 13, weight: .medium), color: Paper.ink)
+            Self.text(subtitle, in: NSRect(x: textX, y: rect.minY + 25, width: rect.maxX - textX - 30, height: 14),
+                      font: NSFont.systemFont(ofSize: 11), color: Paper.inkLight)
+            Self.drawSymbol("chevron.right", size: 14, color: Paper.inkLight, centeredIn: NSRect(x: rect.maxX - 26, y: rect.midY - 10, width: 16, height: 20))
         }
-        // Una riga sola se ci stanno tutti; altrimenti due righe, con lo stesso numero di nomi.
-        let available = Self.width - 2 * Self.pad
-        let count = s.allPets.count
-        let perLine = lineWidth(0..<count) <= available ? max(count, 1) : (count + 1) / 2
-        var rowY = y
-        var start = 0
-        while start < count {
-            let end = min(start + perLine, count)
-            var x = (Self.width - lineWidth(start..<end)) / 2
-            for i in start..<end {
-                let pet = s.allPets[i]
-                let selected = pet.id == s.pet.id
-                let lock = s.companionLocks[pet.id]
-                let frame = NSRect(x: x, y: rowY, width: widths[i], height: 20)
-                add(frame, label: lock.map { "\(pet.name), bloccato: \($0)" } ?? "Compagno: \(pet.name)", { [weak self] in
-                    if let lock {
-                        self?.lockHint = "\(pet.name) \(lock)"
-                    } else {
-                        self?.lockHint = nil
-                        self?.actions.selectPet(pet)
-                    }
+        var bottom = y + 46
+        if let next = AvatarRoster.next(in: s.avatars) {
+            let line = AvatarRoster.nextLine(need: next.need, have: s.focusesDone)
+            let fraction = CGFloat(AvatarRoster.progress(need: next.need, have: s.focusesDone))
+            add(NSRect(x: pad, y: bottom + 5, width: inner, height: 28), label: line, open) { rect, _, hovered in
+                Self.text(line, in: NSRect(x: rect.minX + 2, y: rect.minY, width: rect.width - 4, height: 14),
+                          font: NSFont.systemFont(ofSize: 11), color: hovered ? Paper.ink : Paper.inkLight)
+                Self.drawBar(NSRect(x: rect.minX + 2, y: rect.minY + 19, width: rect.width - 4, height: 5), fraction: fraction)
+            }
+            bottom += 5 + 28
+        }
+        return bottom
+    }
+
+    /// La pagina «Avatar»: i compagni in fila sul palco, quello scelto grande al centro; si scorre da uno all'altro. Chi non c'è ancora è una sagoma
+    /// nera sfocata, senza nome.
+    private func buildAvatars(_ s: MenuCardState) {
+        let w = Self.width
+        let pad = Self.pad
+        let inner = w - 2 * pad
+        var y = Self.overflow + 14
+        let entries = s.avatars
+        let pets = entries.compactMap { entry in s.allPets.first { $0.id == entry.id } }
+        guard !entries.isEmpty, pets.count == entries.count else {
+            page = .main
+            rebuild()
+            return
+        }
+
+        // Intestazione con la freccia indietro
+        add(NSRect(x: pad - 6, y: y, width: 36, height: 30), label: "Torna alla scheda", { [weak self] in
+            self?.page = .main
+            self?.rebuild()
+        }) { rect, pressed, hovered in
+            Self.drawSymbol("chevron.left", size: 15, color: hovered || pressed ? Paper.ink : Paper.inkLight, centeredIn: rect)
+        }
+        _ = label("Avatar", font: Paper.markerFont(20), alignment: .left, frame: NSRect(x: pad + 30, y: y + 2, width: inner - 100, height: 26))
+        _ = label("\(entries.filter(\.isUnlocked).count) su \(entries.count)", font: NSFont.systemFont(ofSize: 11), color: Paper.inkLight,
+                  alignment: .right, frame: NSRect(x: w - pad - 70, y: y + 8, width: 70, height: 15))
+        y += 42
+
+        // Il palco: ricorda dov'era quando la pagina si ricostruisce
+        let current = min(max(avatarIndex ?? entries.firstIndex { $0.id == s.pet.id } ?? 0, 0), entries.count - 1)
+        avatarIndex = current
+        let stage: AvatarStageView
+        if let existing = avatarStage {
+            stage = existing
+        } else {
+            stage = AvatarStageView(frame: .zero)
+            stage.onChange = { [weak self] index in
+                self?.avatarIndex = index
+                self?.rebuild()
+            }
+            avatarStage = stage
+            addSubview(stage)
+        }
+        stage.frame = NSRect(x: pad, y: y, width: inner, height: 204)
+        stage.configure(slots: zip(pets, entries).map { AvatarStageView.Slot(pet: $0, isUnlocked: $1.isUnlocked) }, index: current)
+        y += 204 + 8
+
+        // Il nome (se c'è) e l'isola
+        let entry = entries[current]
+        let pet = pets[current]
+        _ = label(entry.isUnlocked ? pet.name : AvatarRoster.hiddenName, font: Paper.markerFont(24), frame: NSRect(x: pad, y: y, width: inner, height: 30))
+        y += 31
+        _ = label(entry.isUnlocked ? "Isola di \(pet.name)" : "L'isola è ancora chiusa", font: NSFont.systemFont(ofSize: 12), color: Paper.inkLight,
+                  frame: NSRect(x: pad, y: y, width: inner, height: 16))
+        y += 26
+
+        // Le frecce e i puntini (se sono troppi, il conto)
+        let rowY = y
+        func addArrow(_ symbol: String, x: CGFloat, target: Int, name: String) {
+            add(NSRect(x: x, y: rowY, width: 30, height: 30), label: name, { [weak self] in self?.avatarStage?.go(to: target) }) { rect, pressed, hovered in
+                let shape = NSBezierPath(ovalIn: rect.insetBy(dx: 0.5, dy: 0.5))
+                (pressed ? Paper.accent.withAlphaComponent(0.25) : hovered ? Paper.accent.withAlphaComponent(0.12)
+                    : NSColor(calibratedRed: 1, green: 0.98, blue: 0.94, alpha: 1)).setFill()
+                shape.fill()
+                Paper.paperEdge.setStroke()
+                shape.lineWidth = 1
+                shape.stroke()
+                Self.drawSymbol(symbol, size: 13, color: Paper.ink, centeredIn: rect)
+            }
+        }
+        if current > 0 { addArrow("chevron.left", x: pad + 12, target: current - 1, name: "Compagno precedente") }
+        if current < entries.count - 1 { addArrow("chevron.right", x: w - pad - 12 - 30, target: current + 1, name: "Compagno successivo") }
+        let dotsRoom = inner - 2 * (12 + 30 + 8)
+        let dotWidths = entries.indices.map { $0 == current ? CGFloat(24) : CGFloat(14) }
+        if dotWidths.reduce(0, +) <= dotsRoom {
+            var x = (w - dotWidths.reduce(0, +)) / 2
+            for i in entries.indices {
+                add(NSRect(x: x, y: rowY + 4, width: dotWidths[i], height: 22), label: "Compagno \(i + 1) di \(entries.count)", { [weak self] in
+                    self?.avatarStage?.go(to: i)
+                }) { rect, _, hovered in
+                    let on = i == current
+                    let width: CGFloat = on ? 18 : 8
+                    (on ? Paper.accent : hovered ? NSColor(calibratedRed: 0.75, green: 0.68, blue: 0.55, alpha: 1)
+                        : NSColor(calibratedRed: 0.85, green: 0.79, blue: 0.68, alpha: 1)).setFill()
+                    NSBezierPath(roundedRect: NSRect(x: rect.midX - width / 2, y: rect.midY - 4, width: width, height: 8), xRadius: 4, yRadius: 4).fill()
+                }
+                x += dotWidths[i]
+            }
+        } else {
+            _ = label("\(current + 1) / \(entries.count)", font: NSFont.systemFont(ofSize: 12), color: Paper.inkLight,
+                      frame: NSRect(x: pad + 52, y: rowY + 7, width: inner - 104, height: 16))
+        }
+        y = rowY + 30 + 12
+
+        y = addAvatarInfo(s, entry: entry, pet: pet, y: y)
+        y += 16
+        setFrameSize(NSSize(width: w, height: y))
+        needsDisplay = true
+        onResize?(y)
+    }
+
+    /// Sotto il palco: per chi c'è, «con te» o il pulsante per studiare con lui; per chi non c'è ancora, quanto manca (e mai chi è).
+    private func addAvatarInfo(_ s: MenuCardState, entry: AvatarRoster.Entry, pet: Pet, y: CGFloat) -> CGFloat {
+        let w = Self.width
+        let pad = Self.pad
+        let inner = w - 2 * pad
+        let height: CGFloat = entry.isUnlocked ? 46 : 96
+        let have = min(s.focusesDone, entry.need)
+        let fraction = CGFloat(AvatarRoster.progress(need: entry.need, have: s.focusesDone))
+        let backdrop = CardButton(frame: NSRect(x: pad, y: y, width: inner, height: height))
+        backdrop.isEnabled = false
+        backdrop.drawer = { rect, _, _ in
+            let shape = NSBezierPath(roundedRect: rect.insetBy(dx: 0.5, dy: 0.5), xRadius: 14, yRadius: 14)
+            NSColor(calibratedRed: 1, green: 0.98, blue: 0.94, alpha: 1).setFill()
+            shape.fill()
+            Paper.paperEdge.setStroke()
+            shape.lineWidth = 1
+            shape.stroke()
+            if !entry.isUnlocked { Self.drawBar(NSRect(x: rect.minX + 12, y: rect.minY + 32, width: rect.width - 24, height: 6), fraction: fraction) }
+        }
+        addSubview(backdrop)
+        if entry.isUnlocked {
+            if pet.id == s.pet.id {
+                _ = label("✓ con te", font: NSFont.systemFont(ofSize: 14, weight: .medium), color: Paper.accentPressed,
+                          frame: NSRect(x: pad, y: y + 14, width: inner, height: 18))
+            } else {
+                let title = "Studia con \(pet.name)"
+                let width = ceil((title as NSString).size(withAttributes: [.font: NSFont.systemFont(ofSize: 13, weight: .medium)]).width) + 40
+                add(NSRect(x: (w - width) / 2, y: y + 8, width: width, height: 30), label: title, { [weak self] in
+                    self?.actions.selectPet(pet)
                     self?.rebuild()
                 }) { rect, pressed, hovered in
-                    var textX = rect.minX + 4
-                    if lock != nil {
-                        Self.drawSymbol("lock.fill", size: 10, color: Paper.inkLight.withAlphaComponent(0.7),
-                                        centeredIn: NSRect(x: rect.minX + 2, y: rect.minY, width: 10, height: 17))
-                        textX += lockWidth
-                    }
-                    let color: NSColor = lock != nil ? Paper.inkLight.withAlphaComponent(hovered || pressed ? 0.9 : 0.6)
-                        : (selected || hovered || pressed ? Paper.ink : Paper.inkLight)
-                    Self.text(pet.name, in: NSRect(x: textX, y: rect.minY, width: rect.width - (textX - rect.minX), height: 17),
-                              font: font, color: color)
-                    if selected {
-                        Paper.accent.setFill()
-                        NSBezierPath(roundedRect: NSRect(x: rect.minX + 4, y: rect.maxY - 3, width: rect.width - 8, height: 2.5),
-                                     xRadius: 1.2, yRadius: 1.2).fill()
-                    }
-                }
-                x += widths[i]
-                if i < end - 1 {
-                    let dot = label("·", font: NSFont.systemFont(ofSize: 13), color: Paper.inkLight,
-                                    frame: NSRect(x: x, y: rowY, width: separator, height: 17))
-                    dot.alignment = .center
-                    x += separator
+                    let shape = NSBezierPath(roundedRect: rect, xRadius: rect.height / 2, yRadius: rect.height / 2)
+                    (pressed ? Paper.accentPressed : hovered ? Paper.accent.withAlphaComponent(0.92) : Paper.accent).setFill()
+                    shape.fill()
+                    Self.text(title, in: NSRect(x: rect.minX, y: rect.minY + 6, width: rect.width, height: 17),
+                              font: NSFont.systemFont(ofSize: 13, weight: .medium), color: .white, alignment: .center)
                 }
             }
-            start = end
-            rowY += start < count ? 24 : 20
+        } else {
+            _ = label("\(AvatarRoster.remainingText(need: entry.need, have: s.focusesDone)) (\(AvatarRoster.hoursText(need: entry.need, have: s.focusesDone)))",
+                      font: NSFont.systemFont(ofSize: 11), color: Paper.inkLight, alignment: .left,
+                      frame: NSRect(x: pad + 12, y: y + 10, width: inner - 24 - 56, height: 14))
+            _ = label("\(have) / \(entry.need)", font: NSFont.systemFont(ofSize: 11), color: Paper.inkLight, alignment: .right,
+                      frame: NSRect(x: w - pad - 12 - 56, y: y + 10, width: 56, height: 14))
+            let things = GardenCatalog.items(forIsland: entry.id).count
+            let promise = NSTextField(wrappingLabelWithString: things > 0
+                ? "Con un nuovo compagno si apre la sua isola, con \(things) cose nuove da trovare."
+                : "Con un nuovo compagno si apre la sua isola.")
+            promise.font = NSFont.systemFont(ofSize: 12)
+            promise.textColor = Paper.inkLight
+            promise.frame = NSRect(x: pad + 12, y: y + 46, width: inner - 24, height: 40)
+            addSubview(promise)
         }
-        return rowY
+        return y + height
     }
 
     private func addDurations(_ s: MenuCardState, y: CGFloat) -> CGFloat {
