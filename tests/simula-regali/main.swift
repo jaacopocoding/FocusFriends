@@ -2,7 +2,7 @@ import Foundation
 
 // Quanto ci vuole a completare l'album con le regole di GardenDrops (Sources/FocusFriends/GardenDrops.swift), per tre modi di studiare.
 // Utenti inventati, tanti: la mediana e la coda. Serve a tarare i numeri del gioco: non fa parte dell'app né delle prove.
-// Si lancia con tests/simula-regali.sh [quanti oggetti ha l'album: 39 (quelli di adesso) o di più, con le stesse proporzioni di rarità].
+// Si lancia con tests/simula-regali.sh [quanti oggetti ha l'album: 43 (quelli di adesso) o di più, con le stesse proporzioni di rarità].
 var cal = StudyPeriod.calendar()
 cal.timeZone = TimeZone(identifier: "Europe/Rome")!
 func date(_ y: Int, _ m: Int, _ d: Int, _ h: Int = 10) -> Date { cal.date(from: DateComponents(year: y, month: m, day: d, hour: h))! }
@@ -13,7 +13,7 @@ let habits = [
     Habit(name: "regolare: 6 giorni su 7, 2–3 focus", studyChance: 6.0 / 7, focusPerDay: 2...3, minutes: [25, 50]),
     Habit(name: "intenso: tutti i giorni, 3–5 focus", studyChance: 1, focusPerDay: 3...5, minutes: [25, 50]),
 ]
-// L'album di prova: i 39 di adesso, oppure uno più grande con le stesse proporzioni di rarità (45% comuni, 42% rari, 13% leggendari).
+// L'album di prova: i 43 di adesso, oppure uno più grande con le stesse proporzioni di rarità (45% comuni, 42% rari, 13% leggendari).
 let current = GardenCatalog.items.count
 let size = Int(CommandLine.arguments.dropFirst().first ?? "\(current)") ?? current
 var pool = GardenCatalog.items

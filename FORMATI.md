@@ -327,15 +327,17 @@ Versione 3 (Mac 0.10.0): il giardino non ha più punti né negozio né prato lib
   (niente, rarità, nuovo, scelta) si estraggono in quest'ordine. Mac e Windows devono dare gli stessi regali sugli stessi dati
   (il blocco `giardino` dei file in `tests/fixtures/attesi/`). Anche **dove cade** la copia trovata è deterministico (FNV-1a di «posto-» più
   l'identificativo, sulle tessere libere in ordine di riga e colonna **dell'isola dove va**: quella del suo animale se l'oggetto è di un animale, altrimenti quella di casa).
-- **Il catalogo ha 39 oggetti** (27 universali e 3 per ogni animale): i nuovi si aggiungono in fondo, perché il numero di una figurina non cambia mai (37 `alberello-lucine`, 38 `lanterna-ceppo`, 39 `braciere`: arredi
-  universali da una tessera, prezzi 5, 4 e 7, quindi rari, rari e leggendario). Cambiando il catalogo cambiano le rarità dell'elenco, e con loro il regalo di uno stesso focus rispetto al catalogo da 36.
+- **Il catalogo ha 43 oggetti** (27 universali e 4 per ogni animale): i nuovi si aggiungono in fondo, perché il numero di una figurina non cambia mai (37 `alberello-lucine`, 38 `lanterna-ceppo`, 39 `braciere`: arredi
+  universali da una tessera, prezzi 5, 4 e 7, quindi rari, rari e leggendario; 40 `barattolo-lucciole` di Pianty, 41 `lanterna-voliera` di Ciccio, 42 `lampada-fienile` di Porcellino, 43 `candela-cesto` di Gattino: cose per i compagni da una
+  tessera, prezzi 4, 5, 4 e 3, quindi rare, rara, rara e comune). Nell'album stanno con le altre cose per i compagni (una scheda ha le sue figurine nell'ordine del catalogo, non per numero). Cambiando il catalogo cambiano le rarità dell'elenco, e con loro il regalo di uno stesso focus rispetto al catalogo da 36 o da 39.
 - **Le luci della sera** (`GardenItem.glow`; vedi `GardenSky`: `lamp` va da 0 di giorno a 1 di notte, `smoothstep(buio, 0,16, 0,40)`): un oggetto con una luce disegna un alone attorno a un punto del disegno
   (`top`: da 0 in cima a 1 ai piedi) e una pozza di luce sul prato (schiacciata a metà, larga un quinto più dell'alone), in luce additiva, con colore, `radius` (in larghezze di tessera) e `strength` suoi,
   moltiplicati per `lamp`: `lampione` (255, 196, 104; 1,25; 0,10; 1; il lampione dell'angolo di lettura ×1,45), `alberello-lucine` (255, 230, 160; 0,85; 0,40; 0,8), `lanterna-ceppo` (255, 190, 100; 0,8; 0,32; 0,85),
-  `braciere` (255, 150, 70; 1,15; 0,35; 1). **Il braciere ha due disegni**: `braciere.png` (spento, cenere) e `braciere-acceso.png` (con la fiamma, più alto, stessa larghezza e stessi piedi); da `lamp` ≥ 0,25 si
+  `braciere` (255, 150, 70; 1,15; 0,35; 1), `barattolo-lucciole` (232, 244, 150; 0,7; 0,45; 0,7), `lanterna-voliera` (255, 200, 110; 0,8; 0,45; 0,85), `lampada-fienile` (255, 175, 85; 0,85; 0,36; 0,85) e
+  `candela-cesto` (255, 205, 130; 0,65; 0,22; 0,8). **Il braciere ha due disegni**: `braciere.png` (spento, cenere) e `braciere-acceso.png` (con la fiamma, più alto, stessa larghezza e stessi piedi); da `lamp` ≥ 0,25 si
   vede quello acceso, disegnato alla stessa scala (alto in proporzione), e solo allora fa luce; e la sua luce vibra piano (±9 %, con «Riduci movimento» ferma).
 - **L'elenco da cui si tira fa parte del tiro.** Il quarto numero (la scelta) e la rarità lavorano su un elenco di oggetti (`pool`), che è **il catalogo senza le cose degli animali non sbloccati**: gli universali
-  e quelli dei compagni sbloccati, nell'ordine del catalogo (tutti i 39 se tutti i compagni sono sbloccati, o con la modalità sviluppatore, o se non si sa chi è sbloccato: com'era prima). Cambiando l'elenco **lo
+  e quelli dei compagni sbloccati, nell'ordine del catalogo (tutti i 43 se tutti i compagni sono sbloccati, o con la modalità sviluppatore, o se non si sa chi è sbloccato: com'era prima). Cambiando l'elenco **lo
   stesso focus dà un altro regalo** (la rarità si pesca fra quelli dell'elenco, e «uno che non hai ancora» pure), quindi due app che non usano lo stesso elenco danno regali diversi sugli stessi dati: chi porta
   il giardino su Windows deve calcolare l'elenco allo stesso modo (`Garden.dropPool`). Vale per i regali di fine focus, per gli ospiti e per i regali dei punti convertiti; il regalo di benvenuto non tira (è
   il primo oggetto dell'animale che manca). I file di `tests/fixtures/attesi/` sono calcolati con l'elenco intero (tutte le isole aperte).

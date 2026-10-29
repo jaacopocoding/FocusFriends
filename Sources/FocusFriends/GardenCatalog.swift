@@ -56,7 +56,7 @@ struct GardenItem: Equatable {
     /// Si unisce alle uguali che ha accanto (la staccionata): un pezzo ha un braccio verso ogni vicino, e così fa gli angoli, le T e le croci da solo (`GardenLinks`). Con un vicino
     /// solo prosegue dritto; senza vicini va nel verso scelto girandolo.
     var joins = false
-    /// Fa luce la sera (il lampione, l'alberello di lucine, la lanterna, il braciere).
+    /// Fa luce la sera (il lampione, l'alberello di lucine, la lanterna, il braciere, e le quattro luci degli animali).
     var glow: GardenGlow?
     /// Ha un secondo disegno, «acceso» (`giardino_<id>-acceso`), che si vede quando fa buio: il braciere con la fiamma. Fa luce solo da acceso.
     var litDrawing = false
@@ -66,12 +66,13 @@ struct GardenItem: Equatable {
     /// Può stare su questa isola? Gli universali sì, ovunque; quelli di un animale solo sulla sua.
     func fits(island other: String) -> Bool { island == nil || island == other }
 
-    /// Il nome con l'articolo, per le frasi: «il cesto di carote», «la casa del gatto», «l'annaffiatoio». (Le cose degli animali sono dodici: la regola
+    /// Il nome con l'articolo, per le frasi: «il cesto di carote», «la casa del gatto», «l'annaffiatoio». (Le cose degli animali sono sedici: la regola
     /// basta, e le prove le controllano tutte.)
     var nameWithArticle: String {
         let lower = name.prefix(1).lowercased() + name.dropFirst()
         if let first = lower.first, "aeiou".contains(first) { return "l'" + lower }
-        return (lower.hasPrefix("casa ") ? "la " : "il ") + lower
+        let feminine = ["casa", "lanterna", "lampada", "candela"].contains { lower.hasPrefix($0 + " ") }
+        return (feminine ? "la " : "il ") + lower
     }
 
     /// Dove si può mettere, a parole (per l'album): «universale», o «solo sull'isola di Gattino». `ownerName` è il nome dell'animale a cui appartiene.
@@ -233,6 +234,15 @@ enum GardenCatalog {
              glow: GardenGlow(red: 255, green: 190, blue: 100, radius: 0.8, top: 0.32, strength: 0.85)),
         item("braciere", "Braciere", .furniture, height: 80, price: 7, shadow: false,
              glow: GardenGlow(red: 255, green: 150, blue: 70, radius: 1.15, top: 0.35, strength: 1, flickers: true), litDrawing: true),
+        // Una luce per ogni animale, sulla sua isola (sono le ultime quattro figurine, ma nell'album stanno con le cose dei compagni).
+        item("barattolo-lucciole", "Barattolo di lucciole", .companions, height: 78, price: 4,
+             glow: GardenGlow(red: 232, green: 244, blue: 150, radius: 0.7, top: 0.45, strength: 0.7), island: "pianty"),
+        item("lanterna-voliera", "Lanterna per la voliera", .companions, height: 105, price: 5,
+             glow: GardenGlow(red: 255, green: 200, blue: 110, radius: 0.8, top: 0.45, strength: 0.85), island: "ciccio"),
+        item("lampada-fienile", "Lampada da fienile", .companions, height: 96, price: 4,
+             glow: GardenGlow(red: 255, green: 175, blue: 85, radius: 0.85, top: 0.36, strength: 0.85), island: "porcellino"),
+        item("candela-cesto", "Candela nel cesto", .companions, height: 62, price: 3,
+             glow: GardenGlow(red: 255, green: 205, blue: 130, radius: 0.65, top: 0.22, strength: 0.8), island: "gattino"),
     ]
 
     /// Gli oggetti universali (su qualunque isola) e quelli di un animale (solo sulla sua isola).
