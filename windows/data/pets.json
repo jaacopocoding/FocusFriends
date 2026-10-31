@@ -509,6 +509,147 @@
         6
       ],
       "walks" : true
+    },
+    {
+      "eatFrames" : [
+        7,
+        8,
+        9,
+        10,
+        11,
+        10,
+        9,
+        8
+      ],
+      "eatsWhenFocusCompletes" : true,
+      "facesRight" : true,
+      "fallbackQuote" : "Un passo alla volta, e quando è troppo ci si arrotola un attimo.",
+      "finalStage" : 0,
+      "focusGrowthFeetFraction" : 0.097000000000000003,
+      "focusGrowthImages" : [
+        "garden/growth_riccio_1.png",
+        "garden/growth_riccio_2.png",
+        "garden/growth_riccio_3.png",
+        "garden/growth_riccio_4.png",
+        "garden/growth_riccio_5.png"
+      ],
+      "focusGrowthStages" : [
+        0,
+        0,
+        1,
+        1,
+        2,
+        2,
+        3,
+        3,
+        4,
+        4,
+        4
+      ],
+      "framesPerStage" : null,
+      "greeting" : "Ciao! Sono il riccio. Facciamo due passi?",
+      "groundFraction" : 0.098900000000000002,
+      "growsWithTimer" : false,
+      "iconCrop" : {
+        "height" : 0.54400000000000004,
+        "width" : 0.35099999999999998,
+        "x" : 0.61699999999999999,
+        "y" : 0.183
+      },
+      "iconFocus" : 0.57999999999999996,
+      "iconImage" : "riccio/frame1.png",
+      "id" : "riccio",
+      "images" : [
+        "riccio/frame1.png",
+        "riccio/frame2.png",
+        "riccio/frame3.png",
+        "riccio/frame4.png",
+        "riccio/frame5.png",
+        "riccio/frame6.png",
+        "riccio/frame7.png",
+        "riccio/frame8.png",
+        "riccio/frame9.png",
+        "riccio/frame10.png",
+        "riccio/frame11.png",
+        "riccio/frame12.png",
+        "riccio/frame13.png",
+        "riccio/frame14.png",
+        "riccio/frame15.png",
+        "riccio/frame16.png",
+        "riccio/frame17.png",
+        "riccio/frame18.png",
+        "riccio/frame19.png",
+        "riccio/frame20.png",
+        "riccio/frame21.png",
+        "riccio/frame22.png",
+        "riccio/frame23.png"
+      ],
+      "name" : "Riccio",
+      "picked" : {
+        "grab" : {
+          "x" : 0.23999999999999999,
+          "y" : 0.38
+        },
+        "image" : "riccio/picked.png",
+        "size" : {
+          "height" : 123,
+          "width" : 180
+        }
+      },
+      "popcornFrames" : [
+        18,
+        19,
+        20,
+        21,
+        22
+      ],
+      "popcornInterval" : 0.22,
+      "quotesFile" : "frasi_riccio.txt",
+      "restImageIndex" : 0,
+      "restStage" : 0,
+      "shadowWidthFraction" : 0.62,
+      "size" : {
+        "height" : 100,
+        "width" : 154
+      },
+      "sleepFrames" : [
+        13,
+        14,
+        15,
+        16,
+        15,
+        14,
+        15,
+        17,
+        16,
+        15
+      ],
+      "sleepIntroFrame" : 12,
+      "stageCount" : 1,
+      "stages" : [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "stepInterval" : 0.14999999999999999,
+      "talkFrame" : null,
+      "walkFrames" : [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "walks" : true
     }
   ]
 }

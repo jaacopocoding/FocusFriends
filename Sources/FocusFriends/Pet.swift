@@ -193,8 +193,41 @@ struct Pet: Equatable {
         pickedGrab: CGPoint(x: 0.36, y: 0.45)   // il cursore sta sulla mano sinistra
     )
 
+    /// Un riccio tondo e paffuto: cammina per lo schermo, mangia uno spicchio di mela, dorme sdraiato e ogni tanto si arrotola a palla; durante un focus sta fermo
+    /// e la schiena si riempie di cose d'autunno (una foglia, un fungo, una mela, una ghianda), e a fine focus mangia. Le pose vengono da tools/cutout_riccio.py
+    /// (stessa tela, zampe a terra, il dorso fermo da un fotogramma all'altro).
+    static let riccio = Pet(
+        id: "riccio",
+        name: "Riccio",
+        imageResources: (1...23).map { "riccio_frame\($0)" },   // 1 fermo, 2-7 cammino, 8-12 mangia, 13-18 dorme, 19-23 si arrotola
+        size: NSSize(width: 154, height: 100),
+        quotesResource: "frasi_riccio",
+        quotesUserFile: "frasi_riccio.txt",
+        fallbackQuote: "Un passo alla volta, e quando è troppo ci si arrotola un attimo.",
+        greeting: "Ciao! Sono il riccio. Facciamo due passi?",
+        shadowWidthFraction: 0.62,
+        groundFraction: 0.0989,
+        iconCrop: NSRect(x: 0.617, y: 0.183, width: 0.351, height: 0.544),   // la testa, con le orecchie e un po' di aculei
+        iconFocus: 0.58,
+        walks: true,
+        walkFrames: [1, 2, 3, 4, 5, 6],   // il ciclo dei passi
+        stepInterval: 0.15,
+        facesRight: true,
+        eatFrames: [7, 8, 9, 10, 11, 10, 9, 8],   // tiene la mela, la avvicina, morde, mastica, sorride, e torna indietro
+        sleepIntroFrame: 12,                       // in piedi, assopito
+        sleepFrames: [13, 14, 15, 16, 15, 14, 15, 17, 16, 15],   // sdraiato, il respiro lento, ogni tanto l'orecchio si muove
+        popcornFrames: [18, 19, 20, 21, 22],       // si arrotola: attento, si china, palla chiusa, sbircia, di nuovo in piedi
+        popcornInterval: 0.22,
+        focusGrowthResources: (1...5).map { "growth_riccio_\($0)" },   // fermo, e la schiena che si riempie
+        focusGrowthFeetFraction: 0.0970,
+        eatsWhenFocusCompletes: true,
+        pickedResource: "riccio_picked",   // le mani coi guanti da giardinaggio che lo sollevano, spaventato
+        pickedSize: NSSize(width: 180, height: 123),
+        pickedGrab: CGPoint(x: 0.24, y: 0.38)   // il cursore sta sul guanto sinistro
+    )
+
     /// Pianty è il personaggio di partenza.
-    static let all = [pianty, porcellino, ciccio, gattino]
+    static let all = [pianty, porcellino, ciccio, gattino, riccio]
 
     // MARK: - Scelta ricordata
 

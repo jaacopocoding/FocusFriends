@@ -50,7 +50,7 @@ describe("Scheda: i dati", () => {
   it("senza sessioni: oggi è vuoto", () => {
     const data = buildCardData(input());
     assert.deepEqual([data.todaySeconds, data.todayFocusCount, data.streak, data.streakFrozen, data.userName, data.background], [0, 0, 0, false, null, "none"]);
-    assert.deepEqual(data.companions.map((c) => [c.id, c.lock]), [["pianty", null], ["porcellino", null], ["ciccio", null], ["gattino", null]]);
+    assert.deepEqual(data.companions.map((c) => [c.id, c.lock]), [["pianty", null], ["porcellino", null], ["ciccio", null], ["gattino", null], ["riccio", null]]);
   });
 
   it("oggi: minuti, focus e serie (con un giorno di ghiaccio)", () => {
