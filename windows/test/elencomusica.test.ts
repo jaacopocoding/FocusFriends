@@ -2,7 +2,7 @@
 
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, utimesSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createMusicService } from "../src/main/music.ts";
@@ -37,6 +37,9 @@ describe("Elenco dei brani", () => {
     assert.deepEqual(service.list("folder").tracks.map((t) => t.title), ["a", "b"]);
     assert.ok(service.folderHasTracks());
     writeFileSync(join(dir, "nuovo.wav"), "\0");
+    // L'elenco si rifà quando cambia la data della cartella: sui dischi che la scrivono a grana grossa (Windows, nella CI) due scritture di fila hanno la stessa data.
+    const later = new Date(Date.now() + 5000);
+    utimesSync(dir, later, later);
     assert.equal(service.list("folder").tracks.length, 3, "la cartella è cambiata: l'elenco si rifà");
   });
 
