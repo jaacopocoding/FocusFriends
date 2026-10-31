@@ -30,7 +30,7 @@ struct GardenGlow: Equatable {
     static let lamp = GardenGlow(red: 255, green: 196, blue: 104, radius: 1.25, top: 0.10, strength: 1)
 }
 
-/// Un tipo di oggetto del giardino. Si trova una volta (a fine focus, o c'è fin dall'inizio) e poi se ne possono mettere quante sono le copie trovate.
+/// Un tipo di oggetto del giardino. Si trova una volta (a fine focus, o c'è fin dall'inizio) e da quel momento è tuo: se ne mettono quanti si vuole.
 struct GardenItem: Equatable {
     let id: String
     let name: String
@@ -51,8 +51,6 @@ struct GardenItem: Equatable {
     /// Quanto si inclina il disegno adagiato sul lato: 0,5 è la pendenza dei lati dei rombi (giusta per le cose piatte, come la staccionata); le cose il cui disegno ha già una sua
     /// prospettiva (l'amaca, l'arco di rose) si storcono, e ne vogliono meno.
     var slope = 0.5
-    /// Una volta trovata, se ne mettono quante si vuole (una staccionata sola non serve a niente): niente copie da contare, e i regali non la danno più.
-    var repeatable = false
     /// Si unisce alle uguali che ha accanto (la staccionata): un pezzo ha un braccio verso ogni vicino, e così fa gli angoli, le T e le croci da solo (`GardenLinks`). Con un vicino
     /// solo prosegue dritto; senza vicini va nel verso scelto girandolo.
     var joins = false
@@ -66,7 +64,7 @@ struct GardenItem: Equatable {
     /// Può stare su questa isola? Gli universali sì, ovunque; quelli di un animale solo sulla sua.
     func fits(island other: String) -> Bool { island == nil || island == other }
 
-    /// Il nome con l'articolo, per le frasi: «il cesto di carote», «la casa del gatto», «l'annaffiatoio». (Le cose degli animali sono sedici: la regola
+    /// Il nome con l'articolo, per le frasi: «il cesto di carote», «la casa del gatto», «l'annaffiatoio». (Le cose degli animali sono quindici: la regola
     /// basta, e le prove le controllano tutte.)
     var nameWithArticle: String {
         let lower = name.prefix(1).lowercased() + name.dropFirst()
@@ -180,10 +178,10 @@ enum GardenCatalog {
     static func companionHeight(for petID: String) -> Double { companionHeights[petID] ?? 100 }
 
     private static func item(_ id: String, _ name: String, _ category: GardenCategory, height: Double, price: Int,
-                             shadow: Bool = true, cols: Int = 1, rows: Int = 1, axial: Bool = false, slope: Double = 0.5, repeatable: Bool = false, joins: Bool = false,
+                             shadow: Bool = true, cols: Int = 1, rows: Int = 1, axial: Bool = false, slope: Double = 0.5, joins: Bool = false,
                              glow: GardenGlow? = nil, litDrawing: Bool = false, island: String? = nil) -> GardenItem {
         GardenItem(id: id, name: name, category: category, height: height, price: price, castsShadow: shadow,
-                   footprint: GardenFootprint(cols: cols, rows: rows), axial: axial, slope: slope, repeatable: repeatable, joins: joins, glow: glow, litDrawing: litDrawing, island: island)
+                   footprint: GardenFootprint(cols: cols, rows: rows), axial: axial, slope: slope, joins: joins, glow: glow, litDrawing: litDrawing, island: island)
     }
 
     /// Tutti gli oggetti, nell'ordine in cui compaiono nel negozio. I prezzi sono provvisori.
@@ -191,13 +189,11 @@ enum GardenCatalog {
         // Fiori
         item("margherite", "Margherite", .flowers, height: 90, price: 0),
         item("trifoglio", "Trifoglio", .flowers, height: 45, price: 0),
-        item("erba-alta", "Erba alta", .flowers, height: 90, price: 0),
         item("mughetti", "Mughetti", .flowers, height: 110, price: 0),
         item("tulipani", "Tulipani", .flowers, height: 100, price: 2),
         item("funghi", "Funghi", .flowers, height: 70, price: 2),
         item("lavanda", "Lavanda", .flowers, height: 105, price: 3),
         item("papaveri", "Papaveri", .flowers, height: 120, price: 3),
-        item("erbe", "Vaso di erbe", .flowers, height: 85, price: 3),
         item("felci", "Felci", .flowers, height: 110, price: 3),
         item("girasole", "Girasole", .flowers, height: 170, price: 4),
         item("rosaio", "Rosaio", .flowers, height: 130, price: 8),
@@ -207,7 +203,6 @@ enum GardenCatalog {
         item("cesto-cuscino", "Cesto con cuscino", .companions, height: 60, price: 3, island: "gattino"),
         item("tunnel", "Tunnel con fieno", .companions, height: 55, price: 3, island: "porcellino"),
         item("altalena-uccelli", "Altalena uccelli", .companions, height: 85, price: 3, island: "ciccio"),
-        item("vaso-grande", "Vaso grande", .companions, height: 70, price: 3, island: "pianty"),
         item("bagnetto", "Bagnetto uccelli", .companions, height: 75, price: 4, island: "ciccio"),
         item("aiuola", "Aiuola rialzata", .companions, height: 75, price: 4, island: "pianty"),
         item("tiragraffi", "Tiragraffi", .companions, height: 115, price: 5, island: "gattino"),
@@ -217,7 +212,7 @@ enum GardenCatalog {
         // Arredi
         item("picnic", "Tappeto da picnic", .furniture, height: 70, price: 4, shadow: false),
         item("bandierine", "Bandierine", .furniture, height: 0, price: 4, shadow: false, axial: true),
-        item("cancelletto", "Cancelletto", .furniture, height: 0, price: 4, shadow: false, axial: true, repeatable: true, joins: true),
+        item("cancelletto", "Cancelletto", .furniture, height: 0, price: 4, shadow: false, axial: true, joins: true),
         item("tavolino", "Tavolino da tè", .furniture, height: 95, price: 5),
         item("sdraio", "Sdraio", .furniture, height: 110, price: 5),
         item("carillon", "Carillon a vento", .furniture, height: 120, price: 5),
@@ -250,17 +245,19 @@ enum GardenCatalog {
     static func items(forIsland island: String) -> [GardenItem] { items.filter { $0.island == island } }
 
     /// Il regalo di benvenuto di un'isola quando si costruisce il suo ponte: il primo oggetto dell'animale (nell'ordine del catalogo) che non si ha ancora;
-    /// se si hanno già tutti, una copia in più del primo. `copies` dice quante copie di un oggetto si hanno.
-    static func welcomeGift(forIsland island: String, copies: (String) -> Int) -> String? {
-        let own = items(forIsland: island)
-        return (own.first { copies($0.id) == 0 } ?? own.first)?.id
+    /// se si hanno già tutti, niente (una seconda copia non servirebbe). `has` dice se un oggetto è già tuo.
+    static func welcomeGift(forIsland island: String, has: (String) -> Bool) -> String? {
+        items(forIsland: island).first { !has($0.id) }?.id
     }
+
+    /// Gli oggetti che sono stati tolti dal catalogo: chi li aveva trovati o messi sull'isola li perde (`Garden` li toglie leggendo il file, tenendo una copia del vecchio).
+    static let retired: Set<String> = ["erba-alta", "erbe", "vaso-grande"]
 
     static func item(withID id: String) -> GardenItem? {
         items.first { $0.id == id }
     }
 
-    /// Il numero della figurina nell'album (da 1, nell'ordine del catalogo: non cambia mai, i nuovi oggetti si aggiungono in fondo).
+    /// Il numero della figurina nell'album (da 1, nell'ordine del catalogo: i nuovi oggetti si aggiungono in fondo, e se ne togliamo uno quelli dopo scalano).
     static func number(of id: String) -> Int? {
         items.firstIndex { $0.id == id }.map { $0 + 1 }
     }
@@ -311,7 +308,7 @@ extension GardenItem {
     /// Quanto ondeggia col vento (0 = sta fermo): i fiori e l'erba un poco, le bandierine e il carillon di più. Funghi e vasi no.
     var swayStrength: Double {
         switch id {
-        case "funghi", "erbe": return 0
+        case "funghi": return 0
         case "bandierine", "carillon": return 1.8
         default: return category == .flowers ? 1 : 0
         }

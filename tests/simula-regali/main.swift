@@ -1,8 +1,9 @@
 import Foundation
 
 // Quanto ci vuole a completare l'album con le regole di GardenDrops (Sources/FocusFriends/GardenDrops.swift), per tre modi di studiare.
+// Le regole: un regalo ogni tot minuti di studio (60 il primo, 8 in più per ogni cosa trovata). Qui tutti i compagni sono già sbloccati: nell'app il più lento è l'ultimo (100 focus pieni).
 // Utenti inventati, tanti: la mediana e la coda. Serve a tarare i numeri del gioco: non fa parte dell'app né delle prove.
-// Si lancia con tests/simula-regali.sh [quanti oggetti ha l'album: 43 (quelli di adesso) o di più, con le stesse proporzioni di rarità].
+// Si lancia con tests/simula-regali.sh [quanti oggetti ha l'album: 40 (quelli di adesso) o di più, con le stesse proporzioni di rarità].
 var cal = StudyPeriod.calendar()
 cal.timeZone = TimeZone(identifier: "Europe/Rome")!
 func date(_ y: Int, _ m: Int, _ d: Int, _ h: Int = 10) -> Date { cal.date(from: DateComponents(year: y, month: m, day: d, hour: h))! }
@@ -13,7 +14,7 @@ let habits = [
     Habit(name: "regolare: 6 giorni su 7, 2–3 focus", studyChance: 6.0 / 7, focusPerDay: 2...3, minutes: [25, 50]),
     Habit(name: "intenso: tutti i giorni, 3–5 focus", studyChance: 1, focusPerDay: 3...5, minutes: [25, 50]),
 ]
-// L'album di prova: i 43 di adesso, oppure uno più grande con le stesse proporzioni di rarità (45% comuni, 42% rari, 13% leggendari).
+// L'album di prova: i 40 di adesso, oppure uno più grande con le stesse proporzioni di rarità (45% comuni, 42% rari, 13% leggendari).
 let current = GardenCatalog.items.count
 let size = Int(CommandLine.arguments.dropFirst().first ?? "\(current)") ?? current
 var pool = GardenCatalog.items
@@ -58,7 +59,7 @@ for habit in habits {
             guard let drop else { nothing += 1; continue }
             given += 1
             found.insert(drop.item)
-            if drop.rarity >= .rare, rareDay == nil, drop.isNew { rareDay = day }
+            if drop.rarity >= .rare, rareDay == nil { rareDay = day }
             if drop.rarity == .legendary, legendaryDay == nil { legendaryDay = day }
             for (i, m) in milestones.enumerated() where reached[i] == nil && Double(found.count) >= m * Double(total) { reached[i] = day }
         }
@@ -76,7 +77,7 @@ for habit in habits {
     }
     let sortedGifts = gifts.sorted()
     print("== \(habit.name)")
-    print("   regali in un anno: mediana \(sortedGifts[sortedGifts.count / 2]); focus senza niente: \(Int(100 * empty.reduce(0, +) / Double(empty.count)))% dei tiri")
+    print("   regali in un anno: mediana \(sortedGifts[sortedGifts.count / 2]); focus che contano senza una figurina: \(Int(100 * empty.reduce(0, +) / Double(empty.count)))%")
     print("   metà dell'album (\(total / 2)): \(summary(firstDays[0]))")
     print("   tre quarti: \(summary(firstDays[1]))")
     print("   album completo (\(total)): \(summary(firstDays[2]))")

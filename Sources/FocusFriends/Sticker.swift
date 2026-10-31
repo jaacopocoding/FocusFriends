@@ -8,8 +8,6 @@ enum Sticker {
         var item: GardenItem
         var number: Int
         var found: Bool
-        /// Quante copie si sono trovate e quante sono nel prato.
-        var copies: Int
         var isNew: Bool
         /// Dove si può mettere, se la scheda lo dice (l'album sì, il regalo no).
         var placing: Placing?
@@ -193,15 +191,6 @@ enum Sticker {
         if rarity == .legendary {
             drawStar(at: NSPoint(x: rect.maxX - 12, y: rect.minY + 12), radius: 6, color: gold)
             drawStar(at: NSPoint(x: rect.minX + 12, y: rect.maxY - 31), radius: 3.5, color: gold.withAlphaComponent(0.8))
-        }
-        // le copie
-        if look.copies > 1 {
-            let label = "×\(look.copies)"
-            let width = ceil((label as NSString).size(withAttributes: [.font: badgeFont]).width) + 10
-            let badge = NSRect(x: rect.maxX - width - 5, y: rect.maxY - 41 - (marked ? placingRow : 0), width: width, height: 15)
-            Paper.accent.setFill()
-            NSBezierPath(roundedRect: badge, xRadius: 7.5, yRadius: 7.5).fill()
-            text(label, in: NSRect(x: badge.minX, y: badge.minY + 2, width: badge.width, height: 12), font: badgeFont, color: .white)
         }
         // il nastrino
         if look.isNew {

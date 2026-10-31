@@ -165,8 +165,7 @@ enum GardenLayout {
 
     /// Dove stanno le cose della dotazione quando si comincia (sono sempre le stesse): fuori dal sentiero e dalla casa di ogni isola, a tutte le grandezze (vedi `GardenPaths` e `GardenLandmarks`).
     static let starterOrigins: [String: GardenTile] = [
-        "margherite": GardenTile(col: 7, row: 2), "trifoglio": GardenTile(col: 0, row: 7),
-        "erba-alta": GardenTile(col: 7, row: 0), "mughetti": GardenTile(col: 2, row: 7),
+        "margherite": GardenTile(col: 7, row: 2), "trifoglio": GardenTile(col: 0, row: 7), "mughetti": GardenTile(col: 2, row: 7),
     ]
 }
 

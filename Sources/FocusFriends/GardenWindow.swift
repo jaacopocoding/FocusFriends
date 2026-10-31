@@ -1,7 +1,7 @@
 import AppKit
 
 /// Il giardino: un'isola a tessere, vista di sbieco, che si riempie con le figurine che trovi a fine focus (GardenDrops). L'album delle
-/// figurine è un'altra finestra (AlbumWindow); qui, in basso, c'è la cassetta con le copie ancora da mettere: si trascinano sull'isola
+/// figurine è un'altra finestra (AlbumWindow); qui, in basso, c'è la cassetta con tutto quello che hai trovato: si trascina sull'isola
 /// (le tessere libere si fanno verdi, quelle dove non ci sta diventano rosse), si spostano, si girano con R o dal tasto destro, e per
 /// toglierne una la si trascina sulla cassetta. I compagni sbloccati camminano sulle tessere libere, e se li tocchi parlano.
 ///
@@ -24,7 +24,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
     // La serie di giorni (dal registro, in reload): più è lunga, più le figurine rare sono probabili.
     private var streak = StudyStreak.Result(perDay: [:], days: 0, isFrozen: false, studiedToday: false)
 
-    // La cassetta delle copie da mettere: chiusa (una pillola in basso a sinistra, per non coprire il davanti dell'isola) finché non la apri.
+    // La cassetta di quello che si può mettere: chiusa (una pillola in basso a sinistra, per non coprire il davanti dell'isola) finché non la apri.
     private var trayOpen = false
     private var trayScroll: CGFloat = 0
     /// Una riga di spiegazione in basso, per qualche secondo.
@@ -190,6 +190,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
         let hud = hudLayout()
         addToolTip(hud.album, owner: self, userData: UnsafeMutableRawPointer(bitPattern: 1))
         if let chip = hud.streak { addToolTip(chip, owner: self, userData: UnsafeMutableRawPointer(bitPattern: 2)) }
+        if let chip = hud.gift { addToolTip(chip, owner: self, userData: UnsafeMutableRawPointer(bitPattern: 4)) }
         addToolTip(captionRect, owner: self, userData: UnsafeMutableRawPointer(bitPattern: 3))
         needsDisplay = true
     }
@@ -738,18 +739,17 @@ final class GardenView: NSView, NSViewToolTipOwner {
             return CarryTarget(origin: tile, tiles: [tile], valid: valid)
         case .placed(let id):
             guard let placement = garden.placement(withID: id), let item = GardenCatalog.item(withID: placement.item) else { return nil }
-            return itemTarget(item, grid: g, ignoring: id, needsCopy: false)
+            return itemTarget(item, grid: g, ignoring: id)
         case .fresh(let id):
             guard let item = GardenCatalog.item(withID: id) else { return nil }
-            return itemTarget(item, grid: g, ignoring: nil, needsCopy: true)
+            return itemTarget(item, grid: g, ignoring: nil)
         }
     }
 
-    private func itemTarget(_ item: GardenItem, grid g: (col: Double, row: Double), ignoring: UUID?, needsCopy: Bool) -> CarryTarget {
+    private func itemTarget(_ item: GardenItem, grid g: (col: Double, row: Double), ignoring: UUID?) -> CarryTarget {
         let footprint = item.footprint.applying(turned: carryTurned)
         let origin = GardenTile(col: Int((g.col - Double(footprint.cols) / 2).rounded()), row: Int((g.row - Double(footprint.rows) / 2).rounded()))
-        var valid = garden.canPlace(item.id, at: origin, turned: carryTurned, ignoring: ignoring)
-        if needsCopy && !(garden.available(item.id) > 0 || Profile.isDeveloper) { valid = false }
+        let valid = garden.canPlace(item.id, at: origin, turned: carryTurned, ignoring: ignoring)
         return CarryTarget(origin: origin, tiles: GardenLayout.tiles(of: footprint, at: origin), valid: valid)
     }
 
@@ -758,8 +758,8 @@ final class GardenView: NSView, NSViewToolTipOwner {
     private static let trayHeight: CGFloat = 96
     private static let trayCell = NSSize(width: 84, height: 78)
 
-    /// Le copie ancora da mettere che stanno sull'isola mostrata (le universali e quelle del suo animale), nell'ordine dell'album.
-    private func trayItems() -> [(item: GardenItem, count: Int)] {
+    /// Le cose che si possono mettere sull'isola mostrata (le universali e quelle del suo animale, tutte quelle trovate), nell'ordine dell'album.
+    private func trayItems() -> [GardenItem] {
         garden.tray()
     }
 
@@ -780,7 +780,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
         return false
     }
 
-    /// La pillola «Da mettere · 7», quando la cassetta è chiusa e c'è qualcosa dentro.
+    /// La pillola «Da mettere», quando la cassetta è chiusa e c'è qualcosa dentro.
     private var trayPillRect: NSRect { NSRect(x: 16, y: sceneH - 46, width: 156, height: 30) }
 
     private var showsTrayPill: Bool { !trayVisible && !trayItems().isEmpty && !(carry != nil && carryMoved) }
@@ -801,17 +801,17 @@ final class GardenView: NSView, NSViewToolTipOwner {
 
     private struct TrayLayout {
         var area: NSRect
-        var cells: [(item: GardenItem, count: Int, rect: NSRect)]
+        var cells: [(item: GardenItem, rect: NSRect)]
         var contentWidth: CGFloat
     }
 
     private func trayLayout() -> TrayLayout {
         let area = NSRect(x: 118, y: trayRect.minY + 8, width: sceneW - 118 - 16, height: Self.trayHeight - 16)
         let items = trayItems()
-        var cells: [(item: GardenItem, count: Int, rect: NSRect)] = []
-        for (index, entry) in items.enumerated() {
-            cells.append((entry.item, entry.count, NSRect(x: area.minX + CGFloat(index) * Self.trayCell.width - trayScroll, y: area.minY + 2,
-                                                          width: Self.trayCell.width - 4, height: Self.trayCell.height)))
+        var cells: [(item: GardenItem, rect: NSRect)] = []
+        for (index, item) in items.enumerated() {
+            cells.append((item, NSRect(x: area.minX + CGFloat(index) * Self.trayCell.width - trayScroll, y: area.minY + 2,
+                                       width: Self.trayCell.width - 4, height: Self.trayCell.height)))
         }
         return TrayLayout(area: area, cells: cells, contentWidth: CGFloat(items.count) * Self.trayCell.width)
     }
@@ -828,12 +828,20 @@ final class GardenView: NSView, NSViewToolTipOwner {
         var album: NSRect
         /// La serie di giorni (o il ghiaccio), se c'è.
         var streak: NSRect?
+        /// Quanto manca alla prossima figurina, se c'è ancora qualcosa da trovare.
+        var gift: NSRect?
     }
 
     private let numberFont = Paper.markerFont(20)
     private let smallFont = NSFont.systemFont(ofSize: 12, weight: .medium)
 
     private var albumLabel: String { "\(garden.foundCount)/\(GardenCatalog.items.count)" }
+
+    /// «ancora 35 min»: i minuti di studio che mancano alla prossima figurina.
+    private var giftLabel: String? {
+        guard let left = garden.minutesToNextGift else { return nil }
+        return left == 0 ? "pronta al prossimo focus" : "ancora \(left) min"
+    }
 
     private var streakLabel: String? {
         if streak.isFrozen { return "ghiacciata" }
@@ -853,7 +861,13 @@ final class GardenView: NSView, NSViewToolTipOwner {
             let chipWidth = 12 + icon + textWidth + 12
             chip = NSRect(x: album.minX - 8 - chipWidth, y: 14, width: chipWidth, height: 30)
         }
-        return HUDLayout(album: album, streak: chip)
+        var gift: NSRect?
+        if let label = giftLabel {
+            let textWidth = ceil((label as NSString).size(withAttributes: [.font: smallFont]).width)
+            let giftWidth = 12 + 18 + textWidth + 12
+            gift = NSRect(x: (chip?.minX ?? album.minX) - 8 - giftWidth, y: 14, width: giftWidth, height: 30)
+        }
+        return HUDLayout(album: album, streak: chip, gift: gift)
     }
 
     func view(_ view: NSView, stringForToolTip tag: NSView.ToolTipTag, point: NSPoint, userData data: UnsafeMutableRawPointer?) -> String {
@@ -861,8 +875,13 @@ final class GardenView: NSView, NSViewToolTipOwner {
             return "Tocca per vedere tutte le isole, e di nuovo per tornare a questa. Si ingrandisce e ci si sposta da un'isola all'altra anche con lo zoom e trascinando."
         }
         if Int(bitPattern: data) == 1 {
-            return "L'album: \(garden.foundCount) figurine su \(GardenCatalog.items.count). Le trovi a fine focus (completato, con almeno 20 minuti): "
-                + "una volta su cinque non esce niente. Con più giorni di fila e con i focus lunghi le figurine rare sono più probabili."
+            return "L'album: \(garden.foundCount) figurine su \(GardenCatalog.items.count). Le trovi studiando: ogni focus completato di almeno 20 minuti conta, "
+                + "e ogni tanto (60 minuti la prima, un po' di più a ogni figurina) ne arriva una. Con più giorni di fila e con i focus lunghi le figurine rare sono più probabili."
+        }
+        if Int(bitPattern: data) == 4 {
+            let left = garden.minutesToNextGift ?? 0
+            return left == 0 ? "La prossima figurina è già pronta: arriva alla fine del prossimo focus."
+                : "Ancora \(left) \(left == 1 ? "minuto" : "minuti") di studio (focus completati, da 20 minuti in su) e trovi una figurina."
         }
         var text = "Serie di \(streak.days) \(streak.days == 1 ? "giorno" : "giorni")"
         if streak.isFrozen {
@@ -2005,6 +2024,21 @@ final class GardenView: NSView, NSViewToolTipOwner {
         text(albumLabel, in: NSRect(x: hud.album.minX + 14, y: hud.album.minY + 3, width: numberWidth + 2, height: 26), font: numberFont)
         text("figurine", in: NSRect(x: hud.album.minX + 14 + numberWidth + 6, y: hud.album.minY + 8, width: 70, height: 16),
              font: smallFont, color: Paper.inkLight)
+        // Quanto manca alla prossima figurina: la pastiglia si riempie piano
+        if let rect = hud.gift, let label = giftLabel {
+            drawChip(rect, fill: NSColor(calibratedRed: 1, green: 0.99, blue: 0.94, alpha: 0.95), stroke: Paper.paperEdge)
+            if let progress = garden.nextGiftProgress, progress > 0 {
+                NSGraphicsContext.saveGraphicsState()
+                NSBezierPath(roundedRect: rect, xRadius: rect.height / 2, yRadius: rect.height / 2).addClip()
+                Paper.accent.withAlphaComponent(0.22).setFill()
+                NSRect(x: rect.minX, y: rect.minY, width: rect.width * CGFloat(progress), height: rect.height).fill()
+                NSGraphicsContext.restoreGraphicsState()
+            }
+            if let icon = tinted("gift", size: 12, color: Paper.accentPressed) {
+                icon.draw(in: NSRect(x: rect.minX + 12, y: rect.midY - icon.size.height / 2, width: icon.size.width, height: icon.size.height))
+            }
+            text(label, in: NSRect(x: rect.minX + 30, y: rect.minY + 8, width: rect.width - 38, height: 16), font: smallFont, color: Paper.inkLight)
+        }
         // La serie di giorni, o il ghiaccio
         if let rect = hud.streak, let label = streakLabel {
             if streak.isFrozen {
@@ -2077,23 +2111,21 @@ final class GardenView: NSView, NSViewToolTipOwner {
         NSGraphicsContext.saveGraphicsState()
         NSBezierPath(rect: layout.area).addClip()
         for cell in layout.cells where cell.rect.maxX > layout.area.minX && cell.rect.minX < layout.area.maxX {
-            drawTrayCell(cell.item, count: cell.count, in: cell.rect)
+            drawTrayCell(cell.item, in: cell.rect)
         }
         NSGraphicsContext.restoreGraphicsState()
     }
 
     private func drawTrayPill() {
         let rect = trayPillRect
-        // le cose che si ripetono ci sono sempre: non sono «da mettere» (e se ci sono solo quelle, niente numero)
-        let count = trayItems().filter { !$0.item.repeatable }.reduce(0) { $0 + $1.count }
         drawChip(rect, fill: NSColor(calibratedRed: 1, green: 0.99, blue: 0.94, alpha: 0.96), stroke: Paper.paperEdge)
         if let tray = tinted("tray.and.arrow.down", size: 13, color: Paper.accentPressed) {
             tray.draw(in: NSRect(x: rect.minX + 12, y: rect.midY - tray.size.height / 2, width: tray.size.width, height: tray.size.height))
         }
-        text(count > 0 ? "Da mettere · \(count)" : "Da mettere", in: NSRect(x: rect.minX + 34, y: rect.minY + 8, width: rect.width - 42, height: 16), font: smallFont)
+        text("Da mettere", in: NSRect(x: rect.minX + 34, y: rect.minY + 8, width: rect.width - 42, height: 16), font: smallFont)
     }
 
-    private func drawTrayCell(_ item: GardenItem, count: Int, in rect: NSRect) {
+    private func drawTrayCell(_ item: GardenItem, in rect: NSRect) {
         let path = NSBezierPath(roundedRect: rect, xRadius: 10, yRadius: 10)
         Sticker.card.setFill()
         path.fill()
@@ -2111,15 +2143,6 @@ final class GardenView: NSView, NSViewToolTipOwner {
         var font = NSFont.systemFont(ofSize: 10, weight: .semibold)
         if (item.name as NSString).size(withAttributes: [.font: font]).width > rect.width - 8 { font = NSFont.systemFont(ofSize: 8.5, weight: .semibold) }
         text(item.name, in: NSRect(x: rect.minX + 2, y: rect.maxY - 17, width: rect.width - 4, height: 13), font: font, alignment: .center)
-        if count > 1 || item.repeatable {
-            let label = item.repeatable ? "∞" : "×\(count)"
-            let badgeFont = NSFont.systemFont(ofSize: 9.5, weight: .bold)
-            let width = ceil((label as NSString).size(withAttributes: [.font: badgeFont]).width) + 10
-            let badge = NSRect(x: rect.maxX - width - 3, y: rect.minY + 3, width: width, height: 15)
-            Paper.accent.setFill()
-            NSBezierPath(roundedRect: badge, xRadius: 7.5, yRadius: 7.5).fill()
-            text(label, in: NSRect(x: badge.minX, y: badge.minY + 2, width: badge.width, height: 12), font: badgeFont, color: .white, alignment: .center)
-        }
     }
 
     private var carryPointer = NSPoint.zero
@@ -2205,7 +2228,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
         }
         // Si prende una copia: un tocco la mette sull'isola, trascinando la si mette dove si lascia.
         carry = .fresh(cell.item.id)
-        carryTurned = cell.item.repeatable && repeatTurned
+        carryTurned = cell.item.joins && repeatTurned
         carryGrab = .zero
         carryFeet = p
         needsDisplay = true
@@ -2276,11 +2299,9 @@ final class GardenView: NSView, NSViewToolTipOwner {
                 }
             } else if let target, target.valid {
                 garden.place(id, at: target.origin, turned: carryTurned)
-                // una staccionata si ripete: la cassetta resta a portata, e la prossima parte girata come questa
-                if GardenCatalog.item(withID: id)?.repeatable == true {
-                    repeatTurned = carryTurned
-                    trayOpen = true
-                }
+                // ogni cosa si ripete: la cassetta resta a portata (la staccionata, la prossima parte girata come questa)
+                if GardenCatalog.item(withID: id)?.joins == true { repeatTurned = carryTurned }
+                trayOpen = true
             } else if sceneRect.contains(p), !overTray {
                 flash(wrongIslandLine(for: id) ?? "Lì non ci sta: serve una tessera libera, fuori dal sentiero.")
             }
@@ -2629,7 +2650,7 @@ extension GardenView {
         let iconWidth: CGFloat = 22
         let width = 16 + iconWidth + 8 + max(titleWidth, captionWidth) + 20
         let hud = hudLayout()
-        let freeRight = (hud.streak?.minX ?? hud.album.minX) - 12
+        let freeRight = (hud.gift?.minX ?? hud.streak?.minX ?? hud.album.minX) - 12
         let centerX = (150 + freeRight) / 2
         let rect = NSRect(x: centerX - width / 2, y: 10 + (1 - enter) * -14, width: width, height: 50)
         NSGraphicsContext.saveGraphicsState()

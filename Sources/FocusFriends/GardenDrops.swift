@@ -18,15 +18,28 @@ enum GardenRarity: Int, CaseIterable, Comparable {
     }
 }
 
-/// Quello che il giardino ricorda dei regali: quante copie di ogni cosa, e i contatori delle garanzie.
+/// Quello che il giardino ricorda dei regali: cosa si è trovato, i minuti di studio messi da parte e i contatori delle garanzie.
 struct GardenDropState: Codable, Equatable {
-    /// Quante copie di ogni oggetto si sono trovate (chi non c'è non è stato trovato).
+    /// Gli oggetti trovati (chi non c'è non è stato trovato). Il numero è rimasto dalle versioni in cui si contavano le copie: da quando una cosa trovata è tua e se ne mettono
+    /// quante si vuole, conta solo se c'è (1 nei file nuovi, qualunque numero da 1 in su in quelli vecchi).
     var found: [String: Int] = [:]
-    /// Quanti focus di fila non hanno dato niente.
-    var nothingInARow = 0
     /// Quanti regali dopo l'ultimo raro (o leggendario), e dopo l'ultimo leggendario.
     var sinceRare = 0
     var sinceLegendary = 0
+    /// I secondi di studio (dei focus completati, da 20 minuti in su) messi da parte e non ancora spesi in un regalo. Chi non c'è ancora (un file di prima) parte da zero.
+    var studyBank = 0
+
+    init() {}
+
+    private enum CodingKeys: String, CodingKey { case found, sinceRare, sinceLegendary, studyBank }
+
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        found = try values.decode([String: Int].self, forKey: .found)
+        sinceRare = try values.decode(Int.self, forKey: .sinceRare)
+        sinceLegendary = try values.decode(Int.self, forKey: .sinceLegendary)
+        studyBank = max(try values.decodeIfPresent(Int.self, forKey: .studyBank) ?? 0, 0)
+    }
 
     /// Chi comincia ha già gli oggetti che non costano niente (la «dotazione»): l'album parte da lì.
     static func starting(pool: [GardenItem] = GardenCatalog.items) -> GardenDropState {
@@ -39,29 +52,27 @@ struct GardenDropState: Codable, Equatable {
 struct GardenDrop: Equatable {
     var item: String
     var rarity: GardenRarity
-    /// Prima volta che si trova.
-    var isNew: Bool
-    /// Quante copie se ne hanno adesso, questa compresa.
-    var copies: Int
 }
 
 /// Cosa è successo alla fine di un focus.
 enum GardenGift: Equatable {
-    /// Il focus non fa tirare (interrotto o troppo corto).
+    /// Il focus non conta per i regali (interrotto o troppo corto).
     case notEligible
-    /// Ha fatto tirare, ma questa volta non è uscito niente.
-    case nothing
+    /// Il focus conta, i suoi minuti sono messi da parte, ma non bastano ancora per la prossima figurina.
+    case progress
+    /// Il focus conta, ma non c'è più niente da trovare: le figurine delle isole aperte le hai tutte (arrivano altre cose con un nuovo compagno).
+    case complete
     case found(GardenDrop)
 }
 
 enum GardenDrops {
     // MARK: - I numeri
 
-    /// Quanto studio serve perché un focus faccia tirare (in secondi). Un focus interrotto non dà niente.
+    /// Quanto studio serve perché un focus conti per i regali (in secondi). Un focus interrotto non conta.
     static let minimumSeconds = 20 * 60
-    /// Una volta su cinque non esce niente, ma mai più di due volte di fila.
-    static let nothingChance = 0.20
-    static let maxNothingInARow = 2
+    /// Il primo regalo costa 60 minuti di studio (dei focus che contano), e ogni regalo costa 8 minuti in più per ogni cosa che hai già trovato oltre alla dotazione.
+    static let firstGiftMinutes = 60
+    static let giftMinutesStep = 8
     /// Le probabilità di partenza (il resto è comune).
     static let baseRare = 0.22
     static let baseLegendary = 0.03
@@ -73,11 +84,32 @@ enum GardenDrops {
     /// Le garanzie: al massimo questi regali senza un raro (o meglio), e senza un leggendario.
     static let rarePity = 10
     static let legendaryPity = 40
-    /// Dentro la rarità estratta, quanto spesso esce un oggetto che non hai ancora (se ce n'è).
-    static let newItemBias = 0.80
 
     static func isEligible(_ session: StudySession, minimumSeconds: Int = GardenDrops.minimumSeconds) -> Bool {
         session.completed && session.seconds >= minimumSeconds
+    }
+
+    /// Quanti secondi di studio costa il prossimo regalo, avendo già trovato `found` cose in tutto (la dotazione non conta: `starters`).
+    static func giftCostSeconds(found: Int, starters: Int = GardenCatalog.items.filter { $0.isStarter }.count) -> Int {
+        (firstGiftMinutes + giftMinutesStep * max(found - starters, 0)) * 60
+    }
+
+    /// C'è ancora qualcosa da trovare fra questi oggetti?
+    static func hasSomethingToFind(state: GardenDropState, pool: [GardenItem]) -> Bool {
+        pool.contains { state.found[$0.id] == nil }
+    }
+
+    /// Quanti minuti di studio mancano al prossimo regalo (0 = è già maturato e arriva al prossimo focus); nil se non c'è più niente da trovare.
+    static func minutesToNextGift(state: GardenDropState, pool: [GardenItem]) -> Int? {
+        guard hasSomethingToFind(state: state, pool: pool) else { return nil }
+        let missing = giftCostSeconds(found: state.found.count) - state.studyBank
+        return missing <= 0 ? 0 : (missing + 59) / 60
+    }
+
+    /// Quanta strada si è fatta verso il prossimo regalo, da 0 a 1; nil se non c'è più niente da trovare.
+    static func giftProgress(state: GardenDropState, pool: [GardenItem]) -> Double? {
+        guard hasSomethingToFind(state: state, pool: pool) else { return nil }
+        return min(max(Double(state.studyBank) / Double(giftCostSeconds(found: state.found.count)), 0), 1)
     }
 
     /// Le probabilità di raro e di leggendario per un focus: dipendono dai giorni di fila e da quanto è lungo.
@@ -131,18 +163,29 @@ enum GardenDrops {
 
     // MARK: - Il tiro
 
-    /// Il regalo di un focus, o nil se questa volta non esce niente. `state` si aggiorna (copie, contatori); `pool` sono gli oggetti
-    /// che possono uscire (di solito il catalogo; più avanti solo quelli dei compagni sbloccati e delle stagioni in corso).
-    static func roll(sessionID: String, streakDays: Int, seconds: Int, state: inout GardenDropState,
-                     pool: [GardenItem] = GardenCatalog.items, allowNothing: Bool = true) -> GardenDrop? {
-        var stream = Stream(seed: hash(sessionID.uppercased()))
-        let nothing = stream.next(), rarityDraw = stream.next(), newDraw = stream.next(), pickDraw = stream.next()
+    /// Un focus che conta: i suoi secondi vanno nella riserva (`studyBank`) e, se la riserva basta per il prossimo regalo e c'è ancora qualcosa da trovare, il regalo
+    /// si tira e ne costa il prezzo. Se i regali maturati sono più di uno (si aspettava un compagno nuovo) ne arriva uno per focus. `scale` moltiplica i secondi (per provare: `quickGifts`).
+    static func credit(sessionID: String, streakDays: Int, seconds: Int, state: inout GardenDropState,
+                       pool: [GardenItem] = GardenCatalog.items, scale: Int = 1) -> GardenDrop? {
+        state.studyBank += max(seconds, 0) * max(scale, 1)
+        guard hasSomethingToFind(state: state, pool: pool) else { return nil }
+        let cost = giftCostSeconds(found: state.found.count)
+        guard state.studyBank >= cost else { return nil }
+        guard let drop = roll(sessionID: sessionID, streakDays: streakDays, seconds: seconds, state: &state, pool: pool) else { return nil }
+        state.studyBank -= cost
+        return drop
+    }
 
-        if allowNothing, state.nothingInARow < maxNothingInARow, nothing < nothingChance {
-            state.nothingInARow += 1
-            return nil
-        }
-        state.nothingInARow = 0
+    /// Il regalo che esce quando maturano i minuti (e per gli ospiti e i regali dei punti, che non passano dalla riserva), o nil se non c'è più niente da trovare. `state` si
+    /// aggiorna (cosa si è trovato, contatori); `pool` sono gli oggetti che possono uscire (di solito il catalogo; più avanti solo quelli dei compagni sbloccati e delle stagioni in corso).
+    /// Esce sempre qualcosa che non hai ancora: una cosa trovata è tua e se ne mettono quante si vuole, un doppione non servirebbe.
+    static func roll(sessionID: String, streakDays: Int, seconds: Int, state: inout GardenDropState,
+                     pool: [GardenItem] = GardenCatalog.items) -> GardenDrop? {
+        var stream = Stream(seed: hash(sessionID.uppercased()))
+        let rarityDraw = stream.next(), pickDraw = stream.next()
+
+        let fresh = pool.filter { state.found[$0.id] == nil }
+        guard !fresh.isEmpty else { return nil }
 
         let (rare, legendary) = chances(streakDays: streakDays, seconds: seconds)
         var rarity: GardenRarity
@@ -155,32 +198,21 @@ enum GardenDrops {
         } else {
             rarity = .common
         }
-        // Se di quella rarità non c'è niente da far uscire, si scende (poi, in ultimo, si sale).
-        var candidates = pool.filter { $0.rarity == rarity }
-        if candidates.isEmpty {
-            for fallback in GardenRarity.allCases.reversed() where candidates.isEmpty {
-                candidates = pool.filter { $0.rarity == fallback }
-                rarity = fallback
-            }
+        // Se di quella rarità non c'è più niente da trovare, si scende (dalla più vicina) e, in ultimo, si sale.
+        var candidates: [GardenItem] = []
+        let order = Array(GardenRarity.allCases.filter { $0 <= rarity }.reversed()) + GardenRarity.allCases.filter { $0 > rarity }
+        for next in order where candidates.isEmpty {
+            candidates = fresh.filter { $0.rarity == next }
+            rarity = next
         }
-        guard !candidates.isEmpty else { return nil }
-
-        // Di norma esce qualcosa che non hai (se ce n'è); ogni tanto un doppione, che va comunque nel prato.
-        let fresh = candidates.filter { state.found[$0.id] == nil }
-        let chosen: GardenItem
-        if !fresh.isEmpty, newDraw < newItemBias || fresh.count == candidates.count {
-            chosen = fresh[Int(pickDraw * Double(fresh.count))]
-        } else {
-            chosen = candidates[Int(pickDraw * Double(candidates.count))]
-        }
-        let isNew = state.found[chosen.id] == nil
-        state.found[chosen.id, default: 0] += 1
+        let chosen = candidates[min(Int(pickDraw * Double(candidates.count)), candidates.count - 1)]
+        state.found[chosen.id] = 1
         state.sinceRare = rarity >= .rare ? 0 : state.sinceRare + 1
         state.sinceLegendary = rarity == .legendary ? 0 : state.sinceLegendary + 1
-        return GardenDrop(item: chosen.id, rarity: rarity, isNew: isNew, copies: state.found[chosen.id] ?? 1)
+        return GardenDrop(item: chosen.id, rarity: rarity)
     }
 
-    /// Tutti i regali che il registro avrebbe dato, in ordine di tempo, partendo da un album appena cominciato.
+    /// Tutti i regali che il registro avrebbe dato, in ordine di tempo, partendo da un album appena cominciato (con la riserva di minuti: un focus che conta può dare niente).
     /// Serve a provare le regole e a confrontare Mac e Windows; nell'app i tiri si fanno uno alla volta, a fine focus.
     static func simulate(sessions: [StudySession], now: Date, calendar: Calendar = StudyPeriod.calendar(),
                          pool: [GardenItem] = GardenCatalog.items) -> [(session: StudySession, drop: GardenDrop?)] {
@@ -193,7 +225,7 @@ enum GardenDrops {
         }
         for session in ordered where isEligible(session) {
             let day = calendar.startOfDay(for: session.startTime(in: calendar))
-            let drop = roll(sessionID: session.id.uuidString, streakDays: streak.perDay[day] ?? 1, seconds: session.seconds, state: &state, pool: pool)
+            let drop = credit(sessionID: session.id.uuidString, streakDays: streak.perDay[day] ?? 1, seconds: session.seconds, state: &state, pool: pool)
             result.append((session, drop))
         }
         return result
@@ -201,23 +233,42 @@ enum GardenDrops {
 
     // MARK: - Le parole
 
-    /// La frase di fine focus sul regalo (vuota se il focus non faceva tirare).
-    static func line(for gift: GardenGift) -> String {
+    /// «Ancora 35 minuti di studio»: quanto manca, a parole (un minuto solo: «Ancora 1 minuto»).
+    private static func minutesWords(_ minutes: Int) -> String {
+        minutes == 1 ? "1 minuto" : "\(minutes) minuti"
+    }
+
+    /// Sotto la riga «Album» del menu e nel giardino: quanto manca alla prossima figurina. Vuota se non c'è più niente da trovare.
+    static func nextGiftLine(minutesLeft: Int?) -> String {
+        guard let minutesLeft else { return "" }
+        return minutesLeft == 0 ? "Prossima figurina: al prossimo focus" : "Prossima figurina: ancora \(minutesWords(minutesLeft)) di studio"
+    }
+
+    /// La frase di fine focus sul regalo (vuota se il focus non contava, o se c'è già tutto). `minutesLeft` sono i minuti che mancano alla figurina dopo: si dicono sempre,
+    /// perché la strada fino alla prossima sia in vista.
+    static func line(for gift: GardenGift, minutesLeft: Int? = nil) -> String {
+        let next: String
+        switch minutesLeft {
+        case nil: next = ""
+        case 0?: next = "Ne hai già un'altra pronta: arriva al prossimo focus."
+        case let minutes?: next = "La prossima tra \(minutesWords(minutes)) di studio."
+        }
         switch gift {
-        case .notEligible:
+        case .notEligible, .complete:
             return ""
-        case .nothing:
-            return "Questa volta niente figurina: la prossima non è lontana."
+        case .progress:
+            guard let minutesLeft, minutesLeft > 0 else { return "" }
+            return "Ancora \(minutesWords(minutesLeft)) di studio e trovi una figurina."
         case .found(let drop):
             let name = GardenCatalog.item(withID: drop.item)?.name ?? drop.item
             let number = GardenCatalog.number(of: drop.item).map { " (n. \($0))" } ?? ""
-            switch (drop.rarity, drop.isNew) {
-            case (.legendary, _): return "Una figurina leggendaria: \(name)\(number)!"
-            case (.rare, true): return "Nuova figurina rara: \(name)\(number)!"
-            case (.rare, false): return "Una figurina rara: \(name) (ne hai \(drop.copies))."
-            case (.common, true): return "Nuova figurina: \(name)\(number)."
-            case (.common, false): return "Hai ritrovato \(name): ne hai \(drop.copies)."
+            let sentence: String
+            switch drop.rarity {
+            case .legendary: sentence = "Una figurina leggendaria: \(name)\(number)!"
+            case .rare: sentence = "Nuova figurina rara: \(name)\(number)!"
+            case .common: sentence = "Nuova figurina: \(name)\(number)."
             }
+            return next.isEmpty ? sentence : sentence + " " + next
         }
     }
 }

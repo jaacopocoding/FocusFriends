@@ -627,8 +627,8 @@
     },
     "contatori" : {
       "dalLeggendario" : 7,
-      "dalRaro" : 0,
-      "niente" : 0
+      "dalRaro" : 4,
+      "riservaSecondi" : 0
     },
     "copie" : [
       {
@@ -652,76 +652,74 @@
       {
         "col" : 2,
         "girata" : false,
-        "oggetto" : "bandierine",
+        "oggetto" : "papaveri",
         "row" : 5
       },
       {
-        "col" : 7,
+        "col" : 3,
         "girata" : false,
-        "oggetto" : "erbe",
-        "row" : 1
+        "oggetto" : "funghi",
+        "row" : 6
       },
       {
-        "col" : 4,
+        "col" : 3,
         "girata" : false,
-        "oggetto" : "sdraio",
+        "oggetto" : "picnic",
+        "row" : 2
+      },
+      {
+        "col" : 6,
+        "girata" : false,
+        "oggetto" : "felci",
         "row" : 6
       },
       {
         "col" : 1,
         "girata" : false,
-        "oggetto" : "carillon",
+        "oggetto" : "annaffiatoio",
         "row" : 4
       }
     ],
-    "daMettere" : {
-      "erba-alta" : 1,
-      "mughetti" : 1,
-      "trifoglio" : 1,
-      "tulipani" : 1
-    },
     "isola" : 8,
     "oggettiUsabili" : [
       "margherite",
       "trifoglio",
-      "erba-alta",
       "mughetti",
       "tulipani",
+      "funghi",
       "lavanda",
-      "erbe",
-      "tunnel",
-      "casetta-uccelli",
-      "bandierine",
-      "sdraio",
-      "carillon",
-      "panchina",
-      "lanterna-voliera"
+      "papaveri",
+      "felci",
+      "cesto-carote",
+      "annaffiatoio",
+      "cesto-cuscino",
+      "picnic",
+      "panchina"
     ],
     "regaliAperti" : 7,
     "regaliTrovati" : [
-      "bandierine",
-      "casetta-uccelli",
-      "tunnel",
-      "lanterna-voliera",
-      "erbe",
-      "sdraio",
-      "carillon"
+      "papaveri",
+      "funghi",
+      "picnic",
+      "cesto-carote",
+      "cesto-cuscino",
+      "felci",
+      "annaffiatoio"
     ],
     "trovati" : {
-      "bandierine" : 1,
-      "carillon" : 1,
-      "casetta-uccelli" : 1,
-      "erba-alta" : 1,
-      "erbe" : 1,
-      "lanterna-voliera" : 1,
+      "annaffiatoio" : 1,
+      "cesto-carote" : 1,
+      "cesto-cuscino" : 1,
+      "felci" : 1,
+      "funghi" : 1,
       "lavanda" : 1,
       "margherite" : 1,
       "mughetti" : 1,
       "panchina" : 1,
-      "sdraio" : 1,
+      "papaveri" : 1,
+      "picnic" : 1,
       "trifoglio" : 1,
-      "tulipani" : 1,
-      "tunnel" : 1
+      "tulipani" : 1
     }
   },
   "profilo" : {

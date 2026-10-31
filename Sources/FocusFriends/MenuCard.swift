@@ -56,6 +56,9 @@ struct MenuCardState {
     var albumFound = 0
     var albumTotal = 0
     var albumNew = 0
+    /// Quanto manca alla prossima figurina: i minuti di studio (0 = è già pronta) e la strada fatta, da 0 a 1. nil = non c'è più niente da trovare.
+    var giftMinutesLeft: Int?
+    var giftProgress = 0.0
 }
 
 /// Quello che serve ogni secondo mentre la scheda è aperta: poco, perché il resto (statistiche, serie, compagni)
@@ -432,6 +435,17 @@ private final class MenuCardView: NSView {
                       ? "\(s.albumFound)/\(s.albumTotal)" + (s.albumNew > 0 ? " · \(s.albumNew) \(s.albumNew == 1 ? "nuova" : "nuove")" : "") : nil,
                       toggle: nil, y: y, close: true) {
             self.actions.showAlbum()
+        }
+        // la strada fino alla prossima figurina, sempre in vista
+        if let left = s.giftMinutesLeft {
+            let line = GardenDrops.nextGiftLine(minutesLeft: left)
+            let fraction = CGFloat(s.giftProgress)
+            add(NSRect(x: Self.pad + 32, y: y + 1, width: Self.width - 2 * Self.pad - 32, height: 28), label: line, close: true, { self.actions.showAlbum() }) { rect, _, hovered in
+                Self.text(line, in: NSRect(x: rect.minX, y: rect.minY, width: rect.width - 2, height: 14),
+                          font: NSFont.systemFont(ofSize: 11), color: hovered ? Paper.ink : Paper.inkLight)
+                Self.drawBar(NSRect(x: rect.minX, y: rect.minY + 19, width: rect.width - 2, height: 5), fraction: fraction)
+            }
+            y += 1 + 28 + 3
         }
         y = addOption(symbol: s.isPetVisible ? "eye.slash" : "eye",
                       title: s.isPetVisible ? "Nascondi \(s.pet.name)" : "Mostra \(s.pet.name)",

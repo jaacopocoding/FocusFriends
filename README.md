@@ -72,7 +72,7 @@ e, da «Mostra le sessioni», una tendina sotto il riepilogo con la nota e la fa
 
 **Il giardino e l'album**: ogni focus completato (almeno 20 minuti di studio) può regalarti una figurina, che appare
 accanto al personaggio. Le figurine stanno in un **album** da collezionare, un libro antico in una finestra tutta sua, e
-le copie che trovi le metti sulle **isole** del giardino, che è tuo: un mondo di quattro isole, una per compagno, ognuna una
+quello che trovi è tuo: lo metti, quante volte vuoi, sulle **isole** del giardino, che è tuo: un mondo di quattro isole, una per compagno, ognuna una
 griglia di tessere vista di sbieco (da 8×8, che si allarga completando le pagine dell'album) e unite da ponti che si
 costruiscono quando sblocchi i compagni. I compagni sbloccati camminano sulla loro isola, e se li tocchi parlano.
 
@@ -150,7 +150,7 @@ per tipo) e uno tuo si può *rimuovere*. *Avvia* parte con i minuti scelti; la p
 | Pomofocus ▸ | Timer: *Focus 30/50 min*, *Pausa 5/10 min*, *Personalizza…*, *Ferma timer* |
 | Statistiche e riepilogo… | La finestra con il riepilogo di oggi e le statistiche della settimana, del mese e dell'anno |
 | Il mio giardino… | La tua isola: le figurine da mettere, gli oggetti e i compagni (con il tuo nome: «Il giardino di …») |
-| Album | L'album delle figurine, con quante ne hai trovate e quante sono nuove |
+| Album | L'album delle figurine, con quante ne hai trovate e quante sono nuove, e sotto quanto manca alla prossima |
 | Il tuo nome… | Cambia il nome che compare nei titoli |
 | Chiedi com'è andata | Se a fine focus compare «Com'è andata?» (spunta = sì) |
 | Pausa lunga dopo 4 focus | Dopo quattro focus completati di fila la pausa dura 15 minuti (spunta = sì) |
@@ -347,18 +347,25 @@ l'album sono due finestre diverse: il libro serve a collezionare e a guardare, l
 
 ### I regali di fine focus
 
-A ogni focus **completato** con almeno **20 minuti** di studio (`GardenDrops.minimumSeconds`) il personaggio dice se hai
-trovato una figurina, e questa compare accanto a lui per qualche secondo (`GiftCard.swift`). Un focus interrotto o più
-corto non dà e non toglie niente. Le regole, tutte in `GardenDrops.swift` (solo Foundation, con prove):
+Ogni focus **completato** con almeno **20 minuti** di studio (`GardenDrops.minimumSeconds`) mette da parte i suoi minuti, e
+**ogni tanto** quei minuti bastano per una figurina, che compare accanto al personaggio per qualche secondo (`GiftCard.swift`).
+Un focus interrotto o più corto non dà e non toglie niente. Le regole, tutte in `GardenDrops.swift` (solo Foundation, con prove):
 
-- **Qualche volta non esce niente**: una volta su cinque, ma mai più di due di fila.
+- **Si guadagna studiando, non a sorte**: la prima figurina arriva dopo **60 minuti** di studio (dei focus che contano), e
+  ognuna costa **8 minuti in più** per ogni cosa che hai già trovato oltre alle tre di partenza (la seconda 68, la decima
+  124, l'ultima 348). Non esce mai «niente figurina»: a fine focus il personaggio dice quanto manca («Ancora 35 minuti di
+  studio e trovi una figurina»), sotto la riga **Album** del menu c'è la stessa riga con una barra, e nel giardino una
+  pastiglia «ancora 35 min» che si riempie piano. Un focus lungo non dà due figurine insieme: se ne sono maturate di più
+  ne arriva una per focus.
 - **Tre rarità**: comune, raro (bordo d'argento) e leggendario (bordo d'oro con le stelline). Parti dal 22 % di raro e dal
   3 % di leggendario; con la serie salgono (da 3, 7 e 14 giorni di fila) e un focus da 45 minuti in su dà un po' più di
   raro. Le garanzie: al massimo 10 regali senza un raro e 40 senza un leggendario.
-- **Di norma esce qualcosa che non hai** (4 volte su 5, se ce n'è ancora). Un doppione non si perde: è una **copia** in
-  più, da mettere nel prato.
-- **Il tiro non si ripete chiudendo l'app**: dipende solo dall'identificativo del focus e da quello che hai già trovato
-  (FNV-1a e Mulberry32, uguali in TypeScript per quando arriverà su Windows). Lo stesso focus non tira due volte.
+- **Esce sempre qualcosa che non hai**: una cosa trovata è tua e se ne mettono quante si vuole, quindi un doppione non
+  servirebbe. Quando hai tutto quello che c'è nelle isole aperte il focus non dà niente di nuovo (e non dice niente), ma
+  i minuti si mettono da parte lo stesso: quando un compagno nuovo porta altre cose, le figurine maturate nel frattempo
+  arrivano una per focus.
+- **Quale figurina esce non si ripete chiudendo l'app**: dipende solo dall'identificativo del focus e da quello che hai già
+  trovato (FNV-1a e Mulberry32, uguali in TypeScript per quando arriverà su Windows). Lo stesso focus non conta due volte.
 
 **La serie ghiacciata.** Un giorno senza studio non azzera la serie: la **ghiaccia**. Il numero resta fermo
 (nella scheda del menu, nelle statistiche e nel giardino compare un fiocco di neve) e, se studi il giorno dopo,
@@ -370,10 +377,10 @@ ancora studiato non si giudica niente: la giornata non è finita.
 
 Si apre dalla riga **Album** del menu (sotto «Da fare») o dal pulsante nel giardino (`AlbumWindow.swift`). Si vede
 prima la copertina, che dice quante figurine hai e quante sono nuove; un tocco la apre, girando attorno al dorso, sulla
-doppia pagina delle figurine nuove. Ogni sezione del catalogo (**Fiori**, **Per i compagni**, **Arredi**: 43 figurine
-in tutto, per ora) occupa una doppia pagina da sei per lato (i compagni sono sedici e gli arredi quindici: la terza pagina ha le ultime figurine, le luci). Le figurine trovate sono incollate un po' storte, con il
-numero, il nome e un ×2 se ne hai due copie; le altre sono caselle tratteggiate con la sagoma e la rarità. Si sfoglia con
-le frecce, le linguette delle sezioni, la tastiera o due dita sul trackpad; un tocco su una figurina dice quante copie hai.
+doppia pagina delle figurine nuove. Ogni sezione del catalogo (**Fiori**, **Per i compagni**, **Arredi**: 40 figurine
+in tutto, per ora) occupa una doppia pagina da sei per lato (i fiori sono dieci, i compagni e gli arredi quindici: la terza pagina ha le ultime tre figurine, le luci). Le figurine trovate sono incollate un po' storte, con il
+numero e il nome; le altre sono caselle tratteggiate con la sagoma e la rarità. Si sfoglia con
+le frecce, le linguette delle sezioni, la tastiera o due dita sul trackpad; un tocco su una figurina dice di che rarità è, dove si può mettere e quante ne hai sull'isola.
 Quando una doppia pagina è tutta trovata compare un sigillo «completa».
 
 <p align="center">
@@ -412,22 +419,22 @@ il compagno (`GardenWorld` e `GardenIslands`, in `GardenGrid.swift`).
   sua isola. Il regalo non dipende dal ponte: se l'isola nuova è in diagonale rispetto a quelle aperte (il Gattino per
   primo e Pianty per secondo, per esempio) la cerimonia mostra solo il regalo («Nuova isola»), e i ponti nascono quando
   arriva un compagno vicino. Chi aveva già più compagni sbloccati trova i ponti già costruiti e niente cerimonia.
-- **Le cose degli animali.** Le figurine sono **universali** (i 27 fiori e arredi: vanno su qualunque isola) o **di un
-  animale** (quattro per animale, le sedici «Per i compagni»: stanno solo sulla sua isola). Se ne trascini una su un'altra
+- **Le cose degli animali.** Le figurine sono **universali** (i 25 fiori e arredi: vanno su qualunque isola) o **di un
+  animale** (le quindici «Per i compagni», tre per Pianty e quattro per gli altri: stanno solo sulla sua isola). Se ne trascini una su un'altra
   isola il bersaglio diventa rosso e l'app dice «La casa del gatto sta solo sull'isola di Gattino.». Un oggetto qualunque
   si può portare da un'isola all'altra; un compagno resta sulla sua. Nell'album ogni figurina dice «universale» o «solo
-  Gattino», e la cassetta *Da mettere* mostra, su ogni isola, solo le copie che ci stanno.
+  Gattino», e la cassetta *Da mettere* mostra, su ogni isola, solo le cose che ci stanno.
 - **I regali pescano da quello che serve.** Il sorteggio di fine focus sceglie fra le figurine universali e quelle degli
   animali **già sbloccati**, così non esce mai una cosa che non si può mettere da nessuna parte. Cambiando l'elenco
   cambia il regalo di uno stesso focus: i dettagli sono in [`FORMATI.md`](FORMATI.md).
 - **Chi aveva già un giardino.** La prima volta che apre la versione nuova, le cose di un animale che stavano sull'isola
   sbagliata vanno sulla sua, **vicine fra loro** (così gli angoli si formano ancora); se la sua isola è ancora chiusa
-  tornano nella cassetta. Nessuna copia si perde, il giardino lo dice con una riga e il file di prima resta accanto
+  escono dall'isola e restano nella cassetta. Il giardino lo dice con una riga e il file di prima resta accanto
   (`giardino-prima-delle-regole.json`; ci sono anche `giardino-formato3.json` e `giardino-prima-dei-ponti.json`).
 
 Per rivedere la cerimonia, da Terminale: `defaults write com.jacopo.focusfriends replayBridges -string porcellino` rifà
 la costruzione dei ponti di quell'isola senza regalo né salvataggio, e `replayWelcome -string porcellino` rifà l'arrivo
-con il regalo vero (una copia in più nell'album ogni volta); l'app li legge e li toglie alla prossima entrata, mai durante
+con il regalo vero (la prima cosa dell'animale che non hai ancora); l'app li legge e li toglie alla prossima entrata, mai durante
 un focus.
 
 ### L'isola e la cassetta
@@ -482,14 +489,14 @@ Sopra il terreno si spargono **dettagli** disegnati (`assets/giardino/dettaglio_
 bianchi, rosa, gialli e azzurri, sassi, e secondo la stagione petali (primavera), foglie (autunno) e ciuffi di neve (inverno). Quali e dove dipende solo
 dalla tessera e dalla stagione (`GardenTerrain.decals`), quindi non cambiano a ogni apertura; sul sentiero ce ne sono pochi.
 
-In basso a sinistra, **Da mettere · N** apre la cassetta con le copie che hai trovato e non hai ancora messo:
+In basso a sinistra, **Da mettere** apre la cassetta con tutto quello che hai trovato (e che sta su quell'isola), sempre, anche se ne hai già messo:
 
 - un tocco ne mette una su una tessera libera, trascinandola la metti dove vuoi: **le tessere sotto il mouse diventano
   verdi se ci sta, rosse se no** (sentiero, fuori dall'isola, sopra un'altra cosa) e la copia si appoggia sulla tessera
-  più vicina; **ne puoi mettere quante sono le copie che hai** (con un solo girasole, un solo girasole sull'isola);
+  più vicina; **ne puoi mettere quante ne vuoi** (una cosa trovata è tua, senza numeri né limiti: solo il posto sull'isola finisce); dopo averne messa una la cassetta resta a portata;
 - si trascina tutto: dalla cassetta all'isola per metterlo, sull'isola per spostarlo; **R** mentre lo trascini (o il tasto
   destro → *Gira*) lo gira, e per toglierlo lo si lascia nella zona tratteggiata che compare in basso a sinistra (o tasto
-  destro → *Togli dal giardino*): la copia torna tra quelle da mettere;
+  destro → *Togli dal giardino*): la cosa resta tua, nella cassetta;
 - i **compagni** camminano da soli, ogni tanto, sulle tessere libere accanto; se li trascini dove vuoi, lì è casa loro, e
   se li tocchi parlano.
 
@@ -520,10 +527,10 @@ in `GardenCatalog.swift` (per ora la rarità si ricava dal vecchio prezzo: fino 
 
 Fino alla 0.9 il giardino si riempiva con i **punti** (uno per ora di studio) spesi in un negozio. Alla prima apertura
 della 0.10 il file passa al formato nuovo e **non si perde niente**: gli oggetti già sbloccati diventano figurine trovate
-(con tante copie quante ne avevi nel prato, almeno una) e i punti non spesi diventano **regali da aprire** (uno per
+e i punti non spesi diventano **regali da aprire** (uno per
 punto), che si aprono come i regali di fine focus, la prima volta che apri il giardino o l'album. Le cose che avevi messo
 nel prato libero vanno sulla tessera libera più vicina a dove stavano, e quelle che non ci stanno (l'isola è piena)
-tornano tra le copie da mettere. L'ultimo file in formato vecchio resta accanto, come `giardino-formato1.json` o
+escono dall'isola (restano nella cassetta). L'ultimo file in formato vecchio resta accanto, come `giardino-formato1.json` o
 `giardino-formato2.json`. La 0.9 non legge il formato nuovo.
 
 ### I compagni nel giardino
@@ -533,17 +540,17 @@ delle sue frasi. Non si comprano e non si tolgono: sono casa loro.
 
 ### Dove sta
 
-`giardino.json`, accanto a `sessioni.json`: `{"version": 4, "home", "drops": {"found": {"margherite": 2, …}, "nothingInARow",
-"sinceRare", "sinceLegendary"}, "lastRolled", "unseen": […], "pendingGifts", "legacySpent", "placements": [{"id", "item",
+`giardino.json`, accanto a `sessioni.json`: `{"version": 4, "home", "drops": {"found": {"margherite": 1, …},
+"sinceRare", "sinceLegendary", "studyBank"}, "lastRolled", "unseen": […], "pendingGifts", "legacySpent", "placements": [{"id", "item",
 "island", "col", "row", "turned"}], "companions": {"gattino": {"col", "row"}}, "corners", "guests", "bridges", "welcomed",
-"islandRules", "rulesNotice"}`. `found` dice quante copie hai di ogni cosa; `island` su quale isola sta la copia e `home` qual
+"islandRules", "rulesNotice"}`. `found` dice cosa hai trovato (1 per ogni cosa: il numero viene da quando si contavano le copie); `island` su quale isola sta la copia e `home` qual
 è l'isola di casa; `col` e `row` sono la tessera dove sta l'angolo in fondo dell'oggetto; `bridges` quali ponti sono costruiti
 e `welcomed` a quali isole è già arrivato il regalo di benvenuto. Il formato per intero, chiave per chiave, è in
 [`FORMATI.md`](FORMATI.md). Un file rovinato viene messo da parte
 (`giardino.corrotto-….json`), uno di una versione più nuova si legge ma non si riscrive, e *Cancella tutto…* lo toglie
-con il resto (e il giardino riparte dalla dotazione: 4 figurine, già sull'isola di casa). Le regole stanno in `Garden.swift`,
+con il resto (e il giardino riparte dalla dotazione: 3 figurine, già sull'isola di casa). Le regole stanno in `Garden.swift`,
 `GardenGrid.swift`, `GardenDrops.swift`, `GardenCatalog.swift`, `GardenCorners.swift`, `GardenCompanions.swift` e `GardenPoints.swift`
-(solo Foundation, con prove). Con `developerMode` (vedi sopra) è tutto trovato, le copie sono illimitate e tutte le isole sono aperte; con `quickGifts`
+(solo Foundation, con prove). Con `developerMode` (vedi sopra) è tutto trovato e tutte le isole sono aperte; con `quickGifts`
 (`defaults write com.jacopo.focusfriends quickGifts -bool true`) anche un focus da un minuto fa tirare, per provare.
 
 ### Aggiungere oggetti
@@ -597,6 +604,13 @@ Il Gattino ha un disegno da fermo, 6 fotogrammi di camminata, 5 di quando mangia
 disegnati dall'app, come per il porcellino) e 5 di quando si lecca la zampa, che usano lo stesso meccanismo del battito
 d'ali di Ciccio (`popcornFrames`). Parla con le frasi di `assets/frasi_gattino.txt`. Durante un focus cammina come
 sempre.
+
+Il Riccio, il quinto compagno, ha un disegno da fermo, 6 fotogrammi di camminata, 5 di quando mangia uno spicchio di mela
+(seduto), 6 di sonno (sdraiato, con il respiro) e 5 di quando si arrotola a palla e si riapre (`popcornFrames`). Parla con le frasi di
+`assets/frasi_riccio.txt`. **Durante un focus** sta fermo e la schiena si riempie di cose d'autunno (una foglia, un fungo, una mela, una
+ghianda: `assets/garden/growth_riccio_<1..5>.png`, come la carota del porcellino), e a fine focus mangia. Se lo sollevi col mouse compaiono le mani con i
+guanti da giardinaggio (gli aculei!), e lui è spaventato. Si sblocca per ultimo (a 150 focus pieni), e
+per ora non ha ancora l'isola: arriverà con i suoi oggetti.
 
 **Ciccio durante un focus** sta fermo e prende il posto del suo nido (`focusGrowthResources` in `Pet.swift`,
 le immagini `garden_ciccio_<1..5>.png`): parte dall'uovo e, con il tempo, passa al guscio
@@ -676,10 +690,10 @@ ambiente (pioggia, vento…) e viceversa. Il codice è in `MusicPlayer.swift` (r
 ## Frasi
 
 Le frasi di partenza sono in `assets/frasi_pianty.txt` (Pianty), `assets/frasi_porcellino.txt`
-(Porcellino), `assets/frasi_ciccio.txt` (Ciccio) e `assets/frasi_gattino.txt` (Gattino), una per riga
+(Porcellino), `assets/frasi_ciccio.txt` (Ciccio), `assets/frasi_gattino.txt` (Gattino) e `assets/frasi_riccio.txt` (Riccio), una per riga
 (le righe che iniziano con `#` sono ignorate). Per usare le tue senza ricompilare, scegli *Modifica le
 frasi…* dal menu: crea e apre `~/Library/Application Support/FocusFriends/frasi_pianty.txt` (o quello del porcellino,
-di Ciccio o del gattino), che ha la precedenza sul file incluso nell'app. Le modifiche valgono dalla frase successiva.
+di Ciccio, del gattino o del riccio), che ha la precedenza sul file incluso nell'app. Le modifiche valgono dalla frase successiva.
 Se esiste ancora la vecchia cartella `Application Support/Bonsy` (dai tempi in cui l'app si chiamava così), viene
 letta come seconda scelta. Anche le preferenze (personaggio, frequenza, timer personalizzati) vengono copiate
 dalla vecchia app al primo avvio (`Migration.swift`).
@@ -736,17 +750,17 @@ Sources/FocusFriends/
   BreakCycle.swift      il ciclo dei quattro focus e la pausa lunga (solo Foundation, con prove)
   CompanionRewards.swift  quando si sbloccano i compagni: 20, 50 e 100 focus, e l'elenco degli avatar della pagina «Avatar» (solo Foundation, con prove)
   AvatarStage.swift       le figure intere dei compagni, le sagome sfocate e il palco che scorre della pagina «Avatar» del menu
-  Garden.swift          il giardino di chi usa l'app: figurine trovate, copie su ogni isola, compagni, ponti, angoli e ospiti (solo Foundation, con prove)
+  Garden.swift          il giardino di chi usa l'app: figurine trovate, cosa c'è su ogni isola, compagni, ponti, angoli e ospiti (solo Foundation, con prove)
   GardenGrid.swift      le isole e il mondo: tessere, sentieri, case, ponti, terreno e collina (solo Foundation, con prove)
   GardenDrops.swift     il regalo di fine focus: rarità, probabilità, garanzie e un tiro uguale su Mac e Windows (solo Foundation, con prove)
-  GardenCatalog.swift   i 43 oggetti (27 universali e 16 di un animale), la rarità e il regalo di benvenuto (solo Foundation, con prove)
+  GardenCatalog.swift   i 40 oggetti (25 universali e 15 di un animale), la rarità e il regalo di benvenuto (solo Foundation, con prove)
   GardenCorners.swift   gli angoli: quali cose vicine fanno qualcosa insieme (solo Foundation, con prove)
   GardenCompanions.swift  cosa fanno i compagni agli angoli: pose, gusti e percorsi (solo Foundation, con prove)
   GardenVisitors.swift  gli ospiti: chi viene, a che ora e in che stagione, e cosa lo attira (solo Foundation, con prove)
   GardenSky.swift       la luce per ora e stagione, i lampioni, le lucciole e il moto di petali, foglie e neve (solo Foundation, con prove)
   GardenSprites.swift   le immagini degli oggetti con la loro sagoma, per il giardino e per le figurine
   AlbumWindow.swift     l'album: la copertina, le doppie pagine e il libro che si apre e gira
-  Sticker.swift         la figurina (carta, bordo di rarità, numero, nome, ×N) e dove si può mettere
+  Sticker.swift         la figurina (carta, bordo di rarità, numero, nome) e dove si può mettere
   GiftCard.swift        la figurina che compare accanto al personaggio a fine focus
   GardenPoints.swift    i punti, il moltiplicatore e la serie con un giorno di ghiaccio (solo Foundation, con prove)
   MusicPlayer.swift     la riproduzione dei brani del focus
@@ -775,11 +789,14 @@ assets/
   gattino/idle_original.png, walk_original.png, eat_original.png, sleep_original.png, groom_original.png   le tavole del gatto
   gattino/frame1..23.png   fermo, 6 di camminata, 5 mangia, 6 dorme, 5 si lecca la zampa, sulla stessa tela (tools/cutout_gattino.py)
   gattino/picked_original.png, picked.png   il gatto sollevato dalle mani (tools/cutout_picked.py ... 252: maniche quasi bianche)
+  riccio/idle_original.png, walk_original.png, eat_original.png, sleep_original.png, roll_original.png, growth_original.png   le tavole del riccio
+  riccio/picked_original.png, picked.png   il riccio sollevato dalle mani (tools/cutout_picked.py)
+  riccio/frame1..23.png   fermo, 6 di camminata, 5 mangia, 6 dorme, 5 si arrotola, sulla stessa tela; garden/growth_riccio_1..5.png la schiena che si riempie (tools/cutout_riccio.py)
   giardino/*_original.png   i fogli degli oggetti del giardino (fiori, case dei compagni, arredi) e il prato
   giardino/<id>.png, prato.png   gli oggetti ritagliati, uno per file (tools/cutout_giardino.py), e il prato ingrandito
   giardino/casa_<isola>.png, ponte_*.png   le case delle isole e i pezzi dei ponti (tools/cutout_case.py, tools/cutout_ponte.py)
   bubble_original.png, bubble.png   fumetto e ritaglio (tools/cutout_bubble.py)
-  frasi_pianty.txt, frasi_porcellino.txt, frasi_ciccio.txt, frasi_gattino.txt   frasi incluse nell'app
+  frasi_pianty.txt, frasi_porcellino.txt, frasi_ciccio.txt, frasi_gattino.txt, frasi_riccio.txt   frasi incluse nell'app
   logo_original.png     il logo: un pomodoro-timer con l'anello che mostra il tempo
   AppIcon.png, AppIcon.icns   icona dell'app, generata da tools/make_icon.py (il logo nella forma delle icone di macOS);
                         la stessa immagine è in docs/images/logo.png, quella che mostra il README

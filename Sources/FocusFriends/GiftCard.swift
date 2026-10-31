@@ -20,7 +20,7 @@ final class GiftCard {
         guard let item = GardenCatalog.item(withID: drop.item) else { return }
         self.pet = pet
         startedAt = Date()
-        let look = Sticker.Look(item: item, number: GardenCatalog.number(of: item.id) ?? 0, found: true, copies: drop.copies, isNew: drop.isNew)
+        let look = Sticker.Look(item: item, number: GardenCatalog.number(of: item.id) ?? 0, found: true, isNew: true)
         let view = GiftCardView(frame: NSRect(origin: .zero, size: Self.size), look: look)
         let panel = OverlayWindow(content: view)
         panel.setContentSize(Self.size)

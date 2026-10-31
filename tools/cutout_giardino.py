@@ -8,7 +8,7 @@ Ogni foglio ha i suoi oggetti in una griglia (di solito 4 colonne per 3 righe), 
   luci_original.png        su fondo magenta, 2 colonne per 2 righe: del braciere, spento e acceso (le altre due celle non servono)
   luci2_original.png       su fondo magenta, 3 colonne per 2 righe: dell'alberello di lucine e della lanterna sul ceppo (le altre celle non servono)
   luci3_original.png       su fondo magenta, 2 colonne per 2 righe: le luci degli animali (barattolo di lucciole, lanterna per la voliera, lampada da fienile, candela nel cesto)
-Le celle senza id (None) si saltano. Il braciere acceso e quello spento sono lo stesso disegno con la fiamma: si ritagliano insieme (stessa larghezza e stesso fondo),
+Le celle senza id (None) si saltano (nei fogli dei fiori e dei compagni sono quelle di erba alta, vaso di erbe e vaso grande, tolti dal catalogo). Il braciere acceso e quello spento sono lo stesso disegno con la fiamma: si ritagliano insieme (stessa larghezza e stesso fondo),
 perché in giardino si scambiano di sera senza che si muova niente.
 
 Il fondo magenta si toglie meglio di quello bianco (non confonde i petali o le campanule bianche con lo sfondo);
@@ -27,12 +27,12 @@ DIR = "assets/giardino"
 # (foglio, sfondo, gli id degli oggetti in ordine di lettura (None = cella da saltare), oggetti con il bianco chiuso da tenere, colonne, righe)
 SHEETS = [
     ("fiori_original.png", "white",
-     ["margherite", "tulipani", "lavanda", "girasole", "papaveri", "erbe", "funghi", "felci", "rosaio", "trifoglio",
-      "mughetti", "erba-alta"],
+     ["margherite", "tulipani", "lavanda", "girasole", "papaveri", None, "funghi", "felci", "rosaio", "trifoglio",
+      "mughetti", None],
      {"margherite", "mughetti"}, 4, 3),
     ("compagni_original.png", "magenta",
      ["casetta-gatto", "tiragraffi", "cesto-cuscino", "casetta-porcellino", "tunnel", "cesto-carote", "casetta-uccelli",
-      "altalena-uccelli", "bagnetto", "vaso-grande", "annaffiatoio", "aiuola"],
+      "altalena-uccelli", "bagnetto", None, "annaffiatoio", "aiuola"],
      set(), 4, 3),
     ("arredi_original.png", "magenta",
      ["panchina", "altalena", "amaca", "tavolino", "picnic", "sdraio", "lampione", "bandierine", "carillon",

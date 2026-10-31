@@ -1,10 +1,9 @@
 import Foundation
 
-/// Il giardino di chi usa l'app: l'album delle figurine trovate (quante copie di ogni oggetto), quante ne ha messe sull'isola e su quale
-/// tessera, dove stanno i compagni. Sta in `giardino.json` accanto ai dati (e "Cancella tutto…" lo toglie con il resto).
-/// Le figurine arrivano a fine focus (GardenDrops): si trovano, non si comprano. Una copia si può mettere sull'isola, spostare, girare e
-/// togliere (torna tra quelle da mettere); il numero di copie sull'isola non supera quello delle copie trovate. Le regole di dove ci
-/// stanno le cose sono in GardenGrid.swift.
+/// Il giardino di chi usa l'app: l'album delle figurine trovate, cosa ha messo sull'isola e su quale tessera, dove stanno i compagni.
+/// Sta in `giardino.json` accanto ai dati (e "Cancella tutto…" lo toglie con il resto).
+/// Le figurine arrivano a fine focus (GardenDrops): si trovano, non si comprano. Una volta trovata, una cosa è tua e basta: se ne mettono quante si vogliono
+/// (fino al tetto di ogni isola), si spostano, si girano e si tolgono, e nella cassetta c'è sempre. Le regole di dove ci stanno le cose sono in GardenGrid.swift.
 /// Solo Foundation: si collauda da solo (tests/main.swift).
 /// Un ospite che ha già fatto visita (`GardenVisitors`): il diario ricorda quando, quante volte e cosa l'aveva attirato.
 struct GardenGuest: Codable, Equatable {
@@ -26,12 +25,12 @@ struct GardenGuestWelcome: Equatable {
 struct GardenBridgeWelcome: Equatable {
     var island: String
     var item: String
-    /// La copia messa sull'isola; nil se non c'era posto (resta tra quelle da mettere).
+    /// La copia messa sull'isola; nil se non c'era posto (la cosa è nella cassetta, da mettere a mano).
     var placement: UUID?
 }
 
-/// Cosa ha fatto la sistemazione delle cose degli animali (`Garden.settleRules`): quante copie sono passate sull'isola giusta e quante sono tornate nella cassetta
-/// (perché l'isola giusta è ancora chiusa, o piena). La finestra del giardino lo dice una volta, alla prima entrata.
+/// Cosa ha fatto la sistemazione delle cose degli animali (`Garden.settleRules`): quante copie sono passate sull'isola giusta e quante sono state tolte dall'isola
+/// (perché l'isola giusta è ancora chiusa, o piena): la cosa è sempre nella cassetta. La finestra del giardino lo dice una volta, alla prima entrata.
 struct GardenRulesReport: Codable, Equatable {
     var moved: Int
     var returned: Int
@@ -94,7 +93,7 @@ final class Garden {
 
     private let file: URL
     private let directory: URL
-    /// Quello che si è trovato (copie di ogni oggetto) e i contatori delle garanzie.
+    /// Quello che si è trovato e i contatori delle garanzie.
     private(set) var drops = GardenDropState.starting()
     /// L'ultimo focus che ha tirato: lo stesso focus non tira due volte.
     private(set) var lastRolled: String?
@@ -188,23 +187,26 @@ final class Garden {
             }
             if contents.version >= 2, let saved = contents.drops {
                 drops = saved
-                // Mai meno copie trovate di quante ne stanno sull'isola (di una cosa che si ripete basta che ce ne sia una: se ne mettono quante si vuole).
-                for (item, placed) in Dictionary(grouping: allPlacements, by: { $0.item }).mapValues({ $0.count }) {
-                    let needed = GardenCatalog.item(withID: item)?.repeatable == true ? 1 : placed
-                    if (drops.found[item] ?? 0) < needed { drops.found[item] = needed }
-                }
+                // Una cosa sull'isola è per forza trovata.
+                for item in Set(allPlacements.map { $0.item }) where (drops.found[item] ?? 0) < 1 { drops.found[item] = 1 }
                 lastRolled = contents.lastRolled
                 unseen = Set(contents.unseen ?? [])
                 pendingGifts = max(contents.pendingGifts ?? 0, 0)
                 legacySpent = contents.legacySpent
             } else {
-                // Versione 1: gli oggetti sbloccati restano nell'album (con tante copie quante ne aveva messe nel prato, almeno una).
+                // Versione 1: gli oggetti sbloccati restano nell'album, e quelli che aveva messo nel prato sono trovati.
                 drops = GardenDropState.starting()
-                for id in contents.unlocked ?? [] where GardenCatalog.item(withID: id) != nil { drops.found[id] = max(drops.found[id] ?? 0, 1) }
-                for (item, count) in Dictionary(grouping: allPlacements, by: { $0.item }).mapValues({ $0.count }) {
-                    drops.found[item] = max(drops.found[item] ?? 0, count)
-                }
+                for id in contents.unlocked ?? [] where GardenCatalog.item(withID: id) != nil { drops.found[id] = 1 }
+                for item in Set(allPlacements.map { $0.item }) { drops.found[item] = 1 }
                 legacySpent = max(contents.spent ?? 0, 0)
+            }
+            // Gli oggetti tolti dal catalogo spariscono da album e isole; il file com'era si tiene da parte, una volta.
+            let retired = GardenCatalog.retired
+            if allPlacements.contains(where: { retired.contains($0.item) }) || drops.found.keys.contains(where: { retired.contains($0) }) || unseen.contains(where: { retired.contains($0) }) {
+                allPlacements.removeAll { retired.contains($0.item) }
+                drops.found = drops.found.filter { !retired.contains($0.key) }
+                unseen = unseen.filter { !retired.contains($0) }
+                if contents.version >= Self.formatVersion { legacyBackupName = "giardino-prima-delle-rimozioni.json" }
             }
             if contents.version < Self.formatVersion { legacyBackupName = "giardino-formato\(max(contents.version, 1)).json" }
             if let saved = contents.bridges {
@@ -269,7 +271,7 @@ final class Garden {
     }
 
     /// Dopo aver letto un file: le posizioni del prato libero (versioni 1 e 2) diventano tessere, e quello che non ci sta (fuori
-    /// dall'isola, sul sentiero, sopra un'altra cosa) torna tra le copie da mettere. Isola per isola.
+    /// dall'isola, sul sentiero, sopra un'altra cosa) esce dall'isola (la cosa è nella cassetta). Isola per isola.
     private func settle(legacyCompanions: [String: GardenSpot]) {
         var occupied: [String: Set<GardenTile>] = [:]
         var sizes: [String: Int] = [:]
@@ -295,7 +297,7 @@ final class Garden {
                 placement.tile = origin
             } else if !GardenLayout.canPlace(footprint, at: placement.tile, size: size(of: island), occupied: occupied[island] ?? [], island: island) {
                 // se è sul sentiero dell'isola (che può essere cambiato) si sposta dopo, quando tutte le altre hanno il loro posto; fuori dall'isola o sopra
-                // un'altra cosa no: torna tra quelle da mettere
+                // un'altra cosa no: esce dall'isola
                 let path = Set(GardenPaths.tiles(island: island, size: size(of: island))).union(GardenLandmarks.tiles(island: island))
                 let covered = GardenLayout.tiles(of: footprint, at: placement.tile)
                 if covered.allSatisfy({ GardenIsland.contains($0, size: size(of: island)) }) && covered.contains(where: { path.contains($0) }) { onPath.append(placement) }
@@ -381,26 +383,20 @@ final class Garden {
 
     // MARK: - L'album
 
-    /// Quante copie di un oggetto si sono trovate.
-    func copies(of id: String) -> Int {
-        drops.found[id] ?? 0
-    }
-
-    /// Quante sono ancora da mettere nel prato. Di una cosa che si ripete (la staccionata), una volta trovata, ce n'è sempre una: se ne mettono quante si vuole.
-    func available(_ id: String) -> Int {
-        if GardenCatalog.item(withID: id)?.repeatable == true, copies(of: id) > 0 { return 1 }
-        return max(copies(of: id) - count(of: id), 0)
+    /// L'hai trovato? Da quel momento è tuo: se ne mettono quanti si vuole.
+    func has(_ id: String) -> Bool {
+        (drops.found[id] ?? 0) > 0
     }
 
     /// L'oggetto è nell'album? (In modalità sviluppatore sono tutti.)
     func isFound(_ id: String) -> Bool {
         guard GardenCatalog.item(withID: id) != nil else { return false }
-        return copies(of: id) > 0 || Profile.isDeveloper
+        return has(id) || Profile.isDeveloper
     }
 
     /// Quanti oggetti diversi si sono trovati.
     var foundCount: Int {
-        GardenCatalog.items.filter { copies(of: $0.id) > 0 }.count
+        GardenCatalog.items.filter { has($0.id) }.count
     }
 
     /// L'album è stato aperto: le figurine nuove non sono più «NUOVE».
@@ -415,34 +411,42 @@ final class Garden {
     /// Le isole aperte: quelle dei compagni sbloccati (tutte, se nessuno ha detto chi è sbloccato).
     private func isOpen(_ island: String) -> Bool { isIslandOpen?(island) ?? true }
 
-    /// Gli oggetti che un regalo può essere: gli universali e quelli degli animali sbloccati, nell'ordine del catalogo, tranne quelli che si ripetono e ci sono già (una seconda
-    /// staccionata non servirebbe a niente). Con un altro elenco lo stesso focus dà un altro regalo: l'elenco fa parte del tiro (vedi FORMATI.md).
+    /// Gli oggetti che un regalo può essere: gli universali e quelli degli animali sbloccati, nell'ordine del catalogo (il tiro sceglie fra quelli che non hai ancora).
+    /// Con un altro elenco lo stesso focus dà un altro regalo: l'elenco fa parte del tiro (vedi FORMATI.md).
     var dropPool: [GardenItem] {
-        GardenCatalog.items.filter { item in
-            guard !(item.repeatable && copies(of: item.id) > 0) else { return false }
-            return item.island.map(isOpen) ?? true
-        }
+        GardenCatalog.items.filter { item in item.island.map(isOpen) ?? true }
     }
 
-    /// Il regalo di un focus appena finito: tira (una volta sola per focus), e se esce qualcosa lo mette subito nel prato.
+    /// Un focus appena finito: se conta (completato, da 20 minuti in su; una volta sola per focus) i suoi minuti vanno nella riserva, e se bastano per la prossima figurina
+    /// quella esce e va subito nel prato (`.found`); altrimenti `.progress`. Se hai già tutto quello che c'è nelle isole aperte la riserva cresce lo stesso (`.complete`):
+    /// quando un compagno nuovo porta altre cose, i regali maturati nel frattempo arrivano uno per focus.
     @discardableResult
     func rollGift(for session: StudySession, streakDays: Int) -> GardenGift {
-        // Per provarlo senza aspettare 20 minuti: `defaults write com.jacopo.focusfriends quickGifts -bool true` (da un minuto in su).
-        let minimum = UserDefaults.standard.bool(forKey: Self.quickGiftsKey) ? SessionLog.minimumSeconds : GardenDrops.minimumSeconds
+        // Per provarlo senza studiare ore: `defaults write com.jacopo.focusfriends quickGifts -bool true` (un focus da un minuto conta, e ogni minuto vale un'ora).
+        let quick = UserDefaults.standard.bool(forKey: Self.quickGiftsKey)
+        let minimum = quick ? SessionLog.minimumSeconds : GardenDrops.minimumSeconds
         guard GardenDrops.isEligible(session, minimumSeconds: minimum), lastRolled != session.id.uuidString else { return .notEligible }
+        let pool = dropPool
+        let somethingToFind = GardenDrops.hasSomethingToFind(state: drops, pool: pool)
         var state = drops
-        let drop = GardenDrops.roll(sessionID: session.id.uuidString, streakDays: streakDays, seconds: session.seconds, state: &state, pool: dropPool)
+        let drop = GardenDrops.credit(sessionID: session.id.uuidString, streakDays: streakDays, seconds: session.seconds, state: &state, pool: pool, scale: quick ? 60 : 1)
         drops = state
         lastRolled = session.id.uuidString
         guard let drop else {
             save()
-            return .nothing
+            return somethingToFind ? .progress : .complete
         }
         unseen.insert(drop.item)
         autoPlace(drop.item, salt: session.id.uuidString)
         save()
         return .found(drop)
     }
+
+    /// Quanti minuti di studio mancano alla prossima figurina (0 = è già maturata e arriva al prossimo focus); nil se non c'è più niente da trovare nelle isole aperte.
+    var minutesToNextGift: Int? { GardenDrops.minutesToNextGift(state: drops, pool: dropPool) }
+
+    /// Quanta strada si è fatta verso la prossima figurina, da 0 a 1; nil se non c'è più niente da trovare.
+    var nextGiftProgress: Double? { GardenDrops.giftProgress(state: drops, pool: dropPool) }
 
     /// Chi aveva il giardino della versione 1: i punti guadagnati e non spesi diventano regali da aprire (una volta sola).
     func convertLegacyPoints(earned: Int) {
@@ -461,7 +465,7 @@ final class Garden {
         let pool = dropPool
         for number in 1...pendingGifts {
             let id = "REGALO-\(number)"
-            if let drop = GardenDrops.roll(sessionID: id, streakDays: 1, seconds: GardenDrops.minimumSeconds, state: &state, pool: pool, allowNothing: false) {
+            if let drop = GardenDrops.roll(sessionID: id, streakDays: 1, seconds: GardenDrops.minimumSeconds, state: &state, pool: pool) {
                 opened.append(drop)
                 unseen.insert(drop.item)
                 drops = state
@@ -475,12 +479,12 @@ final class Garden {
     }
 
     /// Mette una copia appena trovata su una tessera libera scelta dal numero (sempre la stessa per lo stesso regalo): una cosa di un animale sull'isola di quell'animale,
-    /// una universale sull'isola di casa (o su `island`, se si dice). Se non c'è posto resta tra le copie da mettere. Dice quale copia ha messo.
+    /// una universale sull'isola di casa (o su `island`, se si dice). Se non c'è posto non la mette (la cosa è nella cassetta). Dice quale copia ha messo.
     @discardableResult
     private func autoPlace(_ id: String, on island: String? = nil, salt: String) -> UUID? {
         guard let item = GardenCatalog.item(withID: id) else { return nil }
         let island = island ?? item.island ?? homeIsland
-        guard item.fits(island: island), placements(on: island).count < Self.maxPlacements, available(id) > 0 else { return nil }
+        guard item.fits(island: island), placements(on: island).count < Self.maxPlacements else { return nil }
         let origins = GardenLayout.freeOrigins(for: item.footprint, size: islandSize(of: island), occupied: occupiedTiles(on: island), island: island)
         guard !origins.isEmpty else { return nil }
         var stream = GardenDrops.Stream(seed: GardenDrops.hash("posto-" + salt.uppercased()))
@@ -522,8 +526,8 @@ final class Garden {
         welcomedUnsettled ? [] : GardenWorld.newcomers(open: open, welcomed: Set(welcomed), home: homeIsland)
     }
 
-    /// Segna costruiti questi ponti e accolte queste isole, e dà il regalo di benvenuto a ciascuna: il primo oggetto del loro animale che non si ha ancora, o una copia in più
-    /// del primo. Il regalo va sull'isola (se c'è posto). Un salvataggio solo. Ponti e isole sono due cose separate: `built` può essere vuoto (un compagno in diagonale non ha ponte)
+    /// Segna costruiti questi ponti e accolte queste isole, e dà il regalo di benvenuto a ciascuna: il primo oggetto del loro animale che non si ha ancora (niente, se si hanno
+    /// già tutti). Il regalo va sull'isola (se c'è posto). Un salvataggio solo. Ponti e isole sono due cose separate: `built` può essere vuoto (un compagno in diagonale non ha ponte)
     /// e `islands` può essere vuoto (un ponte fra due isole già accolte).
     @discardableResult
     func buildBridges(_ built: [GardenBridge], welcoming islands: [String]) -> [GardenBridgeWelcome] {
@@ -532,8 +536,8 @@ final class Garden {
         var welcomes: [GardenBridgeWelcome] = []
         for island in islands {
             if !welcomed.contains(island) { welcomed.append(island) }
-            guard let item = GardenCatalog.welcomeGift(forIsland: island, copies: { copies(of: $0) }) else { continue }
-            drops.found[item, default: 0] += 1
+            guard let item = GardenCatalog.welcomeGift(forIsland: island, has: { has($0) }) else { continue }
+            drops.found[item] = 1
             unseen.insert(item)
             welcomes.append(GardenBridgeWelcome(island: island, item: item, placement: autoPlace(item, on: island, salt: "BENVENUTO-" + island)))
         }
@@ -545,7 +549,7 @@ final class Garden {
 
     /// Una volta sola per file (manca `islandRules`): le copie di un animale che stanno su un'isola che non è la sua passano sull'isola giusta, **vicine fra loro** (ogni animale
     /// ha un punto, la media di dove stavano, e le sue copie si dispongono attorno a quello, le più grandi per prime: così gli angoli — gatto, porcellino, uccelli, orto — si riformano
-    /// e i compagni rifanno le pose). Se quell'isola è chiusa (o non ha più posto) la copia torna tra quelle da mettere: nessuna copia si perde, cambia solo dov'è. Salva subito, tenendo il
+    /// e i compagni rifanno le pose). Se quell'isola è chiusa (o non ha più posto) la copia esce dall'isola: la cosa è nella cassetta, da rimettere quando si può. Salva subito, tenendo il
     /// file com'era in `giardino-prima-delle-regole.json` (solo se si è spostato qualcosa), e lascia da dire alla prossima entrata nel giardino cosa è successo (`takeRulesNotice`).
     /// Si chiama all'avvio, dopo aver deciso la casa e `isIslandOpen` (le copie senza isola sono di casa); non fa niente se il file non si può scrivere.
     func settleRules() {
@@ -640,13 +644,11 @@ final class Garden {
     /// Le tessere coperte sull'isola mostrata.
     func occupiedTiles(ignoring: UUID? = nil) -> Set<GardenTile> { occupiedTiles(on: shownIsland, ignoring: ignoring) }
 
-    /// Le copie ancora da mettere che si possono mettere su quell'isola (se non si dice, la mostrata): le universali e quelle del suo animale, nell'ordine dell'album.
-    func tray(on island: String? = nil) -> [(item: GardenItem, count: Int)] {
+    /// Le cose che si possono mettere su quell'isola (se non si dice, la mostrata): tutte quelle trovate, le universali e quelle del suo animale, nell'ordine dell'album.
+    /// Ci sono sempre, anche se ne hai già messe: una cosa trovata è tua e se ne mettono quante si vuole.
+    func tray(on island: String? = nil) -> [GardenItem] {
         let target = island.map(resolved) ?? shownIsland
-        return GardenCatalog.items.compactMap { item in
-            let count = item.fits(island: target) ? available(item.id) : 0
-            return count > 0 ? (item, count) : nil
-        }
+        return GardenCatalog.items.filter { $0.fits(island: target) && has($0.id) }
     }
 
     /// Ci sta una copia di `id` con l'angolo in fondo su `tile`, su quell'isola (se non si dice, la mostrata)? Una cosa di un animale sta solo sulla sua isola, una
@@ -658,11 +660,11 @@ final class Garden {
         return GardenLayout.canPlace(item.footprint.applying(turned: turned), at: tile, size: islandSize(of: target), occupied: occupiedTiles(on: target, ignoring: ignoring), island: target)
     }
 
-    /// Mette una copia dell'oggetto (se ce n'è una da mettere e ci sta). Ritorna la copia, o nil se non si può.
+    /// Mette una copia dell'oggetto (se l'hai trovato e ci sta). Ritorna la copia, o nil se non si può.
     @discardableResult
     func place(_ id: String, at tile: GardenTile, turned: Bool = false, on island: String? = nil) -> GardenPlacement? {
         let target = island.map(resolved) ?? shownIsland
-        guard isFound(id), available(id) > 0 || Profile.isDeveloper, placements(on: target).count < Self.maxPlacements,
+        guard isFound(id), placements(on: target).count < Self.maxPlacements,
               canPlace(id, at: tile, turned: turned, on: target) else { return nil }
         let made = GardenPlacement(item: id, tile: tile, turned: turned, island: stored(target))
         allPlacements.append(made)
@@ -670,7 +672,7 @@ final class Garden {
         return made
     }
 
-    /// Mette una copia su una tessera libera qualunque (un tocco sulla cassetta): sempre la stessa per lo stesso numero di copie.
+    /// Mette una copia su una tessera libera qualunque (un tocco sulla cassetta): sempre la stessa per lo stesso numero di copie già sull'isola.
     @discardableResult
     func placeSomewhere(_ id: String, on island: String? = nil) -> GardenPlacement? {
         guard let item = GardenCatalog.item(withID: id) else { return nil }
@@ -784,7 +786,7 @@ final class Garden {
         guests[id] = GardenGuest(first: day, visits: 1, reason: reason)
         var state = drops
         let salt = "OSPITE-\(id)"
-        let gift = GardenDrops.roll(sessionID: salt, streakDays: 1, seconds: GardenDrops.minimumSeconds, state: &state, pool: dropPool, allowNothing: false)
+        let gift = GardenDrops.roll(sessionID: salt, streakDays: 1, seconds: GardenDrops.minimumSeconds, state: &state, pool: dropPool)
         if let gift {
             drops = state
             unseen.insert(gift.item)

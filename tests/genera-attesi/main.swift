@@ -294,14 +294,13 @@ for entry in try fm.contentsOfDirectory(atPath: fixtures.path).sorted() {
         let opened = g.openPendingGifts()
         var part: [String: Any] = [
             "trovati": g.drops.found, "regaliAperti": pending, "regaliTrovati": opened.map { $0.item },
-            "contatori": ["niente": g.drops.nothingInARow, "dalRaro": g.drops.sinceRare, "dalLeggendario": g.drops.sinceLegendary],
+            "contatori": ["riservaSecondi": g.drops.studyBank, "dalRaro": g.drops.sinceRare, "dalLeggendario": g.drops.sinceLegendary],
             "avvisi": problems,
             "isola": g.islandSize,
             "copie": g.placements.map { ["oggetto": $0.item, "col": $0.col, "row": $0.row, "girata": $0.turned] as [String: Any] },
             "compagni": g.companionTiles.mapValues { ["col": $0.col, "row": $0.row] },
             "oggettiUsabili": GardenCatalog.items.filter { g.isFound($0.id) }.map { $0.id },
         ]
-        part["daMettere"] = GardenCatalog.items.reduce(into: [String: Int]()) { if g.available($1.id) > 0 { $0[$1.id] = g.available($1.id) } }
         result["giardino"] = part
     }
 

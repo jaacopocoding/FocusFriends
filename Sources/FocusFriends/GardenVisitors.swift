@@ -56,7 +56,7 @@ enum GardenVisitors {
                       seasons: allSeasons, slots: [.morning, .day, .evening], height: 50, weight: 1),
         GardenVisitor(id: "cinciallegra", name: "La cinciallegra", feminine: true, items: ["casetta-uccelli", "girasole"], haunts: [],
                       seasons: allSeasons, slots: [.morning, .day], height: 46, weight: 1),
-        GardenVisitor(id: "coniglio", name: "Il coniglio", feminine: false, items: ["erba-alta", "trifoglio", "aiuola"], haunts: [],
+        GardenVisitor(id: "coniglio", name: "Il coniglio", feminine: false, items: ["trifoglio", "aiuola"], haunts: [],
                       seasons: notWinter, slots: [.morning, .evening], height: 62, weight: 1),
         GardenVisitor(id: "riccio", name: "Il riccio", feminine: false, items: ["funghi", "felci", "cesto-cuscino"], haunts: [],
                       seasons: notWinter, slots: [.evening, .night], height: 52, weight: 1),

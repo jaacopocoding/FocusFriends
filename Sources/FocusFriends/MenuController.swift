@@ -589,7 +589,8 @@ final class MenuController: NSObject, NSMenuDelegate {
                 ? MusicPlayer.shared.volume : AmbientPlayer.shared.volume,
             lastFocusMinutes: pomodoro.lastFocus?.minutes, lastFocusSubject: pomodoro.lastFocus?.subject,
             lastSessionID: lastSession?.id, lastRating: lastSession?.rating, todo: todo,
-            albumFound: Garden.shared.foundCount, albumTotal: GardenCatalog.items.count, albumNew: Garden.shared.unseen.count
+            albumFound: Garden.shared.foundCount, albumTotal: GardenCatalog.items.count, albumNew: Garden.shared.unseen.count,
+            giftMinutesLeft: Garden.shared.minutesToNextGift, giftProgress: Garden.shared.nextGiftProgress ?? 0
         )
     }
 

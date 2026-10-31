@@ -14,23 +14,15 @@
     "contatori" : {
       "dalLeggendario" : 0,
       "dalRaro" : 0,
-      "niente" : 0
+      "riservaSecondi" : 0
     },
     "copie" : [
 
     ],
-    "daMettere" : {
-      "erba-alta" : 1,
-      "margherite" : 1,
-      "mughetti" : 1,
-      "rosaio" : 1,
-      "trifoglio" : 1
-    },
     "isola" : 8,
     "oggettiUsabili" : [
       "margherite",
       "trifoglio",
-      "erba-alta",
       "mughetti",
       "rosaio"
     ],
@@ -39,7 +31,6 @@
 
     ],
     "trovati" : {
-      "erba-alta" : 1,
       "margherite" : 1,
       "mughetti" : 1,
       "rosaio" : 1,
