@@ -19,6 +19,12 @@ for (const pet of pets) {
   if (pet.picked) wanted.add(pet.picked.image);
   wanted.add(`frasi_${pet.id}.txt`);
 }
+// il giardino: le immagini del paesaggio, delle isole e degli oggetti, e l'album (senza i fogli originali, i pezzi con cui si è composto il paesaggio,
+// il vecchio prato e le strisce del bordo di terra: con la collina sotto le isole non servono)
+const unused = /(_original|^paesaggio_.*|^prato|^bordo_.*)\.png$/;
+for (const folder of ["giardino", "album"]) {
+  for (const name of readdirSync(join(assets, folder))) if (name.endsWith(".png") && !unused.test(name)) wanted.add(`${folder}/${name}`);
+}
 for (const name of readdirSync(join(assets, "music"))) if (/\.(m4a|mp3|aac|wav|flac)$/i.test(name)) wanted.add(`music/${name}`);
 
 let missing = 0;

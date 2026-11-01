@@ -482,8 +482,16 @@ circa 5.250 righe: `GardenWindow` 3.441, `AlbumWindow` 1.204, `Sticker` e `GiftC
       ogni cartella con un giardino ha in più `dopoLAvvio` (casa, regole delle isole, ponti, file messi da parte), con due esempi nuovi (`giardino-formato3-regole`,
       `giardino-formato4`), e ogni cartella con sessioni le figurine che il registro avrebbe dato. Su Windows tutto uguale al primo colpo, tranne lo zero negativo che Swift
       scrive `-0`. Anche la prova di ritorno ora confronta il giardino. 366 prove su Windows, 1013 controlli sul Mac.
-- [ ] **G2 — Il giardino a schermo, fermo** (6): finestra, isola con terreno, bordo e collina, casa, oggetti (anche quelli sul lato e la staccionata), cielo e stagioni,
+- [x] **G2 — Il giardino a schermo, fermo** (6): finestra, isola con terreno, bordo e collina, casa, oggetti (anche quelli sul lato e la staccionata), cielo e stagioni,
       zoom e spostamenti. Si verifica mettendo accanto la stessa scena sul Mac e su Windows.
+      **Fatta il 1° novembre 2026.** `main/gardenWindow.ts` (la finestra, 1000 × 600 come la scena del Mac, più piccola su uno schermo stretto; si apre dal menu
+      dell'area di notifica), `shared/gardenApi.ts` e `preload/preloadGarden.ts` (la pagina riceve una fotografia del giardino), `renderer/garden/` (`scene.ts` il disegno,
+      `sprites.ts` le immagini: parte visibile, disegni sul lato con i bracci, tinta della luce). Tutte le isole con colline, terreno, dettagli, case, ponti costruiti, cose e
+      compagni (fermi), la luce dell'ora e della stagione, le finestre accese di sera, zoom con la rotellina e spostamento trascinando, «+», «−», «0», «M». La scena ferma
+      si dipinge una volta e si ridisegna solo se cambia qualcosa; spostandosi un fotogramma sta nei 16 ms. Il confronto: `test/vivo/giardino.cjs` fa le schermate su
+      Windows e `tools/render-giardino.sh` disegna la stessa cartella di dati con la `GardenView` vera del Mac (a mezzogiorno d'autunno, la sera, d'inverno, tutte le
+      isole): uguali, a parte quello che appartiene alle fasi dopo (i comandi, i nomi delle isole, il fumo). L'ora e la stagione si forzano con `gardenHour` e
+      `gardenSeason` in `impostazioni.json`. L'installer porta 285 file di immagini (46 MB): restano fuori i fogli originali, i pezzi del paesaggio, il vecchio prato e il bordo.
 - [ ] **G3 — Si gioca** (3): la cassetta «Da mettere», trascinare con l'anteprima verde o rossa, girare, togliere, i comandi in alto. Copioni in `test/vivo/`.
 - [ ] **G4 — Le figurine** (3): il tiro a fine focus (`PomodoroDeps.gardenLine`), la carta della figurina, la riga e la barra sotto «Album» nella scheda, «Cancella
       tutto…» che toglie anche il giardino (`StatsDeps.onDeleteAll`).

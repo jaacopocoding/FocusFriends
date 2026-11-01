@@ -23,6 +23,10 @@ import { createRemarks } from "./remarks.ts";
 import type { RemarksService } from "./remarks.ts";
 import { createStage } from "./stage.ts";
 import type { Stage } from "./stage.ts";
+import { Garden } from "../core/garden.ts";
+import { ISLANDS } from "../core/gardenGrid.ts";
+import { createGardenController } from "./gardenWindow.ts";
+import type { GardenController } from "./gardenWindow.ts";
 import { createStatsController } from "./statsWindow.ts";
 import type { StatsController } from "./statsWindow.ts";
 import { assetsDirectory, dataDirectory, rendererDirectory, resourcesDirectory } from "./paths.ts";
@@ -69,6 +73,7 @@ function snapshot(settings: Settings): SettingsSnapshot {
 
 async function start(): Promise<void> {
   let statsRef: StatsController | null = null;
+  let gardenRef: GardenController | null = null;
   app.dock?.hide();
   app.setAppUserModelId("com.jacopo.focusfriends");
   const assets = assetsDirectory(app);
@@ -125,9 +130,20 @@ async function start(): Promise<void> {
   profile.onProblem = say;
   settings.onProblem = say;
   todo.onProblem = say;
-  profile.addObserver(() => statsRef?.refreshTitle());
+  profile.addObserver(() => { statsRef?.refreshTitle(); gardenRef?.refreshTitle(); });
   // Chi usava già l'app li tiene tutti; per gli altri si guadagnano (silenziosamente: al massimo sono già meritati).
   profile.keepAllCompanions(PET_IDS);
+  // Il giardino: le isole aperte sono quelle dei compagni sbloccati, e l'isola di casa è quella del compagno scelto all'inizio (per chi usava già
+  // l'app, quella del compagno che usa); si decide una volta sola. Poi i ponti fra le isole già aperte e le cose degli animali sull'isola giusta.
+  const garden = new Garden(data, { developer: () => settings.developerMode });
+  garden.onProblem = say;
+  garden.isIslandOpen = (id) => profile.isCompanionUnlocked(id);
+  const settleGarden = (home: string): void => {
+    garden.adoptHome(home);
+    garden.settleBridges(new Set(ISLANDS.filter((id) => profile.isCompanionUnlocked(id))));
+    garden.settleRules();
+  };
+  if (profile.introSeen) settleGarden(profile.firstCompanion ?? settings.pet);
 
   ipcMain.handle(CHANNEL.getSettings, () => snapshot(settings));
   const interactions: string[] = [];
@@ -161,7 +177,12 @@ async function start(): Promise<void> {
   const stats: StatsController = statsRef = createStatsController({
     appPath: app.getAppPath(), log: () => service.log, profile,
     onBack: () => send(CHANNEL.cardReopen),
-    onDeleteAll: () => undefined,
+    onDeleteAll: () => garden.reset(),
+  });
+  const gardenWindow: GardenController = gardenRef = createGardenController({
+    appPath: app.getAppPath(), garden, profile,
+    forcedHour: () => settings.gardenHour, forcedSeason: () => settings.gardenSeason,
+    onBack: () => send(CHANNEL.cardReopen),
   });
   const card = createCardService({
     settings, profile, todo, window: win, timer: () => service,
@@ -171,6 +192,7 @@ async function start(): Promise<void> {
     moreSettings: () => tray?.popUp(),
     quit: () => app.quit(),
     stats: () => stats.show("day"),
+    introDone: (petId) => settleGarden(petId),
   });
 
   /** Un clic sull'icona (o una scelta del menu) che apre la scheda: le coordinate sono quelle della finestra (l'area di lavoro dello schermo del compagno). */
@@ -195,6 +217,7 @@ async function start(): Promise<void> {
     toggleCard: (bounds) => openCard({ toggle: true, bounds }),
     openTimers: () => openCard({ toggle: false, page: "timers" }),
     showStats: () => stats.show("day"),
+    showGarden: () => gardenWindow.show(),
     quit: () => app.quit(),
   });
   const menu = tray;
@@ -280,7 +303,7 @@ async function start(): Promise<void> {
   powerMonitor.on("resume", () => { awake("il computer si risveglia"); remarks.resumed(); });
   powerMonitor.on("unlock-screen", () => awake("lo schermo è sbloccato"));
 
-  if (process.env["FF_SELFTEST"] !== undefined) runSelfTest(win, interactions, settings, () => service, card, stats, stage, remarks);
+  if (process.env["FF_SELFTEST"] !== undefined) runSelfTest(win, interactions, settings, () => service, card, stats, stage, remarks, gardenWindow, garden);
 }
 
 /**
@@ -290,7 +313,7 @@ async function start(): Promise<void> {
  * - FF_SELFTEST_FILE=percorso.cjs: un copione che riceve gli strumenti (finestra, attese, schermate, misure, eventi del mouse).
  * FF_SELFTEST_OUT è la cartella dove scrivere.
  */
-function runSelfTest(win: BrowserWindow, interactions: string[], settings: Settings, timer: () => TimerService, card: ReturnType<typeof createCardService>, stats: StatsController, stage: Stage, remarks: RemarksService): void {
+function runSelfTest(win: BrowserWindow, interactions: string[], settings: Settings, timer: () => TimerService, card: ReturnType<typeof createCardService>, stats: StatsController, stage: Stage, remarks: RemarksService, gardenWindow: GardenController, garden: Garden): void {
   const out = process.env["FF_SELFTEST_OUT"] ?? join(app.getPath("temp"), "ff-selftest");
   mkdirSync(out, { recursive: true });
   // I messaggi della pagina (e i suoi errori) escono sul terminale.
@@ -304,6 +327,8 @@ function runSelfTest(win: BrowserWindow, interactions: string[], settings: Setti
     timer,
     card,
     stats,
+    gardenWindow,
+    garden,
     stage,
     remarks,
     sleep: (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)),

@@ -39,6 +39,7 @@ export interface TrayDeps {
   /** «Personalizza…»: la scheda aperta sulla pagina dei timer. */
   openTimers(): void;
   showStats(): void;
+  showGarden(): void;
   quit(): void;
 }
 
@@ -139,6 +140,7 @@ export function createTray(deps: TrayDeps): { refresh(): void; popUp(): void; bo
       { type: "separator" },
       { label: timer.phase === null ? "Pomofocus" : `Pomofocus · ${timer.remainingText}`, submenu: timerItems() },
       { label: `${profile.statsTitle}…`, click: () => deps.showStats() },
+      { label: `${profile.gardenTitle}…`, click: () => deps.showGarden() },
       {
         label: "Suono ambiente",
         submenu: [

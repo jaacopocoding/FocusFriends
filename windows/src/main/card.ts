@@ -34,6 +34,8 @@ export interface CardServiceOptions {
   moreSettings: () => void;
   quit: () => void;
   stats: () => void;
+  /** Dopo l'introduzione: il primo compagno è scelto (l'isola di casa del giardino è la sua). */
+  introDone?: (petId: string) => void;
 }
 
 export interface CardService {
@@ -219,6 +221,7 @@ export function createCardService(options: CardServiceOptions): CardService {
             showPetIfHidden();
           }
           options.say(petInfo(command.petId).greeting);
+          options.introDone?.(command.petId);
           break;
         }
         case "todoAdd": options.todo.add(command.text, command.due, command.subject); break;

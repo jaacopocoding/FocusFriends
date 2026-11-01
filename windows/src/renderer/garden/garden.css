@@ -1,0 +1,21 @@
+/* Il giardino: un canvas solo, grande quanto la finestra (che ha già le proporzioni della scena, 1000 × 600). */
+
+:root { color-scheme: light; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: rgb(158, 191, 140);
+  user-select: none;
+}
+
+#scene {
+  display: block;
+  width: 100vw;
+  height: 100vh;
+  cursor: grab;
+  touch-action: none;
+}
+
+#scene.panning { cursor: grabbing; }

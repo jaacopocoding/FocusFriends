@@ -90,7 +90,9 @@ Notes:
 - The rule that keeps `core/` reusable: modules imported by a page must not import `node:*`. Where a module needed both, it was split:
   `rules.ts`/`settings.ts`, `tracks.ts`/`music.ts`, `todo.ts`/`todoList.ts`. Nothing enforces this except the page bundle failing to build **[inferred]**.
 - `core/points.ts` (garden points) is **not imported by any app module**; it exists for the garden release and for the contract tests (`test/atteso.ts`).
-- **The garden's logic (G1 of `../PIANO_WINDOWS.md`, November 2026)** is in `core/` but **not yet wired into the app**: `gardenCatalog.ts`, `gardenDrops.ts`,
+- **The garden's logic (G1 of `../PIANO_WINDOWS.md`, November 2026)** is in `core/`; since G2 the app keeps a `Garden` in the main process (`main/main.ts`: home island,
+  bridges and island rules settled at launch and after the intro) and draws it in its own window (`main/gardenWindow.ts`, `renderer/garden/scene.ts`, opened from the tray
+  menu; still without the tray of things to place, the gifts and the album). The logic files are `gardenCatalog.ts`, `gardenDrops.ts`,
   `gardenGrid.ts`, `gardenSky.ts`, `gardenCorners.ts`, `gardenCompanions.ts`, `gardenVisitors.ts` (no `node:*`, usable by pages) and `garden.ts` (the
   `giardino.json` file, `node:fs`, main process only), one-to-one with the Swift files of the same name. They are checked against the Mac by
   `test/contratto.test.ts` (sections of `attesi/_giardino.json`, built by `test/giardino.ts`) and `test/giardino.test.ts`.

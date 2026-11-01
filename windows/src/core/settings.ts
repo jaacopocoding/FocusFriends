@@ -106,6 +106,10 @@ export class Settings {
   get developerMode(): boolean { return this.bool("developerMode", false); }
   set developerMode(value: boolean) { this.set("developerMode", value); }
 
+  /** Per provare il giardino a un'altra ora o in un'altra stagione senza aspettare (come `gardenHour` e `gardenSeason` sul Mac): chiavi nascoste, che si scrivono a mano. */
+  get gardenHour(): number | null { const hour = this.number("gardenHour"); return hour !== undefined && hour >= 0 && hour <= 24 ? hour : null; }
+  get gardenSeason(): string | null { const season = this.values["gardenSeason"]; return typeof season === "string" ? season : null; }
+
   // ---- i suoni
 
   get ambientSound(): AmbientSound { return oneOf(AMBIENT_SOUNDS, this.values["ambientSound"]) ?? "none"; }
