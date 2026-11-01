@@ -214,7 +214,7 @@ Versione 4 (Mac, dopo la 0.10.0): **più isole, una per compagno**. L'id di un'i
 e sempre nelle stesse posizioni sulla mappa). Ogni copia in `placements` dice su quale isola sta (`island`), e c'è l'isola di casa (`home`: quella del compagno scelto all'inizio, o
 per chi usava già l'app quella del compagno in uso). Il resto è come nella 3; chi apre un file della 3 trova tutte le copie sull'isola di casa (la scelta della casa si fa al primo
 avvio con la versione nuova: finché non c'è, le copie senza `island` stanno sull'isola `pianty`, che poi seguono la casa) e il vecchio file si tiene come `giardino-formato3.json`.
-L'app mostra le quattro isole in un mondo solo (quelle dei compagni non ancora sbloccati sono al buio), e il ponte fra due isole vicine si costruisce alla prima entrata nel
+L'app mostra le isole in un mondo solo (quelle dei compagni non ancora sbloccati sono al buio), e il ponte fra due isole vicine si costruisce alla prima entrata nel
 giardino dopo aver sbloccato il compagno (vedi `bridges`).
 
 Versione 3 (Mac 0.10.0): il giardino non ha più punti né negozio né prato libero: si riempie con le figurine trovate a fine focus
@@ -234,7 +234,7 @@ Versione 3 (Mac 0.10.0): il giardino non ha più punti né negozio né prato lib
   ],
   "companions" : { "gattino" : { "col" : 3, "row" : 4 } },
   "corners" : ["te", "orto"],
-  "guests" : { "riccio" : { "first" : "2026-10-26", "visits" : 2, "reason" : "Funghi" } },
+  "guests" : { "lumaca" : { "first" : "2026-10-26", "visits" : 2, "reason" : "Funghi" } },
   "bridges" : ["porcellino-gattino"],
   "welcomed" : ["gattino", "porcellino"]
 }
@@ -253,7 +253,10 @@ Versione 3 (Mac 0.10.0): il giardino non ha più punti né negozio né prato lib
   La forma dipende dal nome dell'isola; su un'isola più piccola è lo stesso sentiero ritagliato, con un tratto dritto fino all'approdo, quindi non cambia quando l'isola si allarga.
   Sul sentiero non si mette niente. (Il vecchio sentiero fisso — `row = 3` con `col` da 0 a 3, `col = 3` con `row` da 3 a 5, `row = 5` con `col ≥ 3` — vale ancora
   dove non si dice l'isola: lo usano i file di prova di `tests/fixtures/attesi` e il porting per Windows, che non ha ancora il giardino.)
-- **La casa**: ogni isola ha la sua (la serra di `pianty`, il fienile di `porcellino`, la voliera di `ciccio`, la casetta di `gattino`). Occupa **3×3 tessere nell'angolo in alto**
+- **Gli approdi dei ponti e il sentiero.** Il sentiero unisce i **primi due** approdi (nell'ordine dei ponti del mondo, quello di sempre: i sentieri già fatti non cambiano); un'isola con **un ponte solo** (il Riccio) ha un secondo
+  approdo «previsto» sul lato vicino (la riga 5 del lato in alto, `rowStart`), dove arriverà il ponte di un altro compagno; un'isola con **più di due** ponti (Gattino, dopo il ponte verso il Riccio: `colEnd`, colonna 9, riga 5) ha un tratto dritto,
+  in più, dall'approdo fino alla tessera del sentiero più vicina. Si aggiungono solo tessere, mai se ne tolgono (Gattino: le tessere da (6, 5) a (9, 5)).
+- **La casa**: ogni isola ha la sua (la serra di `pianty`, il fienile di `porcellino`, la voliera di `ciccio`, la casetta di `gattino`, la tana di foglie di `riccio`). Occupa **3×3 tessere nell'angolo in alto**
   (`col` e `row` da 0 a 2), fissa, e lì non si mette niente.
 - `home`: l'isola di casa; assente nei file della 3 finché non si decide. `placements[].island`: l'isola della copia (omesso se vuoto = casa).
 - **Oggetti universali e di un animale** (nel catalogo, non nel file): i 25 fiori e arredi stanno su qualunque isola; i 15 «per i compagni» si mettono solo sulla sua isola
@@ -281,19 +284,19 @@ Versione 3 (Mac 0.10.0): il giardino non ha più punti né negozio né prato lib
   al primo salvataggio (se non c'è già, e se non è già il file di una versione vecchia, che ha la sua copia). (Una cosa di un animale sull'isola sbagliata non si tocca qui: vedi `islandRules`.)
 - `corners` (facoltativo; assente se non se n'è sbloccato nessuno): gli **angoli** sbloccati, nell'ordine in cui si sono trovati (`te`, `lettura`, `orto`, `gatto`, `porcellino`,
   `uccelli`, `prato-fiorito`, `bosco`, `festa`, `rose`, e i due di ogni isola: `vivaio` e `acqua` per Pianty, `picnic` e `recinto` per Porcellino, `vento` e `bagno-sole` per Ciccio, `salotto` e
-  `palestra` per Gattino). Non cambia la versione: un'app che non lo conosce lo ignora (e, riscrivendo il file, lo perde: gli angoli si risbloccano). Quali cose formano un angolo e quanto devono
-  stare vicine sta in `GardenCorners.swift`, e va ripetuto uguale su Windows: i diciotto angoli sono, con le cose che vogliono (una copia diversa per ognuna, tutte entro due tessere da una «di mezzo»),
+  `palestra` per Gattino, `tana` e `dispensa` per il Riccio). Non cambia la versione: un'app che non lo conosce lo ignora (e, riscrivendo il file, lo perde: gli angoli si risbloccano). Quali cose formano un angolo e quanto devono
+  stare vicine sta in `GardenCorners.swift`, e va ripetuto uguale su Windows: i venti angoli sono, con le cose che vogliono (una copia diversa per ognuna, tutte entro due tessere da una «di mezzo»),
   `te` (tavolino, sdraio), `lettura` (panchina, lampione), `orto` (aiuola, annaffiatoio), `gatto` (casetta-gatto, tiragraffi, cesto-cuscino), `porcellino` (casetta-porcellino, tunnel, cesto-carote),
   `uccelli` (bagnetto, casetta-uccelli, altalena-uccelli), `prato-fiorito` (quattro fiori diversi), `bosco` (funghi, felci, mughetti), `festa` (bandierine, picnic, tavolino), `rose` (arco-rose, e panchina
   o ponticello), `vivaio` (aiuola, lavanda, tulipani), `acqua` (annaffiatoio, ponticello, felci), `picnic` (picnic, cesto-carote), `recinto` (casetta-porcellino, cancelletto, trifoglio), `vento` (carillon,
-  altalena-uccelli), `bagno-sole` (bagnetto, sdraio, girasole), `salotto` (cesto-cuscino, tavolino, lampione), `palestra` (tiragraffi, amaca). Gli otto nuovi hanno ognuno una cosa di un animale, quindi si
+  altalena-uccelli), `bagno-sole` (bagnetto, sdraio, girasole), `salotto` (cesto-cuscino, tavolino, lampione), `palestra` (tiragraffi, amaca), e i due del Riccio, sulla sua isola: `tana` (tana-foglie, mucchio-foglie, tronco-cavo) e `dispensa` (cassetta-mele, carriola-ghiande, zucca-lanterna). Gli otto nuovi hanno ognuno una cosa di un animale, quindi si
   formano solo sull'isola di quell'animale. Un giardino che ne forma già uno nuovo quando si apre la finestra lo sblocca (con le stelline) senza che si sposti niente.
-- `guests` (facoltativo): gli **ospiti** salutati, per specie (`pettirosso`, `cinciallegra`, `coniglio`, `riccio`, `rana`, `anatroccolo`, `lucertola`, `tartaruga`, `topolino`,
+- `guests` (facoltativo): gli **ospiti** salutati, per specie (`pettirosso`, `cinciallegra`, `coniglio`, `lumaca`, `rana`, `anatroccolo`, `lucertola`, `tartaruga`, `topolino`,
   `scoiattolo`, `civetta`, `volpe`): `first` il giorno della prima visita (`AAAA-MM-GG`), `visits` quante volte l'hai salutato, `reason` cosa l'aveva attirato (il nome di una
   cosa o di un angolo). La prima volta lascia un regalo, che è già dentro `drops` e `placements`: il regalo è deterministico (come per i punti, un tiro con
-  l'identificativo fisso `OSPITE-<specie>` in maiuscolo, che non può dare «niente»). Non cambia la versione; chi non lo conosce lo ignora (e, riscrivendo il file, lo perde).
+  l'identificativo fisso `OSPITE-<specie>` in maiuscolo, che non può dare «niente»). Non cambia la versione; chi non lo conosce lo ignora (e, riscrivendo il file, lo perde). Una specie che non c'è più (il `riccio`, che da ospite è diventato compagno e ha lasciato il posto alla `lumaca`) resta nel file e non fa niente.
 - `bridges` (**si scrive sempre**, anche vuoto): i **ponti costruiti**, nell'ordine in cui si sono costruiti. Un ponte si chiama `<prima>-<dopo>` con le due isole nell'ordine dei
-  compagni: `pianty-porcellino`, `pianty-ciccio`, `porcellino-gattino`, `ciccio-gattino` (solo fra isole vicine, mai in diagonale); un nome sconosciuto si ignora. Un ponte si disegna solo
+  compagni: `pianty-porcellino`, `pianty-ciccio`, `porcellino-gattino`, `ciccio-gattino`, `gattino-riccio` (solo fra isole vicine, mai in diagonale); un nome sconosciuto si ignora. Un ponte si disegna solo
   se è costruito **e** le sue due isole sono aperte. Si costruisce alla **prima entrata nel giardino dopo aver sbloccato un compagno** (non durante un focus): l'app salva i ponti e fa
   una cerimonia sola, anche se i ponti sono due (un compagno vicino a due isole aperte).
 - `welcomed` (**si scrive sempre**, come `bridges`): le isole che hanno già ricevuto il **regalo di benvenuto** (l'ordine non conta). Il regalo **non dipende dal ponte**: ogni
@@ -336,9 +339,9 @@ Versione 3 (Mac 0.10.0): il giardino non ha più punti né negozio né prato lib
   l'app non dice niente: `GardenGift.complete`). **Non esce mai «niente»**: un focus che conta senza regalo è `GardenGift.progress`, e l'app dice quanti minuti mancano
   (`ceil((costo − studyBank) / 60)`, 0 = già maturato). Gli ospiti, i regali dei punti convertiti e il regalo di benvenuto non passano dalla riserva. Con la chiave nascosta `quickGifts` ogni secondo conta 60.
   `GardenDrops.simulate` rifà tutto sul registro intero, ed è quello che deve dare lo stesso risultato su Mac e Windows.
-- **Il catalogo ha 40 oggetti** (25 universali; 3 per Pianty e 4 per ogni altro animale): i nuovi si aggiungono in fondo, e il numero di una figurina è la sua posizione nel catalogo (se se ne toglie uno, quelli dopo
+- **Il catalogo ha 47 oggetti** (25 universali; 3 per Pianty, 4 per Porcellino, Ciccio e Gattino, 7 per il Riccio): i nuovi si aggiungono in fondo, e il numero di una figurina è la sua posizione nel catalogo (se se ne toglie uno, quelli dopo
   scalano: tolti `erba-alta`, `erbe` e `vaso-grande`, oggi 34 `alberello-lucine`, 35 `lanterna-ceppo`, 36 `braciere`: arredi universali da una tessera, prezzi 5, 4 e 7, quindi rari, rari e leggendario; 37 `barattolo-lucciole` di Pianty,
-  38 `lanterna-voliera` di Ciccio, 39 `lampada-fienile` di Porcellino, 40 `candela-cesto` di Gattino: cose per i compagni da una tessera, prezzi 4, 5, 4 e 3, quindi rare, rara, rara e comune). Nell'album stanno con le altre cose per i compagni
+  38 `lanterna-voliera` di Ciccio, 39 `lampada-fienile` di Porcellino, 40 `candela-cesto` di Gattino: cose per i compagni da una tessera, prezzi 4, 5, 4 e 3, quindi rare, rara, rara e comune); poi 41 `mucchio-foglie` (2, comune), 42 `cassetta-mele` (3, comune), 43 `tronco-cavo` (4), 44 `zucca-lanterna` (4, **la luce**: 255, 156, 64; 0,7; 0,5; 0,85), 45 `hotel-insetti` (5), 46 `carriola-ghiande` (5) e 47 `tana-foglie` (6), tutte del Riccio e rare dal 43 in poi. Nell'album stanno con le altre cose per i compagni
   (una scheda ha le sue figurine nell'ordine del catalogo, non per numero). Cambiando il catalogo cambiano le rarità dell'elenco, e con loro il regalo di uno stesso focus.
 - **Le luci della sera** (`GardenItem.glow`; vedi `GardenSky`: `lamp` va da 0 di giorno a 1 di notte, `smoothstep(buio, 0,16, 0,40)`): un oggetto con una luce disegna un alone attorno a un punto del disegno
   (`top`: da 0 in cima a 1 ai piedi) e una pozza di luce sul prato (schiacciata a metà, larga un quinto più dell'alone), in luce additiva, con colore, `radius` (in larghezze di tessera) e `strength` suoi,
@@ -347,7 +350,7 @@ Versione 3 (Mac 0.10.0): il giardino non ha più punti né negozio né prato lib
   `candela-cesto` (255, 205, 130; 0,65; 0,22; 0,8). **Il braciere ha due disegni**: `braciere.png` (spento, cenere) e `braciere-acceso.png` (con la fiamma, più alto, stessa larghezza e stessi piedi); da `lamp` ≥ 0,25 si
   vede quello acceso, disegnato alla stessa scala (alto in proporzione), e solo allora fa luce; e la sua luce vibra piano (±9 %, con «Riduci movimento» ferma).
 - **L'elenco da cui si tira fa parte del tiro.** Il secondo numero (la scelta) e la rarità lavorano su un elenco di oggetti (`pool`), che è **il catalogo senza le cose degli animali non sbloccati**: gli universali
-  e quelli dei compagni sbloccati, nell'ordine del catalogo (tutti i 40 se tutti i compagni sono sbloccati, o con la modalità sviluppatore, o se non si sa chi è sbloccato: com'era prima). Cambiando l'elenco **lo
+  e quelli dei compagni sbloccati, nell'ordine del catalogo (tutti i 47 se tutti i compagni sono sbloccati, o con la modalità sviluppatore, o se non si sa chi è sbloccato: com'era prima). Cambiando l'elenco **lo
   stesso focus dà un altro regalo** (la rarità e la scelta si fanno fra quelli dell'elenco che non hai ancora), quindi due app che non usano lo stesso elenco danno regali diversi sugli stessi dati: chi porta
   il giardino su Windows deve calcolare l'elenco allo stesso modo (`Garden.dropPool`). Vale per i regali di fine focus, per gli ospiti e per i regali dei punti convertiti; il regalo di benvenuto non tira (è
   il primo oggetto dell'animale che manca). I file di `tests/fixtures/attesi/` sono calcolati con l'elenco intero (tutte le isole aperte).

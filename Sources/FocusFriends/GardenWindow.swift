@@ -1341,6 +1341,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
         case "porcellino": return color(238, 150, 96, 0.24 * k)
         case "ciccio": return color(70, 170, 214, 0.22 * k)
         case "gattino": return color(112, 132, 204, 0.26 * k)
+        case "riccio": return color(212, 124, 64, 0.24 * k)
         default: return nil
         }
     }
@@ -2930,17 +2931,17 @@ extension GardenView {
                               y: want.y - view.origin.y - CGFloat(corner.col + corner.row) * view.tileW / 4))
     }
 
-    /// La vista che mostra tutte e quattro le isole (con le colline).
+    /// La vista che mostra tutte le isole (con le colline).
     private func worldCamera() -> (zoom: CGFloat, pan: NSPoint) {
         let base = worldBase
-        let extent = CGFloat(GardenWorld.extent)
+        let reach = GardenWorld.reach
         let island = CGFloat(GardenIsland.maxSize) * base.tileW
         let sideHill = max((CGFloat(GardenHill.widthRatio) - 1) / 2, 0) * island
         // la scatola che le contiene, a zoom 1, rispetto all'angolo (0, 0): a sinistra e a destra gli angoli delle isole laterali, in alto le cose alte della prima,
         // in basso la collina dell'ultima (la linea dei suoi angoli sinistro e destro più quanto scende)
-        let left = -extent * base.tileW / 2 - sideHill, right = extent * base.tileW / 2 + sideHill
+        let left = CGFloat(reach.left) * base.tileW / 2 - sideHill, right = CGFloat(reach.right) * base.tileW / 2 + sideHill
         let top = -base.tileW * 1.6
-        let bottom = CGFloat(2 * GardenWorld.cell + GardenIsland.maxSize) * base.tileW / 4 + CGFloat(GardenHill.belowRatio) * island
+        let bottom = CGFloat(reach.depth) * base.tileW / 4 + CGFloat(GardenHill.belowRatio) * island
         let zoom = min(max(min((sceneW - 40) / (right - left), (sceneH - 120) / (bottom - top)), Self.zoomRange.lowerBound), Self.zoomRange.upperBound)
         let center = NSPoint(x: sceneW / 2, y: sceneH / 2)
         let box = NSPoint(x: base.origin.x + (left + right) / 2, y: base.origin.y + (top + bottom) / 2)

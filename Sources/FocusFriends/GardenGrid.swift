@@ -448,7 +448,7 @@ enum GardenHill {
 /// animale vivono solo sulla sua isola, e gli oggetti di un animale (`GardenItem.island`) si mettono solo sulla sua.
 enum GardenIslands {
     /// Nell'ordine dei compagni (`Pet.all`).
-    static let all = ["pianty", "porcellino", "ciccio", "gattino"]
+    static let all = ["pianty", "porcellino", "ciccio", "gattino", "riccio"]
     /// L'isola di partenza finché non si sa chi si è scelto (e per i giardini delle versioni precedenti, finché `Garden.adoptHome` non dice quale).
     static let fallbackHome = "pianty"
 
@@ -531,42 +531,64 @@ enum GardenPaths {
         guard size < GardenIsland.maxSize else { return full }
         var tiles = full.filter { GardenIsland.contains($0, size: size) }
         var known = Set(tiles)
-        for landing in landings(island: island, size: size) where !known.contains(landing.tile) {
-            guard let nearest = tiles.min(by: { abs($0.col - landing.tile.col) + abs($0.row - landing.tile.row) < abs($1.col - landing.tile.col) + abs($1.row - landing.tile.row) }) else {
-                tiles.append(landing.tile)
-                known.insert(landing.tile)
-                continue
-            }
-            var current = landing.tile
-            var added = [current]
-            let alongColumns = inward(landing.face).col != 0
-            func step(_ from: Int, toward to: Int) -> Int { from == to ? from : from + (to > from ? 1 : -1) }
-            if alongColumns {
-                while current.col != nearest.col { current = GardenTile(col: step(current.col, toward: nearest.col), row: current.row); added.append(current) }
-                while current.row != nearest.row { current = GardenTile(col: current.col, row: step(current.row, toward: nearest.row)); added.append(current) }
-            } else {
-                while current.row != nearest.row { current = GardenTile(col: current.col, row: step(current.row, toward: nearest.row)); added.append(current) }
-                while current.col != nearest.col { current = GardenTile(col: step(current.col, toward: nearest.col), row: current.row); added.append(current) }
-            }
-            for tile in added.reversed() where !known.contains(tile) {
-                tiles.append(tile)
-                known.insert(tile)
-            }
-        }
+        for landing in landings(island: island, size: size) where !known.contains(landing.tile) { addSpur(from: landing, to: &tiles, known: &known) }
         return tiles
     }
 
     /// Il sentiero dell'isola grande: se passa nell'angolo della casa, si rifà con le curve che entrano di più nell'isola, finché non gira al largo.
     private static func generateFull(island: String) -> [GardenTile] {
-        let lands = landings(island: island, size: GardenIsland.maxSize)
-        guard lands.count == 2 else { return GardenIsland.pathTiles(size: GardenIsland.maxSize) }
+        let all = landings(island: island, size: GardenIsland.maxSize)
+        guard let first = all.first else { return GardenIsland.pathTiles(size: GardenIsland.maxSize) }
+        // La curva unisce i primi due approdi (quelli di sempre: i sentieri già fatti non cambiano). Un'isola con un ponte solo ne ha un secondo «previsto» sul lato vicino (dove
+        // arriverà il compagno dopo); uno con più di due (un ponte nuovo arrivato dopo) ha un tratto dritto fino alla curva per ognuno degli altri.
+        let lands = all.count == 1 ? [first, plannedLanding(after: first)] : Array(all.prefix(2))
         var best: [GardenTile] = []
+        var curve: [GardenTile]?
         for attempt in 0..<9 {
             best = generateCurve(island: island, lands: lands, reach: 1 + 0.08 * Double(attempt))
-            if !best.contains(where: { $0.col < GardenLandmarks.side && $0.row < GardenLandmarks.side }) { return best }
+            if !best.contains(where: { $0.col < GardenLandmarks.side && $0.row < GardenLandmarks.side }) {
+                curve = best
+                break
+            }
         }
         // se qualche tessera arriva ancora nell'angolo (a un capo, quando la curva si piega), si toglie
-        return best.filter { !($0.col < GardenLandmarks.side && $0.row < GardenLandmarks.side) }
+        var tiles = curve ?? best.filter { !($0.col < GardenLandmarks.side && $0.row < GardenLandmarks.side) }
+        var known = Set(tiles)
+        for landing in all.dropFirst(2) where !known.contains(landing.tile) { addSpur(from: landing, to: &tiles, known: &known) }
+        return tiles
+    }
+
+    /// Il secondo approdo di un'isola con un ponte solo: sul lato vicino (perpendicolare), nello stesso punto dove un ponte la toccherebbe.
+    private static func plannedLanding(after landing: Landing) -> Landing {
+        let at = landing.tile.col == 0 || landing.tile.col == GardenIsland.maxSize - 1 ? landing.tile.row : landing.tile.col
+        switch landing.face {
+        case .colStart, .colEnd: return Landing(face: .rowStart, tile: GardenTile(col: at, row: 0))
+        case .rowStart, .rowEnd: return Landing(face: .colStart, tile: GardenTile(col: 0, row: at))
+        }
+    }
+
+    /// Un tratto dritto dall'approdo fino alla tessera del sentiero più vicina (si aggiungono solo tessere, mai se ne tolgono).
+    private static func addSpur(from landing: Landing, to tiles: inout [GardenTile], known: inout Set<GardenTile>) {
+        guard let nearest = tiles.min(by: { abs($0.col - landing.tile.col) + abs($0.row - landing.tile.row) < abs($1.col - landing.tile.col) + abs($1.row - landing.tile.row) }) else {
+            tiles.append(landing.tile)
+            known.insert(landing.tile)
+            return
+        }
+        var current = landing.tile
+        var added = [current]
+        let alongColumns = inward(landing.face).col != 0
+        func step(_ from: Int, toward to: Int) -> Int { from == to ? from : from + (to > from ? 1 : -1) }
+        if alongColumns {
+            while current.col != nearest.col { current = GardenTile(col: step(current.col, toward: nearest.col), row: current.row); added.append(current) }
+            while current.row != nearest.row { current = GardenTile(col: current.col, row: step(current.row, toward: nearest.row)); added.append(current) }
+        } else {
+            while current.row != nearest.row { current = GardenTile(col: current.col, row: step(current.row, toward: nearest.row)); added.append(current) }
+            while current.col != nearest.col { current = GardenTile(col: step(current.col, toward: nearest.col), row: current.row); added.append(current) }
+        }
+        for tile in added.reversed() where !known.contains(tile) {
+            tiles.append(tile)
+            known.insert(tile)
+        }
     }
 
     private static func generateCurve(island: String, lands: [Landing], reach stretch: Double) -> [GardenTile] {
@@ -616,7 +638,7 @@ enum GardenLandmarks {
     static let side = 3
 
     /// Le isole che hanno la casa disegnata (`assets/giardino/casa_<isola>.png`, da `tools/cutout_case.py`).
-    static let shipped: Set<String> = ["pianty", "porcellino", "ciccio", "gattino"]
+    static let shipped: Set<String> = ["pianty", "porcellino", "ciccio", "gattino", "riccio"]
     /// Quelle che ci sono adesso (le prove la svuotano per provare il resto del giardino senza case).
     static var built: Set<String> = shipped
 
@@ -640,6 +662,9 @@ enum GardenLandmarks {
                       lights: [(0.49, 0.63, 0.90), (0.47, 0.10, 0.35)]),
         "gattino": Art(centerX: 416.5, centerY: 652.5, halfWidth: 413.5, halfHeight: 253.5,
                        lights: [(0.71, 0.57, 0.70), (0.30, 0.70, 0.35)]),
+        // le due finestre tonde (a sinistra sul frontone, a destra sul muro); lo zoccolo è più alto che largo (0,65 invece di 0,6): la casa si schiaccia un po' di più
+        "riccio": Art(centerX: 479.5, centerY: 465, halfWidth: 476.5, halfHeight: 312,
+                      lights: [(0.41, 0.33, 0.55), (0.66, 0.54, 0.60)]),
     ]
 
     /// Le tessere della casa di un'isola (nessuna se non ce l'ha ancora).
@@ -667,8 +692,8 @@ struct GardenBridge: Equatable {
     func touches(_ island: String) -> Bool { first == island || second == island }
 }
 
-/// Il mondo: le quattro isole in una griglia di 2×2 celle, sempre nelle stesse posizioni (come le tessere di un'isola: la seconda cella lungo le colonne sta a
-/// destra e in basso, la seconda lungo le righe a sinistra e in basso), con quattro ponti fra le celle vicine. Ogni cella è larga quanto l'isola più grande più lo
+/// Il mondo: le isole in una griglia di celle (due righe, e tre colonne dove ce n'è una quinta), sempre nelle stesse posizioni (come le tessere di un'isola: la seconda cella lungo le colonne sta a
+/// destra e in basso, la seconda lungo le righe a sinistra e in basso), con un ponte fra ogni coppia di celle vicine. Ogni cella è larga quanto l'isola più grande più lo
 /// spazio per il ponte; un'isola sta all'angolo in alto della sua cella e, se è più piccola, si allarga verso il davanti: i ponti toccano sempre la sesta fila (o colonna)
 /// di tessere (`GardenPaths.landingIndex`), quindi un ponte è lungo di più fra isole piccole ma non si sposta. Le misure sono in tessere del mondo.
 /// Solo Foundation e con prove (tests/main.swift).
@@ -676,13 +701,23 @@ enum GardenWorld {
     /// Lo spazio fra due isole grandi al massimo (in tessere): due pezzi di ponte.
     static let gap = 4
     static var cell: Int { GardenIsland.maxSize + gap }
-    /// Quante tessere è largo e alto il mondo (in colonne e in righe).
-    static var extent: Int { 2 * cell - gap }
+    /// Quante tessere è largo e alto il mondo (in colonne e in righe): un quadrato che contiene tutte le celle.
+    static var extent: Int { (slots.values.map { max($0.col, $0.row) }.max() ?? 0) * cell + GardenIsland.maxSize }
 
-    /// Dove sta ogni isola: pianty in alto, porcellino a destra, ciccio a sinistra, gattino in basso.
+    /// Quanto arriva il mondo sullo schermo, in tessere dal vertice (0, 0): a sinistra e a destra (colonna − riga degli angoli laterali delle isole) e in basso (colonna + riga
+    /// degli angoli laterali dell'ultima). Serve alla telecamera che mostra tutto.
+    static var reach: (left: Int, right: Int, depth: Int) {
+        let across = slots.values.map { ($0.col - $0.row) * cell }
+        let down = slots.values.map { ($0.col + $0.row) * cell }
+        return ((across.min() ?? 0) - GardenIsland.maxSize, (across.max() ?? 0) + GardenIsland.maxSize, (down.max() ?? 0) + GardenIsland.maxSize)
+    }
+
+    /// Dove sta ogni isola: pianty in alto, porcellino a destra, ciccio a sinistra, gattino in basso, e riccio a destra di gattino (sotto porcellino: la sesta cella, in alto
+    /// a destra di lui, è libera e aspetta un altro compagno).
     private static let slots: [String: GardenTile] = [
         "pianty": GardenTile(col: 0, row: 0), "porcellino": GardenTile(col: 1, row: 0),
         "ciccio": GardenTile(col: 0, row: 1), "gattino": GardenTile(col: 1, row: 1),
+        "riccio": GardenTile(col: 2, row: 1),
     ]
 
     static func slot(of island: String) -> GardenTile? { slots[island] }
@@ -693,7 +728,7 @@ enum GardenWorld {
         return (Double(slot.col * cell), Double(slot.row * cell))
     }
 
-    /// I quattro ponti, sempre nello stesso ordine (le isole come stanno in `GardenIslands.all`).
+    /// I ponti, sempre nello stesso ordine (le isole come stanno in `GardenIslands.all`).
     static let bridges: [GardenBridge] = {
         var result: [GardenBridge] = []
         for first in GardenIslands.all {

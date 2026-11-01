@@ -49,7 +49,7 @@ enum GardenVisitors {
     private static let notWinter: Set<Season> = [.spring, .summer, .autumn]
 
     /// Le cose degli animali che attirano qualcuno stanno ognuna sulla sua isola (`GardenItem.island`): le ultime voci di alcuni ospiti sono per Pianty (l'aiuola e
-    /// l'annaffiatoio) e per Gattino (il cesto con cuscino e il tiragraffi), che altrimenti avrebbero una specie sola in tutto l'anno. Si aggiungono in coda: chi aveva
+    /// l'annaffiatoio), per Gattino (il tiragraffi) e per il Riccio (il mucchio di foglie, per la lumaca), che altrimenti avrebbero una specie sola in tutto l'anno. Si aggiungono in coda: chi aveva
     /// già un motivo per venire lo ha ancora, e il primo motivo che si trova resta quello di prima.
     static let all: [GardenVisitor] = [
         GardenVisitor(id: "pettirosso", name: "Il pettirosso", feminine: false, items: ["bagnetto", "casetta-uccelli"], haunts: [],
@@ -58,8 +58,8 @@ enum GardenVisitors {
                       seasons: allSeasons, slots: [.morning, .day], height: 46, weight: 1),
         GardenVisitor(id: "coniglio", name: "Il coniglio", feminine: false, items: ["trifoglio", "aiuola"], haunts: [],
                       seasons: notWinter, slots: [.morning, .evening], height: 62, weight: 1),
-        GardenVisitor(id: "riccio", name: "Il riccio", feminine: false, items: ["funghi", "felci", "cesto-cuscino"], haunts: [],
-                      seasons: notWinter, slots: [.evening, .night], height: 52, weight: 1),
+        GardenVisitor(id: "lumaca", name: "La lumaca", feminine: true, items: ["funghi", "felci", "mucchio-foglie"], haunts: [],
+                      seasons: [.spring, .autumn], slots: [.morning, .evening], height: 32, weight: 1),
         GardenVisitor(id: "rana", name: "La rana", feminine: true, items: ["bagnetto", "ponticello", "annaffiatoio"], haunts: [],
                       seasons: [.spring, .summer], slots: [.evening], height: 36, weight: 1),
         GardenVisitor(id: "anatroccolo", name: "L'anatroccolo", feminine: false, items: ["ponticello", "bagnetto"], haunts: [],

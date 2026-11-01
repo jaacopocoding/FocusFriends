@@ -54,7 +54,7 @@ struct GardenItem: Equatable {
     /// Si unisce alle uguali che ha accanto (la staccionata): un pezzo ha un braccio verso ogni vicino, e così fa gli angoli, le T e le croci da solo (`GardenLinks`). Con un vicino
     /// solo prosegue dritto; senza vicini va nel verso scelto girandolo.
     var joins = false
-    /// Fa luce la sera (il lampione, l'alberello di lucine, la lanterna, il braciere, e le quattro luci degli animali).
+    /// Fa luce la sera (il lampione, l'alberello di lucine, la lanterna, il braciere, e le cinque luci degli animali).
     var glow: GardenGlow?
     /// Ha un secondo disegno, «acceso» (`giardino_<id>-acceso`), che si vede quando fa buio: il braciere con la fiamma. Fa luce solo da acceso.
     var litDrawing = false
@@ -64,12 +64,12 @@ struct GardenItem: Equatable {
     /// Può stare su questa isola? Gli universali sì, ovunque; quelli di un animale solo sulla sua.
     func fits(island other: String) -> Bool { island == nil || island == other }
 
-    /// Il nome con l'articolo, per le frasi: «il cesto di carote», «la casa del gatto», «l'annaffiatoio». (Le cose degli animali sono quindici: la regola
+    /// Il nome con l'articolo, per le frasi: «il cesto di carote», «la casa del gatto», «l'annaffiatoio». (Le cose degli animali sono ventidue: la regola
     /// basta, e le prove le controllano tutte.)
     var nameWithArticle: String {
         let lower = name.prefix(1).lowercased() + name.dropFirst()
-        if let first = lower.first, "aeiou".contains(first) { return "l'" + lower }
-        let feminine = ["casa", "lanterna", "lampada", "candela"].contains { lower.hasPrefix($0 + " ") }
+        if let first = lower.first, "aeiou".contains(first) || lower.hasPrefix("hotel ") { return "l'" + lower }
+        let feminine = ["casa", "lanterna", "lampada", "candela", "cassetta", "zucca", "carriola", "tana"].contains { lower.hasPrefix($0 + " ") }
         return (feminine ? "la " : "il ") + lower
     }
 
@@ -172,7 +172,7 @@ struct GardenCompanionPlace: Codable, Equatable {
 enum GardenCatalog {
     /// I compagni nel giardino: alti quanto, in primo piano (unità della scena). Quelli senza voce sono 100.
     private static let companionHeights: [String: Double] = [
-        "pianty": 120, "porcellino": 60, "ciccio": 105, "gattino": 92,
+        "pianty": 120, "porcellino": 60, "ciccio": 105, "gattino": 92, "riccio": 66,
     ]
 
     static func companionHeight(for petID: String) -> Double { companionHeights[petID] ?? 100 }
@@ -238,6 +238,15 @@ enum GardenCatalog {
              glow: GardenGlow(red: 255, green: 175, blue: 85, radius: 0.85, top: 0.36, strength: 0.85), island: "porcellino"),
         item("candela-cesto", "Candela nel cesto", .companions, height: 62, price: 3,
              glow: GardenGlow(red: 255, green: 205, blue: 130, radius: 0.65, top: 0.22, strength: 0.8), island: "gattino"),
+        // Le cose del Riccio, sulla sua isola (le ultime sette figurine; la zucca è la sua luce).
+        item("mucchio-foglie", "Mucchio di foglie", .companions, height: 55, price: 2, island: "riccio"),
+        item("cassetta-mele", "Cassetta di mele", .companions, height: 58, price: 3, island: "riccio"),
+        item("tronco-cavo", "Tronco cavo", .companions, height: 62, price: 4, island: "riccio"),
+        item("zucca-lanterna", "Zucca con candela", .companions, height: 74, price: 4,
+             glow: GardenGlow(red: 255, green: 156, blue: 64, radius: 0.7, top: 0.5, strength: 0.85), island: "riccio"),
+        item("hotel-insetti", "Hotel degli insetti", .companions, height: 112, price: 5, island: "riccio"),
+        item("carriola-ghiande", "Carriola di ghiande", .companions, height: 78, price: 5, island: "riccio"),
+        item("tana-foglie", "Tana di foglie", .companions, height: 90, price: 6, island: "riccio"),
     ]
 
     /// Gli oggetti universali (su qualunque isola) e quelli di un animale (solo sulla sua isola).

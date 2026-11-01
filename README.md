@@ -35,7 +35,7 @@ il momento, a fine focus il personaggio lo annuncia. Lo sblocco si ricorda
 (`profilo.json`) e non si richiude, anche se poi cancelli delle sessioni; chi usava già l'app li ha tutti da subito.
 Le regole sono in `CompanionRewards.swift` (solo Foundation, con prove). *Cancella tutto…* rifà la presentazione,
 e quindi anche la scelta del primo compagno. Ogni compagno ha anche la sua **isola** nel giardino: sbloccarlo la apre
-(vedi «Il mondo di quattro isole»).
+(vedi «Il mondo delle isole»).
 
 Chi sviluppa può avere tutti i compagni subito, senza toccare il profilo: da Terminale
 `defaults write com.jacopo.focusfriends developerMode -bool true` (e `-bool false` per spegnerlo).
@@ -72,7 +72,7 @@ e, da «Mostra le sessioni», una tendina sotto il riepilogo con la nota e la fa
 
 **Il giardino e l'album**: ogni focus completato (almeno 20 minuti di studio) può regalarti una figurina, che appare
 accanto al personaggio. Le figurine stanno in un **album** da collezionare, un libro antico in una finestra tutta sua, e
-quello che trovi è tuo: lo metti, quante volte vuoi, sulle **isole** del giardino, che è tuo: un mondo di quattro isole, una per compagno, ognuna una
+quello che trovi è tuo: lo metti, quante volte vuoi, sulle **isole** del giardino, che è tuo: un mondo di isole, una per compagno, ognuna una
 griglia di tessere vista di sbieco (da 8×8, che si allarga completando le pagine dell'album) e unite da ponti che si
 costruiscono quando sblocchi i compagni. I compagni sbloccati camminano sulla loro isola, e se li tocchi parlano.
 
@@ -337,7 +337,7 @@ rovinato, migrazione, materie unite, copie di sicurezza, fuso orario…).
 > **Nota.** Le isole, i ponti, le case, gli angoli, gli ospiti e la collina descritti qui sotto sono nel codice (ramo
 > `main`) ma non ancora in una versione scaricabile: la 0.10.0 ha un'isola sola e non li ha.
 
-*Il mio giardino…* (`GardenWindow.swift`) è un **mondo tuo**, di quattro isole: un posto calmo, da riempire con quello
+*Il mio giardino…* (`GardenWindow.swift`) è un **mondo tuo**, di isole: un posto calmo, da riempire con quello
 che trovi. Non conta i focus e non misura niente: le cifre dello studio stanno nelle *Statistiche*. Il giardino e
 l'album sono due finestre diverse: il libro serve a collezionare e a guardare, le isole a mettere le cose dove vuoi.
 
@@ -377,8 +377,8 @@ ancora studiato non si giudica niente: la giornata non è finita.
 
 Si apre dalla riga **Album** del menu (sotto «Da fare») o dal pulsante nel giardino (`AlbumWindow.swift`). Si vede
 prima la copertina, che dice quante figurine hai e quante sono nuove; un tocco la apre, girando attorno al dorso, sulla
-doppia pagina delle figurine nuove. Ogni sezione del catalogo (**Fiori**, **Per i compagni**, **Arredi**: 40 figurine
-in tutto, per ora) occupa una doppia pagina da sei per lato (i fiori sono dieci, i compagni e gli arredi quindici: la terza pagina ha le ultime tre figurine, le luci). Le figurine trovate sono incollate un po' storte, con il
+doppia pagina delle figurine nuove. Ogni sezione del catalogo (**Fiori**, **Per i compagni**, **Arredi**: 47 figurine
+in tutto, per ora) occupa una doppia pagina da sei per lato (i fiori sono dieci, i compagni ventidue e gli arredi quindici: l'ultima pagina ha le ultime figurine, le luci per gli arredi). Le figurine trovate sono incollate un po' storte, con il
 numero e il nome; le altre sono caselle tratteggiate con la sagoma e la rarità. Si sfoglia con
 le frecce, le linguette delle sezioni, la tastiera o due dita sul trackpad; un tocco su una figurina dice di che rarità è, dove si può mettere e quante ne hai sull'isola.
 Quando una doppia pagina è tutta trovata compare un sigillo «completa».
@@ -392,23 +392,24 @@ vanno titoli, figurine e numeri, scritti dall'app. Dietro c'è il prato del giar
 apre, la pagina che gira) sono fogli in 3D con un davanti e un dietro, fatti da foto del libro; con *Riduci movimento*
 nelle impostazioni di accessibilità il libro si apre e si sfoglia di colpo.
 
-### Il mondo di quattro isole
+### Il mondo delle isole
 
-Le isole sono **quattro, una per compagno** (Pianty, Porcellino, Ciccio e Gattino), sempre nello stesso posto di una mappa
-2×2: Pianty in alto, Porcellino a destra, Ciccio a sinistra, Gattino in basso. Non è una schermata a parte: c'è **una
+Le isole sono **cinque, una per compagno** (Pianty, Porcellino, Ciccio, Gattino e Riccio), sempre nello stesso posto di una mappa
+a celle: Pianty in alto, Porcellino a destra, Ciccio a sinistra, Gattino in basso e il Riccio a destra di Gattino (la cella in alto
+a destra di lui è libera: aspetta un altro compagno). Non è una schermata a parte: c'è **una
 telecamera sola** e si passa da un'isola all'altra allontanandosi con lo zoom e scorrendo. L'isola di **casa** è quella
 del compagno che hai scelto all'inizio (per chi usava già l'app, quello che usava). Le altre sono sulla mappa fin da
 subito, ma **al buio, con un lucchetto**, senza nome (solo «???») e con la scritta di quanto manca («si sblocca a 20 focus»): si aprono quando sblocchi
 il compagno (`GardenWorld` e `GardenIslands`, in `GardenGrid.swift`).
 
 <p align="center">
-  <img src="docs/images/mondo.png" width="760" alt="Il mondo di quattro isole, unite da ponti, ognuna con la sua casa">
+  <img src="docs/images/mondo.png" width="760" alt="Il mondo delle isole, unite da ponti, ognuna con la sua casa (nell'immagine sono quattro: il Riccio è arrivato dopo)">
 </p>
 
 - **Ognuna è diversa.** Ha la sua tinta (verde fresco per Pianty, paglia per Porcellino, verde acqua per Ciccio, blu-lilla
-  per Gattino), la sua erba e i suoi dettagli, il suo **sentiero** (una curva larga, non una riga dritta, che unisce i due
-  punti dove arrivano i ponti) e la sua **casa**: la serra di Pianty, il fienile del Porcellino, la voliera di Ciccio e la
-  casetta del Gattino, 3×3 tessere nell'angolo in alto, con le finestre che di sera si accendono. Sul sentiero e sulla casa
+  per Gattino, arancio d'autunno per il Riccio), la sua erba e i suoi dettagli, il suo **sentiero** (una curva larga, non una riga dritta, che unisce i due
+  punti dove arrivano i ponti) e la sua **casa**: la serra di Pianty, il fienile del Porcellino, la voliera di Ciccio, la
+  casetta del Gattino e la tana di foglie del Riccio, 3×3 tessere nell'angolo in alto, con le finestre che di sera si accendono. Sul sentiero e sulla casa
   non si mette niente: le cose che ci stavano si spostano lì vicino. Il paesaggio dipinto dietro è uno solo e copre tutto
   il mondo.
 - **I ponti.** Un ponte unisce due isole vicine (mai in diagonale: in tutto sono quattro). Si **costruisce** la prima volta
@@ -420,7 +421,7 @@ il compagno (`GardenWorld` e `GardenIslands`, in `GardenGrid.swift`).
   primo e Pianty per secondo, per esempio) la cerimonia mostra solo il regalo («Nuova isola»), e i ponti nascono quando
   arriva un compagno vicino. Chi aveva già più compagni sbloccati trova i ponti già costruiti e niente cerimonia.
 - **Le cose degli animali.** Le figurine sono **universali** (i 25 fiori e arredi: vanno su qualunque isola) o **di un
-  animale** (le quindici «Per i compagni», tre per Pianty e quattro per gli altri: stanno solo sulla sua isola). Se ne trascini una su un'altra
+  animale** (le ventidue «Per i compagni», tre per Pianty, quattro per gli altri e sette per il Riccio: stanno solo sulla sua isola). Se ne trascini una su un'altra
   isola il bersaglio diventa rosso e l'app dice «La casa del gatto sta solo sull'isola di Gattino.». Un oggetto qualunque
   si può portare da un'isola all'altra; un compagno resta sulla sua. Nell'album ogni figurina dice «universale» o «solo
   Gattino», e la cassetta *Da mettere* mostra, su ogni isola, solo le cose che ci stanno.
@@ -463,7 +464,7 @@ Lo **sfondo** è un paesaggio di Gemini (`assets/giardino/sfondo_original.png`: 
 ingrandisce a 2048×1012, copre con una sfumatura la piccola isola che Gemini aveva dipinto in mezzo al lago (la nostra ci sta sopra) e compone
 sulle rive lontane il **casale**, gli alberi e gli abeti ritagliati dal foglio del paesaggio (`paesaggio_original.png`, `tools/cutout_paesaggio.py`),
 un po' sfocati e schiariti come le cose lontane. Il fumo del camino e le finestre accese di sera stanno sul casale composto (`MeadowBackdrop.chimney`
-e `windows`). È lo stesso sfondo dell'album, ma nel giardino è uno solo, ingrandito 1,9 volte, e copre tutte e quattro le isole. **D'inverno** c'è un altro paesaggio (`sfondo_inverno_original.png`, `paesaggio_inverno_original.png`):
+e `windows`). È lo stesso sfondo dell'album, ma nel giardino è uno solo, ingrandito 1,9 volte, e copre tutte le isole. **D'inverno** c'è un altro paesaggio (`sfondo_inverno_original.png`, `paesaggio_inverno_original.png`):
 il lago è ghiacciato, le colline sono coperte di neve e sulle rive, al posto del casale d'estate, ci sono quello con la neve sul tetto e le finestre già
 accese di giallo, tre alberi spogli, due abeti e dei cespugli innevati (lo stesso script, `prepara_sfondo.py`, lo compone; le finestre e il camino li trova da
 sé nel disegno). Il fumo esce dal camino e di sera le finestre si accendono di più, come nelle altre stagioni. Le siepi, lo steccato e il tronco dello stesso foglio sono già ritagliati (`paesaggio_siepe-…`,
@@ -476,11 +477,11 @@ e i fili d'erba che sporgono coprono un po' il bordo delle tessere.
 Le cose messe **vicine** possono fare qualcosa insieme: nessuno ti dice quali, si scopre spostando gli oggetti. Quando se ne forma una (un angolo) compaiono le
 stelline con la scritta «Hai sbloccato…», e da quel momento il giardino lo mostra: un filo di vapore, le farfalle, una luce più calda la sera… E ogni tanto un
 compagno ci va a fare quello che gli piace: il gattino a dormire, il porcellino a mangiare o a saltellare, Ciccio a sbattere le ali (`GardenCorners.swift`:
-non cambiano le figurine né le loro probabilità, solo l'aspetto del giardino). Gli angoli sono **diciotto**: dieci per
+non cambiano le figurine né le loro probabilità, solo l'aspetto del giardino). Gli angoli sono **venti**: dieci per
 tutti e **due per ogni isola**, ognuno con una cosa del suo animale e quindi possibile solo lì. Quali sono non si dice
 (si scoprono); l'elenco, per chi porta il giardino su altri sistemi, è in [`FORMATI.md`](FORMATI.md).
 
-Mentre il giardino è aperto, a seconda dell'ora e della stagione passa a trovarti un **ospite**: un riccio, un pettirosso, un coniglio, una volpe… (dodici in tutto,
+Mentre il giardino è aperto, a seconda dell'ora e della stagione passa a trovarti un **ospite**: una lumaca, un pettirosso, un coniglio, una volpe… (dodici in tutto,
 `GardenVisitors.swift`). Arriva da un bordo dell'isola in primo piano, cammina fino a una cosa che gli piace e si ferma; finché non lo saluti con un tocco c'è una stellina sopra di lui. La
 prima volta che incontri una specie entra nel diario (`guests` in `giardino.json`) e ti lascia un regalo: una figurina in più per l'album, sempre la stessa per quella specie.
 Nessuno ti dice chi viene e per cosa: dipende da cosa hai messo sull'isola, e i più rari vengono solo se hai formato certi angoli; anche le cose degli animali ne attirano qualcuno.
@@ -753,7 +754,7 @@ Sources/FocusFriends/
   Garden.swift          il giardino di chi usa l'app: figurine trovate, cosa c'è su ogni isola, compagni, ponti, angoli e ospiti (solo Foundation, con prove)
   GardenGrid.swift      le isole e il mondo: tessere, sentieri, case, ponti, terreno e collina (solo Foundation, con prove)
   GardenDrops.swift     il regalo di fine focus: rarità, probabilità, garanzie e un tiro uguale su Mac e Windows (solo Foundation, con prove)
-  GardenCatalog.swift   i 40 oggetti (25 universali e 15 di un animale), la rarità e il regalo di benvenuto (solo Foundation, con prove)
+  GardenCatalog.swift   i 47 oggetti (25 universali e 22 di un animale), la rarità e il regalo di benvenuto (solo Foundation, con prove)
   GardenCorners.swift   gli angoli: quali cose vicine fanno qualcosa insieme (solo Foundation, con prove)
   GardenCompanions.swift  cosa fanno i compagni agli angoli: pose, gusti e percorsi (solo Foundation, con prove)
   GardenVisitors.swift  gli ospiti: chi viene, a che ora e in che stagione, e cosa lo attira (solo Foundation, con prove)
@@ -772,7 +773,7 @@ Sources/FocusFriends/
   SubjectPrompt.swift   la scheda "Cosa studi adesso?"
   ReflectionCard.swift  la scheda "Com'è andata?" a fine focus
   DashboardWindow.swift la finestra delle statistiche (Oggi / Settimana / Mese)
-  GardenWindow.swift    il giardino: il mondo di quattro isole con ponti e case, il trascinamento, lo zoom e i compagni
+  GardenWindow.swift    il giardino: il mondo delle isole con ponti e case, il trascinamento, lo zoom e i compagni
   PaperUI.swift         elementi grafici in comune delle schede (carta, pulsanti, colori delle materie)
 assets/
   pianty/original.png   immagine di partenza di Pianty senza piedini (5 stadi, non più usata dal ritaglio)

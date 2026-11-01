@@ -8,6 +8,7 @@ Ogni foglio ha i suoi oggetti in una griglia (di solito 4 colonne per 3 righe), 
   luci_original.png        su fondo magenta, 2 colonne per 2 righe: del braciere, spento e acceso (le altre due celle non servono)
   luci2_original.png       su fondo magenta, 3 colonne per 2 righe: dell'alberello di lucine e della lanterna sul ceppo (le altre celle non servono)
   luci3_original.png       su fondo magenta, 2 colonne per 2 righe: le luci degli animali (barattolo di lucciole, lanterna per la voliera, lampada da fienile, candela nel cesto)
+  riccio_original.png      su fondo magenta, 4 colonne per 2 righe: le sette cose del Riccio (l'ottava cella è vuota)
 Le celle senza id (None) si saltano (nei fogli dei fiori e dei compagni sono quelle di erba alta, vaso di erbe e vaso grande, tolti dal catalogo). Il braciere acceso e quello spento sono lo stesso disegno con la fiamma: si ritagliano insieme (stessa larghezza e stesso fondo),
 perché in giardino si scambiano di sera senza che si muova niente.
 
@@ -41,6 +42,7 @@ SHEETS = [
     ("luci_original.png", "magenta", [None, None, "braciere", "braciere-acceso"], set(), 2, 2),
     ("luci2_original.png", "magenta", ["alberello-lucine", None, "lanterna-ceppo", None, None, None], set(), 3, 2),
     ("luci3_original.png", "magenta", ["barattolo-lucciole", "lanterna-voliera", "lampada-fienile", "candela-cesto"], set(), 2, 2),
+    ("riccio_original.png", "magenta", ["mucchio-foglie", "cassetta-mele", "tronco-cavo", "zucca-lanterna", "hotel-insetti", "carriola-ghiande", "tana-foglie", None], set(), 4, 2),
 ]
 # Coppie che si scambiano senza muoversi: stessa larghezza e stesso fondo (la cima può essere diversa).
 PAIRS = [("braciere", "braciere-acceso")]
