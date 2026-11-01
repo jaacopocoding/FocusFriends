@@ -512,6 +512,13 @@
   },
   "statistiche" : {
     "csv" : "inizio,inizio_locale,minuti,minuti_previsti,completa,materia,personaggio,com_e_andata,nota,note_del_focus\n2026-10-12T07:00:00Z,2026-10-12T09:00,50,50,si,\"Anatomia\",,,\"\",\"\"\n2026-10-13T08:00:00Z,2026-10-13T10:00,25,25,no,\"Fisiologia\",,,\"\",\"\"\n2026-10-14T07:30:00Z,2026-10-14T09:30,30,30,si,\"\",,,\"\",\"\"\n",
+    "figurine" : [
+      null,
+      [
+        "tulipani",
+        "Comune"
+      ]
+    ],
     "frasi" : [
 
     ],

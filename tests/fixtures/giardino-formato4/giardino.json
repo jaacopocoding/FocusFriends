@@ -1,0 +1,27 @@
+{
+  "bridges" : [ "pianty-porcellino", "porcellino-ponte-finto" ],
+  "companions" : { "porcellino" : { "col" : 3, "row" : 4 } },
+  "corners" : [ "te" ],
+  "drops" : {
+    "found" : { "cesto-carote" : 1, "margherite" : 1, "mughetti" : 1, "sdraio" : 1, "tavolino" : 1, "trifoglio" : 1, "vaso-grande" : 1 },
+    "sinceLegendary" : 11,
+    "sinceRare" : 3,
+    "studyBank" : 1800
+  },
+  "guests" : { "lumaca" : { "first" : "2026-10-26", "reason" : "Funghi", "visits" : 2 } },
+  "home" : "porcellino",
+  "islandRules" : 1,
+  "lastRolled" : "00000000-0000-4000-8000-000000003999",
+  "pendingGifts" : 0,
+  "placements" : [
+    { "col" : 7, "id" : "00000000-0000-4000-8000-000000003001", "island" : "porcellino", "item" : "tavolino", "row" : 7, "turned" : false },
+    { "col" : 8, "id" : "00000000-0000-4000-8000-000000003002", "island" : "porcellino", "item" : "sdraio", "row" : 7, "turned" : false },
+    { "col" : 6, "id" : "00000000-0000-4000-8000-000000003003", "island" : "porcellino", "item" : "cesto-carote", "row" : 8, "turned" : false },
+    { "col" : 4, "id" : "00000000-0000-4000-8000-000000003004", "island" : "pianty", "item" : "vaso-grande", "row" : 8, "turned" : false },
+    { "col" : 0, "id" : "00000000-0000-4000-8000-000000003005", "item" : "margherite", "row" : 7, "turned" : false }
+  ],
+  "rulesNotice" : { "moved" : 1, "returned" : 0 },
+  "unseen" : [ "sdraio" ],
+  "version" : 4,
+  "welcomed" : [ "porcellino", "pianty", "ciccio" ]
+}

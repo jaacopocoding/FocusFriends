@@ -446,28 +446,53 @@ Poi **la scheda «Anno» delle statistiche** (Mac 0.10.0, Windows 1.2.0): l'anno
 Controllato prima di pubblicare la bozza: il flusso «Windows» verde (tipi, prove, build e i due installer), SHA-256 degli installer scaricati uguali a `SHA256SUMS.txt`, installer x64 e ARM64 di
 misure diverse (134 e 128 MB), note della release uguali a `windows/NOTE_DI_RILASCIO.md`. Non si sono guardati dentro gli installer (senza 7-Zip a disposizione sul Mac). Il giardino nuovo (Mac 0.10.0) non c'è ancora su Windows: resta la seconda uscita.
 
-## Seconda uscita: il giardino (8–12 giorni)
+## Seconda uscita: il giardino (circa 6 settimane)
 
-> **Cambio di progetto (ottobre 2026, Mac 0.10.0).** Sul Mac il giardino non ha più punti né negozio né prato libero: si riempie con le **figurine** che
-> escono a fine focus (`GardenDrops.swift`) e si raccolgono in un **album** (`AlbumWindow.swift`); le copie stanno sulle tessere di un'**isola** vista di
-> sbieco (`GardenGrid.swift`, con zoom e spostamenti), con la cassetta «Da mettere». I punti qui sotto (G1, G3) vanno quindi riletti così: logica = tiro
-> deterministico (FNV-1a + Mulberry32) e regole dell'isola (impronte, sentiero, dimensioni, migrazione dal prato libero), `giardino.json` versione 3
-> (`FORMATI.md` §5) e prove di contratto sul blocco `giardino` di `tests/fixtures/attesi/`; interfaccia = isola in proiezione isometrica (`<canvas>` o CSS
-> transform) con anteprima verde/rossa, cassetta, zoom e spostamenti, album come libro in CSS 3D, carta della figurina a fine focus. Le immagini sono già in
-> `assets/giardino/` e `assets/album/`. Anche la luce e le stagioni (`GardenSky.swift`) sono solo numeri e funzioni del tempo: si portano uguali in TypeScript, con le stesse prove. Lo stesso per la scelta delle tessere del terreno (`GardenTerrain`: gruppi di 2–3, hash rimescolato `mixedHash`); le immagini delle tessere sono già in `assets/giardino/`.
+> **Rifatto il 1° novembre 2026, sul giardino del Mac 0.11.0.** Il vecchio piano (G1–G6, 8–12 giorni) era per il prato libero con punti e negozio, che sul Mac non
+> c'è più. Oggi il giardino sono le **figurine** a fine focus (`GardenDrops.swift`), l'**album** (`AlbumWindow.swift`) e un **mondo di cinque isole** a tessere viste di
+> sbieco, unite da ponti (`GardenGrid.swift`, `GardenWindow.swift`), con il cielo e le stagioni, gli angoli, gli ospiti e i compagni che ci camminano.
 
-Si fa dopo, perché riusa tutto il resto (schede, finestre, immagini, dati) e non blocca nessuna delle altre funzioni.
+**Quanto c'è da portare.** Sul Mac la logica senza disegno (solo Foundation) è di circa 2.950 righe: `GardenCatalog`, `Garden`, `GardenDrops`, `GardenGrid`, `GardenSky`,
+`GardenCorners`, `GardenCompanions`, `GardenVisitors`; la serie di giorni (`GardenPoints.swift`) c'è già, come `core/points.ts`. Il disegno e l'interfaccia (AppKit) sono
+circa 5.250 righe: `GardenWindow` 3.441, `AlbumWindow` 1.204, `Sticker` e `GiftCard` 321, `GardenSprites` 283. Le immagini sono pronte: 167 file in `assets/giardino/`
+(25 MB, senza i fogli `*_original.png`) e l'album in `assets/album/` (3 MB).
 
-- [ ] **G1 — Logica** (`GardenCatalog`, `Garden`, `GardenPoints`): catalogo da 36 oggetti, prezzi, punti con il
-      moltiplicatore della serie, oggetti sbloccati e copie nel prato, `giardino.json` con le stesse regole di file
-      rovinato e più nuovo. Prove di contratto contro il Mac (stessi punti sugli stessi dati).
-- [ ] **G2 — Immagini**: prato e oggetti (già ritagliati in `assets/giardino/`).
-- [ ] **G3 — La finestra del giardino**: prato, oggetti più piccoli verso il fondo, **trascinamento libero**, clic sul disegno
-      vero (non sul rettangolo), compagni sbloccati che parlano, tasto destro per togliere, Esc.
-- [ ] **G4 — Il negozio**: pannello con tre schede, due tocchi per sbloccare, oggetti gratuiti, messaggi dei punti che mancano.
-- [ ] **G5 — Punti dappertutto**: chip del moltiplicatore e dei punti, frase di fine focus con i punti, «Cancella tutto…» che
-      toglie anche il giardino, scala su schermi stretti.
-- [ ] **G6 — Prove su Windows e seconda uscita**: versione 1.1 con il giardino.
+**Le scelte**
+- **La logica** va in `core/` con gli stessi nomi (`gardenCatalog.ts`, `gardenDrops.ts`, `gardenGrid.ts`, `gardenSky.ts`, `gardenCorners.ts`, `gardenCompanions.ts`,
+  `gardenVisitors.ts`; `garden.ts` è il file `giardino.json` e usa `node:fs`, quindi sta nel processo principale e le pagine ricevono lo stato per IPC). Si prova con le
+  **prove di contratto**: `tests/genera-attesi` scrive cosa ricava il Mac (tiri, sentieri, terreno, ponti, luce, angoli, ospiti, e un giardino che cambia passo per passo)
+  e `contratto.test.ts` lo confronta. Le cartelle `giardino-*` e la parte `giardino` di `v3-completo`, finora saltate, si confrontano anche loro.
+- **Il disegno**: l'isola e il mondo su un `<canvas>` 2D, in una finestra normale aperta a richiesta (come le statistiche: `ff://`, un ponte suo). Si ridisegna solo
+  quando serve; da nascosta non disegna. L'album in CSS 3D, le carte in HTML.
+- **Le immagini** si portano come sono (PNG). L'installer passa da circa 134 a circa 165 MB: alla G7 si misura e si decide se convertirle in WebP.
+- **Gli interruttori nascosti del Mac** (`quickGifts`, `gardenSeason`, la modalità sviluppatore che apre tutto) diventano opzioni del costruttore, che l'app per ora
+  non accende (le prove dal vivo sì).
+- **Due uscite.** La prima (G0–G7) ha già il mondo, perché con il secondo compagno (20 focus pieni) serve la sua isola, e il tiro sceglie fra le cose dei compagni
+  sbloccati. La seconda (G8) è la vita sull'isola: non cambia il formato dei dati.
+- **Durante il porting il giardino del Mac non cambia**, o si cambia sui due lati insieme: altrimenti le prove di contratto si spostano sotto i piedi.
+
+**Le fasi**
+- [x] **G0 — Il piano** (questo capitolo).
+- [x] **G1 — La logica** (5 giorni): catalogo (47 oggetti, rarità, isole, nomi con l'articolo, pagine dell'album), tiri (FNV-1a, MurmurHash3, Mulberry32, la riserva di
+      minuti), griglia, sentieri, terreno, collina, mondo e ponti, cielo e stagioni, angoli, pose dei compagni e strade, ospiti; `Garden` con `giardino.json` versione 4
+      (lettura dalle versioni 1–3, file rovinato o più nuovo, oggetti tolti, regole delle isole, ponti e benvenuti). Prove di contratto e prove proprie.
+      **Fatta il 1° novembre 2026**: otto file in `core/` (circa 2.550 righe). Il generatore del Mac ha un file in più, `tests/genera-attesi/giardino.swift`, che scrive
+      `attesi/_giardino.json` (catalogo, 420 regali con le isole che si aprono, sentieri delle cinque isole a tre grandezze, terreno e dettagli in ogni stagione, ponti, luce ogni
+      quarto d'ora, particelle, angoli, pose, strade, ospiti per 40 giorni, e un giardino passo per passo: casa, 60 focus, ponti, mosse, ospiti, rilettura, «Cancella tutto»);
+      ogni cartella con un giardino ha in più `dopoLAvvio` (casa, regole delle isole, ponti, file messi da parte), con due esempi nuovi (`giardino-formato3-regole`,
+      `giardino-formato4`), e ogni cartella con sessioni le figurine che il registro avrebbe dato. Su Windows tutto uguale al primo colpo, tranne lo zero negativo che Swift
+      scrive `-0`. Anche la prova di ritorno ora confronta il giardino. 366 prove su Windows, 1013 controlli sul Mac.
+- [ ] **G2 — Il giardino a schermo, fermo** (6): finestra, isola con terreno, bordo e collina, casa, oggetti (anche quelli sul lato e la staccionata), cielo e stagioni,
+      zoom e spostamenti. Si verifica mettendo accanto la stessa scena sul Mac e su Windows.
+- [ ] **G3 — Si gioca** (3): la cassetta «Da mettere», trascinare con l'anteprima verde o rossa, girare, togliere, i comandi in alto. Copioni in `test/vivo/`.
+- [ ] **G4 — Le figurine** (3): il tiro a fine focus (`PomodoroDeps.gardenLine`), la carta della figurina, la riga e la barra sotto «Album» nella scheda, «Cancella
+      tutto…» che toglie anche il giardino (`StatsDeps.onDeleteAll`).
+- [ ] **G5 — Il mondo** (4): le cinque isole, i ponti che si costruiscono, le case, il lucchetto, il regalo di benvenuto.
+- [ ] **G6 — L'album** (5): il libro, le pagine, le sagome, le animazioni. Dopo la G1 non dipende dalle G2–G5: si può fare in parallelo.
+- [ ] **G7 — Prima uscita** (3): parità a occhio, installer e sua misura, `PROVE_SU_WINDOWS.md` per il giardino, documenti. Versione 1.3.0.
+- [ ] **G8 — La vita** (5, seconda uscita): i compagni sull'isola con le loro pose, gli angoli con le stelline, gli ospiti, il vento, l'acqua, il fumo, le luci della sera.
+
+Il Riccio è già in `windows/` (dal commit `5387d2e`) ma non è mai uscito su Windows: si può pubblicare da solo, prima del giardino, se si vuole.
 
 ## Cose che possono andare storte (e come si scoprono presto)
 
@@ -503,7 +528,7 @@ Si fa dopo, perché riusa tutto il resto (schede, finestre, immagini, dati) e no
 | M10 Installazione e distribuzione | 3–4 |
 | M11 Parità e prove | 4–5 |
 | **Prima uscita (senza giardino)** | **47–66, cioè circa 9–13 settimane di lavoro continuo** |
-| Seconda uscita: il giardino | 8–12 |
+| Seconda uscita: il giardino (G0–G8, rifatta il 1° novembre 2026) | circa 35 (la prima parte, G0–G7, circa 30) |
 
 Da usare con cautela: sono stime, e gli imprevisti sono quasi tutti in M1, M5 e M9. La prima settimana ne dirà di più di
 qualunque numero scritto qui.

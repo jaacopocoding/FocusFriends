@@ -22,6 +22,10 @@ import { dayText, monthLabel, trendCaption, weekText, yearTiles } from "../src/c
 import { cellOf, columnsOf, highlights, monthStarts, showsTrend, trendSubjects, weeklyTrend, yearDays } from "../src/core/yearStats.ts";
 import type { Period } from "../src/core/stats.ts";
 import type { RemarksContext } from "../src/core/remarks.ts";
+import { Garden } from "../src/core/garden.ts";
+import { GARDEN_ITEMS, RARITY_TITLES } from "../src/core/gardenCatalog.ts";
+import { simulate } from "../src/core/gardenDrops.ts";
+import { gardenAfterLaunchJson } from "./giardino.ts";
 
 export const ZONE = "Europe/Rome";
 export const NOW = Date.UTC(2026, 9, 14, 18, 0, 0);     // le 20:00 a Roma (CEST, UTC+2)
@@ -252,6 +256,8 @@ export function derive(fixtures: string, name: string): Record<string, unknown> 
         };
         stats["frasi"] = insights(sessions, ZONE);
         stats["csv"] = csv(sessions);
+        // le figurine che il registro avrebbe dato, da un album appena cominciato
+        stats["figurine"] = simulate(sessions, NOW, ZONE).map((x) => (x.drop === null ? null : [x.drop.item, RARITY_TITLES[x.drop.rarity]]));
         result["statistiche"] = stats;
         result["contesto"] = contextJson(sessions);
         result["anno"] = yearJson(sessions, periodContaining(wallOf(NOW, ZONE), "year"), wallOf(NOW, ZONE));
@@ -278,6 +284,31 @@ export function derive(fixtures: string, name: string): Record<string, unknown> 
       result["profilo"] = part;
     } else if (name.startsWith("profilo")) {
       result["profilo"] = { nota: "nessun file" };
+    }
+
+    if (has("giardino.json")) {
+      // su una copia: il giardino della versione 1 si riscrive (e tiene da parte l'originale), e i file dopo non devono cambiare
+      const gardenTemp = mkdtempSync(join(tmpdir(), "ff-atteso-giardino-"));
+      try {
+        cpSync(join(temp, "giardino.json"), join(gardenTemp, "giardino.json"));
+        const g = new Garden(gardenTemp, { now: () => NOW });
+        const problems: string[] = [];
+        g.onProblem = (message) => problems.push(normalized(message));
+        if (sessions.length > 0) g.convertLegacyPoints(earnedPoints(sessions, NOW, ZONE));
+        const pending = g.pendingGifts;
+        const opened = g.openPendingGifts();
+        result["giardino"] = {
+          trovati: g.drops.found, regaliAperti: pending, regaliTrovati: opened.map((d) => d.item),
+          contatori: { riservaSecondi: g.drops.studyBank, dalRaro: g.drops.sinceRare, dalLeggendario: g.drops.sinceLegendary },
+          avvisi: problems, isola: g.islandSize,
+          copie: g.placements.map((p) => ({ oggetto: p.item, col: p.col, row: p.row, girata: p.turned })),
+          compagni: Object.fromEntries([...g.companionTiles].map(([pet, t]) => [pet, { col: t.col, row: t.row }])),
+          oggettiUsabili: GARDEN_ITEMS.filter((x) => g.isFound(x.id)).map((x) => x.id),
+          dopoLAvvio: gardenAfterLaunchJson(g, () => relativeFiles(gardenTemp).sort()),
+        };
+      } finally {
+        rmSync(gardenTemp, { recursive: true, force: true });
+      }
     }
 
     if (has("dafare.json")) {

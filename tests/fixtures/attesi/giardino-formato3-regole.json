@@ -1,0 +1,279 @@
+{
+  "adesso" : "2026-10-14T20:00 Europe/Rome",
+  "cartella" : "giardino-formato3-regole",
+  "fileDopo" : [
+    "giardino.json"
+  ],
+  "giardino" : {
+    "avvisi" : [
+
+    ],
+    "compagni" : {
+      "gattino" : {
+        "col" : 4,
+        "row" : 6
+      },
+      "porcellino" : {
+        "col" : 3,
+        "row" : 7
+      }
+    },
+    "contatori" : {
+      "dalLeggendario" : 5,
+      "dalRaro" : 2,
+      "riservaSecondi" : 0
+    },
+    "copie" : [
+      {
+        "col" : 7,
+        "girata" : false,
+        "oggetto" : "margherite",
+        "row" : 2
+      },
+      {
+        "col" : 5,
+        "girata" : false,
+        "oggetto" : "lampione",
+        "row" : 5
+      },
+      {
+        "col" : 0,
+        "girata" : false,
+        "oggetto" : "sconosciuto",
+        "row" : 9
+      },
+      {
+        "col" : 6,
+        "girata" : false,
+        "oggetto" : "cesto-carote",
+        "row" : 6
+      },
+      {
+        "col" : 9,
+        "girata" : true,
+        "oggetto" : "casetta-uccelli",
+        "row" : 7
+      },
+      {
+        "col" : 7,
+        "girata" : false,
+        "oggetto" : "tiragraffi",
+        "row" : 5
+      },
+      {
+        "col" : 3,
+        "girata" : false,
+        "oggetto" : "tulipani",
+        "row" : 1
+      }
+    ],
+    "dopoLAvvio" : {
+      "accolti" : [
+        "pianty",
+        "porcellino",
+        "gattino"
+      ],
+      "angoli" : [
+
+      ],
+      "avvisoRegole" : {
+        "riga" : "Le cose degli animali sono andate sulle loro isole, o nella cassetta.",
+        "spostate" : 1,
+        "tornate" : 1
+      },
+      "casa" : "gattino",
+      "compagni" : {
+        "gattino" : [
+          4,
+          6
+        ],
+        "porcellino" : [
+          3,
+          7
+        ]
+      },
+      "dalLeggendario" : 5,
+      "dalRaro" : 2,
+      "file" : [
+        "giardino-formato3.json",
+        "giardino-prima-delle-regole.json",
+        "giardino.json"
+      ],
+      "isole" : {
+        "ciccio" : {
+          "angoli" : [
+
+          ],
+          "cassetta" : [
+            "margherite",
+            "trifoglio",
+            "mughetti",
+            "tulipani",
+            "casetta-uccelli",
+            "lampione"
+          ],
+          "copie" : [
+
+          ],
+          "grandezza" : 8
+        },
+        "gattino" : {
+          "angoli" : [
+
+          ],
+          "cassetta" : [
+            "margherite",
+            "trifoglio",
+            "mughetti",
+            "tulipani",
+            "tiragraffi",
+            "lampione"
+          ],
+          "copie" : [
+            {
+              "col" : 7,
+              "girata" : false,
+              "isola" : "gattino",
+              "oggetto" : "margherite",
+              "row" : 2
+            },
+            {
+              "col" : 5,
+              "girata" : false,
+              "isola" : "gattino",
+              "oggetto" : "lampione",
+              "row" : 6
+            },
+            {
+              "col" : 0,
+              "girata" : false,
+              "isola" : "gattino",
+              "oggetto" : "sconosciuto",
+              "row" : 9
+            },
+            {
+              "col" : 7,
+              "girata" : false,
+              "isola" : "gattino",
+              "oggetto" : "tiragraffi",
+              "row" : 4
+            },
+            {
+              "col" : 3,
+              "girata" : false,
+              "isola" : "gattino",
+              "oggetto" : "tulipani",
+              "row" : 1
+            }
+          ],
+          "grandezza" : 8
+        },
+        "pianty" : {
+          "angoli" : [
+
+          ],
+          "cassetta" : [
+            "margherite",
+            "trifoglio",
+            "mughetti",
+            "tulipani",
+            "lampione"
+          ],
+          "copie" : [
+
+          ],
+          "grandezza" : 8
+        },
+        "porcellino" : {
+          "angoli" : [
+
+          ],
+          "cassetta" : [
+            "margherite",
+            "trifoglio",
+            "mughetti",
+            "tulipani",
+            "cesto-carote",
+            "lampione"
+          ],
+          "copie" : [
+            {
+              "col" : 6,
+              "girata" : false,
+              "isola" : "porcellino",
+              "oggetto" : "cesto-carote",
+              "row" : 6
+            }
+          ],
+          "grandezza" : 8
+        },
+        "riccio" : {
+          "angoli" : [
+
+          ],
+          "cassetta" : [
+            "margherite",
+            "trifoglio",
+            "mughetti",
+            "tulipani",
+            "lampione"
+          ],
+          "copie" : [
+
+          ],
+          "grandezza" : 8
+        }
+      },
+      "mancano" : 108,
+      "nuove" : [
+        "lampione"
+      ],
+      "ospiti" : {
+
+      },
+      "ponti" : [
+        "pianty-porcellino",
+        "porcellino-gattino"
+      ],
+      "riserva" : 0,
+      "strada" : 0,
+      "trovati" : [
+        "casetta-uccelli",
+        "cesto-carote",
+        "lampione",
+        "margherite",
+        "mughetti",
+        "sconosciuto",
+        "tiragraffi",
+        "trifoglio",
+        "tulipani"
+      ]
+    },
+    "isola" : 10,
+    "oggettiUsabili" : [
+      "margherite",
+      "trifoglio",
+      "mughetti",
+      "tulipani",
+      "cesto-carote",
+      "tiragraffi",
+      "casetta-uccelli",
+      "lampione"
+    ],
+    "regaliAperti" : 0,
+    "regaliTrovati" : [
+
+    ],
+    "trovati" : {
+      "casetta-uccelli" : 1,
+      "cesto-carote" : 2,
+      "lampione" : 1,
+      "margherite" : 1,
+      "mughetti" : 1,
+      "sconosciuto" : 1,
+      "tiragraffi" : 1,
+      "trifoglio" : 1,
+      "tulipani" : 1
+    }
+  }
+}

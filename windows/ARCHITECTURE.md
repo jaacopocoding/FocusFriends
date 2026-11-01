@@ -11,7 +11,7 @@
 > history) or **[inferred]** (deduced from the code).
 > UI strings and code comments are in Italian (as on the Mac); identifiers are English. UI strings quoted here are glossed.
 > **What was and was not exercised on a real Windows machine:** the code runs on macOS during development (Electron is
-> cross-platform); the Windows CI job runs the type check, the logic tests (337 now) and the build on a Windows runner, and the author
+> cross-platform); the Windows CI job runs the type check, the logic tests (366 now) and the build on a Windows runner, and the author
 > installed the released installer on a Windows computer for a brief check (see `PARITA.md`, "Prova su Windows"). The parts that
 > only exist on Windows (real click-through, task-bar sides, scale factors, two monitors, sleep, fullscreen apps, virtual
 > desktops) are listed in `PROVE_SU_WINDOWS.md` and have **not** been verified one by one.
@@ -49,7 +49,7 @@ HTTP client in the code **[inferred]**).
 cd windows
 npm install          # Electron, TypeScript, esbuild, electron-builder (devDependencies)
 npm run check        # tsc --noEmit
-npm test             # 337 tests, no dependencies needed
+npm test             # 366 tests, no dependencies needed
 npm start            # builds dist/ and opens the companion (on macOS: data in a test folder)
 npm run pacchetto    # build + stage resources + electron-builder --win → release/*.exe
 ```
@@ -69,12 +69,12 @@ windows/
 ├── resources/                      fine-focus.wav (the end-of-focus chime, generated from scratch), fonts/ (Chewy + licence)
 ├── installer/icon.png              the installer and program icon
 ├── src/
-│   ├── core/       (33 files)      pure logic, no Electron, no DOM: runs in Node tests, in the main process and in the pages
+│   ├── core/       (41 files)      pure logic, no Electron, no DOM: runs in Node tests, in the main process and in the pages
 │   ├── main/       (13 files)      main process: windows, tray, timer service, files, protocol, dialogs, power events, window lock-down
 │   ├── preload/    (2 files)       the secure bridges (`preload.cjs` for the overlay, `preload-stats.cjs` for the statistics window)
 │   ├── shared/     (2 files)       the typed contract between main and pages (`api.ts`, `statsApi.ts`)
 │   └── renderer/                   the overlay page (companion, bubble, clock, card, dialogs, sounds) and the statistics page
-├── test/           (30 files)      28 test files + 2 helpers (`util.ts`, `atteso.ts`); see §7
+├── test/           (32 files)      29 test files + 3 helpers (`util.ts`, `atteso.ts`, `giardino.ts`); see §7
 │   └── vivo/       (32 files)      scripts for live runs of the real app (`esegui.sh`, `misure.sh`, 29 scenarios and a README); see §5.3
 └── tools/                          build.mjs, genera-icone.mjs, prepara-risorse.mjs
 ```
@@ -90,6 +90,10 @@ Notes:
 - The rule that keeps `core/` reusable: modules imported by a page must not import `node:*`. Where a module needed both, it was split:
   `rules.ts`/`settings.ts`, `tracks.ts`/`music.ts`, `todo.ts`/`todoList.ts`. Nothing enforces this except the page bundle failing to build **[inferred]**.
 - `core/points.ts` (garden points) is **not imported by any app module**; it exists for the garden release and for the contract tests (`test/atteso.ts`).
+- **The garden's logic (G1 of `../PIANO_WINDOWS.md`, November 2026)** is in `core/` but **not yet wired into the app**: `gardenCatalog.ts`, `gardenDrops.ts`,
+  `gardenGrid.ts`, `gardenSky.ts`, `gardenCorners.ts`, `gardenCompanions.ts`, `gardenVisitors.ts` (no `node:*`, usable by pages) and `garden.ts` (the
+  `giardino.json` file, `node:fs`, main process only), one-to-one with the Swift files of the same name. They are checked against the Mac by
+  `test/contratto.test.ts` (sections of `attesi/_giardino.json`, built by `test/giardino.ts`) and `test/giardino.test.ts`.
   `PomodoroDeps.gardenLine` and `StatsDeps.onDeleteAll` are the empty hooks the garden will fill (§4.7, §4.13).
 
 ---
@@ -466,7 +470,7 @@ displays, sleep and the packaged app; they **print what they observe** and take 
 
 ## 7. Tests (`test/`, `npm test`)
 
-337 tests in 28 files, no framework, no dependencies. They run unchanged in the main process's code paths because the logic is pure.
+366 tests in 29 files, no framework, no dependencies. They run unchanged in the main process's code paths because the logic is pure.
 
 | File(s) | What they cover |
 |---|---|

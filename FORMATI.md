@@ -252,7 +252,7 @@ Versione 3 (Mac 0.10.0): il giardino non ha più punti né negozio né prato lib
   (indice 5, contando da 0 dal bordo) del lato verso ciascuna isola vicina (lo stesso indice per tutte, così isole di grandezza diversa restano in linea), e gira al largo dalla casa.
   La forma dipende dal nome dell'isola; su un'isola più piccola è lo stesso sentiero ritagliato, con un tratto dritto fino all'approdo, quindi non cambia quando l'isola si allarga.
   Sul sentiero non si mette niente. (Il vecchio sentiero fisso — `row = 3` con `col` da 0 a 3, `col = 3` con `row` da 3 a 5, `row = 5` con `col ≥ 3` — vale ancora
-  dove non si dice l'isola: lo usano i file di prova di `tests/fixtures/attesi` e il porting per Windows, che non ha ancora il giardino.)
+  dove non si dice l'isola: lo usano le prove che non danno un'isola, sul Mac e su Windows.)
 - **Gli approdi dei ponti e il sentiero.** Il sentiero unisce i **primi due** approdi (nell'ordine dei ponti del mondo, quello di sempre: i sentieri già fatti non cambiano); un'isola con **un ponte solo** (il Riccio) ha un secondo
   approdo «previsto» sul lato vicino (la riga 5 del lato in alto, `rowStart`), dove arriverà il ponte di un altro compagno; un'isola con **più di due** ponti (Gattino, dopo il ponte verso il Riccio: `colEnd`, colonna 9, riga 5) ha un tratto dritto,
   in più, dall'approdo fino alla tessera del sentiero più vicina. Si aggiungono solo tessere, mai se ne tolgono (Gattino: le tessere da (6, 5) a (9, 5)).
@@ -413,6 +413,7 @@ Sul Mac le preferenze stanno in `UserDefaults`. Su Windows stanno in un oggetto 
 **quello che la versione per Mac ne ricava** con un «adesso» fisso (14 ottobre 2026, ore 20:00, fuso `Europe/Rome`): quante
 sessioni, quali file nascono (copie, file messi da parte), quali avvisi, la serie, i punti. Ogni nuova versione dell'app
 deve dare gli stessi risultati. Per rifarli: `tests/genera-attesi.sh`. Dalla 0.10.0 / 1.2.0 comprendono anche le **frasi di contesto** (`contesto`: saluti, risveglio, riepilogo e numeri in sei momenti fissi, e i traguardi man mano che il registro cresce) e `attesi/_contesto-anniversari.json` (gli anniversari su date inventate). La scheda «Anno» delle statistiche (0.10.0 / 1.2.0) aggiunge `anno` (mappa, tre numeri, andamento e testi), `attesi/_anno-griglie.json` (la griglia di 41 anni) e `attesi/_anno-sintetico.json` (un anno e mezzo di studio inventato).
+Per il **giardino su Windows** (novembre 2026): `giardino` di ogni cartella ha anche `dopoLAvvio` (la casa, le regole delle isole, i ponti e i file messi da parte, come all'avvio), `statistiche.figurine` le figurine che il registro avrebbe dato, e `attesi/_giardino.json` tutto quello che non dipende da una cartella (catalogo, tiri, sentieri, terreno, mondo, cielo, angoli, pose, ospiti e un giardino passo per passo; lo scrive `tests/genera-attesi/giardino.swift`).
 
 La stessa prova vale **nel verso opposto**: `windows/test/ritorno.test.ts` fa scrivere al codice per Windows alcune cartelle di dati (una migrazione da una
 versione vecchia, sessioni con accenti, emoji, virgolette e formule da foglio di calcolo, voti e note, un focus in corso con pausa, un profilo con il

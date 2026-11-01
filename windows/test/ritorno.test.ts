@@ -24,19 +24,21 @@ const generator = join(root, "build", "fixtures", "genera-attesi");
 // I sorgenti Swift sono quelli di tests/genera-attesi.sh (una sola lista: se se ne dimentica uno qui, la CI sul Mac lo scopre solo a generatore da rifare).
 const swiftSources = [...readFileSync(join(root, "tests", "genera-attesi.sh"), "utf8").matchAll(/Sources\/FocusFriends\/(\w+)\.swift/g)]
   .map((match) => join(root, "Sources", "FocusFriends", `${match[1]}.swift`));
-const swiftMain = join(root, "tests", "genera-attesi", "main.swift");
+// main.swift e gli altri file del generatore (giardino.swift), sempre dalla stessa lista
+const swiftMain = [...readFileSync(join(root, "tests", "genera-attesi.sh"), "utf8").matchAll(/tests\/genera-attesi\/(\w+)\.swift/g)]
+  .map((match) => join(root, "tests", "genera-attesi", `${match[1]}.swift`));
 
 const hasSwift = process.platform === "darwin" && spawnSync("swiftc", ["--version"], { stdio: "ignore" }).status === 0;
 
 function generatorIsFresh(): boolean {
   if (!existsSync(generator)) return false;
   const built = statSync(generator).mtimeMs;
-  return [...swiftSources, swiftMain].every((file) => statSync(file).mtimeMs <= built);
+  return [...swiftSources, ...swiftMain].every((file) => statSync(file).mtimeMs <= built);
 }
 
 function buildGenerator(): void {
   mkdirSync(dirname(generator), { recursive: true });
-  const result = spawnSync("swiftc", ["-O", "-o", generator, ...swiftSources, swiftMain], { encoding: "utf8" });
+  const result = spawnSync("swiftc", ["-O", "-o", generator, ...swiftSources, ...swiftMain], { encoding: "utf8" });
   assert.equal(result.status, 0, `swiftc: ${result.stderr}`);
 }
 
@@ -144,7 +146,6 @@ describe("contratto al contrario: Windows scrive, il Mac legge", { skip: !hasSwi
       assert.deepEqual(names.length, 5);
       for (const name of names) {
         const swift = JSON.parse(readFileSync(join(output, `${name}.json`), "utf8")) as Record<string, unknown>;
-        delete swift["giardino"];
         const windows = JSON.parse(JSON.stringify(derive(scenarios, name))) as Record<string, unknown>;
         assert.deepEqual(windows, swift, name);
       }

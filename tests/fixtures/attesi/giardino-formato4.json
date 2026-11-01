@@ -1,0 +1,232 @@
+{
+  "adesso" : "2026-10-14T20:00 Europe/Rome",
+  "cartella" : "giardino-formato4",
+  "fileDopo" : [
+    "giardino.json"
+  ],
+  "giardino" : {
+    "avvisi" : [
+
+    ],
+    "compagni" : {
+      "porcellino" : {
+        "col" : 3,
+        "row" : 4
+      }
+    },
+    "contatori" : {
+      "dalLeggendario" : 11,
+      "dalRaro" : 3,
+      "riservaSecondi" : 1800
+    },
+    "copie" : [
+      {
+        "col" : 7,
+        "girata" : false,
+        "oggetto" : "tavolino",
+        "row" : 7
+      },
+      {
+        "col" : 8,
+        "girata" : false,
+        "oggetto" : "sdraio",
+        "row" : 7
+      },
+      {
+        "col" : 6,
+        "girata" : false,
+        "oggetto" : "cesto-carote",
+        "row" : 8
+      },
+      {
+        "col" : 0,
+        "girata" : false,
+        "oggetto" : "margherite",
+        "row" : 7
+      }
+    ],
+    "dopoLAvvio" : {
+      "accolti" : [
+        "porcellino",
+        "pianty",
+        "ciccio"
+      ],
+      "angoli" : [
+        "te"
+      ],
+      "avvisoRegole" : {
+        "riga" : "Le cose degli animali sono andate sulle loro isole.",
+        "spostate" : 1,
+        "tornate" : 0
+      },
+      "casa" : "porcellino",
+      "compagni" : {
+        "porcellino" : [
+          3,
+          4
+        ]
+      },
+      "dalLeggendario" : 11,
+      "dalRaro" : 3,
+      "file" : [
+        "giardino-prima-delle-rimozioni.json",
+        "giardino.json"
+      ],
+      "isole" : {
+        "ciccio" : {
+          "angoli" : [
+
+          ],
+          "cassetta" : [
+            "margherite",
+            "trifoglio",
+            "mughetti",
+            "tavolino",
+            "sdraio"
+          ],
+          "copie" : [
+
+          ],
+          "grandezza" : 8
+        },
+        "gattino" : {
+          "angoli" : [
+
+          ],
+          "cassetta" : [
+            "margherite",
+            "trifoglio",
+            "mughetti",
+            "tavolino",
+            "sdraio"
+          ],
+          "copie" : [
+
+          ],
+          "grandezza" : 8
+        },
+        "pianty" : {
+          "angoli" : [
+
+          ],
+          "cassetta" : [
+            "margherite",
+            "trifoglio",
+            "mughetti",
+            "tavolino",
+            "sdraio"
+          ],
+          "copie" : [
+
+          ],
+          "grandezza" : 8
+        },
+        "porcellino" : {
+          "angoli" : [
+            "te"
+          ],
+          "cassetta" : [
+            "margherite",
+            "trifoglio",
+            "mughetti",
+            "cesto-carote",
+            "tavolino",
+            "sdraio"
+          ],
+          "copie" : [
+            {
+              "col" : 7,
+              "girata" : false,
+              "isola" : "porcellino",
+              "oggetto" : "tavolino",
+              "row" : 7
+            },
+            {
+              "col" : 8,
+              "girata" : false,
+              "isola" : "porcellino",
+              "oggetto" : "sdraio",
+              "row" : 7
+            },
+            {
+              "col" : 6,
+              "girata" : false,
+              "isola" : "porcellino",
+              "oggetto" : "cesto-carote",
+              "row" : 8
+            },
+            {
+              "col" : 0,
+              "girata" : false,
+              "isola" : "",
+              "oggetto" : "margherite",
+              "row" : 7
+            }
+          ],
+          "grandezza" : 9
+        },
+        "riccio" : {
+          "angoli" : [
+
+          ],
+          "cassetta" : [
+            "margherite",
+            "trifoglio",
+            "mughetti",
+            "tavolino",
+            "sdraio"
+          ],
+          "copie" : [
+
+          ],
+          "grandezza" : 8
+        }
+      },
+      "mancano" : 54,
+      "nuove" : [
+        "sdraio"
+      ],
+      "ospiti" : {
+        "lumaca" : {
+          "motivo" : "Funghi",
+          "primo" : "2026-10-26",
+          "visite" : 2
+        }
+      },
+      "ponti" : [
+        "pianty-porcellino"
+      ],
+      "riserva" : 1800,
+      "strada" : 0.35699999999999998,
+      "trovati" : [
+        "cesto-carote",
+        "margherite",
+        "mughetti",
+        "sdraio",
+        "tavolino",
+        "trifoglio"
+      ]
+    },
+    "isola" : 9,
+    "oggettiUsabili" : [
+      "margherite",
+      "trifoglio",
+      "mughetti",
+      "cesto-carote",
+      "tavolino",
+      "sdraio"
+    ],
+    "regaliAperti" : 0,
+    "regaliTrovati" : [
+
+    ],
+    "trovati" : {
+      "cesto-carote" : 1,
+      "margherite" : 1,
+      "mughetti" : 1,
+      "sdraio" : 1,
+      "tavolino" : 1,
+      "trifoglio" : 1
+    }
+  }
+}

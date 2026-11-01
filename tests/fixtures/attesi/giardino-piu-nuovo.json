@@ -19,6 +19,122 @@
     "copie" : [
 
     ],
+    "dopoLAvvio" : {
+      "accolti" : [
+        "pianty",
+        "porcellino",
+        "gattino"
+      ],
+      "angoli" : [
+
+      ],
+      "avvisoRegole" : null,
+      "casa" : "gattino",
+      "compagni" : {
+
+      },
+      "dalLeggendario" : 0,
+      "dalRaro" : 0,
+      "file" : [
+        "giardino.json"
+      ],
+      "isole" : {
+        "ciccio" : {
+          "angoli" : [
+
+          ],
+          "cassetta" : [
+            "margherite",
+            "trifoglio",
+            "mughetti",
+            "rosaio"
+          ],
+          "copie" : [
+
+          ],
+          "grandezza" : 8
+        },
+        "gattino" : {
+          "angoli" : [
+
+          ],
+          "cassetta" : [
+            "margherite",
+            "trifoglio",
+            "mughetti",
+            "rosaio"
+          ],
+          "copie" : [
+
+          ],
+          "grandezza" : 8
+        },
+        "pianty" : {
+          "angoli" : [
+
+          ],
+          "cassetta" : [
+            "margherite",
+            "trifoglio",
+            "mughetti",
+            "rosaio"
+          ],
+          "copie" : [
+
+          ],
+          "grandezza" : 8
+        },
+        "porcellino" : {
+          "angoli" : [
+
+          ],
+          "cassetta" : [
+            "margherite",
+            "trifoglio",
+            "mughetti",
+            "rosaio"
+          ],
+          "copie" : [
+
+          ],
+          "grandezza" : 8
+        },
+        "riccio" : {
+          "angoli" : [
+
+          ],
+          "cassetta" : [
+            "margherite",
+            "trifoglio",
+            "mughetti",
+            "rosaio"
+          ],
+          "copie" : [
+
+          ],
+          "grandezza" : 8
+        }
+      },
+      "mancano" : 68,
+      "nuove" : [
+
+      ],
+      "ospiti" : {
+
+      },
+      "ponti" : [
+        "pianty-porcellino",
+        "porcellino-gattino"
+      ],
+      "riserva" : 0,
+      "strada" : 0,
+      "trovati" : [
+        "margherite",
+        "mughetti",
+        "rosaio",
+        "trifoglio"
+      ]
+    },
     "isola" : 8,
     "oggettiUsabili" : [
       "margherite",

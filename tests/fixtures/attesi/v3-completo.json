@@ -652,34 +652,264 @@
       {
         "col" : 2,
         "girata" : false,
-        "oggetto" : "papaveri",
+        "oggetto" : "felci",
         "row" : 5
       },
       {
         "col" : 3,
         "girata" : false,
-        "oggetto" : "funghi",
+        "oggetto" : "papaveri",
         "row" : 6
       },
       {
         "col" : 3,
         "girata" : false,
-        "oggetto" : "picnic",
+        "oggetto" : "cancelletto",
         "row" : 2
       },
       {
         "col" : 6,
         "girata" : false,
-        "oggetto" : "felci",
+        "oggetto" : "funghi",
         "row" : 6
-      },
-      {
-        "col" : 1,
-        "girata" : false,
-        "oggetto" : "annaffiatoio",
-        "row" : 4
       }
     ],
+    "dopoLAvvio" : {
+      "accolti" : [
+        "pianty",
+        "porcellino",
+        "gattino"
+      ],
+      "angoli" : [
+        "prato-fiorito"
+      ],
+      "avvisoRegole" : null,
+      "casa" : "gattino",
+      "compagni" : {
+        "gattino" : [
+          7,
+          6
+        ]
+      },
+      "dalLeggendario" : 7,
+      "dalRaro" : 4,
+      "file" : [
+        "giardino-formato1.json",
+        "giardino.json"
+      ],
+      "isole" : {
+        "ciccio" : {
+          "angoli" : [
+
+          ],
+          "cassetta" : [
+            "margherite",
+            "trifoglio",
+            "mughetti",
+            "tulipani",
+            "funghi",
+            "lavanda",
+            "papaveri",
+            "felci",
+            "cancelletto",
+            "panchina"
+          ],
+          "copie" : [
+
+          ],
+          "grandezza" : 8
+        },
+        "gattino" : {
+          "angoli" : [
+            "prato-fiorito"
+          ],
+          "cassetta" : [
+            "margherite",
+            "trifoglio",
+            "mughetti",
+            "tulipani",
+            "funghi",
+            "lavanda",
+            "papaveri",
+            "felci",
+            "cesto-cuscino",
+            "cancelletto",
+            "panchina"
+          ],
+          "copie" : [
+            {
+              "col" : 2,
+              "girata" : false,
+              "isola" : "gattino",
+              "oggetto" : "margherite",
+              "row" : 3
+            },
+            {
+              "col" : 0,
+              "girata" : false,
+              "isola" : "gattino",
+              "oggetto" : "lavanda",
+              "row" : 3
+            },
+            {
+              "col" : 3,
+              "girata" : false,
+              "isola" : "gattino",
+              "oggetto" : "panchina",
+              "row" : 0
+            },
+            {
+              "col" : 1,
+              "girata" : false,
+              "isola" : "gattino",
+              "oggetto" : "felci",
+              "row" : 4
+            },
+            {
+              "col" : 4,
+              "girata" : false,
+              "isola" : "gattino",
+              "oggetto" : "papaveri",
+              "row" : 6
+            },
+            {
+              "col" : 3,
+              "girata" : false,
+              "isola" : "gattino",
+              "oggetto" : "cancelletto",
+              "row" : 2
+            },
+            {
+              "col" : 6,
+              "girata" : false,
+              "isola" : "gattino",
+              "oggetto" : "funghi",
+              "row" : 6
+            },
+            {
+              "col" : 2,
+              "girata" : false,
+              "isola" : "gattino",
+              "oggetto" : "cesto-cuscino",
+              "row" : 4
+            }
+          ],
+          "grandezza" : 8
+        },
+        "pianty" : {
+          "angoli" : [
+
+          ],
+          "cassetta" : [
+            "margherite",
+            "trifoglio",
+            "mughetti",
+            "tulipani",
+            "funghi",
+            "lavanda",
+            "papaveri",
+            "felci",
+            "cancelletto",
+            "panchina"
+          ],
+          "copie" : [
+
+          ],
+          "grandezza" : 8
+        },
+        "porcellino" : {
+          "angoli" : [
+
+          ],
+          "cassetta" : [
+            "margherite",
+            "trifoglio",
+            "mughetti",
+            "tulipani",
+            "funghi",
+            "lavanda",
+            "papaveri",
+            "felci",
+            "cesto-carote",
+            "tunnel",
+            "cancelletto",
+            "panchina"
+          ],
+          "copie" : [
+            {
+              "col" : 4,
+              "girata" : false,
+              "isola" : "porcellino",
+              "oggetto" : "cesto-carote",
+              "row" : 1
+            },
+            {
+              "col" : 5,
+              "girata" : false,
+              "isola" : "porcellino",
+              "oggetto" : "tunnel",
+              "row" : 1
+            }
+          ],
+          "grandezza" : 8
+        },
+        "riccio" : {
+          "angoli" : [
+
+          ],
+          "cassetta" : [
+            "margherite",
+            "trifoglio",
+            "mughetti",
+            "tulipani",
+            "funghi",
+            "lavanda",
+            "papaveri",
+            "felci",
+            "cancelletto",
+            "panchina"
+          ],
+          "copie" : [
+
+          ],
+          "grandezza" : 8
+        }
+      },
+      "mancano" : 140,
+      "nuove" : [
+        "cancelletto",
+        "cesto-carote",
+        "cesto-cuscino",
+        "felci",
+        "funghi",
+        "papaveri",
+        "tunnel"
+      ],
+      "ospiti" : {
+
+      },
+      "ponti" : [
+        "pianty-porcellino",
+        "porcellino-gattino"
+      ],
+      "riserva" : 0,
+      "strada" : 0,
+      "trovati" : [
+        "cancelletto",
+        "cesto-carote",
+        "cesto-cuscino",
+        "felci",
+        "funghi",
+        "lavanda",
+        "margherite",
+        "mughetti",
+        "panchina",
+        "papaveri",
+        "trifoglio",
+        "tulipani",
+        "tunnel"
+      ]
+    },
     "isola" : 8,
     "oggettiUsabili" : [
       "margherite",
@@ -691,23 +921,23 @@
       "papaveri",
       "felci",
       "cesto-carote",
-      "annaffiatoio",
       "cesto-cuscino",
-      "picnic",
+      "tunnel",
+      "cancelletto",
       "panchina"
     ],
     "regaliAperti" : 7,
     "regaliTrovati" : [
-      "papaveri",
-      "funghi",
-      "picnic",
-      "cesto-carote",
-      "cesto-cuscino",
       "felci",
-      "annaffiatoio"
+      "papaveri",
+      "cancelletto",
+      "cesto-carote",
+      "tunnel",
+      "funghi",
+      "cesto-cuscino"
     ],
     "trovati" : {
-      "annaffiatoio" : 1,
+      "cancelletto" : 1,
       "cesto-carote" : 1,
       "cesto-cuscino" : 1,
       "felci" : 1,
@@ -717,9 +947,9 @@
       "mughetti" : 1,
       "panchina" : 1,
       "papaveri" : 1,
-      "picnic" : 1,
       "trifoglio" : 1,
-      "tulipani" : 1
+      "tulipani" : 1,
+      "tunnel" : 1
     }
   },
   "profilo" : {
@@ -784,6 +1014,38 @@
   },
   "statistiche" : {
     "csv" : "inizio,inizio_locale,minuti,minuti_previsti,completa,materia,personaggio,com_e_andata,nota,note_del_focus\n2026-10-01T07:00:00Z,2026-10-01T09:00,50,50,si,\"Anatomia\",pianty,good,\"cap. 1\",\"\"\n2026-10-01T09:00:00Z,2026-10-01T11:00,25,50,no,\"Anatomia\",pianty,,\"\",\"\"\n2026-10-02T07:30:00Z,2026-10-02T09:30,50,50,si,\"Fisiologia\",porcellino,soso,\"cap. 4\",\"\"\n2026-10-02T13:00:00Z,2026-10-02T15:00,50,50,si,\"Anatomia\",porcellino,good,\"\",\"\"\n2026-10-03T08:00:00Z,2026-10-03T10:00,30,30,si,\"Chimica\",ciccio,good,\"\",\"\"\n2026-10-04T06:30:00Z,2026-10-04T08:30,50,50,si,\"Chimica\",ciccio,poor,\"stanco\",\"rivedere l'esercizio 4 | chiedere al prof\"\n2026-10-06T07:00:00Z,2026-10-06T09:00,50,50,si,\"Fisica\",gattino,good,\"\",\"\"\n2026-10-06T14:00:00Z,2026-10-06T16:00,45,45,no,\"Fisica\",gattino,,\"\",\"\"\n2026-10-07T08:00:00Z,2026-10-07T10:00,50,50,si,\"Fisica\",gattino,soso,\"\",\"\"\n2026-10-10T07:00:00Z,2026-10-10T09:00,50,50,si,\"\",pianty,,\"\",\"\"\n2026-10-11T07:00:00Z,2026-10-11T09:00,50,50,si,\"Anatomia\",pianty,good,\"\",\"\"\n2026-10-12T12:00:00Z,2026-10-12T14:00,25,25,si,\"Fisiologia\",porcellino,good,\"esercizi\",\"\"\n2026-10-13T07:00:00Z,2026-10-13T09:00,50,50,si,\"Anatomia\",pianty,good,\"\",\"\"\n2026-10-13T09:00:00Z,2026-10-13T11:00,10,25,no,\"Anatomia\",pianty,,\"\",\"\"\n2026-10-14T07:00:00Z,2026-10-14T09:00,50,50,si,\"Chimica\",ciccio,good,\"\",\"\"\n",
+    "figurine" : [
+      null,
+      [
+        "tulipani",
+        "Comune"
+      ],
+      [
+        "papaveri",
+        "Comune"
+      ],
+      null,
+      [
+        "tunnel",
+        "Comune"
+      ],
+      null,
+      [
+        "cesto-cuscino",
+        "Comune"
+      ],
+      [
+        "lampada-fienile",
+        "Raro"
+      ],
+      null,
+      null,
+      [
+        "funghi",
+        "Comune"
+      ],
+      null
+    ],
     "frasi" : [
       "Con Anatomia vai bene: 4 focus su 4 sono andati bene."
     ],

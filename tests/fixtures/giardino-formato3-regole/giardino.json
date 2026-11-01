@@ -1,0 +1,27 @@
+{
+  "companions" : {
+    "gattino" : { "col" : 4, "row" : 6 },
+    "porcellino" : { "x" : 0.3, "y" : 0.8 }
+  },
+  "drops" : {
+    "found" : { "casetta-uccelli" : 1, "cesto-carote" : 2, "erba-alta" : 1, "lampione" : 1, "margherite" : 1, "mughetti" : 1, "tiragraffi" : 1, "trifoglio" : 1, "tulipani" : 1 },
+    "nothingInARow" : 3,
+    "sinceLegendary" : 5,
+    "sinceRare" : 2
+  },
+  "lastRolled" : "00000000-0000-4000-8000-000000002999",
+  "pendingGifts" : 0,
+  "placements" : [
+    { "col" : 7, "id" : "00000000-0000-4000-8000-000000002001", "item" : "margherite", "row" : 2, "turned" : false },
+    { "col" : 6, "id" : "00000000-0000-4000-8000-000000002002", "item" : "cesto-carote", "row" : 7, "turned" : false },
+    { "col" : 8, "id" : "00000000-0000-4000-8000-000000002003", "item" : "casetta-uccelli", "row" : 7, "turned" : true },
+    { "col" : 7, "id" : "00000000-0000-4000-8000-000000002004", "item" : "tiragraffi", "row" : 6, "turned" : false },
+    { "col" : 5, "id" : "00000000-0000-4000-8000-000000002005", "item" : "lampione", "row" : 5, "turned" : false },
+    { "col" : 1, "id" : "00000000-0000-4000-8000-000000002006", "item" : "tulipani", "row" : 1, "turned" : false },
+    { "col" : 2, "id" : "00000000-0000-4000-8000-000000002007", "item" : "erba-alta", "row" : 7, "turned" : false },
+    { "col" : 12, "id" : "00000000-0000-4000-8000-000000002008", "item" : "mughetti", "row" : 2, "turned" : false },
+    { "col" : 0, "id" : "00000000-0000-4000-8000-000000002009", "item" : "sconosciuto", "row" : 9, "turned" : false }
+  ],
+  "unseen" : [ "erba-alta", "lampione" ],
+  "version" : 3
+}

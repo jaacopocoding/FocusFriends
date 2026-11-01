@@ -245,6 +245,8 @@ for entry in try fm.contentsOfDirectory(atPath: fixtures.path).sorted() {
                               "valoreMinutoOggi": GardenPoints.multiplierToday(streak)] as [String: Any]
             stats["frasi"] = StudyStats.insights(sessions: sessions, calendar: cal)
             stats["csv"] = SessionCSV.csv(for: sessions)
+            // le figurine che il registro avrebbe dato, da un album appena cominciato (GardenDrops.simulate)
+            stats["figurine"] = GardenDrops.simulate(sessions: sessions, now: now, calendar: cal).map { opt($0.drop.map { [$0.item, $0.rarity.title] }) }
             result["statistiche"] = stats
             result["contesto"] = contextJSON(sessions: sessions)
             result["anno"] = yearJSON(sessions: sessions, period: StudyPeriod.containing(now, kind: .year, calendar: cal), through: now)
@@ -301,6 +303,7 @@ for entry in try fm.contentsOfDirectory(atPath: fixtures.path).sorted() {
             "compagni": g.companionTiles.mapValues { ["col": $0.col, "row": $0.row] },
             "oggettiUsabili": GardenCatalog.items.filter { g.isFound($0.id) }.map { $0.id },
         ]
+        part["dopoLAvvio"] = gardenAfterLaunchJSON(g, directory: gardenTmp)
         result["giardino"] = part
     }
 
@@ -341,4 +344,6 @@ let grids = try JSONSerialization.data(withJSONObject: ["anni": gridJSON()], opt
 try (grids + Data("\n".utf8)).write(to: outputDirectory.appendingPathComponent("_anno-griglie.json"))
 let synthetic = try JSONSerialization.data(withJSONObject: syntheticYearJSON(), options: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes])
 try (synthetic + Data("\n".utf8)).write(to: outputDirectory.appendingPathComponent("_anno-sintetico.json"))
+let garden = try JSONSerialization.data(withJSONObject: try gardenSyntheticJSON(), options: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes])
+try (garden + Data("\n".utf8)).write(to: outputDirectory.appendingPathComponent("_giardino.json"))
 print("Scritti \(written) file in \(outputDirectory.path)")

@@ -422,6 +422,9 @@
   },
   "statistiche" : {
     "csv" : "inizio,inizio_locale,minuti,minuti_previsti,completa,materia,personaggio,com_e_andata,nota,note_del_focus\n2026-10-14T07:00:00Z,2026-10-14T09:00,20,50,no,\"Anatomia\",pianty,,\"\",\"rivedere l'esercizio 4\"\n",
+    "figurine" : [
+
+    ],
     "frasi" : [
 
     ],

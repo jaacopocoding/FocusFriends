@@ -1,7 +1,7 @@
 # Parità con l'app per Mac
 
 Funzione per funzione: cosa fa l'app per Mac (`README.md` «Cosa fa» e `ARCHITECTURE.md` §3), cosa fa la versione per Windows,
-e **come è stato verificato**. Il giardino non c'è nella prima uscita (vedi `PIANO_WINDOWS.md`, G1–G6).
+e **come è stato verificato**. Il giardino non c'è nella prima uscita (vedi `PIANO_WINDOWS.md`, G0–G8).
 
 **Prova su Windows (18 ottobre 2026):** una prova sommaria su un computer Windows vero con l'installer della CI: l'app si installa, parte e «funziona bene»,
 circa 200 MB e 0 % di processore. **Le sigle W qui sotto non sono state spuntate una per una**: restano da fare con `PROVE_SU_WINDOWS.md`.
