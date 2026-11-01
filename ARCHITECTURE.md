@@ -9,6 +9,7 @@
 > Everything here was read from the files in the repository; statements that could not be fully verified are marked
 > **[uncertain]**. Rationales are labelled **[documented]** (comes from code comments, README, CREDITS or git history),
 > **[inferred]** (deduced from the code) or **[unknown]** (could not be determined).
+> **Note:** the long Italian README that this file cites ("README «…»") is now `docs/GUIDA.md`; `README.md` is a short, image-led landing page.
 > The UI strings and most code comments in the repository are in Italian; identifiers are English or Italian-derived.
 > UI strings quoted here are usually glossed in English or described in the surrounding text.
 >
@@ -97,7 +98,7 @@ FocusFriends/
 ├── .gitignore                    ignores *.app, .DS_Store, build/
 ├── LICENSE                       MIT license text (copyright holder: the GitHub account name)
 ├── CREDITS.md                    credits/licences for the 5 bundled music tracks (CC0, HoliznaCC0) and a note on the artwork
-├── README.md                     Italian user + developer documentation (features, data formats, structure, how to add a pet)
+├── README.md                     short Italian landing page: the companions, the garden and the album in pictures, and how to download (`docs/GUIDA.md` has everything else)
 ├── ARCHITECTURE.md               this file (the Mac app only)
 ├── ARCHITECTURE_REVIEW.md        the review of this file and what was done about each finding
 ├── FORMATI.md                    the data formats shared by the Mac and Windows apps (Italian)
@@ -198,7 +199,8 @@ FocusFriends/
 │   ├── giardino/                 fiori/compagni/arredi/luci/luci2/luci3_original.png sheets (`riccio_original.png` 4×2 too), prato_original.png, 47 object PNGs + `braciere-acceso.png`, prato.png, erba_original.png and sentiero_original.png (terrain sheets), tessera_erba_1..12.png, tessera_sentiero_1..8.png, tessera_neve_1..12.png and tessera_sentiero_neve_1..8.png (diamond tiles), bordo_original.png, bordo_1..3.png, bordo_neve_original.png and bordo_neve_1..3.png (earth edge strips), sfondo_original.png, sfondo.png and paesaggio_original.png with the 12 paesaggio_<name>.png pieces, sfondo_inverno_original.png, sfondo_inverno.png and paesaggio_inverno_original.png with the 9 paesaggio_inverno_<name>.png pieces, neve_original.png and sentiero_neve_original.png (the snow sheets), dettagli_original.png and dettaglio_1..24.png (the scattered details), visitatori_original.png and the 12 visitatore_<name>.png guests, collina_original.png and collina_autunno/primavera/estate/inverno.png (the hill)
 │   ├── album/                    copertina(.png/_original.png), doppia_pagina(.png/_original.png), guida_doppia_pagina_original.png (layout guide given to the image generator)
 │   └── music/                    5 AAC (.m4a) tracks: boredom, love, night-driving, old-age, opinions
-├── docs/images/                  PNG screenshots/logo used only by README.md (sample data); giardino.png and album.png are the garden and the album, da-fare.png the to-do page
+├── docs/GUIDA.md                 the full Italian user + developer guide (features, data formats, structure, how to add a pet): the former README
+├── docs/images/                  PNG screenshots/logo used by README.md and docs/GUIDA.md (sample data; `scrivania.gif` (the walking cat, with the real bubble and clock), `compagni.png`, `frasi.png` and `crescita.png` are composed from the app's drawings and its real bubbles by `tools/compone-readme.sh`); giardino.png and album.png are the garden and the album, da-fare.png the to-do page
 └── build/                        generated output (git-ignored): FocusFriends.app, zips, release notes, tests/ binary
 ```
 

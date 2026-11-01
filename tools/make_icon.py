@@ -36,7 +36,7 @@ def make():
 
 icon = make()
 icon.save("assets/AppIcon.png")
-icon.save("docs/images/logo.png")      # la copia che mostra il README
+icon.save("docs/images/logo.png")      # la copia che mostra il README e la guida
 
 # .iconset -> .icns con iconutil
 tmp = tempfile.mkdtemp(suffix=".iconset")
