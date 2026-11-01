@@ -1,5 +1,6 @@
 // Il contratto tra il processo principale e l'interfaccia (la pagina non tocca file né sistema: chiede con questi messaggi).
 
+import type { GardenDrop } from "../core/gardenDrops.ts";
 import type { CardData } from "../core/card.ts";
 import type { Rating } from "../core/log.ts";
 import type { PomodoroEvent, PomodoroSnapshot } from "../core/pomodoro.ts";
@@ -46,6 +47,7 @@ export type CardCommand =
   | { name: "discardFocus" }
   | { name: "selectPet"; id: string }
   | { name: "showStats" }
+  | { name: "showGarden" }
   | { name: "cycleChattiness" }
   | { name: "toggleMovement" }
   | { name: "toggleAsk" }
@@ -124,6 +126,8 @@ export interface FocusFriendsApi {
   onSpeakNow(callback: () => void): void;
   /** Il computer si è risvegliato da uno sleep (o lo schermo è stato sbloccato): l'audio può essersi fermato da solo. */
   onSystemResumed(callback: () => void): void;
+  /** Una figurina trovata a fine focus: compare accanto al compagno. */
+  onGiftFound(callback: (drop: GardenDrop) => void): void;
   /** La pagina è pronta a ricevere messaggi (prima di questo momento il processo principale li tiene da parte). */
   ready(): void;
   /** Solo nelle prove automatiche: la pagina espone dei comandi in `window.__ff`. */
@@ -155,4 +159,5 @@ export const CHANNEL = {
   cardReopen: "card:reopen",
   systemResumed: "system:resumed",
   rendererReady: "renderer:ready",
+  giftFound: "garden:gift-found",
 } as const;

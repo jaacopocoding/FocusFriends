@@ -1,5 +1,6 @@
 // La scheda vista dal processo principale: i suoi dati e i comandi che arrivano dalla pagina (MenuController.swift).
 
+import type { AlbumCardData } from "../core/card.ts";
 import { dialog } from "electron";
 import type { BrowserWindow } from "electron";
 import { buildCardData } from "../core/card.ts";
@@ -36,6 +37,9 @@ export interface CardServiceOptions {
   stats: () => void;
   /** Dopo l'introduzione: il primo compagno è scelto (l'isola di casa del giardino è la sua). */
   introDone?: (petId: string) => void;
+  /** Il giardino: aprirlo, e com'è l'album (per la riga della prossima figurina). */
+  garden?: () => void;
+  album?: () => AlbumCardData;
 }
 
 export interface CardService {
@@ -118,6 +122,7 @@ export function createCardService(options: CardServiceOptions): CardService {
         lastSessionId: engine.snapshot().lastFocus?.sessionId ?? null,
         recentSubjects: timer().log.recentSubjects(), lastNote: timer().log.lastNote(),
         todoItems: options.todo.items,
+        album: options.album?.() ?? null,
       });
     },
 
@@ -166,6 +171,7 @@ export function createCardService(options: CardServiceOptions): CardService {
           break;
         }
         case "showStats": options.stats(); break;
+        case "showGarden": options.garden?.(); break;
         case "cycleChattiness": {
           const index = CHATTINESS.indexOf(settings.phraseFrequency);
           settings.phraseFrequency = CHATTINESS[(index + 1) % CHATTINESS.length] ?? "sometimes";

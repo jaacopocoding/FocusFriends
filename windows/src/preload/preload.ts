@@ -57,6 +57,9 @@ const api: FocusFriendsApi = {
   onSystemResumed: (callback) => {
     ipcRenderer.on(CHANNEL.systemResumed, () => callback());
   },
+  onGiftFound: (callback) => {
+    ipcRenderer.on(CHANNEL.giftFound, (_event, drop) => callback(drop));
+  },
   ready: () => ipcRenderer.send(CHANNEL.rendererReady),
   selfTest: process.env["FF_SELFTEST"] !== undefined,
 };

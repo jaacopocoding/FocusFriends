@@ -20,6 +20,7 @@ import { openIntroCard } from "./dialogs/introCard.ts";
 import { ModalHost } from "./dialogs/modal.ts";
 import { openNameDialog } from "./dialogs/nameDialog.ts";
 import { ReflectionCard } from "./dialogs/reflectionCard.ts";
+import { GiftCard } from "./giftCard.ts";
 import { openSubjectPrompt } from "./dialogs/subjectPrompt.ts";
 import { ClockView, CLOCK_SIZE } from "./clockView.ts";
 import { ExtendPrompt, PROMPT_SIZE } from "./extendPrompt.ts";
@@ -54,6 +55,7 @@ let prompt: ExtendPrompt;
 let card: MenuCard;
 let modals: ModalHost;
 let reflection: ReflectionCard;
+let giftCard: GiftCard;
 let ambient: AmbientPlayer;
 let music: MusicPlayer;
 let visible = true;
@@ -561,6 +563,9 @@ async function start(): Promise<void> {
       speaker.say(doneMessage(item, Math.floor(Math.random() * 3)));
     },
   });
+  // la figurina trovata a fine focus, accanto al compagno
+  giftCard = new GiftCard({ container: stage, petBox: () => ({ ...view.position, ...view.size }), feetY, scene: sceneSize });
+  api.onGiftFound((drop) => { if (visible) void giftCard.show(drop); });
   card = new MenuCard({
     api, container: stage, timer: () => timerState, scene: sceneSize, urlOf,
     petBox: () => ({ ...view.position, ...view.size }),

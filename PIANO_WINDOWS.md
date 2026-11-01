@@ -501,8 +501,14 @@ circa 5.250 righe: `GardenWindow` 3.441, `AlbumWindow` 1.204, `Sticker` e `GiftC
       sopra un'altra isola aperta diventa lei quella viva (non vicino alla zona per togliere, a differenza del Mac). Le regole sono quelle di `Garden` (la pagina le controlla
       con `core/gardenGrid.ts`, il processo principale le applica). La rotellina del mouse ingrandisce a scatti di 1,3 come i tasti, due dita sul touchpad spostano, il pizzico
       ingrandisce. Provata dal vivo con `test/vivo/giardino-mosse.cjs` (il mouse simulato sulla finestra).
-- [ ] **G4 — Le figurine** (3): il tiro a fine focus (`PomodoroDeps.gardenLine`), la carta della figurina, la riga e la barra sotto «Album» nella scheda, «Cancella
+- [x] **G4 — Le figurine** (3): il tiro a fine focus (`PomodoroDeps.gardenLine`), la carta della figurina, la riga e la barra sotto «Album» nella scheda, «Cancella
       tutto…» che toglie anche il giardino (`StatsDeps.onDeleteAll`).
+      **Fatta il 1° novembre 2026.** A fine focus il processo principale tira la figurina (`main/main.ts`, con i giorni di fila del giorno del focus, come il Mac): la frase
+      di fine focus dice la figurina o quanto manca (`giftLine`), la figurina va sull'isola e compare accanto al compagno (`renderer/giftCard.ts`, che si gira e luccica se è
+      rara, 6,5 secondi, sopra «Com'è andata?» e sotto il fumetto). La figurina si disegna con `renderer/garden/sticker.ts` (lo stesso disegno servirà all'album).
+      Nella scheda: «Giardino» accanto a «Statistiche» (anche nella pagina del focus) e, sotto «Da fare», la riga «Prossima figurina: ancora N minuti di studio» con la
+      barretta (un tocco apre il giardino; la riga «Album» arriva con la G6). «Cancella tutto…» toglie anche il giardino dalla G2. `quickGifts` in `impostazioni.json` fa
+      contare un focus da un minuto come un'ora, per provarlo: `test/vivo/giardino-regalo.cjs`.
 - [ ] **G5 — Il mondo** (4): le cinque isole, i ponti che si costruiscono, le case, il lucchetto, il regalo di benvenuto.
 - [ ] **G6 — L'album** (5): il libro, le pagine, le sagome, le animazioni. Dopo la G1 non dipende dalle G2–G5: si può fare in parallelo.
 - [ ] **G7 — Prima uscita** (3): parità a occhio, installer e sua misura, `PROVE_SU_WINDOWS.md` per il giardino, documenti. Versione 1.3.0.

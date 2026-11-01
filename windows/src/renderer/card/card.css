@@ -560,6 +560,44 @@ input.volume::-webkit-slider-thumb {
   font-size: 12.5px;
 }
 
+.footer-links {
+  display: flex;
+  gap: 14px;
+}
+
+/* ---- la strada fino alla prossima figurina (sotto «Da fare»): una riga piccola e una barretta */
+
+.gift-line {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 5px;
+  width: calc(100% - 32px + 6px);
+  margin: 1px -6px 3px 26px;
+  padding: 2px 6px 4px;
+  border-radius: 8px;
+  text-align: left;
+}
+
+.gift-line:hover { background: rgba(41, 26, 15, 0.06); }
+.gift-line-text { font-size: 11px; color: var(--ink-light); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gift-line:hover .gift-line-text { color: var(--ink); }
+
+.gift-bar {
+  display: block;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--track);
+  overflow: hidden;
+}
+
+.gift-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--accent);
+}
+
 /* ---- la pagina dei timer */
 
 .page-timers {

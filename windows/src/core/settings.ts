@@ -108,6 +108,8 @@ export class Settings {
 
   /** Per provare il giardino a un'altra ora o in un'altra stagione senza aspettare (come `gardenHour` e `gardenSeason` sul Mac): chiavi nascoste, che si scrivono a mano. */
   get gardenHour(): number | null { const hour = this.number("gardenHour"); return hour !== undefined && hour >= 0 && hour <= 24 ? hour : null; }
+  /** Per provare le figurine senza studiare ore (come `quickGifts` sul Mac): un focus da un minuto conta, e ogni minuto vale un'ora. Chiave nascosta. */
+  get quickGifts(): boolean { return this.bool("quickGifts", false); }
   get gardenSeason(): string | null { const season = this.values["gardenSeason"]; return typeof season === "string" ? season : null; }
 
   // ---- i suoni

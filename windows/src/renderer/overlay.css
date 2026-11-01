@@ -28,7 +28,7 @@ html, body {
   left: 0;
   top: 0;
   /* Sopra «Com'è andata?» (che sta a 15): una frase detta mentre la scheda è aperta si legge tutta. Sotto le finestre di dialogo. */
-  z-index: 16;
+  z-index: 17;   /* sopra la figurina di fine focus (16), che sta sopra «Com'è andata?» (15) */
   pointer-events: none;
   background-image: url("ff://app/assets/bubble.png");
   background-size: 100% 100%;
@@ -490,4 +490,11 @@ html, body {
   align-items: center;
   gap: 14px;
   margin-top: 8px;
+}
+
+/* La figurina trovata a fine focus (giftCard.ts): accanto al compagno, non prende i clic. */
+.gift-card {
+  position: absolute;
+  pointer-events: none;
+  z-index: 16;
 }

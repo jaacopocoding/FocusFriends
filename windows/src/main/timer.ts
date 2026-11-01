@@ -4,6 +4,7 @@
 import { join } from "node:path";
 import { PomodoroEngine } from "../core/pomodoro.ts";
 import type { PomodoroEvent, PomodoroSnapshot } from "../core/pomodoro.ts";
+import type { StudySession } from "../core/log.ts";
 import { SessionLog } from "../core/log.ts";
 import type { Settings } from "../core/settings.ts";
 import { CHANNEL } from "../shared/api.ts";
@@ -35,6 +36,8 @@ export function startTimer(options: {
   send: (channel: string, payload: unknown) => void;
   /** Cambia qualcosa che si vede (per rifare il menu dell'area di notifica). */
   onChange: () => void;
+  /** Cosa è successo nel giardino con un focus finito (la figurina trovata, o quanto manca): si aggiunge alla frase di fine focus. */
+  gardenLine?: (recorded: StudySession, log: SessionLog) => string;
 }): TimerService {
   const { settings, send } = options;
   const log = new SessionLog(options.directory);
@@ -45,6 +48,7 @@ export function startTimer(options: {
 
   const engine = new PomodoroEngine({
     log, now: () => Date.now(), longBreakEnabled: () => settings.longBreakEnabled, petId: () => settings.pet,
+    ...(options.gardenLine ? { gardenLine: (recorded: StudySession) => options.gardenLine!(recorded, log) } : {}),
   });
   let lastKey = "";
   const broadcast = (force: boolean): void => {

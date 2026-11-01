@@ -2,6 +2,7 @@
 // usate; poi le pagine del quadrante, del focus e della pausa. Sta dentro la finestra trasparente: mentre è aperta la finestra
 // riceve i clic (un clic fuori la chiude) e la tastiera (Esc la chiude).
 
+import { nextGiftLine } from "../../core/gardenDrops.ts";
 import type { CardData } from "../../core/card.ts";
 import { subjectColor } from "../../core/colors.ts";
 import { cardPlacement } from "../../core/displays.ts";
@@ -368,8 +369,9 @@ export class MenuCard {
     }
     body.append(today);
 
-    // Statistiche (il giardino arriva con la seconda uscita)
+    // Giardino e statistiche
     body.append(h("div", { class: "pills" },
+      button("pill", "Giardino", () => this.command({ name: "showGarden" }, true), icon("leaf", 14), "Giardino"),
       button("pill", "Statistiche", () => this.command({ name: "showStats" }, true), icon("chart", 14), "Statistiche")));
 
     // Linea e impostazioni rapide
@@ -387,6 +389,14 @@ export class MenuCard {
       this.todoForm = null;
       this.rebuild(false);
     }));
+    // la strada fino alla prossima figurina, sempre in vista (un tocco apre il giardino)
+    if (data.album && data.album.minutesLeft !== null) {
+      const fill = h("span", { class: "gift-bar-fill" });
+      fill.style.width = `${Math.round((data.album.progress ?? 0) * 100)}%`;
+      const line = nextGiftLine(data.album.minutesLeft);
+      body.append(button("gift-line", line, () => this.command({ name: "showGarden" }, true),
+        h("span", { class: "gift-line-text" }, line), h("span", { class: "gift-bar" }, fill)));
+    }
     body.append(this.option(data.petVisible ? "eyeOff" : "eye", data.petVisible ? `Nascondi ${pet.name}` : `Mostra ${pet.name}`, null, null,
       () => this.command({ name: "toggleVisibility" }, true)));
 
@@ -878,7 +888,9 @@ export class MenuCard {
       }
     }
     body.append(h("div", { class: "footer" }, this.menuLink(),
-      button("link", "Statistiche", () => this.command({ name: "showStats" }, true), "Statistiche")));
+      h("span", { class: "footer-links" },
+        button("link", "Giardino", () => this.command({ name: "showGarden" }, true), "Giardino"),
+        button("link", "Statistiche", () => this.command({ name: "showStats" }, true), "Statistiche"))));
   }
 }
 

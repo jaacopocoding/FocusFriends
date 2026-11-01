@@ -14,7 +14,7 @@ import { PET_IDS, petInfo } from "../core/pets.ts";
 import { Profile } from "../core/profile.ts";
 import type { TimerKind } from "../core/rules.ts";
 import { Settings } from "../core/settings.ts";
-import { refreshSystemZone } from "../core/time.ts";
+import { DAY_MS, refreshSystemZone, startOfDay } from "../core/time.ts";
 import { ToDoList } from "../core/todoList.ts";
 import { createCardService } from "./card.ts";
 import { loginItem } from "./login.ts";
@@ -25,7 +25,11 @@ import { createStage } from "./stage.ts";
 import type { Stage } from "./stage.ts";
 import { Garden } from "../core/garden.ts";
 import { ISLANDS } from "../core/gardenGrid.ts";
-import { analyzeStreak } from "../core/stats.ts";
+import { analyzeStreak, startTime } from "../core/stats.ts";
+import { giftLine } from "../core/gardenDrops.ts";
+import { GARDEN_ITEMS } from "../core/gardenCatalog.ts";
+import type { SessionLog } from "../core/log.ts";
+import type { StudySession } from "../core/log.ts";
 import { createGardenController } from "./gardenWindow.ts";
 import type { GardenController } from "./gardenWindow.ts";
 import { createStatsController } from "./statsWindow.ts";
@@ -136,7 +140,7 @@ async function start(): Promise<void> {
   profile.keepAllCompanions(PET_IDS);
   // Il giardino: le isole aperte sono quelle dei compagni sbloccati, e l'isola di casa è quella del compagno scelto all'inizio (per chi usava già
   // l'app, quella del compagno che usa); si decide una volta sola. Poi i ponti fra le isole già aperte e le cose degli animali sull'isola giusta.
-  const garden = new Garden(data, { developer: () => settings.developerMode });
+  const garden = new Garden(data, { developer: () => settings.developerMode, quickGifts: () => settings.quickGifts });
   garden.onProblem = say;
   garden.isIslandOpen = (id) => profile.isCompanionUnlocked(id);
   const settleGarden = (home: string): void => {
@@ -151,7 +155,15 @@ async function start(): Promise<void> {
 
   // Il timer, il menu dell'area di notifica e la scheda si conoscono a vicenda: nascono uno dopo l'altro e si agganciano.
   let tray: ReturnType<typeof createTray> | null = null;
-  const service: TimerService = startTimer({ directory: data, settings, send, onChange: () => tray?.refresh() });
+  // A fine focus il giardino tira la figurina (un focus completato di almeno 20 minuti mette da parte i suoi minuti): la frase lo dice, e la
+  // figurina trovata compare accanto al compagno.
+  const gardenLine = (recorded: StudySession, sessionLog: SessionLog): string => {
+    const streak = analyzeStreak(sessionLog.sessions, Date.now());
+    const gift = garden.rollGift(recorded, streak.perDay.get(Math.floor(startOfDay(startTime(recorded)) / DAY_MS)) ?? 1);
+    if (gift.kind === "found") send(CHANNEL.giftFound, gift.drop);
+    return giftLine(gift, garden.minutesToNextGift);
+  };
+  const service: TimerService = startTimer({ directory: data, settings, send, onChange: () => tray?.refresh(), gardenLine });
   // Le frasi che il compagno dice di sua iniziativa, in quest'ordine: il saluto dell'avvio e il riepilogo della settimana (una volta), le scadenze
   // di oggi e domani (al massimo ogni tre ore, mai durante un focus), ogni tanto un numero dello studio, e poi il mazzo. Come Speaker.sayRandom sul Mac.
   const remarks = createRemarks({
@@ -199,6 +211,11 @@ async function start(): Promise<void> {
     quit: () => app.quit(),
     stats: () => stats.show("day"),
     introDone: (petId) => settleGarden(petId),
+    garden: () => gardenWindow.show(),
+    album: () => ({
+      found: GARDEN_ITEMS.filter((x) => garden.isFound(x.id)).length, total: GARDEN_ITEMS.length, fresh: garden.unseen.size,
+      minutesLeft: garden.minutesToNextGift, progress: garden.nextGiftProgress,
+    }),
   });
 
   /** Un clic sull'icona (o una scelta del menu) che apre la scheda: le coordinate sono quelle della finestra (l'area di lavoro dello schermo del compagno). */

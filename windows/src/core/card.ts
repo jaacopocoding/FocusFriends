@@ -50,6 +50,16 @@ export interface CardData {
   lastNote: { subject: string | null; note: string } | null;
   /** Le cose da fare (la pagina «Da fare»): già raggruppate per oggi. */
   todo: ToDoCardData;
+  /** L'album del giardino: quante figurine, quante nuove, e la strada fino alla prossima (null se non c'è più niente da trovare). */
+  album: AlbumCardData | null;
+}
+
+export interface AlbumCardData {
+  found: number;
+  total: number;
+  fresh: number;
+  minutesLeft: number | null;
+  progress: number | null;
 }
 
 export interface ToDoCardData {
@@ -84,6 +94,7 @@ export interface CardInput {
   recentSubjects: string[];
   lastNote: { subject?: string; note: string } | null;
   todoItems: readonly ToDoItem[];
+  album?: AlbumCardData | null;
 }
 
 /** Per ogni compagno bloccato, la frase che dice quanto manca («si sblocca a 20 focus: ne hai 12»). */
@@ -135,6 +146,7 @@ export function buildCardData(input: CardInput): CardData {
     recentSubjects: input.recentSubjects,
     lastNote: input.lastNote === null ? null : { subject: input.lastNote.subject ?? null, note: input.lastNote.note },
     todo: todoData(input.todoItems, todayOf(input.now, input.zone)),
+    album: input.album ?? null,
   };
 }
 
