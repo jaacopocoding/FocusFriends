@@ -6,14 +6,15 @@ import { BrowserWindow, ipcMain, Menu, screen } from "electron";
 import { join } from "node:path";
 import type { Garden } from "../core/garden.ts";
 import { GARDEN_ITEMS, itemWithId } from "../core/gardenCatalog.ts";
-import { ISLANDS, isKnownIsland } from "../core/gardenGrid.ts";
+import { bridgeId, ISLANDS, isKnownIsland } from "../core/gardenGrid.ts";
 import { hourOf, isSeason, shownSeason } from "../core/gardenSky.ts";
 import type { Season } from "../core/gardenSky.ts";
-import { PETS } from "../core/pets.ts";
+import { PET_IDS, PETS } from "../core/pets.ts";
+import { need } from "../core/rewards.ts";
 import type { Profile } from "../core/profile.ts";
 import { wallOf } from "../core/time.ts";
 import { GARDEN_CHANNEL } from "../shared/gardenApi.ts";
-import type { GardenCommand, GardenData } from "../shared/gardenApi.ts";
+import type { GardenArrival, GardenCommand, GardenData } from "../shared/gardenApi.ts";
 import { SCHEME } from "./protocol.ts";
 
 /** La scena, come sul Mac: tutto il disegno è in queste unità. */
@@ -30,6 +31,10 @@ export interface GardenDeps {
   streak: () => { days: number; isFrozen: boolean };
   /** Una frase del compagno (dal suo file, come sul desktop). */
   phrase: (petId: string) => string;
+  /** Quanti focus pieni ci sono. */
+  focuses: () => number;
+  /** Si può fare la cerimonia d'arrivo? (Non durante un focus: aspetta la prossima entrata.) */
+  canCelebrate: () => boolean;
   /** «‹ Menu»: si torna alla scheda. */
   onBack(): void;
 }
@@ -50,6 +55,8 @@ export function createGardenController(deps: GardenDeps): GardenController {
   const { garden, profile } = deps;
 
   let reset = false;
+  let arrival: GardenArrival | null = null;
+  const openIslands = (): Set<string> => new Set(ISLANDS.filter((id) => profile.isCompanionUnlocked(id)));
   const data = (): GardenData => {
     const now = Date.now();
     const forcedHour = deps.forcedHour();
@@ -62,6 +69,7 @@ export function createGardenController(deps: GardenDeps): GardenController {
           id, size: garden.islandSizeOf(id), open, name: PETS.find((pet) => pet.id === id)?.name ?? id,
           placements: garden.placementsOn(id).map((p) => ({ ...p })),
           companion: open ? garden.companionTile(id, index) : null,
+          need: need(id, profile.firstCompanion, PET_IDS),
         };
       }),
       shown: garden.shownIsland, home: garden.homeIsland, bridges: [...garden.bridges],
@@ -70,7 +78,9 @@ export function createGardenController(deps: GardenDeps): GardenController {
       minutesToNextGift: garden.minutesToNextGift, nextGiftProgress: garden.nextGiftProgress,
       has: GARDEN_ITEMS.filter((x) => garden.has(x.id)).map((x) => x.id),
       streakDays: deps.streak().days, streakFrozen: deps.streak().isFrozen,
+      focuses: deps.focuses(),
       ...(reset ? { reset: true } : {}),
+      ...(reset && arrival ? { arrival } : {}),
     };
   };
   const push = (): void => {
@@ -83,7 +93,13 @@ export function createGardenController(deps: GardenDeps): GardenController {
   const trusted = (event: Electron.IpcMainEvent | Electron.IpcMainInvokeEvent): boolean =>
     window !== null && !window.isDestroyed() && event.sender === window.webContents;
 
-  ipcMain.handle(GARDEN_CHANNEL.getData, (event) => (trusted(event) ? data() : null));
+  ipcMain.handle(GARDEN_CHANNEL.getData, (event) => {
+    if (!trusted(event)) return null;
+    reset = true;
+    const made = data();
+    reset = false;
+    return made;
+  });
   ipcMain.on(GARDEN_CHANNEL.showIsland, (event, id: unknown) => {
     if (trusted(event) && typeof id === "string" && isKnownIsland(id) && profile.isCompanionUnlocked(id)) garden.showIsland(id);
   });
@@ -122,6 +138,15 @@ export function createGardenController(deps: GardenDeps): GardenController {
       { label: "Togli dal giardino", click: () => garden.remove(id) },
     ]).popup({ window });
   });
+  // la cerimonia d'arrivo è finita: si salva solo quello che era davvero da fare (i ponti fra isole aperte non ancora costruiti, le isole da accogliere)
+  ipcMain.handle(GARDEN_CHANNEL.finishArrival, (event, done: GardenArrival) => {
+    if (!trusted(event) || typeof done !== "object" || done === null) return [];
+    const open = openIslands();
+    const pendingBridges = garden.pendingBridges(open).filter((b) => Array.isArray(done.bridges) && done.bridges.includes(bridgeId(b)));
+    const welcomes = garden.pendingWelcomes(open).filter((id) => Array.isArray(done.welcomed) && done.welcomed.includes(id));
+    if (pendingBridges.length === 0 && welcomes.length === 0) return [];
+    return garden.buildBridges(pendingBridges, welcomes);
+  });
   ipcMain.on(GARDEN_CHANNEL.back, (event) => {
     if (!trusted(event)) return;
     window?.close();
@@ -136,6 +161,14 @@ export function createGardenController(deps: GardenDeps): GardenController {
     show() {
       // un angolo che c'era già prima di aprire la finestra si sblocca adesso
       garden.discoverCorners();
+      // la prima entrata dopo uno sblocco: i ponti da costruire e i compagni da accogliere (la pagina fa la cerimonia, poi li fa salvare)
+      arrival = null;
+      if (deps.canCelebrate() && profile.introSeen) {
+        const open = openIslands();
+        garden.settleBridges(open);
+        const bridges = garden.pendingBridges(open).map(bridgeId), welcomed = garden.pendingWelcomes(open);
+        if (bridges.length > 0 || welcomed.length > 0) arrival = { bridges, welcomed };
+      }
       if (window && !window.isDestroyed()) {
         reset = true;
         push();
@@ -154,7 +187,9 @@ export function createGardenController(deps: GardenDeps): GardenController {
         title: profile.gardenTitle, backgroundColor: "#9ebf8c", autoHideMenuBar: true, show: false,
         webPreferences: {
           preload: join(deps.appPath, "dist", "preload", "preload-garden.cjs"),
-          contextIsolation: true, sandbox: true, nodeIntegration: false, backgroundThrottling: true,
+          // la pagina disegna solo quando cambia qualcosa: non serve rallentarla in sottofondo, e coperta dalla finestra trasparente del compagno
+          // (sempre sopra, grande quanto lo schermo) potrebbe risultare nascosta e smettere di disegnare
+          contextIsolation: true, sandbox: true, nodeIntegration: false, backgroundThrottling: false,
         },
       });
       created.setMenuBarVisibility(false);

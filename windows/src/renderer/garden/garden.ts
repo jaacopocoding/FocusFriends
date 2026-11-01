@@ -10,13 +10,13 @@ import { applyTurn } from "../../core/gardenCatalog.ts";
 import { linkArms, tileKey } from "../../core/gardenGrid.ts";
 import type { GardenTile } from "../../core/gardenGrid.ts";
 import { petInfo } from "../../core/pets.ts";
-import type { GardenApi, GardenData, GardenIslandData } from "../../shared/gardenApi.ts";
+import type { GardenApi, GardenArrival, GardenData, GardenIslandData } from "../../shared/gardenApi.ts";
 import { h, icon } from "../card/dom.ts";
 import {
-  canPlaceOn, canStandOn, clampCamera, drawGarden, FEET_OFFSET, feetOf, focusedIsland, hitAt, islandAt, islandCamera, isoOf, SCENE_H, SCENE_W,
-  wantedImages, worldCamera, zoomCamera, ZOOM_MAX, ZOOM_MIN,
+  canPlaceOn, canStandOn, CEREMONY, clampCamera, drawGarden, FEET_OFFSET, feetOf, focusedIsland, framingCamera, hitAt, islandAt, islandCamera, islandMarks, isoOf,
+  pieceCount, placementCenter, SCENE_H, SCENE_W, wantedImages, worldCamera, zoomCamera, ZOOM_MAX, ZOOM_MIN,
 } from "./scene.ts";
-import type { Camera, Carrying, SceneLayers } from "./scene.ts";
+import type { Camera, Carrying, Effects, SceneLayers } from "./scene.ts";
 import { sprite, whenSpritesLoad } from "./sprites.ts";
 
 declare global {
@@ -31,6 +31,8 @@ const api = window.focusfriendsGarden;
 const canvas = document.getElementById("scene") as HTMLCanvasElement;
 const ctx = canvas.getContext("2d")!;
 const hud = document.getElementById("hud") as HTMLDivElement;
+const labels = document.getElementById("labels") as HTMLDivElement;
+const effectsLayer = document.getElementById("effects") as HTMLDivElement;
 
 let data: GardenData | null = null;
 let camera: Camera = { zoom: 1, panX: 0, panY: 0 };
@@ -66,6 +68,18 @@ let message: string | null = null;
 let messageTimer = 0;
 let bubble: { pet: string; text: string } | null = null;
 let bubbleTimer = 0;
+
+// ---- l'arrivo di un compagno e le feste (le stelline con la scritta in alto)
+
+/** «Riduci movimento» del sistema: niente telecamera che scivola né stelline che volano. */
+const reduceMotion = (): boolean => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const seconds = (): number => performance.now() / 1000;
+interface Ceremony { arrival: GardenArrival; from: Camera; to: Camera; start: number; pieces: number; gliding: boolean }
+let ceremony: Ceremony | null = null;
+interface Celebration { caption: string; title: string; island: string; placement: string | null; start: number | null }
+const celebrations: Celebration[] = [];
+const CELEBRATION_LENGTH = 4.6, BURST_LENGTH = 2.8;
+let animating = false;
 
 const carryItem = (c: Carry): GardenItem | undefined => {
   if (c.what.kind === "fresh") return itemWithId(c.what.item);
@@ -142,7 +156,7 @@ function resize(): void {
     canvas.height = height;
     layers.still = null;
   }
-  hud.style.transform = `scale(${window.innerWidth / SCENE_W})`;
+  for (const layer of [hud, labels, effectsLayer]) layer.style.transform = `scale(${window.innerWidth / SCENE_W})`;
   redraw();
 }
 
@@ -155,8 +169,9 @@ function redraw(): void {
     const dpr = pixelRatio();
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.imageSmoothingQuality = "high";
-    drawGarden(ctx, layers, data, camera, dpr, version, carrying());
+    drawGarden(ctx, layers, data, camera, dpr, version, carrying(), effects());
     renderHud();
+    renderEffects();
     frames += 1;
   });
 }
@@ -195,6 +210,8 @@ function focus(id: string): void {
 }
 
 function moveCamera(next: Camera): void {
+  // se chi guarda sposta la vista, la telecamera della cerimonia smette di scivolare
+  if (ceremony) ceremony.gliding = false;
   camera = clampCamera(next);
   if (data && carry === null) focus(focusedIsland(data, camera));
   redraw();
@@ -214,7 +231,130 @@ function receive(next: GardenData): void {
   document.title = next.title;
   for (const key of wantedImages(next)) void sprite(key);
   for (const id of next.has) void sprite("giardino/" + id);
-  if (first || next.reset) { trayOpen = false; resetCamera(); } else redraw();
+  if (first || next.reset) {
+    trayOpen = false;
+    ceremony = null;
+    resetCamera();
+    if (next.arrival) beginArrival(next.arrival);
+  } else redraw();
+}
+
+const islandName = (id: string): string => data?.islands.find((i) => i.id === id)?.name ?? id;
+
+/** La prima entrata dopo uno sblocco: la telecamera inquadra le isole, i pezzi dei ponti compaiono uno dopo l'altro, poi si salva tutto e arriva il regalo. */
+function beginArrival(arrival: GardenArrival): void {
+  if (!data) return;
+  const involved = [...new Set([...arrival.bridges.flatMap((id) => id.split("-")), ...arrival.welcomed])];
+  const single = involved.length === 1 ? data.islands.find((i) => i.id === involved[0]) : undefined;
+  const to = single ? islandCamera(single) : framingCamera(data, involved);
+  if (reduceMotion()) {
+    camera = clampCamera(to);
+    void finishArrival(arrival);
+    return;
+  }
+  ceremony = { arrival, from: camera, to, start: seconds(), pieces: pieceCount(data, arrival.bridges), gliding: true };
+  animate();
+}
+
+async function finishArrival(arrival: GardenArrival): Promise<void> {
+  ceremony = null;
+  const welcomes = await api.finishArrival(arrival);
+  const first = arrival.welcomed[0];
+  if (first) focus(first);
+  for (const welcome of welcomes) {
+    // con un ponte che arriva a quell'isola è «Nuovo ponte», senza è «Nuova isola»
+    const kind = arrival.bridges.some((id) => id.split("-").includes(welcome.island)) ? "Nuovo ponte" : "Nuova isola";
+    celebrations.push({ caption: `${kind}: un regalo per ${islandName(welcome.island)}`, title: itemWithId(welcome.item)?.name ?? welcome.item,
+      island: welcome.island, placement: welcome.placement, start: null });
+  }
+  if (welcomes.length === 0 && arrival.bridges[0]) {
+    const [a, b] = arrival.bridges[0].split("-");
+    celebrations.push({ caption: "Nuovo ponte", title: `${islandName(a!)} e ${islandName(b!)}`, island: a!, placement: null, start: null });
+  }
+  animate();
+}
+
+/** Finché c'è una cerimonia o una festa, si ridisegna a ogni fotogramma. */
+function animate(): void {
+  if (animating) return;
+  animating = true;
+  const tick = (): void => {
+    const now = seconds();
+    if (ceremony) {
+      const elapsed = now - ceremony.start;
+      if (ceremony.gliding) {
+        const t = Math.min(Math.max(elapsed / CEREMONY.glide, 0), 1);
+        const eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+        const { from, to } = ceremony;
+        camera = clampCamera({ zoom: from.zoom + (to.zoom - from.zoom) * eased, panX: from.panX + (to.panX - from.panX) * eased, panY: from.panY + (to.panY - from.panY) * eased });
+        if (t >= 1) ceremony.gliding = false;
+      }
+      if (elapsed >= CEREMONY.glide + Math.max(ceremony.pieces - 1, 0) * CEREMONY.pieceGap + CEREMONY.pieceFade + CEREMONY.hold) void finishArrival(ceremony.arrival);
+    }
+    const current = celebrations[0];
+    if (current) {
+      current.start ??= now;
+      if (now - current.start >= CELEBRATION_LENGTH) celebrations.shift();
+    }
+    redraw();
+    if (ceremony || celebrations.length > 0) requestAnimationFrame(tick);
+    else { animating = false; renderEffects(); }
+  };
+  requestAnimationFrame(tick);
+}
+
+function effects(): Effects {
+  const result: Effects = { building: null, bursts: [], reduceMotion: reduceMotion() };
+  if (ceremony) result.building = { ids: ceremony.arrival.bridges, elapsed: seconds() - ceremony.start };
+  const current = celebrations[0];
+  if (current && current.start !== null && data) {
+    const middle = placementCenter(data, camera, current.island, current.placement);
+    if (middle) result.bursts.push({ ...middle, progress: Math.min((seconds() - current.start) / BURST_LENGTH, 1) });
+  }
+  return result;
+}
+
+/** La scritta della festa, in alto fra «Menu» e le pastiglie; i cartellini delle isole (i nomi rimpicciolendo, e i lucchetti di quelle chiuse). */
+function renderEffects(): void {
+  const children: HTMLElement[] = [];
+  const current = celebrations[0];
+  if (current && current.start !== null) {
+    const elapsed = seconds() - current.start;
+    const enter = Math.min(Math.max(elapsed / 0.35, 0), 1), leave = Math.min(Math.max((CELEBRATION_LENGTH - elapsed) / 0.6, 0), 1);
+    const top = document.querySelector(".top-right") as HTMLElement | null;
+    const freeRight = (top ? top.offsetLeft : SCENE_W - 16) - 12;
+    const chip = h("div", { class: "celebration" }, icon("star", 17),
+      h("div", { class: "celebration-text" }, h("span", { class: "caption" }, current.caption), h("span", { class: "title" }, current.title)));
+    chip.style.opacity = String(Math.min(enter, leave));
+    chip.style.left = `${(150 + freeRight) / 2}px`;
+    chip.style.top = `${10 - (1 - enter) * 14}px`;
+    children.push(chip);
+  }
+  effectsLayer.replaceChildren(...children);
+
+  const marks: HTMLElement[] = [];
+  if (data) {
+    const showNames = camera.zoom < 0.8;
+    for (const mark of islandMarks(data, camera)) {
+      const { island } = mark;
+      if (mark.center.x < -200 || mark.center.y < -200 || mark.center.x > SCENE_W + 200 || mark.center.y > SCENE_H + 200) continue;
+      if (!island.open) {
+        const size = Math.min(Math.max(mark.tileW * 0.55, 16), 34);
+        const lock = h("div", { class: "lock" }, icon("lock", Math.round(size)));
+        lock.style.left = `${mark.center.x - size / 2}px`;
+        lock.style.top = `${mark.center.y - size / 2}px`;
+        marks.push(lock);
+      }
+      if (!(showNames || !island.open) || !(island.open || mark.tileW > 18)) continue;
+      const label = h("div", { class: `island-label${island.open ? "" : " closed"}${island.id === data.shown ? " shown" : ""}` },
+        h("span", { class: "name" }, island.open ? island.name : "???"),
+        island.open ? null : h("span", { class: "subtitle" }, `si sblocca a ${island.need} focus`));
+      label.style.left = `${mark.front.x}px`;
+      label.style.top = `${mark.front.y}px`;
+      marks.push(label);
+    }
+  }
+  labels.replaceChildren(...marks);
 }
 
 // ---- i comandi in HTML (in unità della scena: il contenitore si scala con la finestra)
@@ -411,7 +551,13 @@ canvas.addEventListener("mousedown", (event) => {
   const hit = hitAt(data, camera, p.x, p.y);
   if (hit && hit.island !== data.shown) { focus(hit.island); redraw(); return; }
   const under = islandAt(data, camera, p.x, p.y);
-  if (!hit && under && under !== data.shown && data.islands.find((i) => i.id === under)?.open) { focus(under); redraw(); return; }
+  const underIsland = under === null ? undefined : data.islands.find((i) => i.id === under);
+  if (!hit && underIsland && under !== data.shown) {
+    if (underIsland.open) focus(underIsland.id);
+    else flash(`Questa isola è chiusa: si sblocca a ${underIsland.need} focus pieni di studio (ne hai ${Math.min(data.focuses, underIsland.need)}).`);
+    redraw();
+    return;
+  }
   if (!hit) {
     // sullo sfondo: due tocchi ingrandiscono (o, già ingrandita, rimettono tutta l'isola), trascinando ci si sposta
     if (event.detail === 2) {
@@ -567,6 +713,8 @@ window.__garden = {
   get trayOpen() { return trayOpen; },
   get carry() { return carry === null ? null : { ...carry, target: carryTarget(carry) }; },
   get message() { return message; },
+  get ceremony() { return ceremony === null ? null : { ...ceremony.arrival, gliding: ceremony.gliding }; },
+  get celebrations() { return celebrations.map((c) => `${c.caption} · ${c.title}`); },
   setCamera(next: Camera) { moveCamera(next); },
   resetCamera,
   worldView() { moveCamera(worldCamera()); },

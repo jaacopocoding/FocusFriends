@@ -12,7 +12,7 @@ import {
   terrainTag, tileKey, WORLD_EXTENT, WORLD_REACH, worldSlot,
 } from "../../core/gardenGrid.ts";
 import type { GardenPlacement, GardenTile } from "../../core/gardenGrid.ts";
-import { lampAmount, lightAt, lightMultiplier } from "../../core/gardenSky.ts";
+import { burstStar, BURST_STAR_COUNT, lampAmount, lightAt, lightMultiplier } from "../../core/gardenSky.ts";
 import type { GardenLight, Season } from "../../core/gardenSky.ts";
 import { petInfo } from "../../core/pets.ts";
 import type { GardenData, GardenIslandData } from "../../shared/gardenApi.ts";
@@ -492,10 +492,28 @@ function drawBridgePiece(ctx: CanvasRenderingContext2D, alongColumns: boolean, v
   ctx.drawImage(scaled(s, key, width * dpr, height * dpr), center.x - anchorX * sx, center.y - anchorY * sy, width, height);
 }
 
-function drawBridges(ctx: CanvasRenderingContext2D, data: GardenData, camera: Camera, dpr: number): void {
+/** Dove stanno i pezzi di un ponte alla vista di adesso (niente se una delle due isole è chiusa). */
+function bridgePieces(bridge: (typeof BRIDGES)[number], data: GardenData, camera: Camera): Array<{ x: number; y: number; variant: number }> {
+  const first = data.islands.find((i) => i.id === bridge.first), second = data.islands.find((i) => i.id === bridge.second);
+  if (!first?.open || !second?.open) return [];
+  const span = bridgeSpan(bridge, first.size);
+  if (!span) return [];
+  const world = worldIso(camera);
+  return bridgePieceCenters(span.from, span.to).map((center, index) => {
+    const p = bridge.alongColumns ? world.point(center, span.across) : world.point(span.across, center);
+    return { ...p, variant: index % 2 + 1 };
+  });
+}
+
+/** Quanti pezzi hanno questi ponti, in tutto. */
+export function pieceCount(data: GardenData, ids: readonly string[]): number {
+  return BRIDGES.filter((b) => ids.includes(bridgeId(b))).reduce((sum, b) => sum + bridgePieces(b, data, { zoom: 1, panX: 0, panY: 0 }).length, 0);
+}
+
+function drawBridges(ctx: CanvasRenderingContext2D, data: GardenData, camera: Camera, dpr: number, building: readonly string[] = []): void {
   const world = worldIso(camera);
   for (const bridge of BRIDGES) {
-    if (!data.bridges.includes(bridgeId(bridge))) continue;
+    if (!data.bridges.includes(bridgeId(bridge)) || building.includes(bridgeId(bridge))) continue;
     const first = data.islands.find((i) => i.id === bridge.first), second = data.islands.find((i) => i.id === bridge.second);
     if (!first?.open || !second?.open) continue;
     const span = bridgeSpan(bridge, first.size);
@@ -529,7 +547,8 @@ function drawOverlay(ctx: CanvasRenderingContext2D, season: Season, light: Garde
   }
 }
 
-export function drawStaticScene(ctx: CanvasRenderingContext2D, data: GardenData, camera: Camera, light: GardenLight, dpr: number, version: number, carrying = false): void {
+export function drawStaticScene(ctx: CanvasRenderingContext2D, data: GardenData, camera: Camera, light: GardenLight, dpr: number, version: number, carrying = false,
+  building: readonly string[] = []): void {
   drawBackdrop(ctx, camera, data.season);
   const islands = worldIslands(data, camera);
   for (const { island, iso } of islands) drawHill(ctx, iso, data.season, island.id, !island.open);
@@ -545,7 +564,7 @@ export function drawStaticScene(ctx: CanvasRenderingContext2D, data: GardenData,
     }
   }
   for (const { island, iso } of islands) drawLandmark(ctx, island.id, iso, island.open, dpr);
-  drawBridges(ctx, data, camera, dpr);
+  drawBridges(ctx, data, camera, dpr, building);
   applyLight(ctx, light);
 }
 
@@ -763,11 +782,78 @@ function drawHighlight(ctx: CanvasRenderingContext2D, iso: Iso, tiles: GardenTil
   }
 }
 
+/** Gli effetti del momento: i ponti che si stanno costruendo (da quanto, in secondi) e le stelline (dove e a che punto). */
+export interface Effects {
+  building: { ids: string[]; elapsed: number } | null;
+  bursts: Array<{ x: number; y: number; progress: number }>;
+  reduceMotion: boolean;
+}
+
+/** La cerimonia: dopo che la telecamera è arrivata, i pezzi dei ponti compaiono uno dopo l'altro, scendendo al loro posto. */
+export const CEREMONY = { glide: 1.2, pieceGap: 0.38, pieceFade: 0.5, hold: 0.6 } as const;
+
+function drawBuilding(ctx: CanvasRenderingContext2D, data: GardenData, camera: Camera, building: NonNullable<Effects["building"]>, tint: Tint, dpr: number): void {
+  const tileW = worldView(camera).tileW;
+  let index = 0;
+  for (const bridge of BRIDGES) {
+    if (!building.ids.includes(bridgeId(bridge))) continue;
+    for (const piece of bridgePieces(bridge, data, camera)) {
+      const appear = (building.elapsed - CEREMONY.glide - index * CEREMONY.pieceGap) / CEREMONY.pieceFade;
+      index += 1;
+      if (appear <= 0) continue;
+      const shown = Math.min(appear, 1);
+      const key = `giardino/ponte_${bridge.alongColumns ? "colonna" : "riga"}_${piece.variant}`;
+      const s = ready(key);
+      if (!s) continue;
+      const sx = tileW / 122, sy = tileW / 150, width = s.src.w * sx, height = s.src.h * sy;
+      const anchorX = (bridge.alongColumns ? 119.5 : s.width - 119.5) - s.src.x, anchorY = 127 - s.src.y;
+      ctx.save();
+      ctx.globalAlpha = shown;
+      ctx.drawImage(scaled(s, key, width * dpr, height * dpr, tint), piece.x - anchorX * sx, piece.y - anchorY * sy - (1 - shown) * (1 - shown) * tileW * 0.5, width, height);
+      ctx.restore();
+    }
+  }
+}
+
+function starPath(ctx: CanvasRenderingContext2D, x: number, y: number, outer: number, angle: number): void {
+  ctx.beginPath();
+  for (let point = 0; point < 10; point++) {
+    const radius = point % 2 === 0 ? outer : outer * 0.45;
+    const a = angle - Math.PI / 2 + point * Math.PI / 5;
+    const px = x + Math.cos(a) * radius, py = y + Math.sin(a) * radius;
+    if (point === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+}
+
+/** Le stelline che escono da un punto (uno sblocco, un regalo), a `progress` della festa. */
+function drawBurst(ctx: CanvasRenderingContext2D, x: number, y: number, progress: number, tileW: number, envelope: number, reduceMotion: boolean): void {
+  if (!reduceMotion && progress < 1) {
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    const pulse = Math.sin(progress * Math.PI);
+    radial(ctx, x, y, tileW * 1.1, [rgba(255, 240, 170, 0.55 * pulse), rgba(255, 240, 170, 0)]);
+    ctx.restore();
+  }
+  for (let index = 0; index < BURST_STAR_COUNT; index++) {
+    const star = burstStar(index, progress);
+    const alpha = star.alpha * (reduceMotion ? envelope : 1);
+    if (alpha <= 0.01) continue;
+    starPath(ctx, x + star.dx, y + star.dy, star.size, star.angle);
+    ctx.fillStyle = index % 3 === 0 ? rgba(255, 240, 170, alpha) : rgba(255, 208, 70, alpha);
+    ctx.fill();
+    ctx.strokeStyle = rgba(226, 140, 28, alpha * 0.9);
+    ctx.lineWidth = 0.9;
+    ctx.stroke();
+  }
+}
+
 export function drawGarden(ctx: CanvasRenderingContext2D, layers: SceneLayers, data: GardenData, camera: Camera, dpr: number, version: number,
-  carrying: Carrying | null = null): void {
+  carrying: Carrying | null = null, effects: Effects = { building: null, bursts: [], reduceMotion: false }): void {
   const light = lightOf(data);
+  const building = effects.building?.ids ?? [];
   const key = JSON.stringify([camera, data.season, data.islands.map((i) => [i.id, i.size, i.open]), data.bridges, Math.round(light.darkness * 40),
-    tintOf(lightMultiplier(light)), dpr, version, carrying !== null]);
+    tintOf(lightMultiplier(light)), dpr, version, carrying !== null, building]);
   if (layers.still === null || layers.stillKey !== key) {
     const still = layers.still ?? makeCanvas(SCENE_W * dpr, SCENE_H * dpr);
     still.width = Math.round(SCENE_W * dpr);
@@ -775,7 +861,7 @@ export function drawGarden(ctx: CanvasRenderingContext2D, layers: SceneLayers, d
     const s = still.getContext("2d")!;
     s.setTransform(dpr, 0, 0, dpr, 0, 0);
     s.imageSmoothingQuality = "high";
-    drawStaticScene(s, data, camera, light, dpr, version, carrying !== null);
+    drawStaticScene(s, data, camera, light, dpr, version, carrying !== null, building);
     drawOverlay(s, data.season, light);
     layers.still = still;
     layers.stillKey = key;
@@ -785,6 +871,7 @@ export function drawGarden(ctx: CanvasRenderingContext2D, layers: SceneLayers, d
   ctx.drawImage(layers.still!, 0, 0);
   ctx.restore();
   const tint = tintOf(lightMultiplier(light));
+  if (effects.building) drawBuilding(ctx, data, camera, effects.building, tint, dpr);
   const island = carrying ? data.islands.find((i) => i.id === carrying.island) : undefined;
   const iso = island ? isoOf(island, camera) : null;
   if (carrying && iso) drawHighlight(ctx, iso, carrying.tiles, carrying.valid);
@@ -803,6 +890,50 @@ export function drawGarden(ctx: CanvasRenderingContext2D, layers: SceneLayers, d
   drawLampGlows(ctx, laid, data, camera, light);
   drawCottageWindows(ctx, data, camera, light);
   drawLandmarkLights(ctx, data, camera, light);
+  const tileW = worldView(camera).tileW;
+  for (const burst of effects.bursts) drawBurst(ctx, burst.x, burst.y, effects.reduceMotion ? 0.55 : burst.progress, tileW, Math.min(burst.progress * 8, (1 - burst.progress) * 3, 1), effects.reduceMotion);
+}
+
+/** Dove sta a schermo il disegno di una copia (per far uscire le stelline dal regalo), o il centro dell'isola se non c'è. */
+export function placementCenter(data: GardenData, camera: Camera, island: string, placement: string | null): { x: number; y: number } | null {
+  const laid = entities(data, camera, lightOf(data));
+  const found = placement === null ? undefined : laid.find((e) => e.placement?.id === placement);
+  if (found) return { x: found.rect.x + found.rect.w / 2, y: found.rect.y + found.rect.h / 2 };
+  const target = data.islands.find((i) => i.id === island);
+  const iso = target && isoOf(target, camera);
+  return iso ? iso.point(iso.size / 2, iso.size / 2) : null;
+}
+
+/** La vista che inquadra le isole dette. */
+export function framingCamera(data: GardenData, ids: readonly string[]): Camera {
+  const base = worldView({ zoom: 1, panX: 0, panY: 0 });
+  let left = Infinity, right = -Infinity, top = Infinity, bottom = -Infinity;
+  for (const id of ids) {
+    const island = data.islands.find((i) => i.id === id), corner = islandCorner(id);
+    if (!island || !corner) continue;
+    for (const [dc, dr] of [[0, 0], [island.size, 0], [0, island.size], [island.size, island.size]] as const) {
+      const col = corner.col + dc, row = corner.row + dr;
+      const x = (col - row) * base.tileW / 2, y = (col + row) * base.tileW / 4;
+      left = Math.min(left, x); right = Math.max(right, x); top = Math.min(top, y); bottom = Math.max(bottom, y);
+    }
+  }
+  if (!(left < right)) {
+    const shown = data.islands.find((i) => i.id === data.shown);
+    return shown ? islandCamera(shown) : { zoom: 1, panX: 0, panY: 0 };
+  }
+  top -= base.tileW * 1.6;
+  bottom += base.tileW * 0.6;
+  const zoom = Math.min(Math.max(Math.min((SCENE_W - 90) / (right - left), (SCENE_H - 170) / (bottom - top)), ZOOM_MIN), ZOOM_MAX);
+  const box = { x: base.ox + (left + right) / 2, y: base.oy + (top + bottom) / 2 };
+  return { zoom, panX: SCENE_W / 2 - CENTER.x - (box.x - CENTER.x) * zoom, panY: SCENE_H / 2 + 14 - CENTER.y - (box.y - CENTER.y) * zoom };
+}
+
+/** Per i cartellini: il centro di ogni isola, il suo angolo davanti (sotto il bordo di terra) e quanto è larga una tessera. */
+export function islandMarks(data: GardenData, camera: Camera): Array<{ island: GardenIslandData; center: { x: number; y: number }; front: { x: number; y: number }; tileW: number }> {
+  return worldIslands(data, camera).map(({ island, iso }) => {
+    const front = iso.point(iso.size, iso.size);
+    return { island, center: iso.point(iso.size / 2, iso.size / 2), front: { x: front.x, y: front.y + iso.edge + 6 }, tileW: iso.tileW };
+  });
 }
 
 // ---- per il mouse: cosa c'è sotto un punto, e dove ci sta una cosa

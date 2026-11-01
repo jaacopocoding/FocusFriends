@@ -509,7 +509,14 @@ circa 5.250 righe: `GardenWindow` 3.441, `AlbumWindow` 1.204, `Sticker` e `GiftC
       Nella scheda: «Giardino» accanto a «Statistiche» (anche nella pagina del focus) e, sotto «Da fare», la riga «Prossima figurina: ancora N minuti di studio» con la
       barretta (un tocco apre il giardino; la riga «Album» arriva con la G6). «Cancella tutto…» toglie anche il giardino dalla G2. `quickGifts` in `impostazioni.json` fa
       contare un focus da un minuto come un'ora, per provarlo: `test/vivo/giardino-regalo.cjs`.
-- [ ] **G5 — Il mondo** (4): le cinque isole, i ponti che si costruiscono, le case, il lucchetto, il regalo di benvenuto.
+- [x] **G5 — Il mondo** (4): le cinque isole, i ponti che si costruiscono, le case, il lucchetto, il regalo di benvenuto.
+      **Fatta il 1° novembre 2026.** Le isole, le case e i ponti già costruiti si disegnavano dalla G2; ora: alla prima entrata dopo uno sblocco (mai durante un focus) il
+      processo principale calcola i ponti da costruire e i compagni da accogliere e la pagina fa la cerimonia (la telecamera inquadra le isole, i pezzi dei ponti compaiono
+      uno dopo l'altro scendendo al loro posto, con «Riduci movimento» tutto insieme); alla fine il processo principale salva, solo quello che era davvero da fare, e dà il
+      regalo di benvenuto, che la pagina festeggia con le stelline e la scritta in alto («Nuovo ponte: un regalo per Porcellino · Cesto di carote»). Rimpicciolendo si leggono
+      i nomi delle isole; quelle chiuse hanno il lucchetto e «???» con «si sblocca a N focus», e toccandole la riga dice quanto manca. La finestra del giardino non rallenta
+      in sottofondo: coperta dalla finestra trasparente del compagno smetteva di disegnare (sul Mac, e probabilmente anche su Windows). Senza le chiavi `replayBridges` e
+      `replayWelcome` del Mac. Provata dal vivo con `test/vivo/giardino-mondo.cjs`.
 - [ ] **G6 — L'album** (5): il libro, le pagine, le sagome, le animazioni. Dopo la G1 non dipende dalle G2–G5: si può fare in parallelo.
 - [ ] **G7 — Prima uscita** (3): parità a occhio, installer e sua misura, `PROVE_SU_WINDOWS.md` per il giardino, documenti. Versione 1.3.0.
 - [ ] **G8 — La vita** (5, seconda uscita): i compagni sull'isola con le loro pose, gli angoli con le stelline, gli ospiti, il vento, l'acqua, il fumo, le luci della sera.

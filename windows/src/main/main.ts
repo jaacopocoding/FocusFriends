@@ -27,6 +27,7 @@ import { Garden } from "../core/garden.ts";
 import { ISLANDS } from "../core/gardenGrid.ts";
 import { analyzeStreak, startTime } from "../core/stats.ts";
 import { giftLine } from "../core/gardenDrops.ts";
+import { focuses } from "../core/rewards.ts";
 import { GARDEN_ITEMS } from "../core/gardenCatalog.ts";
 import type { SessionLog } from "../core/log.ts";
 import type { StudySession } from "../core/log.ts";
@@ -196,6 +197,8 @@ async function start(): Promise<void> {
     appPath: app.getAppPath(), garden, profile,
     forcedHour: () => settings.gardenHour, forcedSeason: () => settings.gardenSeason,
     streak: () => analyzeStreak(service.log.sessions, Date.now()),
+    focuses: () => focuses(service.log.sessions.reduce((total, s) => total + s.seconds, 0)),
+    canCelebrate: () => service.engine.snapshot().phase !== "focus",
     phrase: (petId) => {
       const phrases = loadPhrases(petId, { userDirectory: data, bundledDirectory: assets });
       return phrases[Math.floor(Math.random() * phrases.length)] ?? petInfo(petId).fallbackQuote;
@@ -326,7 +329,7 @@ async function start(): Promise<void> {
   powerMonitor.on("resume", () => { awake("il computer si risveglia"); remarks.resumed(); });
   powerMonitor.on("unlock-screen", () => awake("lo schermo è sbloccato"));
 
-  if (process.env["FF_SELFTEST"] !== undefined) runSelfTest(win, interactions, settings, () => service, card, stats, stage, remarks, gardenWindow, garden);
+  if (process.env["FF_SELFTEST"] !== undefined) runSelfTest(win, interactions, settings, () => service, card, stats, stage, remarks, gardenWindow, garden, profile);
 }
 
 /**
@@ -336,7 +339,7 @@ async function start(): Promise<void> {
  * - FF_SELFTEST_FILE=percorso.cjs: un copione che riceve gli strumenti (finestra, attese, schermate, misure, eventi del mouse).
  * FF_SELFTEST_OUT è la cartella dove scrivere.
  */
-function runSelfTest(win: BrowserWindow, interactions: string[], settings: Settings, timer: () => TimerService, card: ReturnType<typeof createCardService>, stats: StatsController, stage: Stage, remarks: RemarksService, gardenWindow: GardenController, garden: Garden): void {
+function runSelfTest(win: BrowserWindow, interactions: string[], settings: Settings, timer: () => TimerService, card: ReturnType<typeof createCardService>, stats: StatsController, stage: Stage, remarks: RemarksService, gardenWindow: GardenController, garden: Garden, profile: Profile): void {
   const out = process.env["FF_SELFTEST_OUT"] ?? join(app.getPath("temp"), "ff-selftest");
   mkdirSync(out, { recursive: true });
   // I messaggi della pagina (e i suoi errori) escono sul terminale.
@@ -352,6 +355,7 @@ function runSelfTest(win: BrowserWindow, interactions: string[], settings: Setti
     stats,
     gardenWindow,
     garden,
+    profile,
     stage,
     remarks,
     sleep: (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)),

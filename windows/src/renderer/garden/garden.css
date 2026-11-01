@@ -55,6 +55,58 @@ html, body {
 
 #hud > * { pointer-events: auto; }
 
+/* i cartellini delle isole e la scritta delle feste: sopra il disegno, sotto i comandi, non prendono i clic */
+.layer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1000px;
+  height: 600px;
+  transform-origin: 0 0;
+  pointer-events: none;
+}
+
+.lock { position: absolute; color: rgba(255, 255, 255, 0.88); line-height: 0; }
+
+.island-label {
+  position: absolute;
+  transform: translateX(-50%);
+  box-sizing: border-box;
+  padding: 3px 15px 4px;
+  border: 1.2px solid var(--edge);
+  border-radius: 14px;
+  background: rgba(255, 252, 240, 0.95);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  white-space: nowrap;
+}
+.island-label .name { font: 17px/21px var(--marker); color: var(--ink); }
+.island-label.closed { background: rgba(51, 56, 77, 0.90); border-color: rgb(115, 122, 153); border-radius: 18px; }
+.island-label.closed .name { color: rgb(235, 235, 235); }
+.island-label .subtitle { font: 500 12px var(--ui); color: rgb(199, 199, 199); margin-top: 1px; }
+.island-label.shown { border-color: var(--accent); }
+
+.celebration {
+  position: absolute;
+  transform: translateX(-50%);
+  height: 50px;
+  box-sizing: border-box;
+  padding: 0 20px 0 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1.2px solid rgba(226, 140, 28, 0.85);
+  border-radius: 25px;
+  background: rgba(255, 251, 230, 0.97);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  white-space: nowrap;
+}
+.celebration .icon { color: rgb(226, 140, 28); fill: rgb(226, 140, 28); }
+.celebration-text { display: flex; flex-direction: column; }
+.celebration .caption { font: 500 12px var(--ui); color: var(--ink-light); }
+.celebration .title { font: 20px/24px var(--marker); color: var(--ink); }
+
 /* ---- le pastiglie */
 
 .chip {

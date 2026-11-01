@@ -15,7 +15,13 @@ export interface GardenIslandData {
   placements: GardenPlacement[];
   /** Dove sta il compagno dell'isola (se è aperta). */
   companion: GardenTile | null;
+  /** A quanti focus pieni si sblocca. */
+  need: number;
 }
+
+/** L'arrivo di un compagno appena sbloccato: i ponti da costruire e le isole da accogliere (con il regalo di benvenuto). */
+export interface GardenArrival { bridges: string[]; welcomed: string[] }
+export interface GardenWelcome { island: string; item: string; placement: string | null }
 
 export interface GardenData {
   /** Le isole, nell'ordine dei compagni. */
@@ -41,8 +47,12 @@ export interface GardenData {
   /** La serie di giorni di studio, e se è ghiacciata. */
   streakDays: number;
   streakFrozen: boolean;
+  /** Quanti focus pieni di studio ci sono (per «si sblocca a 50 focus: ne hai 32»). */
+  focuses: number;
   /** La finestra si è appena riaperta: si torna all'isola intera. */
   reset?: boolean;
+  /** Con la riapertura: la cerimonia d'arrivo da fare (mai durante un focus). */
+  arrival?: GardenArrival;
 }
 
 /** Un comando dalla pagina: mettere, spostare, girare, togliere una copia, spostare un compagno. Risponde se è riuscito. */
@@ -69,6 +79,8 @@ export interface GardenApi {
   contextMenu(id: string): void;
   /** Una riga da mostrare in basso (per esempio «Girata non ci sta»), dal menu del tasto destro. */
   onMessage(callback: (text: string) => void): void;
+  /** La cerimonia è finita: i ponti si salvano costruiti e le isole accolte; risponde con i regali di benvenuto. */
+  finishArrival(arrival: GardenArrival): Promise<GardenWelcome[]>;
 }
 
 export const GARDEN_CHANNEL = {
@@ -80,4 +92,5 @@ export const GARDEN_CHANNEL = {
   phrase: "garden:phrase",
   contextMenu: "garden:context-menu",
   message: "garden:message",
+  finishArrival: "garden:finish-arrival",
 } as const;
