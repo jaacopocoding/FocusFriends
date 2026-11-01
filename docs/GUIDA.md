@@ -88,7 +88,7 @@ costruiscono quando sblocchi i compagni. I compagni sbloccati camminano sulla lo
 
 ## Scaricare e usare
 
-1. Scarica `FocusFriends-0.10.0-macOS.zip` dalla pagina delle [Releases](https://github.com/jaacopocoding/FocusFriends/releases) e decomprimilo.
+1. Scarica `FocusFriends-0.11.0-macOS.zip` dalla pagina delle [Releases](https://github.com/jaacopocoding/FocusFriends/releases) e decomprimilo.
 2. Trascina **FocusFriends** in *Applicazioni* e aprilo (macOS 13 o successivo, Apple Silicon e Intel).
 3. L'app non è firmata con un account sviluppatore Apple, quindi la prima volta macOS potrebbe rifiutarla.
    Fai clic destro sull'app → **Apri** → **Apri**, oppure da Terminale:
@@ -335,9 +335,6 @@ periodi, totali, giorni di fila e serie ghiacciata, regali di fine focus e album
 rovinato, migrazione, materie unite, copie di sicurezza, fuso orario…).
 
 ## Il giardino e l'album
-
-> **Nota.** Le isole, i ponti, le case, gli angoli, gli ospiti e la collina descritti qui sotto sono nel codice (ramo
-> `main`) ma non ancora in una versione scaricabile: la 0.10.0 ha un'isola sola e non li ha.
 
 *Il mio giardino…* (`GardenWindow.swift`) è un **mondo tuo**, di isole: un posto calmo, da riempire con quello
 che trovi. Non conta i focus e non misura niente: le cifre dello studio stanno nelle *Statistiche*. Il giardino e

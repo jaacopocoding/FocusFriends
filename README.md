@@ -76,8 +76,6 @@ Scegli i minuti, scrivi cosa studi, premi inizio. Se vuoi, una pausa lunga ogni 
   </tr>
 </table>
 
-<sub>Le isole sono nel codice di questo ramo; la versione scaricabile ha ancora un'isola sola.</sub>
-
 **Sai dove va il tuo tempo.** Statistiche per materia, giorni di fila, e una lista di cose da fare con la scadenza.
 
 <table align="center">
