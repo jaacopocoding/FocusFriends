@@ -25,6 +25,7 @@ import { createStage } from "./stage.ts";
 import type { Stage } from "./stage.ts";
 import { Garden } from "../core/garden.ts";
 import { ISLANDS } from "../core/gardenGrid.ts";
+import { analyzeStreak } from "../core/stats.ts";
 import { createGardenController } from "./gardenWindow.ts";
 import type { GardenController } from "./gardenWindow.ts";
 import { createStatsController } from "./statsWindow.ts";
@@ -182,6 +183,11 @@ async function start(): Promise<void> {
   const gardenWindow: GardenController = gardenRef = createGardenController({
     appPath: app.getAppPath(), garden, profile,
     forcedHour: () => settings.gardenHour, forcedSeason: () => settings.gardenSeason,
+    streak: () => analyzeStreak(service.log.sessions, Date.now()),
+    phrase: (petId) => {
+      const phrases = loadPhrases(petId, { userDirectory: data, bundledDirectory: assets });
+      return phrases[Math.floor(Math.random() * phrases.length)] ?? petInfo(petId).fallbackQuote;
+    },
     onBack: () => send(CHANNEL.cardReopen),
   });
   const card = createCardService({

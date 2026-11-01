@@ -11,6 +11,12 @@ const api: GardenApi = {
   },
   showIsland: (id) => ipcRenderer.send(GARDEN_CHANNEL.showIsland, id),
   back: () => ipcRenderer.send(GARDEN_CHANNEL.back),
+  command: (command) => ipcRenderer.invoke(GARDEN_CHANNEL.command, command) as Promise<boolean>,
+  phrase: (petId) => ipcRenderer.invoke(GARDEN_CHANNEL.phrase, petId) as Promise<string>,
+  contextMenu: (id) => ipcRenderer.send(GARDEN_CHANNEL.contextMenu, id),
+  onMessage: (callback) => {
+    ipcRenderer.on(GARDEN_CHANNEL.message, (_event, text: string) => callback(text));
+  },
 };
 
 contextBridge.exposeInMainWorld("focusfriendsGarden", api);

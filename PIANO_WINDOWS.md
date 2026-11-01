@@ -492,7 +492,15 @@ circa 5.250 righe: `GardenWindow` 3.441, `AlbumWindow` 1.204, `Sticker` e `GiftC
       Windows e `tools/render-giardino.sh` disegna la stessa cartella di dati con la `GardenView` vera del Mac (a mezzogiorno d'autunno, la sera, d'inverno, tutte le
       isole): uguali, a parte quello che appartiene alle fasi dopo (i comandi, i nomi delle isole, il fumo). L'ora e la stagione si forzano con `gardenHour` e
       `gardenSeason` in `impostazioni.json`. L'installer porta 285 file di immagini (46 MB): restano fuori i fogli originali, i pezzi del paesaggio, il vecchio prato e il bordo.
-- [ ] **G3 — Si gioca** (3): la cassetta «Da mettere», trascinare con l'anteprima verde o rossa, girare, togliere, i comandi in alto. Copioni in `test/vivo/`.
+- [x] **G3 — Si gioca** (3): la cassetta «Da mettere», trascinare con l'anteprima verde o rossa, girare, togliere, i comandi in alto. Copioni in `test/vivo/`.
+      **Fatta il 1° novembre 2026.** I comandi sono HTML sopra il canvas, nelle misure della scena (si scalano con la finestra): «‹ Menu», «Isola di …» (tocca per tutte
+      le isole), le pastiglie della prossima figurina, della serie e delle figurine (con le spiegazioni al passaggio del mouse), lo zoom, la pillola e la cassetta «Da mettere»
+      (scorre con la rotellina), la zona «Rilascia qui per toglierla», le righe in basso e il fumetto del compagno toccato. Dalla cassetta si trascina sull'isola (verde se ci
+      sta, rosso se no, con la riga che dice perché) o si tocca (va da sola su una tessera libera); una copia si sposta, si gira con R mentre si trascina, con due tocchi o con
+      il tasto destro («Gira», «Togli dal giardino»), e si toglie lasciandola in basso a sinistra; la staccionata si unisce e la prossima parte girata come l'ultima; passando
+      sopra un'altra isola aperta diventa lei quella viva (non vicino alla zona per togliere, a differenza del Mac). Le regole sono quelle di `Garden` (la pagina le controlla
+      con `core/gardenGrid.ts`, il processo principale le applica). La rotellina del mouse ingrandisce a scatti di 1,3 come i tasti, due dita sul touchpad spostano, il pizzico
+      ingrandisce. Provata dal vivo con `test/vivo/giardino-mosse.cjs` (il mouse simulato sulla finestra).
 - [ ] **G4 — Le figurine** (3): il tiro a fine focus (`PomodoroDeps.gardenLine`), la carta della figurina, la riga e la barra sotto «Album» nella scheda, «Cancella
       tutto…» che toglie anche il giardino (`StatsDeps.onDeleteAll`).
 - [ ] **G5 — Il mondo** (4): le cinque isole, i ponti che si costruiscono, le case, il lucchetto, il regalo di benvenuto.

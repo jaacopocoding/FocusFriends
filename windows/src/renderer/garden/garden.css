@@ -1,6 +1,28 @@
-/* Il giardino: un canvas solo, grande quanto la finestra (che ha già le proporzioni della scena, 1000 × 600). */
+/* Il giardino: un canvas grande quanto la finestra (che ha già le proporzioni della scena, 1000 × 600) e sopra i comandi, in unità della scena:
+   il contenitore #hud è largo 1000 e alto 600, e si scala con la finestra. Colori e carattere della scheda (PaperUI.swift sul Mac). */
 
-:root { color-scheme: light; }
+@font-face {
+  font-family: "Chewy";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: block;
+  src: url("ff://app/resources/fonts/chewy-latin-400.woff2") format("woff2");
+}
+
+:root {
+  color-scheme: light;
+  --paper: rgb(255, 246, 222);
+  --card: rgb(255, 252, 240);
+  --edge: rgba(140, 102, 64, 0.45);
+  --ink: rgb(41, 26, 15);
+  --ink-light: rgb(102, 77, 51);
+  --accent: rgb(217, 120, 56);
+  --accent-pressed: rgb(184, 97, 41);
+  --silver: rgb(148, 168, 196);
+  --gold: rgb(219, 168, 46);
+  --marker: "Chewy", "Segoe Print", cursive;
+  --ui: system-ui, "Segoe UI", sans-serif;
+}
 
 html, body {
   margin: 0;
@@ -8,6 +30,7 @@ html, body {
   overflow: hidden;
   background: rgb(158, 191, 140);
   user-select: none;
+  font-family: var(--ui);
 }
 
 #scene {
@@ -18,4 +41,179 @@ html, body {
   touch-action: none;
 }
 
-#scene.panning { cursor: grabbing; }
+#scene.panning, #scene.carrying { cursor: grabbing; }
+
+#hud {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1000px;
+  height: 600px;
+  transform-origin: 0 0;
+  pointer-events: none;
+}
+
+#hud > * { pointer-events: auto; }
+
+/* ---- le pastiglie */
+
+.chip {
+  position: absolute;
+  box-sizing: border-box;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px 0 12px;
+  border: 1.2px solid var(--edge);
+  border-radius: 15px;
+  background: rgba(255, 252, 240, 0.95);
+  color: var(--ink);
+  font: 500 12px var(--ui);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.chip .icon { flex: none; }
+button.chip { cursor: pointer; }
+button.chip:hover { background: rgb(255, 248, 228); }
+button.chip:active { background: rgb(250, 238, 210); }
+button.chip:focus-visible, .zoom button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.back { left: 16px; top: 14px; font: 15px var(--ui); padding-left: 8px; gap: 2px; }
+.caption { left: 16px; top: 50px; height: 26px; border-radius: 13px; }
+.caption .icon { color: var(--ink-light); }
+
+.top-right {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  display: flex;
+  gap: 8px;
+}
+
+.top-right .chip { position: relative; }
+.gift .icon { color: var(--accent-pressed); position: relative; }
+.gift .label, .album .label { color: var(--ink-light); position: relative; }
+.gift .fill { position: absolute; left: 0; top: 0; bottom: 0; background: rgba(217, 120, 56, 0.22); }
+.streak { background: rgba(217, 120, 56, 0.18); border-color: rgba(217, 120, 56, 0.5); color: var(--accent-pressed); }
+.streak.frozen { background: rgba(217, 237, 252, 0.96); border-color: rgb(115, 168, 219); color: rgb(51, 97, 148); }
+.streak.frozen .icon { color: rgb(77, 140, 209); }
+.album { padding-left: 14px; }
+.album .number { font: 20px/26px var(--marker); color: var(--ink); }
+
+/* ---- lo zoom */
+
+.zoom { right: 16px; width: 114px; height: 34px; border-radius: 17px; padding: 0; gap: 0; }
+.zoom button {
+  flex: 1;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.zoom button + button { border-left: 1px solid rgba(140, 102, 64, 0.22); }
+.zoom button:hover:not(:disabled) { background: rgba(217, 120, 56, 0.12); }
+.zoom button:disabled { color: rgba(102, 77, 51, 0.4); cursor: default; }
+
+/* ---- la cassetta */
+
+.tray-pill { left: 16px; bottom: 16px; width: 156px; }
+.tray-pill .icon { color: var(--accent-pressed); }
+
+.tray {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 96px;
+  background: rgba(255, 246, 222, 0.95);
+  border-top: 1.5px solid var(--edge);
+}
+
+.tray-title { position: absolute; left: 18px; top: 14px; font: 19px/26px var(--marker); color: var(--ink); }
+.tray-subtitle { position: absolute; left: 18px; top: 44px; width: 100px; font: 11px var(--ui); color: var(--ink-light); }
+
+.tray-cells {
+  position: absolute;
+  left: 118px;
+  right: 16px;
+  top: 8px;
+  height: 82px;
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+.tray-cells::-webkit-scrollbar { display: none; }
+
+.tray-cell {
+  flex: none;
+  box-sizing: border-box;
+  width: 80px;
+  height: 78px;
+  margin-top: 2px;
+  border-radius: 10px;
+  background: var(--card);
+  border: 1.2px solid var(--edge);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: grab;
+}
+.tray-cell.rare { border: 2px solid var(--silver); }
+.tray-cell.legendary { border: 2.6px solid var(--gold); }
+.tray-cell:hover { background: rgb(255, 248, 228); }
+.tray-cell img { height: 53px; max-width: 68px; margin-top: 5px; object-fit: contain; object-position: bottom; pointer-events: none; }
+.tray-cell span { font: 600 10px/13px var(--ui); color: var(--ink); text-align: center; white-space: nowrap; overflow: hidden; max-width: 76px; }
+.tray-cell span.small { font-size: 8.5px; }
+
+.remove-zone {
+  position: absolute;
+  left: 16px;
+  top: 536px;
+  width: 236px;
+  height: 46px;
+  box-sizing: border-box;
+  border: 1.4px dashed var(--accent);
+  border-radius: 14px;
+  background: rgba(255, 246, 222, 0.92);
+  color: var(--accent-pressed);
+  font: 18px/44px var(--marker);
+  text-align: center;
+  pointer-events: none !important;
+}
+.remove-zone.hover { background: rgba(217, 120, 56, 0.30); border-width: 2.4px; line-height: 42px; }
+
+/* ---- le righe in basso e il fumetto */
+
+.hint {
+  position: absolute;
+  left: 240px;
+  width: 520px;
+  height: 34px;
+  border-radius: 17px;
+  background: rgba(255, 246, 222, 0.88);
+  color: var(--ink-light);
+  font: 13px/34px var(--ui);
+  text-align: center;
+  pointer-events: none !important;
+}
+.hint.narrow { left: 400px; width: 200px; }
+
+.bubble {
+  position: absolute;
+  box-sizing: border-box;
+  padding: 9px 12px;
+  border: 1.2px solid var(--edge);
+  border-radius: 12px;
+  background: rgba(255, 252, 240, 0.97);
+  color: var(--ink);
+  font: 12.5px/1.35 var(--ui);
+  pointer-events: none !important;
+}

@@ -36,7 +36,23 @@ export interface GardenData {
   /** Quanti minuti di studio mancano alla prossima figurina (null se non c'è più niente da trovare) e quanta strada si è fatta. */
   minutesToNextGift: number | null;
   nextGiftProgress: number | null;
+  /** Gli oggetti trovati (quelli che stanno nella cassetta, se ci stanno sull'isola). */
+  has: string[];
+  /** La serie di giorni di studio, e se è ghiacciata. */
+  streakDays: number;
+  streakFrozen: boolean;
+  /** La finestra si è appena riaperta: si torna all'isola intera. */
+  reset?: boolean;
 }
+
+/** Un comando dalla pagina: mettere, spostare, girare, togliere una copia, spostare un compagno. Risponde se è riuscito. */
+export type GardenCommand =
+  | { name: "place"; item: string; col: number; row: number; turned: boolean; island: string }
+  | { name: "placeSomewhere"; item: string; island: string }
+  | { name: "move"; id: string; col: number; row: number; turned: boolean; island: string }
+  | { name: "rotate"; id: string }
+  | { name: "remove"; id: string }
+  | { name: "companion"; pet: string; col: number; row: number };
 
 export interface GardenApi {
   getData(): Promise<GardenData>;
@@ -46,6 +62,13 @@ export interface GardenApi {
   showIsland(id: string): void;
   /** «‹ Menu»: la finestra si chiude e si torna alla scheda. */
   back(): void;
+  command(command: GardenCommand): Promise<boolean>;
+  /** Una frase del compagno toccato. */
+  phrase(petId: string): Promise<string>;
+  /** Il tasto destro su una copia: il menu «Gira» / «Togli dal giardino». */
+  contextMenu(id: string): void;
+  /** Una riga da mostrare in basso (per esempio «Girata non ci sta»), dal menu del tasto destro. */
+  onMessage(callback: (text: string) => void): void;
 }
 
 export const GARDEN_CHANNEL = {
@@ -53,4 +76,8 @@ export const GARDEN_CHANNEL = {
   data: "garden:data",
   showIsland: "garden:show-island",
   back: "garden:back",
+  command: "garden:command",
+  phrase: "garden:phrase",
+  contextMenu: "garden:context-menu",
+  message: "garden:message",
 } as const;

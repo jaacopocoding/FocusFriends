@@ -2,10 +2,10 @@
 // (1000 × 600, più piccola su uno schermo stretto), che si crea alla prima richiesta e si distrugge alla chiusura. Il disegno lo fa la pagina;
 // qui c'è il giardino e la fotografia che le si manda.
 
-import { BrowserWindow, ipcMain, screen } from "electron";
+import { BrowserWindow, ipcMain, Menu, screen } from "electron";
 import { join } from "node:path";
 import type { Garden } from "../core/garden.ts";
-import { GARDEN_ITEMS } from "../core/gardenCatalog.ts";
+import { GARDEN_ITEMS, itemWithId } from "../core/gardenCatalog.ts";
 import { ISLANDS, isKnownIsland } from "../core/gardenGrid.ts";
 import { hourOf, isSeason, shownSeason } from "../core/gardenSky.ts";
 import type { Season } from "../core/gardenSky.ts";
@@ -13,7 +13,7 @@ import { PETS } from "../core/pets.ts";
 import type { Profile } from "../core/profile.ts";
 import { wallOf } from "../core/time.ts";
 import { GARDEN_CHANNEL } from "../shared/gardenApi.ts";
-import type { GardenData } from "../shared/gardenApi.ts";
+import type { GardenCommand, GardenData } from "../shared/gardenApi.ts";
 import { SCHEME } from "./protocol.ts";
 
 /** La scena, come sul Mac: tutto il disegno è in queste unità. */
@@ -26,6 +26,10 @@ export interface GardenDeps {
   /** L'ora e la stagione forzate (per provarle senza aspettare: `gardenHour`, `gardenSeason` in `impostazioni.json`). */
   forcedHour: () => number | null;
   forcedSeason: () => string | null;
+  /** La serie di giorni di studio di adesso. */
+  streak: () => { days: number; isFrozen: boolean };
+  /** Una frase del compagno (dal suo file, come sul desktop). */
+  phrase: (petId: string) => string;
   /** «‹ Menu»: si torna alla scheda. */
   onBack(): void;
 }
@@ -45,6 +49,7 @@ export function createGardenController(deps: GardenDeps): GardenController {
   let window: BrowserWindow | null = null;
   const { garden, profile } = deps;
 
+  let reset = false;
   const data = (): GardenData => {
     const now = Date.now();
     const forcedHour = deps.forcedHour();
@@ -63,6 +68,9 @@ export function createGardenController(deps: GardenDeps): GardenController {
       hour: forcedHour ?? hourOf(wallOf(now)), season, title: profile.gardenTitle,
       found: GARDEN_ITEMS.filter((x) => garden.isFound(x.id)).length, total: GARDEN_ITEMS.length,
       minutesToNextGift: garden.minutesToNextGift, nextGiftProgress: garden.nextGiftProgress,
+      has: GARDEN_ITEMS.filter((x) => garden.has(x.id)).map((x) => x.id),
+      streakDays: deps.streak().days, streakFrozen: deps.streak().isFrozen,
+      ...(reset ? { reset: true } : {}),
     };
   };
   const push = (): void => {
@@ -79,6 +87,41 @@ export function createGardenController(deps: GardenDeps): GardenController {
   ipcMain.on(GARDEN_CHANNEL.showIsland, (event, id: unknown) => {
     if (trusted(event) && typeof id === "string" && isKnownIsland(id) && profile.isCompanionUnlocked(id)) garden.showIsland(id);
   });
+  const isTile = (col: unknown, row: unknown): boolean => Number.isInteger(col) && Number.isInteger(row);
+  const turn = (id: string): boolean => garden.rotate(id);
+  ipcMain.handle(GARDEN_CHANNEL.command, (event, command: GardenCommand) => {
+    if (!trusted(event) || typeof command !== "object" || command === null) return false;
+    switch (command.name) {
+      case "place":
+        return isTile(command.col, command.row) && garden.place(command.item, { col: command.col, row: command.row }, command.turned === true, command.island) !== null;
+      case "placeSomewhere":
+        return garden.placeSomewhere(command.item, command.island) !== null;
+      case "move":
+        return isTile(command.col, command.row) && garden.move(command.id, { col: command.col, row: command.row }, command.turned === true, command.island);
+      case "rotate":
+        return turn(command.id);
+      case "remove":
+        garden.remove(command.id);
+        return true;
+      case "companion":
+        if (!isTile(command.col, command.row)) return false;
+        garden.setCompanionTile(command.pet, { col: command.col, row: command.row });
+        return true;
+      default:
+        return false;
+    }
+  });
+  ipcMain.handle(GARDEN_CHANNEL.phrase, (event, petId: unknown) => (trusted(event) && typeof petId === "string" && isKnownIsland(petId) ? deps.phrase(petId) : ""));
+  ipcMain.on(GARDEN_CHANNEL.contextMenu, (event, id: unknown) => {
+    if (!trusted(event) || typeof id !== "string" || !window) return;
+    const placement = garden.placement(id);
+    if (!placement || !itemWithId(placement.item)) return;
+    const message = (text: string): void => { if (window && !window.isDestroyed()) window.webContents.send(GARDEN_CHANNEL.message, text); };
+    Menu.buildFromTemplate([
+      { label: "Gira", click: () => { if (!turn(id)) message("Girata non ci sta: c'è qualcosa accanto."); } },
+      { label: "Togli dal giardino", click: () => garden.remove(id) },
+    ]).popup({ window });
+  });
   ipcMain.on(GARDEN_CHANNEL.back, (event) => {
     if (!trusted(event)) return;
     window?.close();
@@ -94,7 +137,9 @@ export function createGardenController(deps: GardenDeps): GardenController {
       // un angolo che c'era già prima di aprire la finestra si sblocca adesso
       garden.discoverCorners();
       if (window && !window.isDestroyed()) {
+        reset = true;
         push();
+        reset = false;
         window.setTitle(profile.gardenTitle);
         if (window.isMinimized()) window.restore();
         window.show();

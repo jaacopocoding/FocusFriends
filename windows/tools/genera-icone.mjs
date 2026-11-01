@@ -13,6 +13,7 @@ const icons = {
   lock: "lock", play: "play", checkCircle: "circle-check", trash: "trash-2", stop: "square", skip: "skip-forward", plus: "plus",
   more: "ellipsis", flame: "flame", snowflake: "snowflake", forward: "chevron-right", up: "chevron-up", down: "chevron-down",
   listChecks: "list-checks", check: "check", close: "x", calendar: "calendar",
+  map: "map", gift: "gift", inbox: "inbox", minus: "minus", fit: "maximize-2",
 };
 
 const entries = Object.entries(icons).map(([name, file]) => {

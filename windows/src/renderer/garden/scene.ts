@@ -2,12 +2,13 @@
 // compagni, la luce dell'ora e della stagione. Le misure sono quelle della scena del Mac (1000 × 600 punti); la telecamera (zoom e spostamento) è
 // una sola per tutto il mondo. Qui c'è solo il disegno: le regole sono in `core/garden*.ts`.
 
-import { applyTurn, companionHeight, gardenImage, itemWithId, joinedImage, litImage } from "../../core/gardenCatalog.ts";
+import { applyTurn, companionHeight, fitsIsland, gardenImage, itemWithId, joinedImage, litImage } from "../../core/gardenCatalog.ts";
 import type { GardenItem } from "../../core/gardenCatalog.ts";
 import { formedCorners } from "../../core/gardenCorners.ts";
 import {
-  BRIDGES, bridgeId, bridgePieceCenters, bridgeSpan, decals, DECAL_ANCHORS, GRASS_COUNT, grassGrid, grassWeightsFor, HILL_BELOW_RATIO, HILL_HEIGHT_RATIO,
-  HILL_WIDTH_RATIO, hillFrame, ISLAND_MAX_SIZE, islandCorner, LANDMARK_ART, LANDMARK_SIDE, linkArms, PATH_COUNT, pathTiles, pathVariants, pathWeightsFor,
+  BRIDGES, bridgeId, bridgePieceCenters, bridgeSpan, canPlaceFootprint, decals, DECAL_ANCHORS, GRASS_COUNT, grassGrid, grassWeightsFor, HILL_BELOW_RATIO, HILL_HEIGHT_RATIO,
+  HILL_WIDTH_RATIO, hillFrame, ISLAND_MAX_SIZE, islandContains, islandCorner, isWalkable, LANDMARK_ART, LANDMARK_SIDE, landmarkTiles, linkArms, occupiedTiles, PATH_COUNT,
+  pathTiles, pathVariants, pathWeightsFor,
   terrainTag, tileKey, WORLD_EXTENT, WORLD_REACH, worldSlot,
 } from "../../core/gardenGrid.ts";
 import type { GardenPlacement, GardenTile } from "../../core/gardenGrid.ts";
@@ -15,7 +16,7 @@ import { lampAmount, lightAt, lightMultiplier } from "../../core/gardenSky.ts";
 import type { GardenLight, Season } from "../../core/gardenSky.ts";
 import { petInfo } from "../../core/pets.ts";
 import type { GardenData, GardenIslandData } from "../../shared/gardenApi.ts";
-import { aspect, makeCanvas, NO_TINT, picture, ready, scaled, tintOf } from "./sprites.ts";
+import { aspect, isDrawn, makeCanvas, NO_TINT, picture, ready, scaled, tintOf } from "./sprites.ts";
 import type { Sprite, Tint } from "./sprites.ts";
 
 export const SCENE_W = 1000, SCENE_H = 600;
@@ -364,7 +365,7 @@ function diamond(ctx: CanvasRenderingContext2D, iso: Iso, t: GardenTile): void {
   ctx.closePath();
 }
 
-function paintGround(ctx: CanvasRenderingContext2D, iso: Iso, season: Season, island: string): void {
+function paintGround(ctx: CanvasRenderingContext2D, iso: Iso, season: Season, island: string, carrying: boolean): void {
   const winter = season === "winter";
   const tag = terrainTag(island);
   const grass = grassGrid(iso.size, grassWeightsFor(season), tag);
@@ -400,7 +401,7 @@ function paintGround(ctx: CanvasRenderingContext2D, iso: Iso, season: Season, is
       ctx.fillStyle = onPath ? rgba(226, 208, 170) : rgba(152, 197, 112);
       ctx.fill();
     }
-    ctx.strokeStyle = rgba(255, 255, 255, 0.14);
+    ctx.strokeStyle = rgba(255, 255, 255, carrying ? 0.34 : 0.14);
     ctx.lineWidth = 1;
     ctx.stroke();
   }
@@ -423,8 +424,8 @@ function paintGround(ctx: CanvasRenderingContext2D, iso: Iso, season: Season, is
   }
 }
 
-function ground(iso: Iso, season: Season, island: string, dpr: number, version: number): Ground {
-  const key = `${island}|${iso.size}|${Math.round(iso.tileW * 100)}|${season}|${dpr}|${version}`;
+function ground(iso: Iso, season: Season, island: string, dpr: number, version: number, carrying: boolean): Ground {
+  const key = `${island}|${iso.size}|${Math.round(iso.tileW * 100)}|${season}|${dpr}|${version}|${carrying}`;
   const known = grounds.get(key);
   if (known) return known;
   const n = iso.size, margin = 40, top = iso.tileW * 0.6 + 20;
@@ -432,7 +433,7 @@ function ground(iso: Iso, season: Season, island: string, dpr: number, version: 
   const made = makeCanvas(width * dpr, height * dpr);
   const ctx = made.getContext("2d")!;
   ctx.scale(dpr, dpr);
-  paintGround(ctx, new Iso(n, iso.tileW, width / 2, top), season, island);
+  paintGround(ctx, new Iso(n, iso.tileW, width / 2, top), season, island, carrying);
   const wash = islandWash(island, season);
   if (wash) {
     ctx.globalCompositeOperation = "source-atop";
@@ -528,12 +529,12 @@ function drawOverlay(ctx: CanvasRenderingContext2D, season: Season, light: Garde
   }
 }
 
-export function drawStaticScene(ctx: CanvasRenderingContext2D, data: GardenData, camera: Camera, light: GardenLight, dpr: number, version: number): void {
+export function drawStaticScene(ctx: CanvasRenderingContext2D, data: GardenData, camera: Camera, light: GardenLight, dpr: number, version: number, carrying = false): void {
   drawBackdrop(ctx, camera, data.season);
   const islands = worldIslands(data, camera);
   for (const { island, iso } of islands) drawHill(ctx, iso, data.season, island.id, !island.open);
   for (const { island, iso } of islands) {
-    const g = ground(iso, data.season, island.id, dpr, version);
+    const g = ground(iso, data.season, island.id, dpr, version, carrying);
     const x = iso.ox - g.originX, y = iso.oy - g.originY;
     if (x < SCENE_W + 300 && y < SCENE_H + 180 && x + g.width > -300 && y + g.height > -180) ctx.drawImage(g.canvas, x, y, g.width, g.height);
     if (!island.open) {
@@ -590,7 +591,8 @@ function litHeightFactor(x: GardenItem): number {
   return on && off ? on.src.h / Math.max(off.src.h, 1) : 1;
 }
 
-function entities(data: GardenData, camera: Camera, light: GardenLight): Entity[] {
+/** Le cose e i compagni, dal fondo al davanti; `skip` è quella che si sta trascinando (l'id della copia, o `compagno:<id>`): si disegna a parte. */
+function entities(data: GardenData, camera: Camera, light: GardenLight, skip: string | null = null): Entity[] {
   const result: Entity[] = [];
   const lit = lampAmount(light) >= LIT_THRESHOLD;
   const visible = (p: { x: number; y: number }): boolean => p.x > -80 && p.x < SCENE_W + 80 && p.y > -140 && p.y < SCENE_H + 140;
@@ -600,14 +602,14 @@ function entities(data: GardenData, camera: Camera, light: GardenLight): Entity[
     const base = corner.col + corner.row;
     const linked = new Map<string, Set<string>>();
     for (const p of island.placements) {
-      if (!itemWithId(p.item)?.joins) continue;
+      if (!itemWithId(p.item)?.joins || p.id === skip) continue;
       const set = linked.get(p.item) ?? new Set<string>();
       set.add(tileKey(p));
       linked.set(p.item, set);
     }
     for (const p of island.placements) {
       const x = itemWithId(p.item);
-      if (!x) continue;
+      if (!x || p.id === skip) continue;
       const footprint = applyTurn(x.footprint, p.turned);
       const groundPoint = iso.point(p.col + footprint.cols / 2, p.row + footprint.rows / 2);
       if (!visible(groundPoint)) continue;
@@ -626,7 +628,7 @@ function entities(data: GardenData, camera: Camera, light: GardenLight): Entity[
       const made = makeEntity(key, height, feet, shadowWidth, turned, base + front + 0.5, iso);
       if (made) result.push({ ...made, placement: p, item: x, island: island.id });
     }
-    if (island.companion) {
+    if (island.companion && skip !== `compagno:${island.id}`) {
       const pet = petInfo(island.id);
       const groundPoint = iso.center(island.companion);
       if (visible(groundPoint)) {
@@ -733,10 +735,39 @@ export interface SceneLayers {
   stillKey: string;
 }
 
-export function drawGarden(ctx: CanvasRenderingContext2D, layers: SceneLayers, data: GardenData, camera: Camera, dpr: number, version: number): void {
+/** Quello che si sta trascinando: dove cadrebbe (le tessere verdi o rosse) e il suo disegno, sotto il mouse o sulla tessera. */
+export interface Carrying {
+  skip: string | null;
+  tiles: GardenTile[];
+  valid: boolean;
+  island: string;
+  ghost: { key: string; height: number; feet: { x: number; y: number }; shadowWidth: number | null; turned: boolean; alpha: number } | null;
+}
+
+function drawHighlight(ctx: CanvasRenderingContext2D, iso: Iso, tiles: GardenTile[], valid: boolean): void {
+  for (const t of tiles) {
+    if (!islandContains(t, iso.size)) continue;
+    const top = iso.point(t.col, t.row), right = iso.point(t.col + 1, t.row), bottom = iso.point(t.col + 1, t.row + 1), left = iso.point(t.col, t.row + 1);
+    const inset = 2;
+    ctx.beginPath();
+    ctx.moveTo(top.x, top.y + inset * 0.5);
+    ctx.lineTo(right.x - inset, right.y);
+    ctx.lineTo(bottom.x, bottom.y - inset * 0.5);
+    ctx.lineTo(left.x + inset, left.y);
+    ctx.closePath();
+    ctx.fillStyle = valid ? rgba(80, 200, 105, 0.5) : rgba(226, 80, 66, 0.5);
+    ctx.fill();
+    ctx.strokeStyle = valid ? rgba(60, 160, 85) : rgba(190, 56, 46);
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+}
+
+export function drawGarden(ctx: CanvasRenderingContext2D, layers: SceneLayers, data: GardenData, camera: Camera, dpr: number, version: number,
+  carrying: Carrying | null = null): void {
   const light = lightOf(data);
   const key = JSON.stringify([camera, data.season, data.islands.map((i) => [i.id, i.size, i.open]), data.bridges, Math.round(light.darkness * 40),
-    tintOf(lightMultiplier(light)), dpr, version]);
+    tintOf(lightMultiplier(light)), dpr, version, carrying !== null]);
   if (layers.still === null || layers.stillKey !== key) {
     const still = layers.still ?? makeCanvas(SCENE_W * dpr, SCENE_H * dpr);
     still.width = Math.round(SCENE_W * dpr);
@@ -744,7 +775,7 @@ export function drawGarden(ctx: CanvasRenderingContext2D, layers: SceneLayers, d
     const s = still.getContext("2d")!;
     s.setTransform(dpr, 0, 0, dpr, 0, 0);
     s.imageSmoothingQuality = "high";
-    drawStaticScene(s, data, camera, light, dpr, version);
+    drawStaticScene(s, data, camera, light, dpr, version, carrying !== null);
     drawOverlay(s, data.season, light);
     layers.still = still;
     layers.stillKey = key;
@@ -754,9 +785,81 @@ export function drawGarden(ctx: CanvasRenderingContext2D, layers: SceneLayers, d
   ctx.drawImage(layers.still!, 0, 0);
   ctx.restore();
   const tint = tintOf(lightMultiplier(light));
-  const laid = entities(data, camera, light);
+  const island = carrying ? data.islands.find((i) => i.id === carrying.island) : undefined;
+  const iso = island ? isoOf(island, camera) : null;
+  if (carrying && iso) drawHighlight(ctx, iso, carrying.tiles, carrying.valid);
+  const laid = entities(data, camera, light, carrying?.skip ?? null);
   for (const e of laid) drawEntity(ctx, e, data.season, tint, dpr);
+  if (carrying?.ghost && iso) {
+    const g = carrying.ghost;
+    const made = makeEntity(g.key, g.height, g.feet, g.shadowWidth, g.turned, 0, iso);
+    if (made) {
+      ctx.save();
+      ctx.globalAlpha = g.alpha;
+      drawEntity(ctx, { ...made, rect: { ...made.rect, y: made.rect.y - 6 }, placement: null, item: null, island: carrying.island }, data.season, tint, dpr);
+      ctx.restore();
+    }
+  }
   drawLampGlows(ctx, laid, data, camera, light);
   drawCottageWindows(ctx, data, camera, light);
   drawLandmarkLights(ctx, data, camera, light);
 }
+
+// ---- per il mouse: cosa c'è sotto un punto, e dove ci sta una cosa
+
+export type Hit = { kind: "placed"; id: string; island: string; feet: { x: number; y: number } } | { kind: "companion"; pet: string; island: string; feet: { x: number; y: number }; rect: { x: number; y: number; w: number; h: number } };
+
+/** La cosa più davanti sotto il punto, contando solo dove l'immagine è disegnata (con una cella di margine). */
+export function hitAt(data: GardenData, camera: Camera, x: number, y: number): Hit | null {
+  const laid = entities(data, camera, lightOf(data));
+  for (let i = laid.length - 1; i >= 0; i--) {
+    const e = laid[i]!;
+    if (x < e.rect.x || y < e.rect.y || x > e.rect.x + e.rect.w || y > e.rect.y + e.rect.h) continue;
+    let u = (x - e.rect.x) / e.rect.w;
+    const v = (y - e.rect.y) / e.rect.h;
+    if (e.turned) u = 1 - u;
+    if (!isDrawn(e.sprite, u, v)) continue;
+    if (e.placement) return { kind: "placed", id: e.placement.id, island: e.island, feet: e.feet };
+    return { kind: "companion", pet: e.island, island: e.island, feet: e.feet, rect: e.rect };
+  }
+  return null;
+}
+
+/** L'isola sotto un punto della scena (dentro i suoi bordi), se c'è. */
+export function islandAt(data: GardenData, camera: Camera, x: number, y: number): string | null {
+  const islands = worldIslands(data, camera);
+  for (let i = islands.length - 1; i >= 0; i--) {
+    const { island, iso } = islands[i]!;
+    const g = iso.grid(x, y);
+    if (g.col >= -0.2 && g.row >= -0.2 && g.col < iso.size + 0.2 && g.row < iso.size + 0.2) return island.id;
+  }
+  return null;
+}
+
+/** Le tessere coperte dalle copie di un'isola e dalla sua casa (senza `ignoring`). */
+function occupiedOn(island: GardenIslandData, ignoring: string | null): Set<string> {
+  const result = occupiedTiles(island.placements, ignoring);
+  for (const t of landmarkTiles(island.id)) result.add(tileKey(t));
+  return result;
+}
+
+/** Ci sta una copia di `item` con l'angolo in fondo su `origin`? (Le stesse regole di `Garden.canPlace`.) */
+export function canPlaceOn(island: GardenIslandData, item: string, origin: GardenTile, turned: boolean, ignoring: string | null): boolean {
+  const x = itemWithId(item);
+  if (!x || !fitsIsland(x, island.id)) return false;
+  return canPlaceFootprint(applyTurn(x.footprint, turned), origin, island.size, occupiedOn(island, ignoring), island.id);
+}
+
+/** Un compagno può andare lì? Su una tessera dove si cammina. */
+export function canStandOn(island: GardenIslandData, t: GardenTile): boolean {
+  return isWalkable(t, island.size, occupiedOn(island, null));
+}
+
+/** Dove stanno i piedi di un oggetto messo con l'angolo in fondo su `origin`. */
+export function feetOf(iso: Iso, item: GardenItem, origin: GardenTile, turned: boolean): { x: number; y: number } {
+  const footprint = applyTurn(item.footprint, turned);
+  const p = iso.point(origin.col + footprint.cols / 2, origin.row + footprint.rows / 2);
+  return { x: p.x, y: p.y + iso.tileH * (item.axial ? 0 : FEET_OFFSET) };
+}
+
+export { FEET_OFFSET };
