@@ -200,7 +200,7 @@ FocusFriends/
 │   ├── album/                    copertina(.png/_original.png), doppia_pagina(.png/_original.png), guida_doppia_pagina_original.png (layout guide given to the image generator)
 │   └── music/                    5 AAC (.m4a) tracks: boredom, love, night-driving, old-age, opinions
 ├── docs/GUIDA.md                 the full Italian user + developer guide (features, data formats, structure, how to add a pet): the former README
-├── docs/images/                  PNG screenshots/logo used by README.md and docs/GUIDA.md (sample data; `scrivania.gif` (the walking cat, with the real bubble and clock), `compagni.png`, `frasi.png` and `crescita.png` are composed from the app's drawings and its real bubbles by `tools/compone-readme.sh`); giardino.png and album.png are the garden and the album, da-fare.png the to-do page
+├── docs/images/                  PNG screenshots/logo used by README.md and docs/GUIDA.md (sample data; `scrivania.gif` (the walking cat, with the real bubble and clock), `menu-schermata.png` (the real menu card beside the companion, placed as `MenuCard.reposition` does), `compagni.png`, `frasi.png` and `crescita.png` are composed from the app's drawings and its real bubbles by `tools/compone-readme.sh`); giardino.png and album.png are the garden and the album, da-fare.png the to-do page
 └── build/                        generated output (git-ignored): FocusFriends.app, zips, release notes, tests/ binary
 ```
 

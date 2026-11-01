@@ -158,7 +158,7 @@ def window(image, box, title, shadow=True):
     return draw
 
 
-def desk_scene(W, H):
+def desk_scene(W, H, icon_active=False):
     """La scrivania, senza il compagno: gli appunti davanti, una dispensa dietro, la barra dei menu e il Dock."""
     from PIL import ImageFilter
     image = wallpaper(W, H)
@@ -179,6 +179,8 @@ def desk_scene(W, H):
     # la barra dei menu, con l'icona dell'app
     draw = ImageDraw.Draw(image, "RGBA")
     draw.rectangle((0, 0, W, 30), fill=(255, 255, 255, 170))
+    if icon_active:
+        draw.rounded_rectangle((W - 174, 3, W - 142, 27), 6, fill=(60, 60, 70, 70))
     logo = Image.open("docs/images/logo.png").convert("RGBA").resize((20, 20), Image.LANCZOS)
     image.paste(logo, (W - 168, 5), logo)
     draw.text((W - 132, 6), "lun 16:40", font=font(TEXT, 16), fill=(50, 44, 44, 235))
@@ -225,7 +227,7 @@ def scrivania():
         left = round(x - sprite.width / 2)
         top = feet + ground - sprite.height
         shadow = Image.new("RGBA", (sprite.width + 160, 120), (0, 0, 0, 0))
-        ImageDraw.Draw(shadow).ellipse((80, 44, 80 + sprite.width - 30, 76), fill=(60, 40, 40, 70))
+        ImageDraw.Draw(shadow).ellipse((80, 34, 80 + sprite.width - 30, 62), fill=(60, 40, 40, 70))
         shadow = shadow.filter(ImageFilter.GaussianBlur(5))
         frame.alpha_composite(shadow, (left - 80 + 12, feet - 46))
         frame.alpha_composite(sprite, (left, top))
@@ -248,6 +250,34 @@ def scrivania():
     quantized[0].save("docs/images/scrivania.gif", save_all=True, append_images=quantized[1:], duration=round(1000 / fps), loop=0, optimize=False, disposal=1)
     frames[45].save("docs/images/scrivania.png", optimize=True)
     print("scrivania.gif", W, H, len(frames), "fotogrammi")
+
+
+def menu_schermata():
+    """La scheda del menu vera dell'app, aperta dal compagno (clic destro su di lui): sta alla sua sinistra, con il bordo di sotto alla stessa altezza (come in MenuCard.reposition)."""
+    from PIL import ImageFilter, ImageOps
+    W, H = 1200, 960
+    ppt = 1.1                                            # pixel per punto, per la scheda e per il compagno
+    scene = desk_scene(W, H).convert("RGBA")
+    # il compagno, in basso a destra, che guarda verso la scheda
+    cat = Image.open("assets/gattino/frame1.png").convert("RGBA")
+    k = (144 / 360) * ppt
+    cat = ImageOps.mirror(cat.resize((round(cat.width * k), round(cat.height * k)), Image.LANCZOS))
+    pet_left, window_bottom = W - 70 - cat.width, 876
+    ground = round(0.0949 * 274 * k)
+    glow = Image.new("RGBA", (cat.width + 160, 120), (0, 0, 0, 0))
+    ImageDraw.Draw(glow).ellipse((80, 34, 80 + cat.width - 30, 62), fill=(60, 40, 40, 70))
+    scene.alpha_composite(glow.filter(ImageFilter.GaussianBlur(5)), (pet_left - 80 + 12, window_bottom - ground - 46))
+    scene.alpha_composite(cat, (pet_left, window_bottom - cat.height))
+    # la scheda, a sinistra di lui (10 punti di distanza), con il bordo di sotto come il suo
+    card = Image.open("build/readme/scheda.png").convert("RGBA")
+    card = card.resize((round(card.width * ppt / 2), round(card.height * ppt / 2)), Image.LANCZOS)
+    x, y = pet_left - round(10 * ppt) - card.width, window_bottom - card.height
+    shadow = Image.new("RGBA", scene.size, (0, 0, 0, 0))
+    ImageDraw.Draw(shadow).rounded_rectangle((x, y + 14, x + card.width, y + card.height + 14), 28, fill=(60, 40, 40, 110))
+    scene.alpha_composite(shadow.filter(ImageFilter.GaussianBlur(20)))
+    scene.alpha_composite(card, (x, y))
+    scene.convert("RGB").save("docs/images/menu-schermata.png", optimize=True)
+    print("menu-schermata.png", scene.size)
 
 
 FRASI = [
@@ -288,6 +318,7 @@ def frasi():
 
 if __name__ == "__main__":
     scrivania()
+    menu_schermata()
     compagni()
     frasi()
     crescita()

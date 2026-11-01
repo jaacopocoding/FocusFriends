@@ -47,7 +47,7 @@ Ogni tanto, senza distrarti: un incoraggiamento, un «respira», un «bevi un po
 ## Il timer, in un tocco
 
 <p align="center">
-  <img src="docs/images/menu.png" width="640" alt="La scheda del menu, a riposo e durante un focus">
+  <img src="docs/images/menu-schermata.png" width="800" alt="La scheda del menu, aperta accanto al compagno: 30, 50 minuti o una pausa">
 </p>
 
 Scegli i minuti, scrivi cosa studi, premi inizio. Se vuoi, una pausa lunga ogni quattro focus.
