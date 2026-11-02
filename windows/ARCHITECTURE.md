@@ -451,7 +451,7 @@ of the year, strongest day, best month) and a bar chart of study per week, for a
   `route`), goes on errands and plays its pose in a formed corner (`poseFrames`, `POSE_DURATION`); a visitor may arrive once per day slot (`attractions`, `arrival`,
   `entryRoute`), stays 70–130 s with a star above, and leaves 25 s after being greeted. Greeting calls `greetGuest` in the main process (`Garden.welcomeGuest`: the
   diary and, the first time, a gift). Corners formed since the last snapshot come as `newCorners` (`Garden.takeNewCorners`) and get «Hai sbloccato» with stars. The
-  page runs one `requestAnimationFrame` loop that advances life and redraws at 30 fps while something moves, 15 fps otherwise; `scene.ts` reads `life` (walkers,
+  page runs one `requestAnimationFrame` loop that advances life and redraws at 30 fps while something moves, 15 fps otherwise (paced by time, not by display frames, so a 120/144 Hz screen draws no more often); `scene.ts` reads `life` (walkers,
   visitor, time) and draws wind (12 vertical strips per plant), water, chimney smoke on the backdrop, the corners' small effects, petals/leaves/snow, fireflies
   and lamp flicker. With "Reduce motion" there is no wind, particles or fireflies.
 

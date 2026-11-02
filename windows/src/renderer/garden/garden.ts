@@ -294,15 +294,16 @@ function currentHour(): number {
 }
 
 /** Il ciclo della vita: a ogni fotogramma la cerimonia, le feste, i compagni e l'ospite. Si ridisegna a 30 al secondo se qualcosa cammina (o c'è una
- *  festa), a 15 se si muove solo l'aria (il vento, il fumo, la neve), e con «Riduci movimento» solo quando qualcosa cambia. */
-let lastTick = 0, frameTick = 0, lastMinute = -1;
+ *  festa), a 15 se si muove solo l'aria (il vento, il fumo, la neve), e con «Riduci movimento» solo quando qualcosa cambia. Il ritmo si conta in tempo, non
+ *  in fotogrammi dello schermo: a 120 o 144 Hz non si disegna più spesso che a 60 (con 4 ms di tolleranza, così a 60 Hz cade sempre sullo stesso fotogramma). */
+let lastTick = 0, lastDraw = 0, lastMinute = -1;
+const DRAW_SLACK = 0.004;
 function tick(): void {
   requestAnimationFrame(tick);
   const now = seconds();
   const dt = Math.min(lastTick === 0 ? 0 : now - lastTick, 0.2);
   lastTick = now;
   if (!data || document.hidden) return;
-  frameTick += 1;
   life.time = now;
   life.reduceMotion = reduceMotion();
   let busy = false;
@@ -333,7 +334,11 @@ function tick(): void {
     lastMinute = minute;
     if (!data.hourForced) { data = { ...data, hour: currentHour() }; receivedAt = performance.now(); }
   }
-  if ((busy && frameTick % 2 === 0) || (!life.reduceMotion && frameTick % 4 === 0) || lightChanged) redraw();
+  const interval = busy ? 1 / 30 : life.reduceMotion ? Infinity : 1 / 15;
+  if (lightChanged || now - lastDraw >= interval - DRAW_SLACK) {
+    lastDraw = now;
+    redraw();
+  }
 }
 
 /** Le feste e la cerimonia hanno il loro ritmo nel ciclo della vita: qui basta ridisegnare. */
