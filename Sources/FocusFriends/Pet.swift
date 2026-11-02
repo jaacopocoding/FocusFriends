@@ -59,6 +59,9 @@ struct Pet: Equatable {
     /// Dove tiene il cursore sul disegno sollevato (frazioni di larghezza e altezza, origine in basso a sinistra).
     var pickedGrab: CGPoint = CGPoint(x: 0.5, y: 0.5)
 
+    /// Il nome è femminile («la tartaruga»): i testi che lo usano si accordano («è nascosta», «La trovi nel menu»).
+    var feminine: Bool = false
+
     /// Per chi cammina e cresce insieme (Pianty): quanti fotogrammi ha ogni stadio di crescita.
     /// Le immagini sono in ordine: tutti i fotogrammi del primo stadio, poi quelli del secondo, e così via;
     /// dentro lo stadio vale `walkFrames` (0 = fermo).
@@ -226,8 +229,43 @@ struct Pet: Equatable {
         pickedGrab: CGPoint(x: 0.24, y: 0.38)   // il cursore sta sul guanto sinistro
     )
 
+    /// Una tartaruga di terra: cammina per lo schermo, mangia una fragola, dorme sdraiata e ogni tanto si ritira nel guscio; durante un focus cammina piano piano
+    /// lungo un sentiero di sassi verso una bandierina (tre posizioni: la partenza, a metà, alla fragola), e a fine focus mangia la fragola. Le pose vengono da
+    /// tools/cutout_tartaruga.py (stessa tela, zampe a terra, il guscio fermo da un fotogramma all'altro), il sentiero da tools/compose_tartaruga_growth.py.
+    static let tartaruga = Pet(
+        id: "tartaruga",
+        name: "Tartaruga",
+        imageResources: (1...23).map { "tartaruga_frame\($0)" },   // 1 ferma, 2-7 cammino, 8-12 mangia, 13-18 dorme, 19-23 si ritira nel guscio
+        size: NSSize(width: 144, height: 90),
+        quotesResource: "frasi_tartaruga",
+        quotesUserFile: "frasi_tartaruga.txt",
+        fallbackQuote: "Piano piano si arriva: un passo alla volta.",
+        greeting: "Ciao! Sono la tartaruga. Andiamo piano piano?",
+        shadowWidthFraction: 0.6,
+        groundFraction: 0.1268,
+        iconCrop: NSRect(x: 0.640, y: 0.430, width: 0.285, height: 0.400),   // la testa, con un po' d'aria davanti al muso
+        iconFocus: 0.76,
+        walks: true,
+        walkFrames: [1, 2, 3, 4, 5, 6],   // il ciclo dei passi
+        stepInterval: 0.15,
+        facesRight: true,
+        // guarda la fragola, morde, mastica, morde ancora, finita (la fragola si consuma: si ripete con una fragola nuova)
+        eatFrames: [7, 7, 8, 9, 9, 9, 10, 10, 10, 11, 11, 11],
+        sleepIntroFrame: 12,                       // in piedi, assonnata
+        sleepFrames: [15, 16, 17, 16],             // sdraiata, il respiro lento
+        popcornFrames: [18, 19, 20, 20, 20, 21, 22],   // si ritira nel guscio: sorpresa, a metà, dentro, sbircia, di nuovo fuori
+        popcornInterval: 0.3,
+        focusGrowthResources: (1...3).map { "growth_tartaruga_\($0)" },   // la partenza, a metà strada, alla fragola
+        focusGrowthFeetFraction: 0.1268,
+        eatsWhenFocusCompletes: true,
+        pickedResource: "tartaruga_picked",   // le mani che la sollevano per il guscio, sorpresa
+        pickedSize: NSSize(width: 131, height: 92),
+        pickedGrab: CGPoint(x: 0.37, y: 0.62),   // il cursore sta sulla mano sinistra
+        feminine: true
+    )
+
     /// Pianty è il personaggio di partenza.
-    static let all = [pianty, porcellino, ciccio, gattino, riccio]
+    static let all = [pianty, porcellino, ciccio, gattino, riccio, tartaruga]
 
     // MARK: - Scelta ricordata
 

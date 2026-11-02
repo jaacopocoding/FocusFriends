@@ -127,6 +127,14 @@ export const GARDEN_ITEMS: readonly GardenItem[] = [
   item("hotel-insetti", "Hotel degli insetti", "companions", 112, 5, { island: "riccio" }),
   item("carriola-ghiande", "Carriola di ghiande", "companions", 78, 5, { island: "riccio" }),
   item("tana-foglie", "Tana di foglie", "companions", 90, 6, { island: "riccio" }),
+  // Le cose della Tartaruga, sulla sua isola (la lanterna di carta è la sua luce)
+  item("sasso-sole", "Sasso al sole", "companions", 38, 2, { island: "tartaruga" }),
+  item("lattuga", "Cespo di lattuga", "companions", 45, 2, { island: "tartaruga" }),
+  item("aiuola-fragole", "Aiuola di fragole", "companions", 62, 3, { island: "tartaruga" }),
+  item("bandiera-traguardo", "Bandierina del traguardo", "companions", 105, 4, { island: "tartaruga" }),
+  item("lanterna-carta", "Lanterna di carta", "companions", 110, 4, { glow: glow(255, 172, 92, 0.75, 0.48, 0.85), island: "tartaruga" }),
+  item("laghetto", "Laghetto", "companions", 40, 5, { island: "tartaruga" }),
+  item("rifugio-paglia", "Rifugio di paglia", "companions", 90, 6, { island: "tartaruga" }),
 ];
 
 const byId = new Map(GARDEN_ITEMS.map((x, index) => [x.id, { item: x, number: index + 1 }]));
@@ -134,7 +142,7 @@ const byId = new Map(GARDEN_ITEMS.map((x, index) => [x.id, { item: x, number: in
 /** Gli oggetti tolti dal catalogo: chi li aveva li perde (`Garden` li toglie leggendo il file). */
 export const RETIRED_ITEMS: ReadonlySet<string> = new Set(["erba-alta", "erbe", "vaso-grande"]);
 
-const COMPANION_HEIGHTS: Readonly<Record<string, number>> = { pianty: 120, porcellino: 60, ciccio: 105, gattino: 92, riccio: 66 };
+const COMPANION_HEIGHTS: Readonly<Record<string, number>> = { pianty: 120, porcellino: 60, ciccio: 105, gattino: 92, riccio: 66, tartaruga: 64 };
 
 /** Quanto è alto un compagno sull'isola (unità della scena): chi non c'è è 100. */
 export function companionHeight(petId: string): number { return COMPANION_HEIGHTS[petId] ?? 100; }
@@ -166,7 +174,7 @@ export function rarityOf(x: GardenItem): GardenRarity {
   return "legendary";
 }
 
-const FEMININE = ["casa", "lanterna", "lampada", "candela", "cassetta", "zucca", "carriola", "tana"];
+const FEMININE = ["casa", "lanterna", "lampada", "candela", "cassetta", "zucca", "carriola", "tana", "bandierina"];
 
 /** Il nome con l'articolo, per le frasi: «il cesto di carote», «la casa del gatto», «l'annaffiatoio». */
 export function nameWithArticle(x: GardenItem): string {
@@ -210,7 +218,9 @@ export function swayStrength(x: GardenItem): number {
 
 /** Dove sta l'acqua nel disegno (centro e mezze misure, in frazioni del disegno). */
 export function waterSpot(x: GardenItem): { u: number; v: number; halfWidth: number; halfHeight: number } | null {
-  return x.id === "bagnetto" ? { u: 0.50, v: 0.255, halfWidth: 0.30, halfHeight: 0.07 } : null;
+  if (x.id === "bagnetto") return { u: 0.50, v: 0.255, halfWidth: 0.30, halfHeight: 0.07 };
+  if (x.id === "laghetto") return { u: 0.46, v: 0.52, halfWidth: 0.30, halfHeight: 0.20 };
+  return null;
 }
 
 // ---- l'album: sei figurine per pagina, ogni sezione comincia su una pagina di sinistra

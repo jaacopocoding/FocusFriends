@@ -38,7 +38,8 @@ struct GardenAffinity: Equatable {
 
 enum GardenCompanions {
     /// Cosa fanno i compagni negli angoli: il gattino dorme nel suo e nel salotto e si lecca la zampa all'angolo di lettura, il porcellino mangia nell'orto e al picnic e
-    /// saltella a casa sua e alla festa, Ciccio sbatte le ali vicino al bagnetto, alla festa e alla musica del vento, il riccio dorme nella tana, mangia nella dispensa e si arrotola nel bosco. Pianty non ha pose: sta dove sta.
+    /// saltella a casa sua e alla festa, Ciccio sbatte le ali vicino al bagnetto, alla festa e alla musica del vento, il riccio dorme nella tana, mangia nella dispensa e si arrotola nel bosco,
+    /// la tartaruga dorme nel suo rifugio, mangia nell'orto delle fragole e si ritira nel guscio vicino all'acqua. Pianty non ha pose: sta dove sta.
     static let affinities: [GardenAffinity] = [
         GardenAffinity(pet: "gattino", corner: "gatto", item: "casetta-gatto", pose: .sleep),
         GardenAffinity(pet: "gattino", corner: "lettura", item: "panchina", pose: .groom),
@@ -53,6 +54,9 @@ enum GardenCompanions {
         GardenAffinity(pet: "riccio", corner: "tana", item: "tana-foglie", pose: .sleep),
         GardenAffinity(pet: "riccio", corner: "dispensa", item: "cassetta-mele", pose: .eat),
         GardenAffinity(pet: "riccio", corner: "bosco", item: "felci", pose: .popcorn),
+        GardenAffinity(pet: "tartaruga", corner: "rifugio", item: "rifugio-paglia", pose: .sleep),
+        GardenAffinity(pet: "tartaruga", corner: "fragole", item: "aiuola-fragole", pose: .eat),
+        GardenAffinity(pet: "tartaruga", corner: "acqua", item: "ponticello", pose: .popcorn),
     ]
 
     /// Che numeri di fotogramma (da 1, come `frame<n>.png`) fanno una posa per un compagno; vuoto se non la fa.
@@ -69,6 +73,9 @@ enum GardenCompanions {
         case ("riccio", .eat): range = 8...12
         case ("riccio", .sleep): range = 13...18
         case ("riccio", .popcorn): range = 19...23
+        case ("tartaruga", .eat): range = 8...12
+        case ("tartaruga", .sleep): range = 13...18
+        case ("tartaruga", .popcorn): range = 19...23
         default: range = nil
         }
         return range.map { Array($0) } ?? []

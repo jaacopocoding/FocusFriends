@@ -45,6 +45,7 @@ enum Sticker {
         case "ciccio": return NSColor(calibratedRed: 70 / 255, green: 170 / 255, blue: 214 / 255, alpha: 1)
         case "gattino": return NSColor(calibratedRed: 112 / 255, green: 132 / 255, blue: 204 / 255, alpha: 1)
         case "riccio": return NSColor(calibratedRed: 212 / 255, green: 124 / 255, blue: 64 / 255, alpha: 1)
+        case "tartaruga": return NSColor(calibratedRed: 132 / 255, green: 160 / 255, blue: 82 / 255, alpha: 1)
         default: return Paper.paperEdge
         }
     }

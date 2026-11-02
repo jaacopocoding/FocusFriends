@@ -180,6 +180,22 @@
 
           ],
           "grandezza" : 8
+        },
+        "tartaruga" : {
+          "angoli" : [
+
+          ],
+          "cassetta" : [
+            "margherite",
+            "trifoglio",
+            "mughetti",
+            "tavolino",
+            "sdraio"
+          ],
+          "copie" : [
+
+          ],
+          "grandezza" : 8
         }
       },
       "mancano" : 54,

@@ -40,7 +40,7 @@ for pet in Pet.all {
         "facesRight": pet.facesRight, "eatFrames": pet.eatFrames,
         "sleepFrames": pet.sleepFrames, "popcornFrames": pet.popcornFrames, "popcornInterval": pet.popcornInterval,
         "focusGrowthImages": pet.focusGrowthResources.map(path), "focusGrowthFeetFraction": r(pet.focusGrowthFeetFraction),
-        "eatsWhenFocusCompletes": pet.eatsWhenFocusCompletes,
+        "eatsWhenFocusCompletes": pet.eatsWhenFocusCompletes, "feminine": pet.feminine,
         // Valori che l'app per Mac ricava dagli altri: servono come prova che la versione per Windows li ricava uguali.
         "stageCount": pet.stageCount, "finalStage": pet.finalStage, "restStage": pet.restStage,
         "restImageIndex": pet.restImageIndex, "growsWithTimer": pet.growsWithTimer, "iconImage": path(pet.iconResource),

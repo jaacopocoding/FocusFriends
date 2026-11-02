@@ -719,8 +719,8 @@ enum MeadowBackdrop {
     // MARK: - Il paesaggio «del mondo» (il giardino: ci si sposta e si ingrandisce, il paesaggio con l'isola e la collina)
 
     /// Di quanto il paesaggio del mondo è più grande della finestra, da ogni lato (in punti): serve per spostarsi (l'isola più vicina al bordo) e per rimpicciolire
-    /// senza che si veda finire il disegno.
-    static let worldMargin = (top: CGFloat(340), left: CGFloat(480), bottom: CGFloat(520), right: CGFloat(480))
+    /// senza che si veda finire il disegno. A destra di più: l'isola della Tartaruga sporge a destra di Porcellino.
+    static let worldMargin = (top: CGFloat(340), left: CGFloat(480), bottom: CGFloat(520), right: CGFloat(960))
     private static var worldCache: [String: CGImage] = [:]
 
     /// Il paesaggio con la stessa inquadratura di `meadow(size:…)` al centro, e tutt'attorno altre copie del disegno capovolte (riflesse): continua senza stacchi.

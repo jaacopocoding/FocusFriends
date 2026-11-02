@@ -8,6 +8,7 @@
       "eatsWhenFocusCompletes" : false,
       "facesRight" : true,
       "fallbackQuote" : "Un passo alla volta: anch'io ho cominciato da un seme.",
+      "feminine" : false,
       "finalStage" : 4,
       "focusGrowthFeetFraction" : 0.017600000000000001,
       "focusGrowthImages" : [
@@ -139,6 +140,7 @@
       "eatsWhenFocusCompletes" : true,
       "facesRight" : true,
       "fallbackQuote" : "Un passo alla volta: io arrivo ovunque trotterellando.",
+      "feminine" : false,
       "finalStage" : 0,
       "focusGrowthFeetFraction" : 0.129,
       "focusGrowthImages" : [
@@ -265,6 +267,7 @@
       "eatsWhenFocusCompletes" : false,
       "facesRight" : true,
       "fallbackQuote" : "Un passo alla volta, e ogni tanto una svolazzata.",
+      "feminine" : false,
       "finalStage" : 0,
       "focusGrowthFeetFraction" : 0.017600000000000001,
       "focusGrowthImages" : [
@@ -388,6 +391,7 @@
       "eatsWhenFocusCompletes" : false,
       "facesRight" : true,
       "fallbackQuote" : "Un passo alla volta, con calma: i gatti arrivano sempre dove devono.",
+      "feminine" : false,
       "finalStage" : 0,
       "focusGrowthFeetFraction" : 0.017600000000000001,
       "focusGrowthImages" : [
@@ -524,6 +528,7 @@
       "eatsWhenFocusCompletes" : true,
       "facesRight" : true,
       "fallbackQuote" : "Un passo alla volta, e quando è troppo ci si arrotola un attimo.",
+      "feminine" : false,
       "finalStage" : 0,
       "focusGrowthFeetFraction" : 0.097000000000000003,
       "focusGrowthImages" : [
@@ -623,6 +628,146 @@
         17,
         16,
         15
+      ],
+      "sleepIntroFrame" : 12,
+      "stageCount" : 1,
+      "stages" : [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "stepInterval" : 0.14999999999999999,
+      "talkFrame" : null,
+      "walkFrames" : [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "walks" : true
+    },
+    {
+      "eatFrames" : [
+        7,
+        7,
+        8,
+        9,
+        9,
+        9,
+        10,
+        10,
+        10,
+        11,
+        11,
+        11
+      ],
+      "eatsWhenFocusCompletes" : true,
+      "facesRight" : true,
+      "fallbackQuote" : "Piano piano si arriva: un passo alla volta.",
+      "feminine" : true,
+      "finalStage" : 0,
+      "focusGrowthFeetFraction" : 0.1268,
+      "focusGrowthImages" : [
+        "garden/growth_tartaruga_1.png",
+        "garden/growth_tartaruga_2.png",
+        "garden/growth_tartaruga_3.png"
+      ],
+      "focusGrowthStages" : [
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        1,
+        2,
+        2,
+        2,
+        2
+      ],
+      "framesPerStage" : null,
+      "greeting" : "Ciao! Sono la tartaruga. Andiamo piano piano?",
+      "groundFraction" : 0.1268,
+      "growsWithTimer" : false,
+      "iconCrop" : {
+        "height" : 0.40000000000000002,
+        "width" : 0.28499999999999998,
+        "x" : 0.64000000000000001,
+        "y" : 0.42999999999999999
+      },
+      "iconFocus" : 0.76000000000000001,
+      "iconImage" : "tartaruga/frame1.png",
+      "id" : "tartaruga",
+      "images" : [
+        "tartaruga/frame1.png",
+        "tartaruga/frame2.png",
+        "tartaruga/frame3.png",
+        "tartaruga/frame4.png",
+        "tartaruga/frame5.png",
+        "tartaruga/frame6.png",
+        "tartaruga/frame7.png",
+        "tartaruga/frame8.png",
+        "tartaruga/frame9.png",
+        "tartaruga/frame10.png",
+        "tartaruga/frame11.png",
+        "tartaruga/frame12.png",
+        "tartaruga/frame13.png",
+        "tartaruga/frame14.png",
+        "tartaruga/frame15.png",
+        "tartaruga/frame16.png",
+        "tartaruga/frame17.png",
+        "tartaruga/frame18.png",
+        "tartaruga/frame19.png",
+        "tartaruga/frame20.png",
+        "tartaruga/frame21.png",
+        "tartaruga/frame22.png",
+        "tartaruga/frame23.png"
+      ],
+      "name" : "Tartaruga",
+      "picked" : {
+        "grab" : {
+          "x" : 0.37,
+          "y" : 0.62
+        },
+        "image" : "tartaruga/picked.png",
+        "size" : {
+          "height" : 92,
+          "width" : 131
+        }
+      },
+      "popcornFrames" : [
+        18,
+        19,
+        20,
+        20,
+        20,
+        21,
+        22
+      ],
+      "popcornInterval" : 0.29999999999999999,
+      "quotesFile" : "frasi_tartaruga.txt",
+      "restImageIndex" : 0,
+      "restStage" : 0,
+      "shadowWidthFraction" : 0.59999999999999998,
+      "size" : {
+        "height" : 90,
+        "width" : 144
+      },
+      "sleepFrames" : [
+        15,
+        16,
+        17,
+        16
       ],
       "sleepIntroFrame" : 12,
       "stageCount" : 1,

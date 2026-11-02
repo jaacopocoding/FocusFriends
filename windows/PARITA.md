@@ -139,7 +139,7 @@ circa 200 MB e 0 % di processore. **Le sigle W qui sotto non sono state spuntate
 
 | Mac | Windows | Verifica |
 |---|---|---|
-| Il catalogo (47 oggetti), i tiri delle figurine (FNV-1a, Mulberry32, la riserva di minuti, le garanzie), le isole, i sentieri, il terreno, il mondo e i ponti, la luce e le stagioni, gli angoli, gli ospiti | Uguale, in `core/garden*.ts` | P (contratto: `attesi/_giardino.json`, 420 regali, sentieri e terreno delle cinque isole, luce ogni quarto d'ora, un giardino passo per passo) |
+| Il catalogo (54 oggetti), i tiri delle figurine (FNV-1a, Mulberry32, la riserva di minuti, le garanzie), le isole, i sentieri, il terreno, il mondo e i ponti, la luce e le stagioni, gli angoli, gli ospiti | Uguale, in `core/garden*.ts` | P (contratto: `attesi/_giardino.json`, 420 regali, sentieri e terreno delle sei isole, luce ogni quarto d'ora, un giardino passo per passo) |
 | `giardino.json` versione 4: lettura dalle versioni 1–3, file rovinato o più nuovo, oggetti tolti dal catalogo, regole delle isole, ponti e benvenuti | Uguale | P (contratto sulle cartelle `giardino-*` e `v3-completo`; ritorno: Windows scrive, il Mac legge) |
 | A fine focus la figurina: la frase, la figurina accanto al compagno, la cosa sull'isola | Uguale | S (`test/vivo/giardino-regalo.cjs`, con `quickGifts`) |
 | La finestra del giardino: le isole viste di sbieco, colline, case, ponti, cose, compagni, luce dell'ora, stagioni, zoom e spostamenti | Uguale, su un `<canvas>` (`renderer/garden/`) | S e confronto con il Mac sugli stessi dati (`test/vivo/giardino.cjs` e `../tools/render-giardino.sh`); il disegno su una scheda video vera: **W** |

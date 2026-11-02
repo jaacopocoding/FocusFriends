@@ -834,10 +834,12 @@ final class MenuController: NSObject, NSMenuDelegate {
         guard !fresh.isEmpty else { return }
         profile.unlock(fresh)
         guard announce else { return }
-        let names = fresh.compactMap { id in Pet.all.first(where: { $0.id == id })?.name }
+        let pets = fresh.compactMap { id in Pet.all.first(where: { $0.id == id }) }
+        let names = pets.map(\.name)
+        let feminine = pets.allSatisfy(\.feminine)
         let text = names.count == 1
-            ? "Hai sbloccato \(names[0])! Lo trovi nel menu, tra i compagni."
-            : "Hai sbloccato \(names.joined(separator: " e "))! Li trovi nel menu, tra i compagni."
+            ? "Hai sbloccato \(names[0])! \(feminine ? "La" : "Lo") trovi nel menu, tra i compagni."
+            : "Hai sbloccato \(names.joined(separator: " e "))! \(feminine ? "Le" : "Li") trovi nel menu, tra i compagni."
         // Dopo la frase di fine focus, che altrimenti la coprirebbe (e senza coprire un traguardo detto negli stessi momenti).
         speaker.sayWhenQuiet(text, after: 9)
     }

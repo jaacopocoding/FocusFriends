@@ -376,8 +376,8 @@ ancora studiato non si giudica niente: la giornata non è finita.
 
 Si apre dalla riga **Album** del menu (sotto «Da fare») o dal pulsante nel giardino (`AlbumWindow.swift`). Si vede
 prima la copertina, che dice quante figurine hai e quante sono nuove; un tocco la apre, girando attorno al dorso, sulla
-doppia pagina delle figurine nuove. Ogni sezione del catalogo (**Fiori**, **Per i compagni**, **Arredi**: 47 figurine
-in tutto, per ora) occupa una doppia pagina da sei per lato (i fiori sono dieci, i compagni ventidue e gli arredi quindici: l'ultima pagina ha le ultime figurine, le luci per gli arredi). Le figurine trovate sono incollate un po' storte, con il
+doppia pagina delle figurine nuove. Ogni sezione del catalogo (**Fiori**, **Per i compagni**, **Arredi**: 54 figurine
+in tutto, per ora) occupa una doppia pagina da sei per lato (i fiori sono dieci, i compagni ventinove e gli arredi quindici: l'ultima pagina ha le ultime figurine, le luci per gli arredi). Le figurine trovate sono incollate un po' storte, con il
 numero e il nome; le altre sono caselle tratteggiate con la sagoma e la rarità. Si sfoglia con
 le frecce, le linguette delle sezioni, la tastiera o due dita sul trackpad; un tocco su una figurina dice di che rarità è, dove si può mettere e quante ne hai sull'isola.
 Quando una doppia pagina è tutta trovata compare un sigillo «completa».
@@ -393,25 +393,25 @@ nelle impostazioni di accessibilità il libro si apre e si sfoglia di colpo.
 
 ### Il mondo delle isole
 
-Le isole sono **cinque, una per compagno** (Pianty, Porcellino, Ciccio, Gattino e Riccio), sempre nello stesso posto di una mappa
-a celle: Pianty in alto, Porcellino a destra, Ciccio a sinistra, Gattino in basso e il Riccio a destra di Gattino (la cella in alto
-a destra di lui è libera: aspetta un altro compagno). Non è una schermata a parte: c'è **una
+Le isole sono **sei, una per compagno** (Pianty, Porcellino, Ciccio, Gattino, Riccio e Tartaruga), sempre nello stesso posto di una mappa
+a celle: Pianty in alto, Porcellino a destra, Ciccio a sinistra, Gattino in basso, il Riccio a destra di Gattino e la Tartaruga a destra
+di Porcellino, sopra il Riccio. Non è una schermata a parte: c'è **una
 telecamera sola** e si passa da un'isola all'altra allontanandosi con lo zoom e scorrendo. L'isola di **casa** è quella
 del compagno che hai scelto all'inizio (per chi usava già l'app, quello che usava). Le altre sono sulla mappa fin da
 subito, ma **al buio, con un lucchetto**, senza nome (solo «???») e con la scritta di quanto manca («si sblocca a 20 focus»): si aprono quando sblocchi
 il compagno (`GardenWorld` e `GardenIslands`, in `GardenGrid.swift`).
 
 <p align="center">
-  <img src="images/mondo.png" width="760" alt="Il mondo delle isole, unite da ponti, ognuna con la sua casa (nell'immagine sono quattro: il Riccio è arrivato dopo)">
+  <img src="images/mondo.png" width="760" alt="Il mondo delle isole, unite da ponti, ognuna con la sua casa (nell'immagine sono quattro: il Riccio e la Tartaruga sono arrivati dopo)">
 </p>
 
 - **Ognuna è diversa.** Ha la sua tinta (verde fresco per Pianty, paglia per Porcellino, verde acqua per Ciccio, blu-lilla
-  per Gattino, arancio d'autunno per il Riccio), la sua erba e i suoi dettagli, il suo **sentiero** (una curva larga, non una riga dritta, che unisce i due
+  per Gattino, arancio d'autunno per il Riccio, verde oliva per la Tartaruga), la sua erba e i suoi dettagli, il suo **sentiero** (una curva larga, non una riga dritta, che unisce i due
   punti dove arrivano i ponti) e la sua **casa**: la serra di Pianty, il fienile del Porcellino, la voliera di Ciccio, la
-  casetta del Gattino e la tana di foglie del Riccio, 3×3 tessere nell'angolo in alto, con le finestre che di sera si accendono. Sul sentiero e sulla casa
+  casetta del Gattino, la tana di foglie del Riccio e la casa col tetto a guscio della Tartaruga, 3×3 tessere nell'angolo in alto, con le finestre che di sera si accendono. Sul sentiero e sulla casa
   non si mette niente: le cose che ci stavano si spostano lì vicino. Il paesaggio dipinto dietro è uno solo e copre tutto
   il mondo.
-- **I ponti.** Un ponte unisce due isole vicine (mai in diagonale: in tutto sono quattro). Si **costruisce** la prima volta
+- **I ponti.** Un ponte unisce due isole vicine (mai in diagonale: in tutto sono sette). Si **costruisce** la prima volta
   che apri il giardino dopo aver sbloccato un compagno, e mai durante un focus: la telecamera scivola sulle isole e i pezzi
   compaiono uno dopo l'altro (con *Riduci movimento* succede tutto di colpo). Un ponte si vede solo se le sue due isole
   sono aperte.
@@ -420,7 +420,7 @@ il compagno (`GardenWorld` e `GardenIslands`, in `GardenGrid.swift`).
   primo e Pianty per secondo, per esempio) la cerimonia mostra solo il regalo («Nuova isola»), e i ponti nascono quando
   arriva un compagno vicino. Chi aveva già più compagni sbloccati trova i ponti già costruiti e niente cerimonia.
 - **Le cose degli animali.** Le figurine sono **universali** (i 25 fiori e arredi: vanno su qualunque isola) o **di un
-  animale** (le ventidue «Per i compagni», tre per Pianty, quattro per gli altri e sette per il Riccio: stanno solo sulla sua isola). Se ne trascini una su un'altra
+  animale** (le ventinove «Per i compagni», tre per Pianty, quattro per Porcellino, Ciccio e Gattino, sette per il Riccio e sette per la Tartaruga: stanno solo sulla sua isola). Se ne trascini una su un'altra
   isola il bersaglio diventa rosso e l'app dice «La casa del gatto sta solo sull'isola di Gattino.». Un oggetto qualunque
   si può portare da un'isola all'altra; un compagno resta sulla sua. Nell'album ogni figurina dice «universale» o «solo
   Gattino», e la cassetta *Da mettere* mostra, su ogni isola, solo le cose che ci stanno.
@@ -609,8 +609,16 @@ Il Riccio, il quinto compagno, ha un disegno da fermo, 6 fotogrammi di camminata
 (seduto), 6 di sonno (sdraiato, con il respiro) e 5 di quando si arrotola a palla e si riapre (`popcornFrames`). Parla con le frasi di
 `assets/frasi_riccio.txt`. **Durante un focus** sta fermo e la schiena si riempie di cose d'autunno (una foglia, un fungo, una mela, una
 ghianda: `assets/garden/growth_riccio_<1..5>.png`, come la carota del porcellino), e a fine focus mangia. Se lo sollevi col mouse compaiono le mani con i
-guanti da giardinaggio (gli aculei!), e lui è spaventato. Si sblocca per ultimo (a 150 focus pieni), e
-per ora non ha ancora l'isola: arriverà con i suoi oggetti.
+guanti da giardinaggio (gli aculei!), e lui è spaventato. Si sblocca a 150 focus pieni. La sua isola ha la tana di foglie, sette cose
+d'autunno e due angoli (la tana e la dispensa).
+
+La Tartaruga, la sesta compagna, ha un disegno da ferma, 6 fotogrammi di camminata, 5 di quando mangia una fragola, 6 di sonno (assonnata,
+poi sdraiata) e 5 di quando si ritira nel guscio e rispunta (`popcornFrames`). Parla con le frasi di `assets/frasi_tartaruga.txt` («Piano piano si
+arriva»). **Durante un focus** cammina piano piano lungo un sentiero di sassi verso una bandierina, in tre posizioni (la partenza, a metà strada,
+arrivata: `assets/garden/growth_tartaruga_<1..3>.png`, composte da `tools/compose_tartaruga_growth.py`); all'ultima ha davanti la fragola, e a fine
+focus la mangia. Se la sollevi col mouse la tengono due mani per il guscio. Si sblocca per ultima (a 200 focus pieni). La sua isola ha la casa col
+tetto a guscio, sette cose (sasso al sole, cespo di lattuga, aiuola di fragole, bandierina del traguardo, lanterna di carta, laghetto e rifugio di paglia)
+e due angoli: il rifugio (ci dorme) e l'orto delle fragole (ci mangia); vicino al ponticello, nell'angolo dell'acqua, si ritira nel guscio.
 
 **Ciccio durante un focus** sta fermo e prende il posto del suo nido (`focusGrowthResources` in `Pet.swift`,
 le immagini `garden_ciccio_<1..5>.png`): parte dall'uovo e, con il tempo, passa al guscio
@@ -690,10 +698,10 @@ ambiente (pioggia, vento…) e viceversa. Il codice è in `MusicPlayer.swift` (r
 ## Frasi
 
 Le frasi di partenza sono in `assets/frasi_pianty.txt` (Pianty), `assets/frasi_porcellino.txt`
-(Porcellino), `assets/frasi_ciccio.txt` (Ciccio), `assets/frasi_gattino.txt` (Gattino) e `assets/frasi_riccio.txt` (Riccio), una per riga
+(Porcellino), `assets/frasi_ciccio.txt` (Ciccio), `assets/frasi_gattino.txt` (Gattino), `assets/frasi_riccio.txt` (Riccio) e `assets/frasi_tartaruga.txt` (Tartaruga), una per riga
 (le righe che iniziano con `#` sono ignorate). Per usare le tue senza ricompilare, scegli *Modifica le
 frasi…* dal menu: crea e apre `~/Library/Application Support/FocusFriends/frasi_pianty.txt` (o quello del porcellino,
-di Ciccio, del gattino o del riccio), che ha la precedenza sul file incluso nell'app. Le modifiche valgono dalla frase successiva.
+di Ciccio, del gattino, del riccio o della tartaruga), che ha la precedenza sul file incluso nell'app. Le modifiche valgono dalla frase successiva.
 Se esiste ancora la vecchia cartella `Application Support/Bonsy` (dai tempi in cui l'app si chiamava così), viene
 letta come seconda scelta. Anche le preferenze (personaggio, frequenza, timer personalizzati) vengono copiate
 dalla vecchia app al primo avvio (`Migration.swift`).
@@ -753,7 +761,7 @@ Sources/FocusFriends/
   Garden.swift          il giardino di chi usa l'app: figurine trovate, cosa c'è su ogni isola, compagni, ponti, angoli e ospiti (solo Foundation, con prove)
   GardenGrid.swift      le isole e il mondo: tessere, sentieri, case, ponti, terreno e collina (solo Foundation, con prove)
   GardenDrops.swift     il regalo di fine focus: rarità, probabilità, garanzie e un tiro uguale su Mac e Windows (solo Foundation, con prove)
-  GardenCatalog.swift   i 47 oggetti (25 universali e 22 di un animale), la rarità e il regalo di benvenuto (solo Foundation, con prove)
+  GardenCatalog.swift   i 54 oggetti (25 universali e 29 di un animale), la rarità e il regalo di benvenuto (solo Foundation, con prove)
   GardenCorners.swift   gli angoli: quali cose vicine fanno qualcosa insieme (solo Foundation, con prove)
   GardenCompanions.swift  cosa fanno i compagni agli angoli: pose, gusti e percorsi (solo Foundation, con prove)
   GardenVisitors.swift  gli ospiti: chi viene, a che ora e in che stagione, e cosa lo attira (solo Foundation, con prove)
@@ -792,11 +800,13 @@ assets/
   riccio/idle_original.png, walk_original.png, eat_original.png, sleep_original.png, roll_original.png, growth_original.png   le tavole del riccio
   riccio/picked_original.png, picked.png   il riccio sollevato dalle mani (tools/cutout_picked.py)
   riccio/frame1..23.png   fermo, 6 di camminata, 5 mangia, 6 dorme, 5 si arrotola, sulla stessa tela; garden/growth_riccio_1..5.png la schiena che si riempie (tools/cutout_riccio.py)
+  tartaruga/idle_original.png, walk_original.png, eat_original.png, sleep_original.png, shell_original.png, path_original.png   le tavole della tartaruga
+  tartaruga/frame1..23.png   ferma, 6 di camminata, 5 mangia, 6 dorme, 5 si ritira nel guscio (tools/cutout_tartaruga.py); picked.png sollevata; garden/growth_tartaruga_1..3.png il sentiero del focus (tools/compose_tartaruga_growth.py)
   giardino/*_original.png   i fogli degli oggetti del giardino (fiori, case dei compagni, arredi) e il prato
   giardino/<id>.png, prato.png   gli oggetti ritagliati, uno per file (tools/cutout_giardino.py), e il prato ingrandito
   giardino/casa_<isola>.png, ponte_*.png   le case delle isole e i pezzi dei ponti (tools/cutout_case.py, tools/cutout_ponte.py)
   bubble_original.png, bubble.png   fumetto e ritaglio (tools/cutout_bubble.py)
-  frasi_pianty.txt, frasi_porcellino.txt, frasi_ciccio.txt, frasi_gattino.txt, frasi_riccio.txt   frasi incluse nell'app
+  frasi_pianty.txt, frasi_porcellino.txt, frasi_ciccio.txt, frasi_gattino.txt, frasi_riccio.txt, frasi_tartaruga.txt   frasi incluse nell'app
   logo_original.png     il logo: un pomodoro-timer con l'anello che mostra il tempo
   AppIcon.png, AppIcon.icns   icona dell'app, generata da tools/make_icon.py (il logo nella forma delle icone di macOS);
                         la stessa immagine è in docs/images/logo.png, quella che mostra il README

@@ -50,9 +50,9 @@ const visitor = (id: string, name: string, feminine: boolean, items: string[], h
 export const GARDEN_VISITORS: readonly GardenVisitor[] = [
   visitor("pettirosso", "Il pettirosso", false, ["bagnetto", "casetta-uccelli"], [], ALL_SEASONS, ["morning", "day", "evening"], 50, 1),
   visitor("cinciallegra", "La cinciallegra", true, ["casetta-uccelli", "girasole"], [], ALL_SEASONS, ["morning", "day"], 46, 1),
-  visitor("coniglio", "Il coniglio", false, ["trifoglio", "aiuola"], [], NOT_WINTER, ["morning", "evening"], 62, 1),
+  visitor("coniglio", "Il coniglio", false, ["trifoglio", "aiuola", "lattuga"], [], NOT_WINTER, ["morning", "evening"], 62, 1),
   visitor("lumaca", "La lumaca", true, ["funghi", "felci", "mucchio-foglie"], [], ["spring", "autumn"], ["morning", "evening"], 32, 1),
-  visitor("rana", "La rana", true, ["bagnetto", "ponticello", "annaffiatoio"], [], ["spring", "summer"], ["evening"], 36, 1),
+  visitor("rana", "La rana", true, ["bagnetto", "ponticello", "annaffiatoio", "laghetto"], [], ["spring", "summer"], ["evening"], 36, 1),
   visitor("anatroccolo", "L'anatroccolo", false, ["ponticello", "bagnetto"], [], ["spring"], ["morning", "day"], 42, 1),
   visitor("lucertola", "La lucertola", true, ["panchina", "tunnel"], [], ["summer"], ["day"], 30, 1),
   visitor("tartaruga", "La tartaruga", true, ["sdraio", "picnic"], [], ["spring", "summer"], ["day"], 40, 1),

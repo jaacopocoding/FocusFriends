@@ -16,22 +16,26 @@ const focus = (n: number, seconds: number, completed = true): StudySession =>
   ({ id: `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`, start: 0, seconds, plannedMinutes: 50, completed });
 
 describe("Giardino: il catalogo", () => {
-  it("47 oggetti, numeri dalla posizione, nessun oggetto tolto rimasto", () => {
-    assert.equal(GARDEN_ITEMS.length, 47);
-    assert.equal(new Set(GARDEN_ITEMS.map((x) => x.id)).size, 47);
+  it("54 oggetti, numeri dalla posizione, nessun oggetto tolto rimasto", () => {
+    assert.equal(GARDEN_ITEMS.length, 54);
+    assert.equal(new Set(GARDEN_ITEMS.map((x) => x.id)).size, 54);
     assert.equal(itemNumber("margherite"), 1);
     assert.equal(itemNumber("tana-foglie"), 47);
+    assert.equal(itemNumber("sasso-sole"), 48);
+    assert.equal(itemNumber("rifugio-paglia"), 54);
     for (const id of RETIRED_ITEMS) assert.equal(itemWithId(id), undefined);
   });
-  it("rarità: 16 comuni, 25 rari, 6 leggendari", () => {
+  it("rarità: 19 comuni, 29 rari, 6 leggendari", () => {
     const count = (r: string) => GARDEN_ITEMS.filter((x) => rarityOf(x) === r).length;
-    assert.deepEqual([count("common"), count("rare"), count("legendary")], [16, 25, 6]);
+    assert.deepEqual([count("common"), count("rare"), count("legendary")], [19, 29, 6]);
   });
   it("gli articoli delle cose degli animali", () => {
     assert.equal(nameWithArticle(itemWithId("casetta-gatto")!), "la casa del gatto");
     assert.equal(nameWithArticle(itemWithId("annaffiatoio")!), "l'annaffiatoio");
     assert.equal(nameWithArticle(itemWithId("hotel-insetti")!), "l'hotel degli insetti");
     assert.equal(nameWithArticle(itemWithId("cesto-carote")!), "il cesto di carote");
+    assert.equal(nameWithArticle(itemWithId("bandiera-traguardo")!), "la bandierina del traguardo");
+    assert.equal(nameWithArticle(itemWithId("aiuola-fragole")!), "l'aiuola di fragole");
   });
   it("ogni cosa di un animale sta sulla sua isola, e ogni isola ne ha", () => {
     for (const x of GARDEN_ITEMS) if (x.island !== null) assert.ok(ISLANDS.includes(x.island), x.id);
@@ -50,8 +54,8 @@ describe("Giardino: i numeri a 32 bit", () => {
 });
 
 describe("Giardino: il mondo", () => {
-  it("cinque ponti, e ogni sentiero tocca i suoi approdi", () => {
-    assert.deepEqual(BRIDGES.map(bridgeId), ["pianty-porcellino", "pianty-ciccio", "porcellino-gattino", "ciccio-gattino", "gattino-riccio"]);
+  it("sette ponti, e ogni sentiero tocca i suoi approdi", () => {
+    assert.deepEqual(BRIDGES.map(bridgeId), ["pianty-porcellino", "pianty-ciccio", "porcellino-gattino", "porcellino-tartaruga", "ciccio-gattino", "gattino-riccio", "tartaruga-riccio"]);
     for (const island of ISLANDS) for (const size of [8, 9, 10]) {
       const path = pathTiles(island, size);
       assert.ok(path.length > 0);

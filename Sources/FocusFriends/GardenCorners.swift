@@ -46,6 +46,9 @@ enum GardenCorners {
         // Il Riccio, sulla sua isola: la tana e la dispensa d'autunno.
         GardenCorner(id: "tana", name: "La tana d'autunno", needs: [.oneOf(["tana-foglie"]), .oneOf(["mucchio-foglie"]), .oneOf(["tronco-cavo"])]),
         GardenCorner(id: "dispensa", name: "La dispensa d'autunno", needs: [.oneOf(["cassetta-mele"]), .oneOf(["carriola-ghiande"]), .oneOf(["zucca-lanterna"])]),
+        // La Tartaruga, sulla sua isola: il rifugio e l'orto delle fragole.
+        GardenCorner(id: "rifugio", name: "Il rifugio della tartaruga", needs: [.oneOf(["rifugio-paglia"]), .oneOf(["sasso-sole"]), .oneOf(["lanterna-carta"])]),
+        GardenCorner(id: "fragole", name: "L'orto delle fragole", needs: [.oneOf(["aiuola-fragole"]), .oneOf(["lattuga"]), .oneOf(["laghetto"])]),
     ]
 
     static func corner(withID id: String) -> GardenCorner? { all.first { $0.id == id } }

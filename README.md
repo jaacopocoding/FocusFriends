@@ -58,7 +58,7 @@ Scegli i minuti, scrivi cosa studi, premi inizio. Se vuoi, una pausa lunga ogni 
 
 ## E in più
 
-**Mentre studi, cresce anche lui.** Pianty da seme a pianta, l'uovo di Ciccio che si schiude, la carota del Porcellino, la schiena del Riccio che si riempie d'autunno.
+**Mentre studi, cresce anche lui.** Pianty da seme a pianta, l'uovo di Ciccio che si schiude, la carota del Porcellino, la schiena del Riccio che si riempie d'autunno, la Tartaruga che piano piano arriva alla sua bandierina.
 
 <p align="center">
   <img src="docs/images/crescita.png" width="720" alt="Gli stadi di crescita durante un focus">

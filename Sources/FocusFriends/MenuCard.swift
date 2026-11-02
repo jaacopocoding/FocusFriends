@@ -468,7 +468,7 @@ private final class MenuCardView: NSView {
         switch s.phase {
         case .focus?: return s.subject.map { "Focus · \($0)" } ?? "Focus"
         case .rest?: return s.isLongBreak ? "Pausa lunga" : "Pausa"
-        case nil: return s.isPetVisible ? "\(s.pet.name) è qui con te" : "\(s.pet.name) è nascosto"
+        case nil: return s.isPetVisible ? "\(s.pet.name) è qui con te" : "\(s.pet.name) è nascost\(s.pet.feminine ? "a" : "o")"
         }
     }
 

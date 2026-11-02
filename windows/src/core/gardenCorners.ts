@@ -39,6 +39,9 @@ export const GARDEN_CORNERS: readonly GardenCorner[] = [
   // Il Riccio, sulla sua isola
   corner("tana", "La tana d'autunno", one("tana-foglie"), one("mucchio-foglie"), one("tronco-cavo")),
   corner("dispensa", "La dispensa d'autunno", one("cassetta-mele"), one("carriola-ghiande"), one("zucca-lanterna")),
+  // La Tartaruga, sulla sua isola
+  corner("rifugio", "Il rifugio della tartaruga", one("rifugio-paglia"), one("sasso-sole"), one("lanterna-carta")),
+  corner("fragole", "L'orto delle fragole", one("aiuola-fragole"), one("lattuga"), one("laghetto")),
 ];
 
 export function cornerWithId(id: string): GardenCorner | undefined { return GARDEN_CORNERS.find((c) => c.id === id); }

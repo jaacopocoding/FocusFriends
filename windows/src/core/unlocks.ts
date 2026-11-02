@@ -24,10 +24,12 @@ export function evaluateUnlocks(profile: UnlockProfile, sessions: readonly Study
   return fresh;
 }
 
-/** «Hai sbloccato Porcellino! Lo trovi nel menu, tra i compagni.» */
+/** «Hai sbloccato Porcellino! Lo trovi nel menu, tra i compagni.» («La trovi» per la Tartaruga.) */
 export function unlockMessage(ids: readonly string[]): string {
-  const names = ids.map((id) => petInfo(id).name);
+  const pets = ids.map((id) => petInfo(id));
+  const names = pets.map((pet) => pet.name);
+  const feminine = pets.every((pet) => pet.feminine);
   return names.length === 1
-    ? `Hai sbloccato ${names[0]}! Lo trovi nel menu, tra i compagni.`
-    : `Hai sbloccato ${names.join(" e ")}! Li trovi nel menu, tra i compagni.`;
+    ? `Hai sbloccato ${names[0]}! ${feminine ? "La" : "Lo"} trovi nel menu, tra i compagni.`
+    : `Hai sbloccato ${names.join(" e ")}! ${feminine ? "Le" : "Li"} trovi nel menu, tra i compagni.`;
 }

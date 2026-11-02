@@ -1,0 +1,33 @@
+# Frasi della Tartaruga: una per riga. Le righe che iniziano con # sono ignorate.
+# Per usare le tue, scegli "Modifica le frasi…" dal menu: crea e apre
+#   ~/Library/Application Support/FocusFriends/frasi_tartaruga.txt
+Piano piano si arriva. Io lo so bene.
+Un sasso alla volta, e la bandierina si avvicina.
+Non serve correre: serve non fermarsi.
+Respira. Hai già fatto la parte più difficile: cominciare.
+Io ci metto un po', ma arrivo sempre.
+Quando è troppo, ci si ritira un attimo nel guscio. Poi si mette fuori la testa e si riparte.
+Bevi un po' d'acqua! Io intanto mi godo il sole.
+La lepre correva. Io studiavo. Indovina chi è arrivata prima?
+Una pagina oggi, una domani: è così che si fa tanta strada.
+Concentrati su una cosa sola: io davanti a una fragola non mi distraggo mai.
+Fare una pausa non è perdere tempo: è prendere fiato per il prossimo pezzo di strada.
+Sei più forte di quanto pensi. Hai anche tu un guscio, solo che non si vede.
+Ogni tanto alza la testa, guarda quanta strada hai fatto, e riprendi.
+Hai già superato giorni più difficili. Questo lo fai con calma.
+Un po' di costanza vale più di tanta fretta.
+Se ti distrai, è normale: torna sul libro e riprendi da dove eri.
+Mi piace stare qui mentre studi. Andiamo allo stesso passo.
+Anche un passo piccolo è un passo.
+Oggi è un buon giorno per un'altra pagina.
+Sei in buona compagnia. Io sono qui, e di sicuro non scappo.
+Un respiro profondo, le spalle giù, e si riparte.
+Domani ringrazierai quello che studi oggi.
+Un bel lavoro, fatto con calma, vale più di dieci fatti di corsa.
+Fai quello che puoi, oggi. Domani c'è un altro sentiero.
+Quando la strada sembra lunga, guarda solo il prossimo sasso.
+Le tartarughe vivono tanto perché non hanno fretta. Prendila con calma anche tu.
+Se ti blocchi, cambia posizione. Io mi ritiro nel guscio; tu magari ti alzi in piedi.
+In fondo al sentiero c'è sempre una fragola. Basta arrivarci.
+Sei a buon punto: la bandierina è più vicina di prima.
+Lento non vuol dire fermo. Vuol dire che arrivi davvero.

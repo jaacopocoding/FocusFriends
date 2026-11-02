@@ -42,6 +42,8 @@ export interface PetData {
   focusGrowthImages: string[];
   focusGrowthFeetFraction: number;
   eatsWhenFocusCompletes: boolean;
+  /** Il nome è femminile («la tartaruga»): i testi si accordano («è nascosta», «La trovi nel menu»). */
+  feminine: boolean;
   /** Il disegno mostrato mentre lo si solleva col mouse. */
   picked: { image: string; size: Size; grab: { x: number; y: number } } | null;
   /** Per chi cammina e cresce insieme (Pianty): quanti fotogrammi ha ogni stadio. */

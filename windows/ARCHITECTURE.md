@@ -25,7 +25,7 @@
 Same product as the Mac app: a desktop companion (one of five characters) that walks on the desktop, speaks, and keeps a
 Pomodoro-style timer ("Pomofocus") with a notebook-like card, background sounds, statistics, companion unlocking and (since 1.1) a to-do
 list with optional due days. Study
-sessions are stored in the same JSON files as on the Mac (`../FORMATI.md`). Since 1.3 the garden: figurines found at the end of focuses, placed on five
+sessions are stored in the same JSON files as on the Mac (`../FORMATI.md`). Since 1.3 the garden: figurines found at the end of focuses, placed on six
 islands seen at an angle, and collected in an album (§4.19). All data stays on the machine; the app makes no network requests (`connect-src ff:` in the page's CSP, no
 HTTP client in the code **[inferred]**).
 

@@ -164,8 +164,9 @@ enum GardenLayout {
     }
 
     /// Dove stanno le cose della dotazione quando si comincia (sono sempre le stesse): fuori dal sentiero e dalla casa di ogni isola, a tutte le grandezze (vedi `GardenPaths` e `GardenLandmarks`).
+    /// I mughetti stavano in (2, 7), dove ora passa il sentiero della Tartaruga: per chi comincia adesso stanno in (6, 6) (i giardini già fatti non cambiano).
     static let starterOrigins: [String: GardenTile] = [
-        "margherite": GardenTile(col: 7, row: 2), "trifoglio": GardenTile(col: 0, row: 7), "mughetti": GardenTile(col: 2, row: 7),
+        "margherite": GardenTile(col: 7, row: 2), "trifoglio": GardenTile(col: 0, row: 7), "mughetti": GardenTile(col: 6, row: 6),
     ]
 }
 
@@ -448,7 +449,7 @@ enum GardenHill {
 /// animale vivono solo sulla sua isola, e gli oggetti di un animale (`GardenItem.island`) si mettono solo sulla sua.
 enum GardenIslands {
     /// Nell'ordine dei compagni (`Pet.all`).
-    static let all = ["pianty", "porcellino", "ciccio", "gattino", "riccio"]
+    static let all = ["pianty", "porcellino", "ciccio", "gattino", "riccio", "tartaruga"]
     /// L'isola di partenza finché non si sa chi si è scelto (e per i giardini delle versioni precedenti, finché `Garden.adoptHome` non dice quale).
     static let fallbackHome = "pianty"
 
@@ -638,7 +639,7 @@ enum GardenLandmarks {
     static let side = 3
 
     /// Le isole che hanno la casa disegnata (`assets/giardino/casa_<isola>.png`, da `tools/cutout_case.py`).
-    static let shipped: Set<String> = ["pianty", "porcellino", "ciccio", "gattino", "riccio"]
+    static let shipped: Set<String> = ["pianty", "porcellino", "ciccio", "gattino", "riccio", "tartaruga"]
     /// Quelle che ci sono adesso (le prove la svuotano per provare il resto del giardino senza case).
     static var built: Set<String> = shipped
 
@@ -665,6 +666,9 @@ enum GardenLandmarks {
         // le due finestre tonde (a sinistra sul frontone, a destra sul muro); lo zoccolo è più alto che largo (0,65 invece di 0,6): la casa si schiaccia un po' di più
         "riccio": Art(centerX: 479.5, centerY: 465, halfWidth: 476.5, halfHeight: 312,
                       lights: [(0.41, 0.33, 0.55), (0.66, 0.54, 0.60)]),
+        // le tre finestre tonde e quella della porta; lo zoccolo è spesso (la casa sta più in alto sul rombo)
+        "tartaruga": Art(centerX: 443.5, centerY: 330, halfWidth: 440.5, halfHeight: 260,
+                         lights: [(0.56, 0.54, 0.60), (0.28, 0.39, 0.40), (0.75, 0.42, 0.45), (0.36, 0.49, 0.30)]),
     ]
 
     /// Le tessere della casa di un'isola (nessuna se non ce l'ha ancora).
@@ -692,7 +696,7 @@ struct GardenBridge: Equatable {
     func touches(_ island: String) -> Bool { first == island || second == island }
 }
 
-/// Il mondo: le isole in una griglia di celle (due righe, e tre colonne dove ce n'è una quinta), sempre nelle stesse posizioni (come le tessere di un'isola: la seconda cella lungo le colonne sta a
+/// Il mondo: le isole in una griglia di celle (tre colonne per due righe), sempre nelle stesse posizioni (come le tessere di un'isola: la seconda cella lungo le colonne sta a
 /// destra e in basso, la seconda lungo le righe a sinistra e in basso), con un ponte fra ogni coppia di celle vicine. Ogni cella è larga quanto l'isola più grande più lo
 /// spazio per il ponte; un'isola sta all'angolo in alto della sua cella e, se è più piccola, si allarga verso il davanti: i ponti toccano sempre la sesta fila (o colonna)
 /// di tessere (`GardenPaths.landingIndex`), quindi un ponte è lungo di più fra isole piccole ma non si sposta. Le misure sono in tessere del mondo.
@@ -712,12 +716,12 @@ enum GardenWorld {
         return ((across.min() ?? 0) - GardenIsland.maxSize, (across.max() ?? 0) + GardenIsland.maxSize, (down.max() ?? 0) + GardenIsland.maxSize)
     }
 
-    /// Dove sta ogni isola: pianty in alto, porcellino a destra, ciccio a sinistra, gattino in basso, e riccio a destra di gattino (sotto porcellino: la sesta cella, in alto
-    /// a destra di lui, è libera e aspetta un altro compagno).
+    /// Dove sta ogni isola: pianty in alto, porcellino a destra, ciccio a sinistra, gattino in basso, riccio a destra di gattino (sotto porcellino) e tartaruga nella sesta
+    /// cella, a destra di porcellino e sopra il riccio: la griglia di 3×2 è piena.
     private static let slots: [String: GardenTile] = [
         "pianty": GardenTile(col: 0, row: 0), "porcellino": GardenTile(col: 1, row: 0),
         "ciccio": GardenTile(col: 0, row: 1), "gattino": GardenTile(col: 1, row: 1),
-        "riccio": GardenTile(col: 2, row: 1),
+        "riccio": GardenTile(col: 2, row: 1), "tartaruga": GardenTile(col: 2, row: 0),
     ]
 
     static func slot(of island: String) -> GardenTile? { slots[island] }

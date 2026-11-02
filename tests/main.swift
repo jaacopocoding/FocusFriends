@@ -829,7 +829,7 @@ check(GardenPoints.finishLine(beforeMinutes: 10, afterMinutes: 30, factor: 1.5).
 section("Giardino: catalogo e scena")
 let allItems = GardenCatalog.items
 check(Set(allItems.map { $0.id }).count == allItems.count, "id tutti diversi")
-check(allItems.count == 47 && GardenCategory.allCases.allSatisfy { !GardenCatalog.items(in: $0).isEmpty }, "47 oggetti, ogni scheda ne ha")
+check(allItems.count == 54 && GardenCategory.allCases.allSatisfy { !GardenCatalog.items(in: $0).isEmpty }, "54 oggetti, ogni scheda ne ha")
 check(allItems.allSatisfy { ($0.height > 0 || $0.axial) && $0.price >= 0 && !$0.name.isEmpty }, "altezze (tranne quelle sul lato), prezzi e nomi sensati")
 check(allItems.filter { $0.price == 0 }.count == 3, "tre oggetti ci sono fin dall'inizio")
 check(GardenCatalog.item(withID: "tulipani")?.resource == "giardino_tulipani" && GardenCatalog.item(withID: "no") == nil, "le risorse")
@@ -905,25 +905,26 @@ check(starting.placements.count == 3 && Set(starting.placements.map { $0.tile })
 
 // le pagine dell'album: sei figurine per pagina, una sezione per volta
 let albumSpreads = GardenAlbum.spreads()
-check(albumSpreads.count == 5 && albumSpreads[0].left.items.count == 6 && albumSpreads[0].right!.items.count == 4 && albumSpreads[0].left.category == .flowers
-      && [1, 3].allSatisfy { albumSpreads[$0].right != nil && albumSpreads[$0].left.items.count == 6 && albumSpreads[$0].right!.items.count == 6 }
-      && albumSpreads[2].left.items.count == 6 && albumSpreads[2].right?.items.count == 4 && albumSpreads[2].left.category == .companions
-      && albumSpreads[4].left.items.count == 3 && albumSpreads[4].right == nil && albumSpreads[4].left.category == .furniture,
-      "47 oggetti: i fiori a doppia pagina da dieci, i compagni (ventidue) e gli arredi da dodici; poi la fine dei compagni (6 e 4) e le tre luci degli arredi, a pagina di destra vuota")
-check(albumSpreads.map { $0.left.category } == [.flowers, .companions, .companions, .furniture, .furniture]
+check(albumSpreads.count == 6 && albumSpreads[0].left.items.count == 6 && albumSpreads[0].right!.items.count == 4 && albumSpreads[0].left.category == .flowers
+      && albumSpreads[1].left.items.count == 6 && albumSpreads[1].right?.items.count == 6 && albumSpreads[1].left.category == .companions
+      && albumSpreads[2].left.items.count == 6 && albumSpreads[2].right?.items.count == 6 && albumSpreads[2].left.category == .companions
+      && albumSpreads[3].left.items.count == 5 && albumSpreads[3].right == nil && albumSpreads[3].left.category == .companions
+      && albumSpreads[5].left.items.count == 3 && albumSpreads[5].right == nil && albumSpreads[5].left.category == .furniture,
+      "54 oggetti: i fiori a doppia pagina da dieci, i compagni (ventinove: due doppie pagine piene e una pagina da cinque) e gli arredi da dodici più le tre luci")
+check(albumSpreads.map { $0.left.category } == [.flowers, .companions, .companions, .companions, .furniture, .furniture]
       && albumSpreads.flatMap { $0.left.items + ($0.right?.items ?? []) }.map { $0.id } == GardenCategory.allCases.flatMap { GardenCatalog.items(in: $0) }.map { $0.id },
       "nell'ordine del catalogo dentro ogni scheda (i numeri non cambiano)")
 let albumExtra = GardenCatalog.items + (0..<10).map { GardenItem(id: "extra\($0)", name: "Extra", category: .furniture, height: 50, price: 3) }
 let albumLonger = GardenAlbum.spreads(catalog: albumExtra)
-check(albumLonger.count == 6 && albumLonger[5].left.items.count == 1 && albumLonger[5].right == nil, "una sezione più lunga: una doppia pagina in più, con la pagina di destra vuota")
+check(albumLonger.count == 7 && albumLonger[6].left.items.count == 1 && albumLonger[6].right == nil, "una sezione più lunga: una doppia pagina in più, con la pagina di destra vuota")
 check(GardenCatalog.number(of: "margherite") == 1 && GardenCatalog.number(of: "arco-rose") == 33 && GardenCatalog.number(of: "braciere") == 36 && GardenCatalog.number(of: "candela-cesto") == 40 && GardenCatalog.number(of: "no") == nil, "i numeri delle figurine")
 let firstSpreadItems = albumSpreads[0].left.items + albumSpreads[0].right!.items
-check(GardenAlbum.completedSpreads(isFound: { _ in false }) == 0 && GardenAlbum.completedSpreads(isFound: { _ in true }) == 5
+check(GardenAlbum.completedSpreads(isFound: { _ in false }) == 0 && GardenAlbum.completedSpreads(isFound: { _ in true }) == 6
       && GardenAlbum.completedSpreads(isFound: { id in firstSpreadItems.contains { $0.id == id } }) == 1
-      && GardenAlbum.completedSpreads(isFound: { id in id != firstSpreadItems[0].id }) == 4
-      && GardenAlbum.completedSpreads(isFound: { id in !["alberello-lucine", "lanterna-ceppo", "braciere"].contains(id) }) == 4
-      && GardenAlbum.completedSpreads(isFound: { id in !["lanterna-voliera", "lampada-fienile", "candela-cesto"].contains(id) }) == 4,
-      "le doppie pagine complete (senza le luci degli arredi, o senza le ultime tre cose dei compagni, chi aveva tutte le altre ne ha ancora quattro)")
+      && GardenAlbum.completedSpreads(isFound: { id in id != firstSpreadItems[0].id }) == 5
+      && GardenAlbum.completedSpreads(isFound: { id in !["alberello-lucine", "lanterna-ceppo", "braciere"].contains(id) }) == 5
+      && GardenAlbum.completedSpreads(isFound: { id in !["lanterna-voliera", "lampada-fienile", "candela-cesto"].contains(id) }) == 5,
+      "le doppie pagine complete (senza le luci degli arredi, o senza tre luci degli animali, chi aveva tutte le altre ne ha ancora cinque)")
 
 // ---------------------------------------------------------------- giardino: l'album e le copie
 section("Giardino: l'album e le cose trovate")
@@ -1223,7 +1224,7 @@ check(zip(sway1, sway1.dropFirst()).allSatisfy { abs($0 - $1) < 0.35 }, "e cambi
 check(GardenCatalog.item(withID: "lavanda")?.swayStrength == 1 && GardenCatalog.item(withID: "bandierine")?.swayStrength == 1.8
       && GardenCatalog.item(withID: "funghi")?.swayStrength == 0 && GardenCatalog.item(withID: "panchina")?.swayStrength == 0
       && GardenCatalog.items.filter { $0.swayStrength > 0 }.count == 11, "ondeggiano i fiori (non i funghi), le bandierine e il carillon")
-check(GardenCatalog.items.filter { $0.waterSpot != nil }.map { $0.id } == ["bagnetto"], "l'acqua sta nel bagnetto")
+check(GardenCatalog.items.filter { $0.waterSpot != nil }.map { $0.id } == ["bagnetto", "laghetto"], "l'acqua sta nel bagnetto e nel laghetto")
 let water = GardenCatalog.item(withID: "bagnetto")!.waterSpot!
 check(water.u - water.halfWidth > 0 && water.u + water.halfWidth < 1 && water.v - water.halfHeight > 0 && water.v + water.halfHeight < 1, "l'ovale dell'acqua sta dentro il disegno")
 let sparkles = (0..<GardenSky.sparkleCount).flatMap { i in (0..<300).map { GardenSky.sparkle(index: i, time: Double($0) * 0.31) } }
@@ -1370,8 +1371,8 @@ func cornerNeedExists(_ need: GardenCorner.Need) -> Bool {
     case .different(let category, let count): return GardenCatalog.items.filter { $0.category == category }.count >= count
     }
 }
-check(GardenCorners.all.count == 20 && Set(GardenCorners.all.map { $0.id }).count == 20 && GardenCorners.all.allSatisfy { !$0.name.isEmpty && !$0.needs.isEmpty },
-      "venti angoli, ognuno con il suo nome")
+check(GardenCorners.all.count == 22 && Set(GardenCorners.all.map { $0.id }).count == 22 && GardenCorners.all.allSatisfy { !$0.name.isEmpty && !$0.needs.isEmpty },
+      "ventidue angoli, ognuno con il suo nome")
 check(GardenCorners.all.allSatisfy { $0.needs.allSatisfy(cornerNeedExists) }, "ogni angolo chiede oggetti che ci sono nel catalogo")
 check(GardenCorners.corner(withID: "te")?.name == "L'angolo del tè" && GardenCorners.corner(withID: "boh") == nil, "si trova per nome")
 // la distanza: contano i bordi dell'ingombro
@@ -1451,7 +1452,7 @@ wipedGarden.reset()
 check(wipedGarden.corners.isEmpty && wipedGarden.formedCorners.isEmpty && wipedGarden.takeNewCorners().isEmpty, "«Cancella tutto» toglie anche gli angoli")
 
 // i compagni negli angoli
-let petIDs = ["pianty", "porcellino", "ciccio", "gattino", "riccio"]
+let petIDs = ["pianty", "porcellino", "ciccio", "gattino", "riccio", "tartaruga"]
 func affinityIsSound(_ affinity: GardenAffinity) -> Bool {
     guard petIDs.contains(affinity.pet), let corner = GardenCorners.corner(withID: affinity.corner) else { return false }
     var itemInCorner = false
@@ -1619,9 +1620,12 @@ check(GardenHill.widthRatio > 1.4 && GardenHill.widthRatio < 2.1 && GardenHill.b
 
 // le isole: una per compagno
 check(GardenIslands.all == petIDs && GardenIslands.all.contains(GardenIslands.fallbackHome) && GardenIslands.isKnown("gattino") && !GardenIslands.isKnown("boh"),
-      "cinque isole, una per compagno, nell'ordine dei compagni")
-check(GardenCatalog.items.count == 47 && GardenCatalog.universalItems.count == 25
-      && GardenIslands.all.allSatisfy { GardenCatalog.items(forIsland: $0).count == ($0 == "pianty" ? 3 : $0 == "riccio" ? 7 : 4) }, "47 oggetti: 25 universali, 3 per Pianty, 4 per ogni altro animale e 7 per il Riccio")
+      "sei isole, una per compagno, nell'ordine dei compagni")
+check(GardenCatalog.items.count == 54 && GardenCatalog.universalItems.count == 25
+      && GardenIslands.all.allSatisfy { GardenCatalog.items(forIsland: $0).count == ($0 == "pianty" ? 3 : ["riccio", "tartaruga"].contains($0) ? 7 : 4) },
+      "54 oggetti: 25 universali, 3 per Pianty, 4 per Porcellino, Ciccio e Gattino, 7 per il Riccio e 7 per la Tartaruga")
+check(GardenCatalog.items(forIsland: "tartaruga").map { $0.id } == ["sasso-sole", "lattuga", "aiuola-fragole", "bandiera-traguardo", "lanterna-carta", "laghetto", "rifugio-paglia"]
+      && GardenCatalog.number(of: "sasso-sole") == 48 && GardenCatalog.number(of: "rifugio-paglia") == 54, "le cose della Tartaruga sono le figurine 48-54")
 check(GardenCatalog.items(forIsland: "riccio").map { $0.id } == ["mucchio-foglie", "cassetta-mele", "tronco-cavo", "zucca-lanterna", "hotel-insetti", "carriola-ghiande", "tana-foglie"]
       && GardenCatalog.welcomeGift(forIsland: "riccio", has: { _ in false }) == "mucchio-foglie" && GardenCatalog.number(of: "mucchio-foglie") == 41 && GardenCatalog.number(of: "tana-foglie") == 47,
       "le sette cose del Riccio, in fondo al catalogo (figurine da 41 a 47)")
@@ -1750,7 +1754,7 @@ check(pathsOK, "il sentiero: tessere diverse fra loro, dentro l'isola, sempre le
 check(pathsConnected, "il sentiero è tutto d'un pezzo, per ogni isola e grandezza")
 check(pathsSized, "il sentiero è largo: da 6 a 40 tessere")
 check(pathsLanded, "il sentiero passa da tutte le tessere dove arrivano i ponti")
-check(pathShapes.count == 5, "ogni isola ha un sentiero diverso (\(pathShapes.count) forme)")
+check(pathShapes.count == 6, "ogni isola ha un sentiero diverso (\(pathShapes.count) forme)")
 var pathsGrow = true
 for island in GardenIslands.all {
     let big = Set(GardenPaths.tiles(island: island, size: 10))
@@ -1764,9 +1768,9 @@ check(landA.map { $0.face } == [.colEnd, .rowEnd] && landA.map { $0.tile } == [G
       && landD.map { $0.face } == [.rowStart, .colStart, .colEnd] && landD.map { $0.tile } == [GardenTile(col: 5, row: 0), GardenTile(col: 0, row: 5), GardenTile(col: 7, row: 5)],
       "gli approdi: sui lati dove arrivano i ponti, sulla sesta fila (Gattino ne ha tre, con il ponte verso il Riccio)")
 let landRiccio = GardenPaths.landings(island: "riccio", size: 10)
-check(landRiccio.map { $0.face } == [.colStart] && landRiccio.map { $0.tile } == [GardenTile(col: 0, row: 5)]
+check(landRiccio.map { $0.face } == [.colStart, .rowStart] && landRiccio.map { $0.tile } == [GardenTile(col: 0, row: 5), GardenTile(col: 5, row: 0)]
       && GardenPaths.contains(GardenTile(col: 0, row: 5), island: "riccio", size: 10) && GardenPaths.contains(GardenTile(col: 5, row: 0), island: "riccio", size: 10),
-      "il Riccio ha un ponte solo, e il suo sentiero arriva anche sul lato vicino, dove ne arriverà un altro")
+      "il Riccio ora ha due ponti, e il secondo arriva proprio dove il suo sentiero lo aspettava (il sentiero non cambia)")
 let blockedPath = GardenPaths.tiles(island: "porcellino", size: 10)[0]
 check(!GardenLayout.canPlace(GardenFootprint(cols: 1, rows: 1), at: blockedPath, size: 10, occupied: [], island: "porcellino")
       && (GardenLayout.canPlace(GardenFootprint(cols: 1, rows: 1), at: blockedPath, size: 10, occupied: []) || GardenIsland.isPath(blockedPath)), "sul sentiero dell'isola non si mette niente")
@@ -1806,19 +1810,19 @@ GardenLandmarks.built = []
 
 // il mondo: cinque isole in una griglia di 3×2 (una cella libera), cinque ponti
 let worldSlots = GardenIslands.all.compactMap { GardenWorld.slot(of: $0) }
-check(worldSlots.count == 5 && Set(worldSlots).count == 5 && worldSlots.allSatisfy { (0...2).contains($0.col) && (0...1).contains($0.row) } && GardenWorld.slot(of: "boh") == nil,
+check(worldSlots.count == 6 && Set(worldSlots).count == 6 && worldSlots.allSatisfy { (0...2).contains($0.col) && (0...1).contains($0.row) } && GardenWorld.slot(of: "boh") == nil,
       "ogni isola ha la sua cella, tutte diverse")
 check(GardenWorld.slot(of: "pianty") == GardenTile(col: 0, row: 0) && GardenWorld.slot(of: "porcellino") == GardenTile(col: 1, row: 0)
       && GardenWorld.slot(of: "ciccio") == GardenTile(col: 0, row: 1) && GardenWorld.slot(of: "gattino") == GardenTile(col: 1, row: 1), "le isole stanno sempre nelle stesse posizioni")
-check(GardenWorld.cell == 14 && GardenWorld.extent == 38 && GardenWorld.slot(of: "riccio") == GardenTile(col: 2, row: 1),
-      "il mondo è un quadrato di 38 tessere (due celle da 14 più un'isola), e il Riccio sta a destra di Gattino")
-check(GardenWorld.reach.left == -24 && GardenWorld.reach.right == 24 && GardenWorld.reach.depth == 52,
-      "sullo schermo il mondo arriva a 24 tessere di qua e di là (come con quattro isole) e scende di più: un'isola in più sotto Porcellino")
+check(GardenWorld.cell == 14 && GardenWorld.extent == 38 && GardenWorld.slot(of: "riccio") == GardenTile(col: 2, row: 1) && GardenWorld.slot(of: "tartaruga") == GardenTile(col: 2, row: 0),
+      "il mondo è un quadrato di 38 tessere (due celle da 14 più un'isola), il Riccio sta a destra di Gattino e la Tartaruga a destra di Porcellino")
+check(GardenWorld.reach.left == -24 && GardenWorld.reach.right == 38 && GardenWorld.reach.depth == 52,
+      "sullo schermo il mondo arriva a 24 tessere a sinistra e 38 a destra (la Tartaruga sporge a destra di Porcellino), e scende come con il Riccio")
 let bigCorner = GardenWorld.corner(of: "porcellino", size: 10), smallCorner = GardenWorld.corner(of: "porcellino", size: 8)
 check(bigCorner?.col == 14 && bigCorner?.row == 0 && smallCorner?.col == 14 && smallCorner?.row == 0 && GardenWorld.corner(of: "boh", size: 8) == nil,
       "un'isola sta all'angolo della sua cella, qualunque sia la sua grandezza: allargandosi non si sposta")
-check(GardenWorld.bridges.count == 5 && Set(GardenWorld.bridges.map { $0.first + ">" + $0.second }).count == 5
-      && GardenWorld.bridges.filter { $0.alongColumns }.count == 3 && GardenWorld.bridges.filter { !$0.alongColumns }.count == 2, "cinque ponti: tre lungo le colonne e due lungo le righe")
+check(GardenWorld.bridges.count == 7 && Set(GardenWorld.bridges.map { $0.first + ">" + $0.second }).count == 7
+      && GardenWorld.bridges.filter { $0.alongColumns }.count == 4 && GardenWorld.bridges.filter { !$0.alongColumns }.count == 3, "sette ponti: quattro lungo le colonne e tre lungo le righe")
 check(GardenWorld.bridges.contains(GardenBridge(first: "pianty", second: "porcellino", alongColumns: true))
       && GardenWorld.bridges.contains(GardenBridge(first: "pianty", second: "ciccio", alongColumns: false))
       && GardenWorld.bridges.contains(GardenBridge(first: "porcellino", second: "gattino", alongColumns: false))
@@ -1864,18 +1868,18 @@ check(starsOK, "le stelline escono dal centro, si allontanano e svaniscono")
 // ---------------------------------------------------------------- giardino: ponti e benvenuti
 section("Giardino: ponti e benvenuti")
 UserDefaults.standard.removeObject(forKey: Profile.developerKey)
-check(GardenWorld.bridges.map(\.id) == ["pianty-porcellino", "pianty-ciccio", "porcellino-gattino", "ciccio-gattino", "gattino-riccio"]
-      && GardenWorld.bridges.allSatisfy { $0.touches($0.first) && $0.touches($0.second) && !$0.touches("gatto") }, "i cinque ponti hanno un nome, dai due capi")
+check(GardenWorld.bridges.map(\.id) == ["pianty-porcellino", "pianty-ciccio", "porcellino-gattino", "porcellino-tartaruga", "ciccio-gattino", "gattino-riccio", "tartaruga-riccio"]
+      && GardenWorld.bridges.allSatisfy { $0.touches($0.first) && $0.touches($0.second) && !$0.touches("gatto") }, "i sette ponti hanno un nome, dai due capi")
 // quali ponti si possono costruire
 check(GardenWorld.pending(open: ["ciccio"], built: []).isEmpty, "un compagno solo: nessun ponte")
 check(GardenWorld.pending(open: ["ciccio", "pianty"], built: []).map(\.id) == ["pianty-ciccio"], "due isole vicine: un ponte")
 check(GardenWorld.pending(open: ["pianty", "gattino"], built: []).isEmpty, "due isole in diagonale: nessun ponte")
-check(GardenWorld.pending(open: Set(GardenIslands.all), built: ["pianty-ciccio"]).map(\.id) == ["pianty-porcellino", "porcellino-gattino", "ciccio-gattino", "gattino-riccio"], "quello già costruito non c'è più")
+check(GardenWorld.pending(open: Set(GardenIslands.all), built: ["pianty-ciccio"]).map(\.id) == ["pianty-porcellino", "porcellino-gattino", "porcellino-tartaruga", "ciccio-gattino", "gattino-riccio", "tartaruga-riccio"], "quello già costruito non c'è più")
 // chi si accoglie: i compagni aperti non ancora accolti, tranne la casa, con o senza ponte
 check(GardenWorld.newcomers(open: ["ciccio", "pianty"], welcomed: ["ciccio"], home: "ciccio") == ["pianty"], "il secondo compagno: il regalo va alla sua isola, non a quella di casa")
 check(GardenWorld.newcomers(open: ["ciccio"], welcomed: [], home: "ciccio").isEmpty && GardenWorld.newcomers(open: ["ciccio", "pianty"], welcomed: ["ciccio", "pianty"], home: "ciccio").isEmpty,
       "la casa non riceve un regalo, e un compagno già accolto non lo riceve due volte")
-check(GardenWorld.newcomers(open: Set(GardenIslands.all), welcomed: [], home: "pianty") == ["porcellino", "ciccio", "gattino", "riccio"], "tutti insieme: uno per ognuno, nell'ordine dei compagni")
+check(GardenWorld.newcomers(open: Set(GardenIslands.all), welcomed: [], home: "pianty") == ["porcellino", "ciccio", "gattino", "riccio", "tartaruga"], "tutti insieme: uno per ognuno, nell'ordine dei compagni")
 check(GardenWorld.newcomers(open: ["gattino", "pianty"], welcomed: ["gattino"], home: "gattino") == ["pianty"] && GardenWorld.pending(open: ["gattino", "pianty"], built: []).isEmpty,
       "un compagno in diagonale si accoglie anche se non nasce nessun ponte")
 // l'oggetto del regalo
@@ -1940,8 +1944,9 @@ check(bridgeTwoGarden.bridges == ["pianty-ciccio", "ciccio-gattino"] && bridgeTw
       "chi ha già più compagni: i ponti fra le isole aperte sono già costruiti e i compagni già accolti")
 let bridgeTwoCopies = bridgeTwoGarden.foundCount
 let bridgeTwo = arrive(bridgeTwoGarden, open: Set(GardenIslands.all))
-check(bridgeTwo.bridges.count == 3 && bridgeTwo.welcomes.map { $0.island } == ["porcellino", "riccio"] && bridgeTwo.welcomes.first?.item == "cesto-carote" && bridgeTwo.welcomes.last?.item == "mucchio-foglie"
-      && bridgeTwoGarden.bridges.count == 5 && bridgeTwoGarden.foundCount == bridgeTwoCopies + 2, "tre ponti insieme, un regalo per ognuno dei due compagni nuovi")
+check(bridgeTwo.bridges.count == 5 && bridgeTwo.welcomes.map { $0.island } == ["porcellino", "riccio", "tartaruga"] && bridgeTwo.welcomes.first?.item == "cesto-carote"
+      && bridgeTwo.welcomes.last?.item == "sasso-sole" && bridgeTwoGarden.bridges.count == 7 && bridgeTwoGarden.foundCount == bridgeTwoCopies + 3,
+      "cinque ponti insieme, un regalo per ognuno dei tre compagni nuovi")
 // chi li ha già tutti e tre: nessun regalo (una seconda copia non servirebbe), ma l'isola è accolta
 var bridgeOwnDrops = GardenDropState.starting()
 for id in ["annaffiatoio", "aiuola", "barattolo-lucciole"] { bridgeOwnDrops.found[id] = 1 }
@@ -2440,8 +2445,8 @@ func gdSession(_ minutes: Int, completed: Bool = true, day: Int = 5) -> StudySes
 }
 check(!GardenDrops.isEligible(gdSession(19)) && GardenDrops.isEligible(gdSession(20)) && !GardenDrops.isEligible(gdSession(50, completed: false)),
       "tira solo un focus completato con almeno 20 minuti: un interrotto non dà niente")
-check(GardenCatalog.items.filter { $0.rarity == .common }.count == 16 && GardenCatalog.items.filter { $0.rarity == .rare }.count == 25
-      && GardenCatalog.items.filter { $0.rarity == .legendary }.count == 6, "47 oggetti: 16 comuni, 25 rari, 6 leggendari (dal vecchio prezzo)")
+check(GardenCatalog.items.filter { $0.rarity == .common }.count == 19 && GardenCatalog.items.filter { $0.rarity == .rare }.count == 29
+      && GardenCatalog.items.filter { $0.rarity == .legendary }.count == 6, "54 oggetti: 19 comuni, 29 rari, 6 leggendari (dal vecchio prezzo)")
 let gdStart = GardenDropState.starting()
 check(gdStart.found.count == 3 && gdStart.found["margherite"] == 1 && gdStart.studyBank == 0, "l'album parte con la dotazione (3 oggetti) e la riserva di studio vuota")
 
@@ -2569,12 +2574,14 @@ section("Giardino: le cose degli animali sulle loro isole")
 UserDefaults.standard.removeObject(forKey: Profile.developerKey)
 // le frasi: il nome con l'articolo, il segno per l'album, la riga del trascinamento
 let animalItems = GardenCatalog.items.filter { $0.island != nil }
-check(animalItems.count == 22 && GardenCatalog.universalItems.count == 25, "ventidue cose degli animali e venticinque universali")
+check(animalItems.count == 29 && GardenCatalog.universalItems.count == 25, "ventinove cose degli animali e venticinque universali")
 check(animalItems.map { $0.nameWithArticle } == ["il cesto di carote", "l'annaffiatoio", "il cesto con cuscino", "il tunnel con fieno", "l'altalena uccelli",
                                                   "il bagnetto uccelli", "l'aiuola rialzata", "il tiragraffi", "la casa per uccelli", "la casa del gatto", "la casa porcellino",
                                                   "il barattolo di lucciole", "la lanterna per la voliera", "la lampada da fienile", "la candela nel cesto",
-                                                  "il mucchio di foglie", "la cassetta di mele", "il tronco cavo", "la zucca con candela", "l'hotel degli insetti", "la carriola di ghiande", "la tana di foglie"],
-      "il nome con l'articolo, per tutte e ventidue")
+                                                  "il mucchio di foglie", "la cassetta di mele", "il tronco cavo", "la zucca con candela", "l'hotel degli insetti", "la carriola di ghiande", "la tana di foglie",
+                                                  "il sasso al sole", "il cespo di lattuga", "l'aiuola di fragole", "la bandierina del traguardo", "la lanterna di carta", "il laghetto",
+                                                  "il rifugio di paglia"],
+      "il nome con l'articolo, per tutte e ventinove")
 check(GardenCatalog.item(withID: "casetta-gatto")?.wrongIslandLine(ownerName: "Gattino") == "La casa del gatto sta solo sull'isola di Gattino."
       && GardenCatalog.item(withID: "annaffiatoio")?.wrongIslandLine(ownerName: "Pianty") == "L'annaffiatoio sta solo sull'isola di Pianty."
       && GardenCatalog.item(withID: "tunnel")?.wrongIslandLine(ownerName: "Porcellino") == "Il tunnel con fieno sta solo sull'isola di Porcellino.", "la riga quando si lascia sull'isola sbagliata")
@@ -2642,7 +2649,7 @@ if let cat = ruleGarden.allPlacements.first(where: { $0.item == "tiragraffi" }),
 // il sorteggio: universali e animali sbloccati, nell'ordine del catalogo
 let poolGarden = Garden(directory: tempDirectory())
 poolGarden.adoptHome("ciccio")
-check(poolGarden.dropPool.count == 47, "senza dire chi è sbloccato, tutte le isole sono aperte: il tiro è quello di prima")
+check(poolGarden.dropPool.count == 54, "senza dire chi è sbloccato, tutte le isole sono aperte: il tiro è quello di prima")
 poolGarden.isIslandOpen = { $0 == "ciccio" || $0 == "pianty" }
 let poolIDs = poolGarden.dropPool.map { $0.id }
 check(poolIDs.count == 32 && poolIDs.contains("annaffiatoio") && poolIDs.contains("bagnetto") && poolIDs.contains("margherite") && !poolIDs.contains("tiragraffi") && !poolIDs.contains("tunnel")
@@ -2841,7 +2848,8 @@ func owners(of corner: GardenCorner) -> Set<String> {
 }
 check(GardenCorners.all.prefix(10).map { $0.id } == ["te", "lettura", "orto", "gatto", "porcellino", "uccelli", "prato-fiorito", "bosco", "festa", "rose"]
       && GardenCorners.all.dropFirst(10).prefix(8).map { $0.id } == ["vivaio", "acqua", "picnic", "recinto", "vento", "bagno-sole", "salotto", "palestra"]
-      && GardenCorners.all.suffix(2).map { $0.id } == ["tana", "dispensa"], "i dieci di prima restano com'erano, poi gli otto di ogni isola e i due del Riccio")
+      && GardenCorners.all.dropFirst(18).map { $0.id } == ["tana", "dispensa", "rifugio", "fragole"],
+      "i dieci di prima restano com'erano, poi gli otto di ogni isola, i due del Riccio e i due della Tartaruga")
 check(islandCorners.allSatisfy { island, ids in ids.allSatisfy { id in GardenCorners.corner(withID: id).map { owners(of: $0) == [island] } ?? false } },
       "ogni angolo nuovo ha dentro una cosa di un solo animale: si forma solo sulla sua isola")
 check(GardenCorners.corner(withID: "salotto")?.name == "Il salotto del gatto" && GardenCorners.corner(withID: "acqua")?.name == "L'angolo dell'acqua", "i nomi")
@@ -2856,11 +2864,11 @@ func line(of corner: GardenCorner, gap: Int = 0) -> [GardenPlacement] {
     }
     return result
 }
-for corner in GardenCorners.all.suffix(10) {
+for corner in GardenCorners.all.suffix(12) {
     check(GardenCorners.formed(by: line(of: corner))[corner.id] != nil && GardenCorners.formed(by: line(of: corner, gap: 4))[corner.id] == nil, "«\(corner.name)» si forma da vicino, non da lontano")
 }
 // e a Gattino, Ciccio e Porcellino le cose giuste ci sono: nessun angolo nuovo ruba una cosa a un altro animale
-check(Set(GardenCorners.all.suffix(10).flatMap { $0.needs }.compactMap { need -> String? in if case .oneOf(let ids) = need { return ids.first }; return nil }.compactMap { GardenCatalog.item(withID: $0)?.island }) == Set(GardenIslands.all),
+check(Set(GardenCorners.all.suffix(12).flatMap { $0.needs }.compactMap { need -> String? in if case .oneOf(let ids) = need { return ids.first }; return nil }.compactMap { GardenCatalog.item(withID: $0)?.island }) == Set(GardenIslands.all),
       "ogni isola ha i suoi angoli nuovi")
 // i compagni: pose nei nuovi angoli (le immagini ci sono già)
 check(GardenCompanions.affinities.filter { ["salotto", "picnic", "vento"].contains($0.corner) }.map { "\($0.pet)-\($0.corner)-\($0.pose.rawValue)" }.sorted()
@@ -2879,7 +2887,7 @@ check(GardenVisitors.attractions(placements: [put("tiragraffi", 3, 3)], formedCo
 let oldReason = GardenVisitors.attractions(placements: [put("aiuola", 0, 0), put("trifoglio", 4, 4)], formedCorners: [:], season: .spring, slot: .morning)
 check(oldReason.first?.item == "trifoglio", "chi aveva già un motivo per venire ha ancora quello (il primo che si trova è quello di prima)")
 check(GardenVisitors.all.allSatisfy { visitor in visitor.items.allSatisfy { GardenCatalog.item(withID: $0) != nil } }
-      && Set(GardenVisitors.all.flatMap { $0.items }.compactMap { GardenCatalog.item(withID: $0)?.island }) == Set(GardenIslands.all), "le cose degli animali che attirano qualcuno sono di tutte e cinque le isole")
+      && Set(GardenVisitors.all.flatMap { $0.items }.compactMap { GardenCatalog.item(withID: $0)?.island }) == Set(GardenIslands.all), "le cose degli animali che attirano qualcuno sono di tutte e sei le isole")
 // quanti ne vengono: un ospite per fascia e mai più di due volte su tre (la presenza), anche con le aggiunte
 var hostsSeen = 0, hostsDays = 0
 let hostCalendar = StudyPeriod.calendar()
@@ -2950,8 +2958,8 @@ check(GardenLinks.arms(at: fenceHere, among: [fenceTile(4, 4), fenceTile(2, 2), 
 // ---------------------------------------------------------------- le luci della sera
 section("Giardino: le luci della sera")
 let litItems = GardenCatalog.items.filter { $0.glow != nil }
-check(litItems.map { $0.id } == ["lampione", "alberello-lucine", "lanterna-ceppo", "braciere", "barattolo-lucciole", "lanterna-voliera", "lampada-fienile", "candela-cesto", "zucca-lanterna"],
-      "fanno luce la sera il lampione, i tre nuovi (l'alberello di lucine, la lanterna sul ceppo e il braciere) e le cinque degli animali")
+check(litItems.map { $0.id } == ["lampione", "alberello-lucine", "lanterna-ceppo", "braciere", "barattolo-lucciole", "lanterna-voliera", "lampada-fienile", "candela-cesto", "zucca-lanterna", "lanterna-carta"],
+      "fanno luce la sera il lampione, i tre nuovi (l'alberello di lucine, la lanterna sul ceppo e il braciere) e le sei degli animali")
 check(GardenCatalog.item(withID: "lampione")?.glow == GardenGlow(red: 255, green: 196, blue: 104, radius: 1.25, top: 0.10, strength: 1),
       "la luce del lampione è quella di sempre (255, 196, 104; alone largo 1,25 tessere, in alto)")
 check(litItems.allSatisfy { glow in

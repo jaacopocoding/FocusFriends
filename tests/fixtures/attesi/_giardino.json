@@ -872,7 +872,9 @@
       "Il salotto del gatto",
       "La palestra del gatto",
       "La tana d'autunno",
-      "La dispensa d'autunno"
+      "La dispensa d'autunno",
+      "Il rifugio della tartaruga",
+      "L'orto delle fragole"
     ]
   },
   "catalogo" : {
@@ -882,6 +884,7 @@
       105,
       92,
       66,
+      64,
       100
     ],
     "benvenuti" : [
@@ -889,14 +892,15 @@
       "tunnel",
       "altalena-uccelli",
       "cesto-cuscino",
-      "mucchio-foglie"
+      "mucchio-foglie",
+      "sasso-sole"
     ],
     "doppieComplete" : [
       0,
       0,
       1,
       1,
-      5
+      4
     ],
     "doppiePagine" : [
       {
@@ -927,7 +931,7 @@
           "barattolo-lucciole"
         ],
         "pagina" : 1,
-        "pagine" : 4,
+        "pagine" : 5,
         "sinistra" : [
           "cesto-carote",
           "annaffiatoio",
@@ -942,10 +946,12 @@
           "zucca-lanterna",
           "hotel-insetti",
           "carriola-ghiande",
-          "tana-foglie"
+          "tana-foglie",
+          "sasso-sole",
+          "lattuga"
         ],
         "pagina" : 3,
-        "pagine" : 4,
+        "pagine" : 5,
         "sinistra" : [
           "lanterna-voliera",
           "lampada-fienile",
@@ -953,6 +959,18 @@
           "mucchio-foglie",
           "cassetta-mele",
           "tronco-cavo"
+        ]
+      },
+      {
+        "destra" : null,
+        "pagina" : 5,
+        "pagine" : 5,
+        "sinistra" : [
+          "aiuola-fragole",
+          "bandiera-traguardo",
+          "lanterna-carta",
+          "laghetto",
+          "rifugio-paglia"
         ]
       },
       {
@@ -2227,6 +2245,189 @@
         "luce" : null,
         "nome" : "Tana di foglie",
         "numero" : 47,
+        "ombra" : true,
+        "oscilla" : 0,
+        "pendenza" : 0.5,
+        "rarita" : "Raro",
+        "regola" : "solo sull'isola di Gattino",
+        "siUnisce" : false,
+        "sulLato" : false
+      },
+      {
+        "acceso" : null,
+        "altezza" : 38,
+        "articolo" : "il sasso al sole",
+        "dotazione" : false,
+        "id" : "sasso-sole",
+        "immagine" : "sasso-sole",
+        "ingombro" : [
+          1,
+          1
+        ],
+        "isola" : "tartaruga",
+        "isolaSbagliata" : "Il sasso al sole sta solo sull'isola di Gattino.",
+        "lati" : 1,
+        "luce" : null,
+        "nome" : "Sasso al sole",
+        "numero" : 48,
+        "ombra" : true,
+        "oscilla" : 0,
+        "pendenza" : 0.5,
+        "rarita" : "Comune",
+        "regola" : "solo sull'isola di Gattino",
+        "siUnisce" : false,
+        "sulLato" : false
+      },
+      {
+        "acceso" : null,
+        "altezza" : 45,
+        "articolo" : "il cespo di lattuga",
+        "dotazione" : false,
+        "id" : "lattuga",
+        "immagine" : "lattuga",
+        "ingombro" : [
+          1,
+          1
+        ],
+        "isola" : "tartaruga",
+        "isolaSbagliata" : "Il cespo di lattuga sta solo sull'isola di Gattino.",
+        "lati" : 1,
+        "luce" : null,
+        "nome" : "Cespo di lattuga",
+        "numero" : 49,
+        "ombra" : true,
+        "oscilla" : 0,
+        "pendenza" : 0.5,
+        "rarita" : "Comune",
+        "regola" : "solo sull'isola di Gattino",
+        "siUnisce" : false,
+        "sulLato" : false
+      },
+      {
+        "acceso" : null,
+        "altezza" : 62,
+        "articolo" : "l'aiuola di fragole",
+        "dotazione" : false,
+        "id" : "aiuola-fragole",
+        "immagine" : "aiuola-fragole",
+        "ingombro" : [
+          1,
+          1
+        ],
+        "isola" : "tartaruga",
+        "isolaSbagliata" : "L'aiuola di fragole sta solo sull'isola di Gattino.",
+        "lati" : 1,
+        "luce" : null,
+        "nome" : "Aiuola di fragole",
+        "numero" : 50,
+        "ombra" : true,
+        "oscilla" : 0,
+        "pendenza" : 0.5,
+        "rarita" : "Comune",
+        "regola" : "solo sull'isola di Gattino",
+        "siUnisce" : false,
+        "sulLato" : false
+      },
+      {
+        "acceso" : null,
+        "altezza" : 105,
+        "articolo" : "la bandierina del traguardo",
+        "dotazione" : false,
+        "id" : "bandiera-traguardo",
+        "immagine" : "bandiera-traguardo",
+        "ingombro" : [
+          1,
+          1
+        ],
+        "isola" : "tartaruga",
+        "isolaSbagliata" : "La bandierina del traguardo sta solo sull'isola di Gattino.",
+        "lati" : 1,
+        "luce" : null,
+        "nome" : "Bandierina del traguardo",
+        "numero" : 51,
+        "ombra" : true,
+        "oscilla" : 0,
+        "pendenza" : 0.5,
+        "rarita" : "Raro",
+        "regola" : "solo sull'isola di Gattino",
+        "siUnisce" : false,
+        "sulLato" : false
+      },
+      {
+        "acceso" : null,
+        "altezza" : 110,
+        "articolo" : "la lanterna di carta",
+        "dotazione" : false,
+        "id" : "lanterna-carta",
+        "immagine" : "lanterna-carta",
+        "ingombro" : [
+          1,
+          1
+        ],
+        "isola" : "tartaruga",
+        "isolaSbagliata" : "La lanterna di carta sta solo sull'isola di Gattino.",
+        "lati" : 1,
+        "luce" : {
+          "alto" : 0.47999999999999998,
+          "b" : 92,
+          "forza" : 0.84999999999999998,
+          "g" : 172,
+          "r" : 255,
+          "raggio" : 0.75,
+          "vibra" : false
+        },
+        "nome" : "Lanterna di carta",
+        "numero" : 52,
+        "ombra" : true,
+        "oscilla" : 0,
+        "pendenza" : 0.5,
+        "rarita" : "Raro",
+        "regola" : "solo sull'isola di Gattino",
+        "siUnisce" : false,
+        "sulLato" : false
+      },
+      {
+        "acceso" : null,
+        "altezza" : 40,
+        "articolo" : "il laghetto",
+        "dotazione" : false,
+        "id" : "laghetto",
+        "immagine" : "laghetto",
+        "ingombro" : [
+          1,
+          1
+        ],
+        "isola" : "tartaruga",
+        "isolaSbagliata" : "Il laghetto sta solo sull'isola di Gattino.",
+        "lati" : 1,
+        "luce" : null,
+        "nome" : "Laghetto",
+        "numero" : 53,
+        "ombra" : true,
+        "oscilla" : 0,
+        "pendenza" : 0.5,
+        "rarita" : "Raro",
+        "regola" : "solo sull'isola di Gattino",
+        "siUnisce" : false,
+        "sulLato" : false
+      },
+      {
+        "acceso" : null,
+        "altezza" : 90,
+        "articolo" : "il rifugio di paglia",
+        "dotazione" : false,
+        "id" : "rifugio-paglia",
+        "immagine" : "rifugio-paglia",
+        "ingombro" : [
+          1,
+          1
+        ],
+        "isola" : "tartaruga",
+        "isolaSbagliata" : "Il rifugio di paglia sta solo sull'isola di Gattino.",
+        "lati" : 1,
+        "luce" : null,
+        "nome" : "Rifugio di paglia",
+        "numero" : 54,
         "ombra" : true,
         "oscilla" : 0,
         "pendenza" : 0.5,
@@ -8395,7 +8596,10 @@
       "ciccio/vento/altalena-uccelli/wings",
       "riccio/tana/tana-foglie/sleep",
       "riccio/dispensa/cassetta-mele/eat",
-      "riccio/bosco/felci/popcorn"
+      "riccio/bosco/felci/popcorn",
+      "tartaruga/rifugio/rifugio-paglia/sleep",
+      "tartaruga/fragole/aiuola-fragole/eat",
+      "tartaruga/acqua/ponticello/popcorn"
     ],
     "intorno" : [
       [
@@ -8786,6 +8990,74 @@
           null,
           null
         ]
+      },
+      {
+        "frame" : [
+          13,
+          14,
+          15,
+          16,
+          17,
+          18
+        ],
+        "immagini" : [
+          "tartaruga_frame13",
+          "tartaruga_frame14",
+          "tartaruga_frame16",
+          "tartaruga_frame18"
+        ]
+      },
+      {
+        "frame" : [
+          8,
+          9,
+          10,
+          11,
+          12
+        ],
+        "immagini" : [
+          "tartaruga_frame8",
+          "tartaruga_frame10",
+          "tartaruga_frame9",
+          "tartaruga_frame12"
+        ]
+      },
+      {
+        "frame" : [
+          19,
+          20,
+          21,
+          22,
+          23
+        ],
+        "immagini" : [
+          "tartaruga_frame19",
+          "tartaruga_frame22",
+          "tartaruga_frame19",
+          "tartaruga_frame22"
+        ]
+      },
+      {
+        "frame" : [
+
+        ],
+        "immagini" : [
+          null,
+          null,
+          null,
+          null
+        ]
+      },
+      {
+        "frame" : [
+
+        ],
+        "immagini" : [
+          null,
+          null,
+          null,
+          null
+        ]
       }
     ],
     "stradaCorta" : null,
@@ -8995,11 +9267,11 @@
                 "row" : 7
               },
               {
-                "col" : 2,
+                "col" : 6,
                 "girata" : false,
                 "isola" : "",
                 "oggetto" : "mughetti",
-                "row" : 7
+                "row" : 6
               }
             ],
             "grandezza" : 8
@@ -9019,6 +9291,20 @@
             "grandezza" : 8
           },
           "riccio" : {
+            "angoli" : [
+
+            ],
+            "cassetta" : [
+              "margherite",
+              "trifoglio",
+              "mughetti"
+            ],
+            "copie" : [
+
+            ],
+            "grandezza" : 8
+          },
+          "tartaruga" : {
             "angoli" : [
 
             ],
@@ -9105,11 +9391,11 @@
                 "row" : 7
               },
               {
-                "col" : 2,
+                "col" : 6,
                 "girata" : false,
                 "isola" : "gattino",
                 "oggetto" : "mughetti",
-                "row" : 7
+                "row" : 6
               }
             ],
             "grandezza" : 8
@@ -9155,6 +9441,20 @@
 
             ],
             "grandezza" : 8
+          },
+          "tartaruga" : {
+            "angoli" : [
+
+            ],
+            "cassetta" : [
+              "margherite",
+              "trifoglio",
+              "mughetti"
+            ],
+            "copie" : [
+
+            ],
+            "grandezza" : 8
           }
         },
         "mancano" : 60,
@@ -9181,7 +9481,7 @@
           "gattino"
         ],
         "angoli" : [
-          "prato-fiorito"
+
         ],
         "casa" : "gattino",
         "compagni" : {
@@ -9211,7 +9511,7 @@
           },
           "gattino" : {
             "angoli" : [
-              "prato-fiorito"
+
             ],
             "cassetta" : [
               "margherite",
@@ -9241,11 +9541,11 @@
                 "row" : 7
               },
               {
-                "col" : 2,
+                "col" : 6,
                 "girata" : false,
                 "isola" : "gattino",
                 "oggetto" : "mughetti",
-                "row" : 7
+                "row" : 6
               },
               {
                 "col" : 7,
@@ -9283,7 +9583,7 @@
                 "row" : 3
               },
               {
-                "col" : 1,
+                "col" : 2,
                 "girata" : false,
                 "isola" : "gattino",
                 "oggetto" : "papaveri",
@@ -9355,6 +9655,25 @@
 
             ],
             "grandezza" : 8
+          },
+          "tartaruga" : {
+            "angoli" : [
+
+            ],
+            "cassetta" : [
+              "margherite",
+              "trifoglio",
+              "mughetti",
+              "funghi",
+              "lavanda",
+              "papaveri",
+              "felci",
+              "tavolino"
+            ],
+            "copie" : [
+
+            ],
+            "grandezza" : 8
           }
         },
         "mancano" : 47,
@@ -9394,7 +9713,6 @@
           "gattino"
         ],
         "angoli" : [
-          "prato-fiorito",
           "gatto"
         ],
         "casa" : "gattino",
@@ -9437,8 +9755,7 @@
           },
           "gattino" : {
             "angoli" : [
-              "gatto",
-              "prato-fiorito"
+              "gatto"
             ],
             "cassetta" : [
               "margherite",
@@ -9475,11 +9792,11 @@
                 "row" : 7
               },
               {
-                "col" : 2,
+                "col" : 6,
                 "girata" : false,
                 "isola" : "gattino",
                 "oggetto" : "mughetti",
-                "row" : 7
+                "row" : 6
               },
               {
                 "col" : 7,
@@ -9517,7 +9834,7 @@
                 "row" : 3
               },
               {
-                "col" : 1,
+                "col" : 2,
                 "girata" : false,
                 "isola" : "gattino",
                 "oggetto" : "papaveri",
@@ -9629,14 +9946,14 @@
             ],
             "copie" : [
               {
-                "col" : 5,
+                "col" : 6,
                 "girata" : false,
                 "isola" : "porcellino",
                 "oggetto" : "cesto-carote",
-                "row" : 4
+                "row" : 3
               },
               {
-                "col" : 3,
+                "col" : 2,
                 "girata" : false,
                 "isola" : "porcellino",
                 "oggetto" : "tunnel",
@@ -9646,6 +9963,30 @@
             "grandezza" : 8
           },
           "riccio" : {
+            "angoli" : [
+
+            ],
+            "cassetta" : [
+              "margherite",
+              "trifoglio",
+              "mughetti",
+              "tulipani",
+              "funghi",
+              "lavanda",
+              "papaveri",
+              "felci",
+              "bandierine",
+              "tavolino",
+              "carillon",
+              "ponticello",
+              "alberello-lucine"
+            ],
+            "copie" : [
+
+            ],
+            "grandezza" : 8
+          },
+          "tartaruga" : {
             "angoli" : [
 
             ],
@@ -9727,7 +10068,6 @@
           "gattino"
         ],
         "angoli" : [
-          "prato-fiorito",
           "gatto"
         ],
         "casa" : "gattino",
@@ -9770,8 +10110,7 @@
           },
           "gattino" : {
             "angoli" : [
-              "gatto",
-              "prato-fiorito"
+              "gatto"
             ],
             "cassetta" : [
               "margherite",
@@ -9808,11 +10147,11 @@
                 "row" : 7
               },
               {
-                "col" : 2,
+                "col" : 6,
                 "girata" : false,
                 "isola" : "gattino",
                 "oggetto" : "mughetti",
-                "row" : 7
+                "row" : 6
               },
               {
                 "col" : 7,
@@ -9850,7 +10189,7 @@
                 "row" : 3
               },
               {
-                "col" : 1,
+                "col" : 2,
                 "girata" : false,
                 "isola" : "gattino",
                 "oggetto" : "papaveri",
@@ -9962,14 +10301,14 @@
             ],
             "copie" : [
               {
-                "col" : 5,
+                "col" : 6,
                 "girata" : false,
                 "isola" : "porcellino",
                 "oggetto" : "cesto-carote",
-                "row" : 4
+                "row" : 3
               },
               {
-                "col" : 3,
+                "col" : 2,
                 "girata" : false,
                 "isola" : "porcellino",
                 "oggetto" : "tunnel",
@@ -9979,6 +10318,30 @@
             "grandezza" : 8
           },
           "riccio" : {
+            "angoli" : [
+
+            ],
+            "cassetta" : [
+              "margherite",
+              "trifoglio",
+              "mughetti",
+              "tulipani",
+              "funghi",
+              "lavanda",
+              "papaveri",
+              "felci",
+              "bandierine",
+              "tavolino",
+              "carillon",
+              "ponticello",
+              "alberello-lucine"
+            ],
+            "copie" : [
+
+            ],
+            "grandezza" : 8
+          },
+          "tartaruga" : {
             "angoli" : [
 
             ],
@@ -10124,7 +10487,6 @@
           "ciccio"
         ],
         "angoli" : [
-          "prato-fiorito",
           "gatto",
           "porcellino"
         ],
@@ -10188,8 +10550,7 @@
           },
           "gattino" : {
             "angoli" : [
-              "gatto",
-              "prato-fiorito"
+              "gatto"
             ],
             "cassetta" : [
               "margherite",
@@ -10226,11 +10587,11 @@
                 "row" : 7
               },
               {
-                "col" : 2,
+                "col" : 6,
                 "girata" : false,
                 "isola" : "gattino",
                 "oggetto" : "mughetti",
-                "row" : 7
+                "row" : 6
               },
               {
                 "col" : 7,
@@ -10268,7 +10629,7 @@
                 "row" : 3
               },
               {
-                "col" : 1,
+                "col" : 2,
                 "girata" : false,
                 "isola" : "gattino",
                 "oggetto" : "papaveri",
@@ -10381,21 +10742,21 @@
             ],
             "copie" : [
               {
-                "col" : 5,
+                "col" : 6,
                 "girata" : false,
                 "isola" : "porcellino",
                 "oggetto" : "cesto-carote",
-                "row" : 4
+                "row" : 3
               },
               {
-                "col" : 3,
+                "col" : 2,
                 "girata" : false,
                 "isola" : "porcellino",
                 "oggetto" : "tunnel",
                 "row" : 3
               },
               {
-                "col" : 5,
+                "col" : 4,
                 "girata" : false,
                 "isola" : "porcellino",
                 "oggetto" : "casetta-porcellino",
@@ -10405,6 +10766,30 @@
             "grandezza" : 8
           },
           "riccio" : {
+            "angoli" : [
+
+            ],
+            "cassetta" : [
+              "margherite",
+              "trifoglio",
+              "mughetti",
+              "tulipani",
+              "funghi",
+              "lavanda",
+              "papaveri",
+              "felci",
+              "bandierine",
+              "tavolino",
+              "carillon",
+              "ponticello",
+              "alberello-lucine"
+            ],
+            "copie" : [
+
+            ],
+            "grandezza" : 8
+          },
+          "tartaruga" : {
             "angoli" : [
 
             ],
@@ -10511,15 +10896,15 @@
           "ciccio"
         ],
         "angoli" : [
-          "prato-fiorito",
           "gatto",
           "porcellino",
+          "prato-fiorito",
           "festa"
         ],
         "angoliNuovi" : [
-          "prato-fiorito",
           "gatto",
-          "porcellino"
+          "porcellino",
+          "prato-fiorito"
         ],
         "canPlace" : [
           false,
@@ -10555,9 +10940,9 @@
             }
           },
           "corners" : [
-            "prato-fiorito",
             "gatto",
             "porcellino",
+            "prato-fiorito",
             "festa"
           ],
           "drops" : {
@@ -10625,11 +11010,11 @@
               "turned" : false
             },
             {
-              "col" : 2,
+              "col" : 6,
               "id" : "copia-2",
               "island" : "gattino",
               "item" : "mughetti",
-              "row" : 7,
+              "row" : 6,
               "turned" : false
             },
             {
@@ -10673,7 +11058,7 @@
               "turned" : false
             },
             {
-              "col" : 1,
+              "col" : 2,
               "id" : "copia-8",
               "island" : "gattino",
               "item" : "papaveri",
@@ -10705,11 +11090,11 @@
               "turned" : false
             },
             {
-              "col" : 5,
+              "col" : 6,
               "id" : "copia-12",
               "island" : "porcellino",
               "item" : "cesto-carote",
-              "row" : 4,
+              "row" : 3,
               "turned" : false
             },
             {
@@ -10721,7 +11106,7 @@
               "turned" : false
             },
             {
-              "col" : 3,
+              "col" : 2,
               "id" : "copia-14",
               "island" : "porcellino",
               "item" : "tunnel",
@@ -10769,7 +11154,7 @@
               "turned" : false
             },
             {
-              "col" : 5,
+              "col" : 4,
               "id" : "copia-20",
               "island" : "porcellino",
               "item" : "casetta-porcellino",
@@ -10954,11 +11339,11 @@
                 "row" : 7
               },
               {
-                "col" : 2,
+                "col" : 6,
                 "girata" : false,
                 "isola" : "gattino",
                 "oggetto" : "mughetti",
-                "row" : 7
+                "row" : 6
               },
               {
                 "col" : 7,
@@ -10996,7 +11381,7 @@
                 "row" : 3
               },
               {
-                "col" : 1,
+                "col" : 2,
                 "girata" : false,
                 "isola" : "gattino",
                 "oggetto" : "papaveri",
@@ -11146,21 +11531,21 @@
             ],
             "copie" : [
               {
-                "col" : 5,
+                "col" : 6,
                 "girata" : false,
                 "isola" : "porcellino",
                 "oggetto" : "cesto-carote",
-                "row" : 4
+                "row" : 3
               },
               {
-                "col" : 3,
+                "col" : 2,
                 "girata" : false,
                 "isola" : "porcellino",
                 "oggetto" : "tunnel",
                 "row" : 3
               },
               {
-                "col" : 5,
+                "col" : 4,
                 "girata" : false,
                 "isola" : "porcellino",
                 "oggetto" : "casetta-porcellino",
@@ -11170,6 +11555,31 @@
             "grandezza" : 8
           },
           "riccio" : {
+            "angoli" : [
+
+            ],
+            "cassetta" : [
+              "margherite",
+              "trifoglio",
+              "mughetti",
+              "tulipani",
+              "funghi",
+              "lavanda",
+              "papaveri",
+              "felci",
+              "picnic",
+              "bandierine",
+              "tavolino",
+              "carillon",
+              "ponticello",
+              "alberello-lucine"
+            ],
+            "copie" : [
+
+            ],
+            "grandezza" : 8
+          },
+          "tartaruga" : {
             "angoli" : [
 
             ],
@@ -11291,9 +11701,9 @@
           "ciccio"
         ],
         "angoli" : [
-          "prato-fiorito",
           "gatto",
           "porcellino",
+          "prato-fiorito",
           "festa"
         ],
         "casa" : "gattino",
@@ -11396,11 +11806,11 @@
                 "row" : 7
               },
               {
-                "col" : 2,
+                "col" : 6,
                 "girata" : false,
                 "isola" : "gattino",
                 "oggetto" : "mughetti",
-                "row" : 7
+                "row" : 6
               },
               {
                 "col" : 7,
@@ -11438,7 +11848,7 @@
                 "row" : 3
               },
               {
-                "col" : 1,
+                "col" : 2,
                 "girata" : false,
                 "isola" : "gattino",
                 "oggetto" : "papaveri",
@@ -11588,21 +11998,21 @@
             ],
             "copie" : [
               {
-                "col" : 5,
+                "col" : 6,
                 "girata" : false,
                 "isola" : "porcellino",
                 "oggetto" : "cesto-carote",
-                "row" : 4
+                "row" : 3
               },
               {
-                "col" : 3,
+                "col" : 2,
                 "girata" : false,
                 "isola" : "porcellino",
                 "oggetto" : "tunnel",
                 "row" : 3
               },
               {
-                "col" : 5,
+                "col" : 4,
                 "girata" : false,
                 "isola" : "porcellino",
                 "oggetto" : "casetta-porcellino",
@@ -11612,6 +12022,31 @@
             "grandezza" : 8
           },
           "riccio" : {
+            "angoli" : [
+
+            ],
+            "cassetta" : [
+              "margherite",
+              "trifoglio",
+              "mughetti",
+              "tulipani",
+              "funghi",
+              "lavanda",
+              "papaveri",
+              "felci",
+              "picnic",
+              "bandierine",
+              "tavolino",
+              "carillon",
+              "ponticello",
+              "alberello-lucine"
+            ],
+            "copie" : [
+
+            ],
+            "grandezza" : 8
+          },
+          "tartaruga" : {
             "angoli" : [
 
             ],
@@ -11775,11 +12210,11 @@
                 "row" : 7
               },
               {
-                "col" : 2,
+                "col" : 6,
                 "girata" : false,
                 "isola" : "",
                 "oggetto" : "mughetti",
-                "row" : 7
+                "row" : 6
               }
             ],
             "grandezza" : 8
@@ -11799,6 +12234,20 @@
             "grandezza" : 8
           },
           "riccio" : {
+            "angoli" : [
+
+            ],
+            "cassetta" : [
+              "margherite",
+              "trifoglio",
+              "mughetti"
+            ],
+            "copie" : [
+
+            ],
+            "grandezza" : 8
+          },
+          "tartaruga" : {
             "angoli" : [
 
             ],
@@ -15421,23 +15870,23 @@
         "compagni" : [
           [
             1,
-            4
-          ],
-          [
-            2,
-            5
-          ],
-          [
-            4,
-            5
-          ],
-          [
-            5,
             6
           ],
           [
-            1,
+            3,
             4
+          ],
+          [
+            5,
+            5
+          ],
+          [
+            3,
+            7
+          ],
+          [
+            1,
+            6
           ]
         ],
         "grandezze" : {
@@ -15456,9 +15905,16 @@
                   5,
                   7
                 ]
+              },
+              {
+                "lato" : "colEnd",
+                "tessera" : [
+                  7,
+                  5
+                ]
               }
             ],
-            "liberi1" : 36,
+            "liberi1" : 34,
             "liberi2" : [
               [
                 3,
@@ -15543,10 +15999,6 @@
               [
                 6,
                 4
-              ],
-              [
-                6,
-                5
               ],
               [
                 6,
@@ -15641,11 +16093,19 @@
               [
                 5,
                 7
+              ],
+              [
+                6,
+                5
+              ],
+              [
+                7,
+                5
               ]
             ],
             "vicino" : [
-              6,
-              5
+              5,
+              3
             ]
           },
           "9" : {
@@ -15663,9 +16123,16 @@
                   5,
                   8
                 ]
+              },
+              {
+                "lato" : "colEnd",
+                "tessera" : [
+                  8,
+                  5
+                ]
               }
             ],
-            "liberi1" : 51,
+            "liberi1" : 48,
             "liberi2" : [
               [
                 3,
@@ -15770,14 +16237,6 @@
               [
                 7,
                 4
-              ],
-              [
-                6,
-                5
-              ],
-              [
-                7,
-                5
               ],
               [
                 6,
@@ -15908,11 +16367,23 @@
               [
                 5,
                 8
+              ],
+              [
+                6,
+                5
+              ],
+              [
+                7,
+                5
+              ],
+              [
+                8,
+                5
               ]
             ],
             "vicino" : [
-              6,
-              5
+              5,
+              3
             ]
           },
           "10" : {
@@ -15930,9 +16401,16 @@
                   5,
                   9
                 ]
+              },
+              {
+                "lato" : "colEnd",
+                "tessera" : [
+                  9,
+                  5
+                ]
               }
             ],
-            "liberi1" : 67,
+            "liberi1" : 63,
             "liberi2" : [
               [
                 3,
@@ -16057,18 +16535,6 @@
               [
                 8,
                 4
-              ],
-              [
-                6,
-                5
-              ],
-              [
-                7,
-                5
-              ],
-              [
-                8,
-                5
               ],
               [
                 6,
@@ -16243,11 +16709,27 @@
               [
                 6,
                 9
+              ],
+              [
+                6,
+                5
+              ],
+              [
+                7,
+                5
+              ],
+              [
+                8,
+                5
+              ],
+              [
+                9,
+                5
               ]
             ],
             "vicino" : [
-              6,
-              5
+              5,
+              3
             ]
           }
         }
@@ -16284,6 +16766,13 @@
                 "tessera" : [
                   0,
                   5
+                ]
+              },
+              {
+                "lato" : "rowStart",
+                "tessera" : [
+                  5,
+                  0
                 ]
               }
             ],
@@ -16476,6 +16965,13 @@
                 "tessera" : [
                   0,
                   5
+                ]
+              },
+              {
+                "lato" : "rowStart",
+                "tessera" : [
+                  5,
+                  0
                 ]
               }
             ],
@@ -16732,6 +17228,13 @@
                 "tessera" : [
                   0,
                   5
+                ]
+              },
+              {
+                "lato" : "rowStart",
+                "tessera" : [
+                  5,
+                  0
                 ]
               }
             ],
@@ -17054,6 +17557,854 @@
             ]
           }
         }
+      },
+      "tartaruga" : {
+        "casa" : 9,
+        "compagni" : [
+          [
+            1,
+            5
+          ],
+          [
+            1,
+            7
+          ],
+          [
+            2,
+            7
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            1,
+            5
+          ]
+        ],
+        "grandezze" : {
+          "8" : {
+            "approdi" : [
+              {
+                "lato" : "colStart",
+                "tessera" : [
+                  0,
+                  5
+                ]
+              },
+              {
+                "lato" : "rowEnd",
+                "tessera" : [
+                  5,
+                  7
+                ]
+              }
+            ],
+            "liberi1" : 42,
+            "liberi2" : [
+              [
+                3,
+                0
+              ],
+              [
+                4,
+                0
+              ],
+              [
+                5,
+                0
+              ],
+              [
+                6,
+                0
+              ],
+              [
+                3,
+                1
+              ],
+              [
+                4,
+                1
+              ],
+              [
+                5,
+                1
+              ],
+              [
+                6,
+                1
+              ],
+              [
+                3,
+                2
+              ],
+              [
+                4,
+                2
+              ],
+              [
+                5,
+                2
+              ],
+              [
+                6,
+                2
+              ],
+              [
+                0,
+                3
+              ],
+              [
+                1,
+                3
+              ],
+              [
+                2,
+                3
+              ],
+              [
+                3,
+                3
+              ],
+              [
+                4,
+                3
+              ],
+              [
+                5,
+                3
+              ],
+              [
+                6,
+                3
+              ],
+              [
+                1,
+                4
+              ],
+              [
+                2,
+                4
+              ],
+              [
+                3,
+                4
+              ],
+              [
+                4,
+                4
+              ],
+              [
+                5,
+                4
+              ],
+              [
+                6,
+                4
+              ],
+              [
+                2,
+                5
+              ],
+              [
+                3,
+                5
+              ],
+              [
+                4,
+                5
+              ],
+              [
+                5,
+                5
+              ],
+              [
+                6,
+                5
+              ],
+              [
+                5,
+                6
+              ],
+              [
+                6,
+                6
+              ],
+              [
+                6,
+                7
+              ]
+            ],
+            "sentiero" : [
+              [
+                0,
+                4
+              ],
+              [
+                0,
+                5
+              ],
+              [
+                1,
+                5
+              ],
+              [
+                0,
+                6
+              ],
+              [
+                1,
+                6
+              ],
+              [
+                1,
+                7
+              ],
+              [
+                2,
+                6
+              ],
+              [
+                2,
+                7
+              ],
+              [
+                3,
+                7
+              ],
+              [
+                3,
+                6
+              ],
+              [
+                4,
+                6
+              ],
+              [
+                4,
+                7
+              ],
+              [
+                5,
+                7
+              ]
+            ],
+            "vicino" : [
+              6,
+              5
+            ]
+          },
+          "9" : {
+            "approdi" : [
+              {
+                "lato" : "colStart",
+                "tessera" : [
+                  0,
+                  5
+                ]
+              },
+              {
+                "lato" : "rowEnd",
+                "tessera" : [
+                  5,
+                  8
+                ]
+              }
+            ],
+            "liberi1" : 56,
+            "liberi2" : [
+              [
+                3,
+                0
+              ],
+              [
+                4,
+                0
+              ],
+              [
+                5,
+                0
+              ],
+              [
+                6,
+                0
+              ],
+              [
+                7,
+                0
+              ],
+              [
+                3,
+                1
+              ],
+              [
+                4,
+                1
+              ],
+              [
+                5,
+                1
+              ],
+              [
+                6,
+                1
+              ],
+              [
+                7,
+                1
+              ],
+              [
+                3,
+                2
+              ],
+              [
+                4,
+                2
+              ],
+              [
+                5,
+                2
+              ],
+              [
+                6,
+                2
+              ],
+              [
+                7,
+                2
+              ],
+              [
+                0,
+                3
+              ],
+              [
+                1,
+                3
+              ],
+              [
+                2,
+                3
+              ],
+              [
+                3,
+                3
+              ],
+              [
+                4,
+                3
+              ],
+              [
+                5,
+                3
+              ],
+              [
+                6,
+                3
+              ],
+              [
+                7,
+                3
+              ],
+              [
+                1,
+                4
+              ],
+              [
+                2,
+                4
+              ],
+              [
+                3,
+                4
+              ],
+              [
+                4,
+                4
+              ],
+              [
+                5,
+                4
+              ],
+              [
+                6,
+                4
+              ],
+              [
+                7,
+                4
+              ],
+              [
+                2,
+                5
+              ],
+              [
+                3,
+                5
+              ],
+              [
+                4,
+                5
+              ],
+              [
+                5,
+                5
+              ],
+              [
+                6,
+                5
+              ],
+              [
+                7,
+                5
+              ],
+              [
+                5,
+                6
+              ],
+              [
+                6,
+                6
+              ],
+              [
+                7,
+                6
+              ],
+              [
+                6,
+                7
+              ],
+              [
+                7,
+                7
+              ],
+              [
+                0,
+                8
+              ],
+              [
+                1,
+                8
+              ],
+              [
+                6,
+                8
+              ],
+              [
+                7,
+                8
+              ]
+            ],
+            "sentiero" : [
+              [
+                0,
+                4
+              ],
+              [
+                0,
+                5
+              ],
+              [
+                1,
+                5
+              ],
+              [
+                0,
+                6
+              ],
+              [
+                1,
+                6
+              ],
+              [
+                1,
+                7
+              ],
+              [
+                2,
+                6
+              ],
+              [
+                2,
+                7
+              ],
+              [
+                3,
+                7
+              ],
+              [
+                3,
+                6
+              ],
+              [
+                3,
+                8
+              ],
+              [
+                4,
+                6
+              ],
+              [
+                4,
+                7
+              ],
+              [
+                5,
+                7
+              ],
+              [
+                4,
+                8
+              ],
+              [
+                5,
+                8
+              ]
+            ],
+            "vicino" : [
+              6,
+              5
+            ]
+          },
+          "10" : {
+            "approdi" : [
+              {
+                "lato" : "colStart",
+                "tessera" : [
+                  0,
+                  5
+                ]
+              },
+              {
+                "lato" : "rowEnd",
+                "tessera" : [
+                  5,
+                  9
+                ]
+              }
+            ],
+            "liberi1" : 73,
+            "liberi2" : [
+              [
+                3,
+                0
+              ],
+              [
+                4,
+                0
+              ],
+              [
+                5,
+                0
+              ],
+              [
+                6,
+                0
+              ],
+              [
+                7,
+                0
+              ],
+              [
+                8,
+                0
+              ],
+              [
+                3,
+                1
+              ],
+              [
+                4,
+                1
+              ],
+              [
+                5,
+                1
+              ],
+              [
+                6,
+                1
+              ],
+              [
+                7,
+                1
+              ],
+              [
+                8,
+                1
+              ],
+              [
+                3,
+                2
+              ],
+              [
+                4,
+                2
+              ],
+              [
+                5,
+                2
+              ],
+              [
+                6,
+                2
+              ],
+              [
+                7,
+                2
+              ],
+              [
+                8,
+                2
+              ],
+              [
+                0,
+                3
+              ],
+              [
+                1,
+                3
+              ],
+              [
+                2,
+                3
+              ],
+              [
+                3,
+                3
+              ],
+              [
+                4,
+                3
+              ],
+              [
+                5,
+                3
+              ],
+              [
+                6,
+                3
+              ],
+              [
+                7,
+                3
+              ],
+              [
+                8,
+                3
+              ],
+              [
+                1,
+                4
+              ],
+              [
+                2,
+                4
+              ],
+              [
+                3,
+                4
+              ],
+              [
+                4,
+                4
+              ],
+              [
+                5,
+                4
+              ],
+              [
+                6,
+                4
+              ],
+              [
+                7,
+                4
+              ],
+              [
+                8,
+                4
+              ],
+              [
+                2,
+                5
+              ],
+              [
+                3,
+                5
+              ],
+              [
+                4,
+                5
+              ],
+              [
+                5,
+                5
+              ],
+              [
+                6,
+                5
+              ],
+              [
+                7,
+                5
+              ],
+              [
+                8,
+                5
+              ],
+              [
+                5,
+                6
+              ],
+              [
+                6,
+                6
+              ],
+              [
+                7,
+                6
+              ],
+              [
+                8,
+                6
+              ],
+              [
+                6,
+                7
+              ],
+              [
+                7,
+                7
+              ],
+              [
+                8,
+                7
+              ],
+              [
+                0,
+                8
+              ],
+              [
+                1,
+                8
+              ],
+              [
+                6,
+                8
+              ],
+              [
+                7,
+                8
+              ],
+              [
+                8,
+                8
+              ],
+              [
+                0,
+                9
+              ],
+              [
+                1,
+                9
+              ],
+              [
+                2,
+                9
+              ],
+              [
+                6,
+                9
+              ],
+              [
+                7,
+                9
+              ],
+              [
+                8,
+                9
+              ]
+            ],
+            "sentiero" : [
+              [
+                0,
+                4
+              ],
+              [
+                0,
+                5
+              ],
+              [
+                1,
+                5
+              ],
+              [
+                0,
+                6
+              ],
+              [
+                1,
+                6
+              ],
+              [
+                1,
+                7
+              ],
+              [
+                2,
+                6
+              ],
+              [
+                2,
+                7
+              ],
+              [
+                3,
+                7
+              ],
+              [
+                3,
+                6
+              ],
+              [
+                3,
+                8
+              ],
+              [
+                4,
+                6
+              ],
+              [
+                4,
+                7
+              ],
+              [
+                5,
+                7
+              ],
+              [
+                4,
+                8
+              ],
+              [
+                5,
+                8
+              ],
+              [
+                4,
+                9
+              ],
+              [
+                5,
+                9
+              ]
+            ],
+            "vicino" : [
+              6,
+              5
+            ]
+          }
+        }
       }
     },
     "vecchiCanPlace" : [
@@ -17140,6 +18491,10 @@
       [
         28,
         14
+      ],
+      [
+        28,
+        0
       ]
     ],
     "daCostruire" : [
@@ -17158,8 +18513,10 @@
       [
         "pianty-ciccio",
         "porcellino-gattino",
+        "porcellino-tartaruga",
         "ciccio-gattino",
-        "gattino-riccio"
+        "gattino-riccio",
+        "tartaruga-riccio"
       ]
     ],
     "estensione" : 38,
@@ -17180,7 +18537,8 @@
       [
         "ciccio",
         "gattino",
-        "riccio"
+        "riccio",
+        "tartaruga"
       ]
     ],
     "pezziCorti" : [
@@ -17254,6 +18612,25 @@
       {
         "colonne" : true,
         "grande" : [
+          24,
+          28,
+          5.5
+        ],
+        "id" : "porcellino-tartaruga",
+        "pezzi" : [
+          23,
+          25,
+          27
+        ],
+        "piccolo" : [
+          22,
+          28,
+          5.5
+        ]
+      },
+      {
+        "colonne" : true,
+        "grande" : [
           10,
           14,
           19.5
@@ -17288,11 +18665,30 @@
           28,
           19.5
         ]
+      },
+      {
+        "colonne" : false,
+        "grande" : [
+          10,
+          14,
+          33.5
+        ],
+        "id" : "tartaruga-riccio",
+        "pezzi" : [
+          9,
+          11,
+          13
+        ],
+        "piccolo" : [
+          8,
+          14,
+          33.5
+        ]
       }
     ],
     "portata" : [
       -24,
-      24,
+      38,
       52
     ]
   },
@@ -32291,6 +33687,1829 @@
             2,
             3,
             3
+          ]
+        }
+      },
+      "tartaruga" : {
+        "autumn" : {
+          "dettagli" : [
+            [
+
+            ],
+            [
+              {
+                "ancora" : 0.5,
+                "gruppo" : "leaves",
+                "immagine" : 14,
+                "misura" : 0.13600000000000001,
+                "specchio" : false,
+                "u" : 0.78600000000000003,
+                "v" : 0.63300000000000001
+              }
+            ],
+            [
+
+            ],
+            [
+              {
+                "ancora" : 0.5,
+                "gruppo" : "leaves",
+                "immagine" : 13,
+                "misura" : 0.13500000000000001,
+                "specchio" : true,
+                "u" : 0.42999999999999999,
+                "v" : 0.81299999999999994
+              },
+              {
+                "ancora" : 0.5,
+                "gruppo" : "leaves",
+                "immagine" : 14,
+                "misura" : 0.14799999999999999,
+                "specchio" : false,
+                "u" : 0.70199999999999996,
+                "v" : 0.54000000000000004
+              }
+            ],
+            [
+              {
+                "ancora" : 0.5,
+                "gruppo" : "leaves",
+                "immagine" : 13,
+                "misura" : 0.14299999999999999,
+                "specchio" : false,
+                "u" : 0.49099999999999999,
+                "v" : 0.54700000000000004
+              },
+              {
+                "ancora" : 0.5,
+                "gruppo" : "leaves",
+                "immagine" : 15,
+                "misura" : 0.153,
+                "specchio" : true,
+                "u" : 0.76000000000000001,
+                "v" : 0.78200000000000003
+              }
+            ],
+            [
+              {
+                "ancora" : 0.5,
+                "gruppo" : "leaves",
+                "immagine" : 14,
+                "misura" : 0.14199999999999999,
+                "specchio" : true,
+                "u" : 0.184,
+                "v" : 0.246
+              },
+              {
+                "ancora" : 0.5,
+                "gruppo" : "leaves",
+                "immagine" : 13,
+                "misura" : 0.16400000000000001,
+                "specchio" : false,
+                "u" : 0.31900000000000001,
+                "v" : 0.22700000000000001
+              }
+            ],
+            [
+              {
+                "ancora" : 0.90000000000000002,
+                "gruppo" : "tufts",
+                "immagine" : 1,
+                "misura" : 0.32500000000000001,
+                "specchio" : true,
+                "u" : 0.79100000000000004,
+                "v" : 0.39100000000000001
+              },
+              {
+                "ancora" : 0.5,
+                "gruppo" : "leaves",
+                "immagine" : 16,
+                "misura" : 0.14799999999999999,
+                "specchio" : false,
+                "u" : 0.85699999999999998,
+                "v" : 0.85399999999999998
+              },
+              {
+                "ancora" : 0.5,
+                "gruppo" : "leaves",
+                "immagine" : 13,
+                "misura" : 0.159,
+                "specchio" : false,
+                "u" : 0.36799999999999999,
+                "v" : 0.46600000000000003
+              }
+            ],
+            [
+              {
+                "ancora" : 0.5,
+                "gruppo" : "leaves",
+                "immagine" : 14,
+                "misura" : 0.13800000000000001,
+                "specchio" : true,
+                "u" : 0.629,
+                "v" : 0.373
+              },
+              {
+                "ancora" : 0.5,
+                "gruppo" : "leaves",
+                "immagine" : 16,
+                "misura" : 0.161,
+                "specchio" : false,
+                "u" : 0.84499999999999997,
+                "v" : 0.26100000000000001
+              }
+            ],
+            [
+              {
+                "ancora" : 0.5,
+                "gruppo" : "leaves",
+                "immagine" : 14,
+                "misura" : 0.13800000000000001,
+                "specchio" : false,
+                "u" : 0.14699999999999999,
+                "v" : 0.58099999999999996
+              }
+            ],
+            [
+              {
+                "ancora" : 0.5,
+                "gruppo" : "leaves",
+                "immagine" : 13,
+                "misura" : 0.13400000000000001,
+                "specchio" : false,
+                "u" : 0.82299999999999995,
+                "v" : 0.60799999999999998
+              }
+            ],
+            [
+
+            ],
+            [
+              {
+                "ancora" : 0.5,
+                "gruppo" : "leaves",
+                "immagine" : 14,
+                "misura" : 0.13400000000000001,
+                "specchio" : true,
+                "u" : 0.372,
+                "v" : 0.53700000000000003
+              },
+              {
+                "ancora" : 0.5,
+                "gruppo" : "leaves",
+                "immagine" : 16,
+                "misura" : 0.16600000000000001,
+                "specchio" : false,
+                "u" : 0.54000000000000004,
+                "v" : 0.36199999999999999
+              }
+            ],
+            [
+              {
+                "ancora" : 0.5,
+                "gruppo" : "leaves",
+                "immagine" : 16,
+                "misura" : 0.17000000000000001,
+                "specchio" : true,
+                "u" : 0.69099999999999995,
+                "v" : 0.33000000000000002
+              }
+            ],
+            [
+              {
+                "ancora" : 0.5,
+                "gruppo" : "leaves",
+                "immagine" : 14,
+                "misura" : 0.13100000000000001,
+                "specchio" : true,
+                "u" : 0.64200000000000002,
+                "v" : 0.78400000000000003
+              },
+              {
+                "ancora" : 0.5,
+                "gruppo" : "leaves",
+                "immagine" : 15,
+                "misura" : 0.16400000000000001,
+                "specchio" : true,
+                "u" : 0.48999999999999999,
+                "v" : 0.30199999999999999
+              }
+            ],
+            [
+              {
+                "ancora" : 0.75,
+                "gruppo" : "stones",
+                "immagine" : 10,
+                "misura" : 0.14699999999999999,
+                "specchio" : false,
+                "u" : 0.81599999999999995,
+                "v" : 0.76700000000000002
+              }
+            ],
+            [
+              {
+                "ancora" : 0.90000000000000002,
+                "gruppo" : "tufts",
+                "immagine" : 3,
+                "misura" : 0.28000000000000003,
+                "specchio" : false,
+                "u" : 0.39200000000000002,
+                "v" : 0.378
+              },
+              {
+                "ancora" : 0.5,
+                "gruppo" : "leaves",
+                "immagine" : 16,
+                "misura" : 0.16,
+                "specchio" : false,
+                "u" : 0.78500000000000003,
+                "v" : 0.186
+              },
+              {
+                "ancora" : 0.5,
+                "gruppo" : "leaves",
+                "immagine" : 15,
+                "misura" : 0.14099999999999999,
+                "specchio" : true,
+                "u" : 0.25700000000000001,
+                "v" : 0.17999999999999999
+              }
+            ],
+            [
+              {
+                "ancora" : 0.75,
+                "gruppo" : "stones",
+                "immagine" : 11,
+                "misura" : 0.14199999999999999,
+                "specchio" : true,
+                "u" : 0.41799999999999998,
+                "v" : 0.26300000000000001
+              },
+              {
+                "ancora" : 0.5,
+                "gruppo" : "leaves",
+                "immagine" : 14,
+                "misura" : 0.13100000000000001,
+                "specchio" : true,
+                "u" : 0.80800000000000005,
+                "v" : 0.30599999999999999
+              }
+            ],
+            [
+              {
+                "ancora" : 0.5,
+                "gruppo" : "leaves",
+                "immagine" : 15,
+                "misura" : 0.13400000000000001,
+                "specchio" : false,
+                "u" : 0.221,
+                "v" : 0.51800000000000002
+              },
+              {
+                "ancora" : 0.5,
+                "gruppo" : "leaves",
+                "immagine" : 15,
+                "misura" : 0.154,
+                "specchio" : false,
+                "u" : 0.28699999999999998,
+                "v" : 0.253
+              }
+            ],
+            [
+
+            ],
+            [
+              {
+                "ancora" : 0.5,
+                "gruppo" : "leaves",
+                "immagine" : 15,
+                "misura" : 0.153,
+                "specchio" : true,
+                "u" : 0.65600000000000003,
+                "v" : 0.38400000000000001
+              },
+              {
+                "ancora" : 0.5,
+                "gruppo" : "leaves",
+                "immagine" : 14,
+                "misura" : 0.13700000000000001,
+                "specchio" : false,
+                "u" : 0.21199999999999999,
+                "v" : 0.312
+              }
+            ],
+            [
+              {
+                "ancora" : 0.5,
+                "gruppo" : "leaves",
+                "immagine" : 15,
+                "misura" : 0.14899999999999999,
+                "specchio" : false,
+                "u" : 0.51300000000000001,
+                "v" : 0.30599999999999999
+              }
+            ],
+            [
+              {
+                "ancora" : 0.90000000000000002,
+                "gruppo" : "tufts",
+                "immagine" : 1,
+                "misura" : 0.371,
+                "specchio" : true,
+                "u" : 0.20300000000000001,
+                "v" : 0.14899999999999999
+              },
+              {
+                "ancora" : 0.5,
+                "gruppo" : "leaves",
+                "immagine" : 13,
+                "misura" : 0.13400000000000001,
+                "specchio" : true,
+                "u" : 0.35299999999999998,
+                "v" : 0.52600000000000002
+              },
+              {
+                "ancora" : 0.5,
+                "gruppo" : "leaves",
+                "immagine" : 15,
+                "misura" : 0.157,
+                "specchio" : false,
+                "u" : 0.82999999999999996,
+                "v" : 0.35199999999999998
+              }
+            ],
+            [
+              {
+                "ancora" : 0.5,
+                "gruppo" : "leaves",
+                "immagine" : 16,
+                "misura" : 0.13600000000000001,
+                "specchio" : true,
+                "u" : 0.26200000000000001,
+                "v" : 0.59099999999999997
+              }
+            ],
+            [
+              {
+                "ancora" : 0.5,
+                "gruppo" : "leaves",
+                "immagine" : 16,
+                "misura" : 0.161,
+                "specchio" : true,
+                "u" : 0.82999999999999996,
+                "v" : 0.33700000000000002
+              },
+              {
+                "ancora" : 0.5,
+                "gruppo" : "leaves",
+                "immagine" : 15,
+                "misura" : 0.14999999999999999,
+                "specchio" : true,
+                "u" : 0.25900000000000001,
+                "v" : 0.27700000000000002
+              }
+            ],
+            [
+              {
+                "ancora" : 0.5,
+                "gruppo" : "leaves",
+                "immagine" : 13,
+                "misura" : 0.13400000000000001,
+                "specchio" : true,
+                "u" : 0.63300000000000001,
+                "v" : 0.78000000000000003
+              }
+            ],
+            [
+              {
+                "ancora" : 0.5,
+                "gruppo" : "leaves",
+                "immagine" : 16,
+                "misura" : 0.155,
+                "specchio" : false,
+                "u" : 0.58199999999999996,
+                "v" : 0.79400000000000004
+              }
+            ],
+            [
+              {
+                "ancora" : 0.5,
+                "gruppo" : "leaves",
+                "immagine" : 15,
+                "misura" : 0.157,
+                "specchio" : true,
+                "u" : 0.313,
+                "v" : 0.27800000000000002
+              },
+              {
+                "ancora" : 0.5,
+                "gruppo" : "leaves",
+                "immagine" : 16,
+                "misura" : 0.16600000000000001,
+                "specchio" : false,
+                "u" : 0.77000000000000002,
+                "v" : 0.23999999999999999
+              }
+            ],
+            [
+              {
+                "ancora" : 0.90000000000000002,
+                "gruppo" : "tufts",
+                "immagine" : 2,
+                "misura" : 0.32300000000000001,
+                "specchio" : false,
+                "u" : 0.59899999999999998,
+                "v" : 0.51700000000000002
+              },
+              {
+                "ancora" : 0.5,
+                "gruppo" : "leaves",
+                "immagine" : 13,
+                "misura" : 0.16300000000000001,
+                "specchio" : false,
+                "u" : 0.80600000000000005,
+                "v" : 0.224
+              }
+            ],
+            [
+              {
+                "ancora" : 0.5,
+                "gruppo" : "leaves",
+                "immagine" : 15,
+                "misura" : 0.16600000000000001,
+                "specchio" : true,
+                "u" : 0.40999999999999998,
+                "v" : 0.69799999999999995
+              }
+            ],
+            [
+
+            ]
+          ],
+          "erba" : [
+            3,
+            3,
+            8,
+            8,
+            8,
+            5,
+            5,
+            2,
+            2,
+            11,
+            8,
+            8,
+            6,
+            6,
+            6,
+            0,
+            0,
+            6,
+            6,
+            6,
+            2,
+            2,
+            0,
+            0,
+            3,
+            3,
+            4,
+            4,
+            9,
+            9,
+            0,
+            0,
+            0,
+            2,
+            2,
+            1,
+            1,
+            1,
+            0,
+            0,
+            3,
+            3,
+            1,
+            1,
+            1,
+            4,
+            4,
+            4,
+            7,
+            7,
+            0,
+            0,
+            0,
+            4,
+            4,
+            4,
+            2,
+            2,
+            4,
+            4,
+            8,
+            8,
+            3,
+            3,
+            3,
+            2,
+            2,
+            3,
+            3,
+            3,
+            11,
+            11,
+            10,
+            10,
+            10,
+            6,
+            6,
+            6,
+            1,
+            1,
+            0,
+            0,
+            0,
+            2,
+            2,
+            5,
+            5,
+            5,
+            3,
+            3,
+            3,
+            3,
+            3,
+            7,
+            7,
+            2,
+            2,
+            3,
+            3,
+            9
+          ],
+          "sentiero" : [
+            5,
+            5,
+            5,
+            7,
+            7,
+            6,
+            6,
+            3,
+            3,
+            6,
+            6,
+            2,
+            2,
+            6,
+            6,
+            4,
+            4,
+            4,
+            6,
+            6,
+            3,
+            3,
+            3,
+            5,
+            5,
+            4,
+            4,
+            4,
+            0,
+            0
+          ]
+        },
+        "spring" : {
+          "dettagli" : [
+            [
+
+            ],
+            [
+
+            ],
+            [
+              {
+                "ancora" : 0.90000000000000002,
+                "gruppo" : "flowers",
+                "immagine" : 6,
+                "misura" : 0.12,
+                "specchio" : true,
+                "u" : 0.55700000000000005,
+                "v" : 0.38600000000000001
+              },
+              {
+                "ancora" : 0.90000000000000002,
+                "gruppo" : "flowers",
+                "immagine" : 7,
+                "misura" : 0.121,
+                "specchio" : false,
+                "u" : 0.71099999999999997,
+                "v" : 0.75
+              }
+            ],
+            [
+              {
+                "ancora" : 0.90000000000000002,
+                "gruppo" : "clover",
+                "immagine" : 5,
+                "misura" : 0.28199999999999997,
+                "specchio" : false,
+                "u" : 0.37,
+                "v" : 0.59399999999999997
+              }
+            ],
+            [
+              {
+                "ancora" : 0.90000000000000002,
+                "gruppo" : "flowers",
+                "immagine" : 7,
+                "misura" : 0.112,
+                "specchio" : true,
+                "u" : 0.18099999999999999,
+                "v" : 0.496
+              },
+              {
+                "ancora" : 0.90000000000000002,
+                "gruppo" : "flowers",
+                "immagine" : 6,
+                "misura" : 0.112,
+                "specchio" : false,
+                "u" : 0.16800000000000001,
+                "v" : 0.80500000000000005
+              }
+            ],
+            [
+              {
+                "ancora" : 0.90000000000000002,
+                "gruppo" : "flowers",
+                "immagine" : 7,
+                "misura" : 0.122,
+                "specchio" : true,
+                "u" : 0.33800000000000002,
+                "v" : 0.85499999999999998
+              },
+              {
+                "ancora" : 0.5,
+                "gruppo" : "petals",
+                "immagine" : 17,
+                "misura" : 0.14599999999999999,
+                "specchio" : true,
+                "u" : 0.19700000000000001,
+                "v" : 0.75800000000000001
+              }
+            ],
+            [
+              {
+                "ancora" : 0.90000000000000002,
+                "gruppo" : "tufts",
+                "immagine" : 1,
+                "misura" : 0.32500000000000001,
+                "specchio" : true,
+                "u" : 0.79100000000000004,
+                "v" : 0.39100000000000001
+              },
+              {
+                "ancora" : 0.90000000000000002,
+                "gruppo" : "flowers",
+                "immagine" : 8,
+                "misura" : 0.10000000000000001,
+                "specchio" : false,
+                "u" : 0.40100000000000002,
+                "v" : 0.37
+              },
+              {
+                "ancora" : 0.5,
+                "gruppo" : "petals",
+                "immagine" : 18,
+                "misura" : 0.158,
+                "specchio" : true,
+                "u" : 0.85499999999999998,
+                "v" : 0.53100000000000003
+              }
+            ],
+            [
+              {
+                "ancora" : 0.90000000000000002,
+                "gruppo" : "flowers",
+                "immagine" : 8,
+                "misura" : 0.10000000000000001,
+                "specchio" : false,
+                "u" : 0.64000000000000001,
+                "v" : 0.26300000000000001
+              }
+            ],
+            [
+
+            ],
+            [
+              {
+                "ancora" : 0.90000000000000002,
+                "gruppo" : "clover",
+                "immagine" : 5,
+                "misura" : 0.29899999999999999,
+                "specchio" : true,
+                "u" : 0.216,
+                "v" : 0.84799999999999998
+              }
+            ],
+            [
+
+            ],
+            [
+              {
+                "ancora" : 0.90000000000000002,
+                "gruppo" : "flowers",
+                "immagine" : 8,
+                "misura" : 0.113,
+                "specchio" : true,
+                "u" : 0.16900000000000001,
+                "v" : 0.58699999999999997
+              }
+            ],
+            [
+
+            ],
+            [
+              {
+                "ancora" : 0.90000000000000002,
+                "gruppo" : "flowers",
+                "immagine" : 7,
+                "misura" : 0.127,
+                "specchio" : false,
+                "u" : 0.188,
+                "v" : 0.54500000000000004
+              },
+              {
+                "ancora" : 0.90000000000000002,
+                "gruppo" : "flowers",
+                "immagine" : 9,
+                "misura" : 0.10000000000000001,
+                "specchio" : false,
+                "u" : 0.52700000000000002,
+                "v" : 0.80100000000000005
+              }
+            ],
+            [
+              {
+                "ancora" : 0.90000000000000002,
+                "gruppo" : "flowers",
+                "immagine" : 7,
+                "misura" : 0.124,
+                "specchio" : false,
+                "u" : 0.69699999999999995,
+                "v" : 0.41499999999999998
+              }
+            ],
+            [
+              {
+                "ancora" : 0.90000000000000002,
+                "gruppo" : "tufts",
+                "immagine" : 3,
+                "misura" : 0.28000000000000003,
+                "specchio" : false,
+                "u" : 0.39200000000000002,
+                "v" : 0.378
+              },
+              {
+                "ancora" : 0.90000000000000002,
+                "gruppo" : "clover",
+                "immagine" : 4,
+                "misura" : 0.28299999999999997,
+                "specchio" : true,
+                "u" : 0.39200000000000002,
+                "v" : 0.52300000000000002
+              }
+            ],
+            [
+              {
+                "ancora" : 0.90000000000000002,
+                "gruppo" : "flowers",
+                "immagine" : 8,
+                "misura" : 0.108,
+                "specchio" : true,
+                "u" : 0.376,
+                "v" : 0.65100000000000002
+              },
+              {
+                "ancora" : 0.90000000000000002,
+                "gruppo" : "flowers",
+                "immagine" : 8,
+                "misura" : 0.125,
+                "specchio" : false,
+                "u" : 0.53300000000000003,
+                "v" : 0.21099999999999999
+              },
+              {
+                "ancora" : 0.75,
+                "gruppo" : "stones",
+                "immagine" : 11,
+                "misura" : 0.14199999999999999,
+                "specchio" : true,
+                "u" : 0.41799999999999998,
+                "v" : 0.26300000000000001
+              }
+            ],
+            [
+
+            ],
+            [
+              {
+                "ancora" : 0.90000000000000002,
+                "gruppo" : "flowers",
+                "immagine" : 6,
+                "misura" : 0.124,
+                "specchio" : false,
+                "u" : 0.184,
+                "v" : 0.52600000000000002
+              }
+            ],
+            [
+              {
+                "ancora" : 0.90000000000000002,
+                "gruppo" : "flowers",
+                "immagine" : 6,
+                "misura" : 0.11799999999999999,
+                "specchio" : false,
+                "u" : 0.309,
+                "v" : 0.35999999999999999
+              }
+            ],
+            [
+              {
+                "ancora" : 0.5,
+                "gruppo" : "petals",
+                "immagine" : 19,
+                "misura" : 0.152,
+                "specchio" : true,
+                "u" : 0.77000000000000002,
+                "v" : 0.83699999999999997
+              }
+            ],
+            [
+              {
+                "ancora" : 0.90000000000000002,
+                "gruppo" : "tufts",
+                "immagine" : 1,
+                "misura" : 0.371,
+                "specchio" : true,
+                "u" : 0.20300000000000001,
+                "v" : 0.14899999999999999
+              }
+            ],
+            [
+
+            ],
+            [
+              {
+                "ancora" : 0.90000000000000002,
+                "gruppo" : "tufts",
+                "immagine" : 0,
+                "misura" : 0.29599999999999999,
+                "specchio" : false,
+                "u" : 0.23200000000000001,
+                "v" : 0.20000000000000001
+              },
+              {
+                "ancora" : 0.5,
+                "gruppo" : "petals",
+                "immagine" : 18,
+                "misura" : 0.154,
+                "specchio" : false,
+                "u" : 0.63,
+                "v" : 0.52100000000000002
+              }
+            ],
+            [
+              {
+                "ancora" : 0.5,
+                "gruppo" : "petals",
+                "immagine" : 19,
+                "misura" : 0.14799999999999999,
+                "specchio" : false,
+                "u" : 0.78600000000000003,
+                "v" : 0.81499999999999995
+              }
+            ],
+            [
+
+            ],
+            [
+              {
+                "ancora" : 0.90000000000000002,
+                "gruppo" : "flowers",
+                "immagine" : 7,
+                "misura" : 0.10299999999999999,
+                "specchio" : true,
+                "u" : 0.309,
+                "v" : 0.23000000000000001
+              },
+              {
+                "ancora" : 0.90000000000000002,
+                "gruppo" : "flowers",
+                "immagine" : 9,
+                "misura" : 0.106,
+                "specchio" : false,
+                "u" : 0.39900000000000002,
+                "v" : 0.27300000000000002
+              },
+              {
+                "ancora" : 0.5,
+                "gruppo" : "petals",
+                "immagine" : 17,
+                "misura" : 0.14499999999999999,
+                "specchio" : false,
+                "u" : 0.35499999999999998,
+                "v" : 0.61499999999999999
+              }
+            ],
+            [
+              {
+                "ancora" : 0.90000000000000002,
+                "gruppo" : "tufts",
+                "immagine" : 2,
+                "misura" : 0.32300000000000001,
+                "specchio" : false,
+                "u" : 0.59899999999999998,
+                "v" : 0.51700000000000002
+              }
+            ],
+            [
+              {
+                "ancora" : 0.90000000000000002,
+                "gruppo" : "flowers",
+                "immagine" : 9,
+                "misura" : 0.128,
+                "specchio" : false,
+                "u" : 0.84099999999999997,
+                "v" : 0.72099999999999997
+              }
+            ],
+            [
+              {
+                "ancora" : 0.90000000000000002,
+                "gruppo" : "flowers",
+                "immagine" : 7,
+                "misura" : 0.104,
+                "specchio" : false,
+                "u" : 0.36499999999999999,
+                "v" : 0.64600000000000002
+              }
+            ]
+          ],
+          "erba" : [
+            3,
+            3,
+            8,
+            8,
+            8,
+            5,
+            5,
+            2,
+            2,
+            11,
+            8,
+            8,
+            6,
+            6,
+            6,
+            0,
+            0,
+            6,
+            6,
+            6,
+            2,
+            2,
+            0,
+            0,
+            3,
+            3,
+            4,
+            4,
+            9,
+            9,
+            0,
+            0,
+            0,
+            2,
+            2,
+            1,
+            1,
+            1,
+            0,
+            0,
+            3,
+            3,
+            1,
+            1,
+            1,
+            4,
+            4,
+            4,
+            7,
+            7,
+            0,
+            0,
+            0,
+            4,
+            4,
+            4,
+            2,
+            2,
+            4,
+            4,
+            8,
+            8,
+            3,
+            3,
+            3,
+            2,
+            2,
+            3,
+            3,
+            3,
+            11,
+            11,
+            10,
+            10,
+            10,
+            6,
+            6,
+            6,
+            1,
+            1,
+            0,
+            0,
+            0,
+            2,
+            2,
+            5,
+            5,
+            5,
+            3,
+            3,
+            3,
+            3,
+            3,
+            7,
+            7,
+            2,
+            2,
+            3,
+            3,
+            9
+          ],
+          "sentiero" : [
+            5,
+            5,
+            5,
+            7,
+            7,
+            6,
+            6,
+            3,
+            3,
+            6,
+            6,
+            2,
+            2,
+            6,
+            6,
+            4,
+            4,
+            4,
+            6,
+            6,
+            3,
+            3,
+            3,
+            5,
+            5,
+            4,
+            4,
+            4,
+            0,
+            0
+          ]
+        },
+        "summer" : {
+          "dettagli" : [
+            [
+
+            ],
+            [
+
+            ],
+            [
+              {
+                "ancora" : 0.90000000000000002,
+                "gruppo" : "flowers",
+                "immagine" : 6,
+                "misura" : 0.12,
+                "specchio" : true,
+                "u" : 0.55700000000000005,
+                "v" : 0.38600000000000001
+              },
+              {
+                "ancora" : 0.90000000000000002,
+                "gruppo" : "flowers",
+                "immagine" : 7,
+                "misura" : 0.121,
+                "specchio" : false,
+                "u" : 0.71099999999999997,
+                "v" : 0.75
+              }
+            ],
+            [
+              {
+                "ancora" : 0.90000000000000002,
+                "gruppo" : "clover",
+                "immagine" : 5,
+                "misura" : 0.28199999999999997,
+                "specchio" : false,
+                "u" : 0.37,
+                "v" : 0.59399999999999997
+              }
+            ],
+            [
+              {
+                "ancora" : 0.90000000000000002,
+                "gruppo" : "flowers",
+                "immagine" : 6,
+                "misura" : 0.112,
+                "specchio" : false,
+                "u" : 0.16800000000000001,
+                "v" : 0.80500000000000005
+              }
+            ],
+            [
+              {
+                "ancora" : 0.90000000000000002,
+                "gruppo" : "flowers",
+                "immagine" : 7,
+                "misura" : 0.122,
+                "specchio" : true,
+                "u" : 0.33800000000000002,
+                "v" : 0.85499999999999998
+              }
+            ],
+            [
+              {
+                "ancora" : 0.90000000000000002,
+                "gruppo" : "tufts",
+                "immagine" : 1,
+                "misura" : 0.32500000000000001,
+                "specchio" : true,
+                "u" : 0.79100000000000004,
+                "v" : 0.39100000000000001
+              },
+              {
+                "ancora" : 0.90000000000000002,
+                "gruppo" : "flowers",
+                "immagine" : 8,
+                "misura" : 0.10000000000000001,
+                "specchio" : false,
+                "u" : 0.40100000000000002,
+                "v" : 0.37
+              }
+            ],
+            [
+              {
+                "ancora" : 0.90000000000000002,
+                "gruppo" : "flowers",
+                "immagine" : 8,
+                "misura" : 0.10000000000000001,
+                "specchio" : false,
+                "u" : 0.64000000000000001,
+                "v" : 0.26300000000000001
+              }
+            ],
+            [
+
+            ],
+            [
+              {
+                "ancora" : 0.90000000000000002,
+                "gruppo" : "clover",
+                "immagine" : 5,
+                "misura" : 0.29899999999999999,
+                "specchio" : true,
+                "u" : 0.216,
+                "v" : 0.84799999999999998
+              }
+            ],
+            [
+
+            ],
+            [
+              {
+                "ancora" : 0.90000000000000002,
+                "gruppo" : "flowers",
+                "immagine" : 8,
+                "misura" : 0.113,
+                "specchio" : true,
+                "u" : 0.16900000000000001,
+                "v" : 0.58699999999999997
+              }
+            ],
+            [
+
+            ],
+            [
+              {
+                "ancora" : 0.90000000000000002,
+                "gruppo" : "flowers",
+                "immagine" : 7,
+                "misura" : 0.127,
+                "specchio" : false,
+                "u" : 0.188,
+                "v" : 0.54500000000000004
+              },
+              {
+                "ancora" : 0.90000000000000002,
+                "gruppo" : "flowers",
+                "immagine" : 9,
+                "misura" : 0.10000000000000001,
+                "specchio" : false,
+                "u" : 0.52700000000000002,
+                "v" : 0.80100000000000005
+              }
+            ],
+            [
+              {
+                "ancora" : 0.90000000000000002,
+                "gruppo" : "flowers",
+                "immagine" : 7,
+                "misura" : 0.124,
+                "specchio" : false,
+                "u" : 0.69699999999999995,
+                "v" : 0.41499999999999998
+              }
+            ],
+            [
+              {
+                "ancora" : 0.90000000000000002,
+                "gruppo" : "tufts",
+                "immagine" : 3,
+                "misura" : 0.28000000000000003,
+                "specchio" : false,
+                "u" : 0.39200000000000002,
+                "v" : 0.378
+              },
+              {
+                "ancora" : 0.90000000000000002,
+                "gruppo" : "clover",
+                "immagine" : 4,
+                "misura" : 0.28299999999999997,
+                "specchio" : true,
+                "u" : 0.39200000000000002,
+                "v" : 0.52300000000000002
+              }
+            ],
+            [
+              {
+                "ancora" : 0.90000000000000002,
+                "gruppo" : "flowers",
+                "immagine" : 8,
+                "misura" : 0.108,
+                "specchio" : true,
+                "u" : 0.376,
+                "v" : 0.65100000000000002
+              },
+              {
+                "ancora" : 0.90000000000000002,
+                "gruppo" : "flowers",
+                "immagine" : 8,
+                "misura" : 0.125,
+                "specchio" : false,
+                "u" : 0.53300000000000003,
+                "v" : 0.21099999999999999
+              },
+              {
+                "ancora" : 0.75,
+                "gruppo" : "stones",
+                "immagine" : 11,
+                "misura" : 0.14199999999999999,
+                "specchio" : true,
+                "u" : 0.41799999999999998,
+                "v" : 0.26300000000000001
+              }
+            ],
+            [
+
+            ],
+            [
+              {
+                "ancora" : 0.90000000000000002,
+                "gruppo" : "flowers",
+                "immagine" : 6,
+                "misura" : 0.124,
+                "specchio" : false,
+                "u" : 0.184,
+                "v" : 0.52600000000000002
+              }
+            ],
+            [
+              {
+                "ancora" : 0.90000000000000002,
+                "gruppo" : "flowers",
+                "immagine" : 6,
+                "misura" : 0.11799999999999999,
+                "specchio" : false,
+                "u" : 0.309,
+                "v" : 0.35999999999999999
+              }
+            ],
+            [
+
+            ],
+            [
+              {
+                "ancora" : 0.90000000000000002,
+                "gruppo" : "tufts",
+                "immagine" : 1,
+                "misura" : 0.371,
+                "specchio" : true,
+                "u" : 0.20300000000000001,
+                "v" : 0.14899999999999999
+              }
+            ],
+            [
+
+            ],
+            [
+              {
+                "ancora" : 0.90000000000000002,
+                "gruppo" : "tufts",
+                "immagine" : 0,
+                "misura" : 0.29599999999999999,
+                "specchio" : false,
+                "u" : 0.23200000000000001,
+                "v" : 0.20000000000000001
+              }
+            ],
+            [
+
+            ],
+            [
+
+            ],
+            [
+              {
+                "ancora" : 0.90000000000000002,
+                "gruppo" : "flowers",
+                "immagine" : 7,
+                "misura" : 0.10299999999999999,
+                "specchio" : true,
+                "u" : 0.309,
+                "v" : 0.23000000000000001
+              },
+              {
+                "ancora" : 0.90000000000000002,
+                "gruppo" : "flowers",
+                "immagine" : 9,
+                "misura" : 0.106,
+                "specchio" : false,
+                "u" : 0.39900000000000002,
+                "v" : 0.27300000000000002
+              }
+            ],
+            [
+              {
+                "ancora" : 0.90000000000000002,
+                "gruppo" : "tufts",
+                "immagine" : 2,
+                "misura" : 0.32300000000000001,
+                "specchio" : false,
+                "u" : 0.59899999999999998,
+                "v" : 0.51700000000000002
+              }
+            ],
+            [
+              {
+                "ancora" : 0.90000000000000002,
+                "gruppo" : "flowers",
+                "immagine" : 9,
+                "misura" : 0.128,
+                "specchio" : false,
+                "u" : 0.84099999999999997,
+                "v" : 0.72099999999999997
+              }
+            ],
+            [
+              {
+                "ancora" : 0.90000000000000002,
+                "gruppo" : "flowers",
+                "immagine" : 7,
+                "misura" : 0.104,
+                "specchio" : false,
+                "u" : 0.36499999999999999,
+                "v" : 0.64600000000000002
+              }
+            ]
+          ],
+          "erba" : [
+            3,
+            3,
+            8,
+            8,
+            8,
+            5,
+            5,
+            2,
+            2,
+            11,
+            8,
+            8,
+            6,
+            6,
+            6,
+            0,
+            0,
+            6,
+            6,
+            6,
+            2,
+            2,
+            0,
+            0,
+            3,
+            3,
+            4,
+            4,
+            9,
+            9,
+            0,
+            0,
+            0,
+            2,
+            2,
+            1,
+            1,
+            1,
+            0,
+            0,
+            3,
+            3,
+            1,
+            1,
+            1,
+            4,
+            4,
+            4,
+            7,
+            7,
+            0,
+            0,
+            0,
+            4,
+            4,
+            4,
+            2,
+            2,
+            4,
+            4,
+            8,
+            8,
+            3,
+            3,
+            3,
+            2,
+            2,
+            3,
+            3,
+            3,
+            11,
+            11,
+            10,
+            10,
+            10,
+            6,
+            6,
+            6,
+            1,
+            1,
+            0,
+            0,
+            0,
+            2,
+            2,
+            5,
+            5,
+            5,
+            3,
+            3,
+            3,
+            3,
+            3,
+            7,
+            7,
+            2,
+            2,
+            3,
+            3,
+            9
+          ],
+          "sentiero" : [
+            5,
+            5,
+            5,
+            7,
+            7,
+            6,
+            6,
+            3,
+            3,
+            6,
+            6,
+            2,
+            2,
+            6,
+            6,
+            4,
+            4,
+            4,
+            6,
+            6,
+            3,
+            3,
+            3,
+            5,
+            5,
+            4,
+            4,
+            4,
+            0,
+            0
+          ]
+        },
+        "winter" : {
+          "dettagli" : [
+            [
+
+            ],
+            [
+
+            ],
+            [
+
+            ],
+            [
+
+            ],
+            [
+
+            ],
+            [
+              {
+                "ancora" : 0.69999999999999996,
+                "gruppo" : "snow",
+                "immagine" : 21,
+                "misura" : 0.32000000000000001,
+                "specchio" : false,
+                "u" : 0.16,
+                "v" : 0.54600000000000004
+              }
+            ],
+            [
+
+            ],
+            [
+
+            ],
+            [
+
+            ],
+            [
+
+            ],
+            [
+
+            ],
+            [
+              {
+                "ancora" : 0.69999999999999996,
+                "gruppo" : "snow",
+                "immagine" : 23,
+                "misura" : 0.40200000000000002,
+                "specchio" : false,
+                "u" : 0.28399999999999997,
+                "v" : 0.14999999999999999
+              }
+            ],
+            [
+
+            ],
+            [
+
+            ],
+            [
+
+            ],
+            [
+
+            ],
+            [
+              {
+                "ancora" : 0.75,
+                "gruppo" : "stones",
+                "immagine" : 11,
+                "misura" : 0.14199999999999999,
+                "specchio" : true,
+                "u" : 0.41799999999999998,
+                "v" : 0.26300000000000001
+              }
+            ],
+            [
+
+            ],
+            [
+
+            ],
+            [
+
+            ],
+            [
+
+            ],
+            [
+
+            ],
+            [
+
+            ],
+            [
+
+            ],
+            [
+
+            ],
+            [
+              {
+                "ancora" : 0.69999999999999996,
+                "gruppo" : "snow",
+                "immagine" : 22,
+                "misura" : 0.30099999999999999,
+                "specchio" : false,
+                "u" : 0.439,
+                "v" : 0.28199999999999997
+              }
+            ],
+            [
+
+            ],
+            [
+
+            ],
+            [
+              {
+                "ancora" : 0.69999999999999996,
+                "gruppo" : "snow",
+                "immagine" : 20,
+                "misura" : 0.39200000000000002,
+                "specchio" : false,
+                "u" : 0.35499999999999998,
+                "v" : 0.33000000000000002
+              }
+            ],
+            [
+
+            ]
+          ],
+          "erba" : [
+            5,
+            5,
+            9,
+            9,
+            9,
+            7,
+            7,
+            3,
+            3,
+            11,
+            9,
+            9,
+            8,
+            8,
+            8,
+            0,
+            0,
+            8,
+            8,
+            8,
+            2,
+            2,
+            1,
+            1,
+            4,
+            4,
+            6,
+            6,
+            11,
+            11,
+            0,
+            0,
+            0,
+            2,
+            2,
+            1,
+            1,
+            1,
+            0,
+            0,
+            5,
+            5,
+            1,
+            1,
+            1,
+            5,
+            5,
+            5,
+            8,
+            8,
+            0,
+            0,
+            0,
+            6,
+            6,
+            6,
+            2,
+            2,
+            5,
+            5,
+            9,
+            9,
+            5,
+            5,
+            5,
+            4,
+            4,
+            9,
+            9,
+            9,
+            11,
+            11,
+            2,
+            2,
+            2,
+            8,
+            8,
+            8,
+            1,
+            1,
+            0,
+            0,
+            0,
+            3,
+            3,
+            5,
+            5,
+            5,
+            4,
+            4,
+            4,
+            4,
+            4,
+            8,
+            8,
+            3,
+            3,
+            4,
+            4,
+            10
+          ],
+          "sentiero" : [
+            4,
+            4,
+            4,
+            6,
+            6,
+            5,
+            5,
+            3,
+            3,
+            2,
+            2,
+            1,
+            1,
+            5,
+            5,
+            3,
+            3,
+            3,
+            5,
+            5,
+            2,
+            2,
+            2,
+            4,
+            4,
+            3,
+            3,
+            3,
+            0,
+            0
           ]
         }
       }

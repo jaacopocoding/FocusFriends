@@ -113,6 +113,21 @@
 
           ],
           "grandezza" : 8
+        },
+        "tartaruga" : {
+          "angoli" : [
+
+          ],
+          "cassetta" : [
+            "margherite",
+            "trifoglio",
+            "mughetti",
+            "rosaio"
+          ],
+          "copie" : [
+
+          ],
+          "grandezza" : 8
         }
       },
       "mancano" : 68,

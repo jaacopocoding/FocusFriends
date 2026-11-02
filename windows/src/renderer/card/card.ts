@@ -420,7 +420,7 @@ export class MenuCard {
   private statusText(data: CardData, timer: PomodoroSnapshot, pet: PetData): string {
     if (timer.phase === "focus") return timer.subject !== null ? `Focus · ${timer.subject}` : "Focus";
     if (timer.phase === "rest") return timer.isLongBreak ? "Pausa lunga" : "Pausa";
-    return data.petVisible ? `${pet.name} è qui con te` : `${pet.name} è nascosto`;
+    return data.petVisible ? `${pet.name} è qui con te` : `${pet.name} è nascost${pet.feminine ? "a" : "o"}`;
   }
 
   private volumeRow(value: number, label: string, onChange: (value: number) => void): HTMLElement {

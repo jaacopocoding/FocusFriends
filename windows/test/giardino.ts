@@ -54,7 +54,7 @@ function catalogJson(): Record<string, unknown> {
     doppiePagine: albumSpreads().map((s) => ({ sinistra: s.left.items.map((x) => x.id), destra: s.right === null ? null : s.right.items.map((x) => x.id), pagina: s.left.index, pagine: s.left.count })),
     doppieComplete: [0, 6, 16, 30, 47].map((n) => completedSpreads((id) => GARDEN_ITEMS.slice(0, n).some((x) => x.id === id))),
     doppieSedici: completedSpreads((id) => found.has(id)),
-    altezzeCompagni: ["pianty", "porcellino", "ciccio", "gattino", "riccio", "nessuno"].map(companionHeight),
+    altezzeCompagni: ["pianty", "porcellino", "ciccio", "gattino", "riccio", "tartaruga", "nessuno"].map(companionHeight),
     benvenuti: ISLANDS.map((island) => welcomeGift(island, (id) => id === "annaffiatoio" || id === "cesto-carote")),
     universali: universalItems().length,
   };
@@ -227,7 +227,7 @@ function companionsJson(): Record<string, unknown> {
   const routes: Array<[GardenTile, GardenTile]> = [[tile(0, 0), tile(4, 0)], [tile(0, 0), tile(0, 0)], [tile(1, 1), tile(7, 7)], [tile(0, 0), tile(2, 2)], [tile(6, 6), tile(0, 7)]];
   const short = route(tile(0, 0), tile(7, 7), 8, new Set(), 5);
   return {
-    pose: ["pianty", "porcellino", "ciccio", "gattino", "riccio"].flatMap((pet) => GARDEN_POSES.map((pose) => ({
+    pose: ["pianty", "porcellino", "ciccio", "gattino", "riccio", "tartaruga"].flatMap((pet) => GARDEN_POSES.map((pose) => ({
       frame: poseFrames(pet, pose), immagini: [0, 0.4, 1.3, 7.9].map((time) => poseImage(pet, pose, time)?.replace("/", "_") ?? null),
     }))),
     intorno: [[tile(0, 0)], [tile(3, 3), tile(4, 3)], [tile(7, 7)]].map((fp) => standingTiles(fp, 8).map(t)),

@@ -222,6 +222,22 @@
 
           ],
           "grandezza" : 8
+        },
+        "tartaruga" : {
+          "angoli" : [
+
+          ],
+          "cassetta" : [
+            "margherite",
+            "trifoglio",
+            "mughetti",
+            "tulipani",
+            "lampione"
+          ],
+          "copie" : [
+
+          ],
+          "grandezza" : 8
         }
       },
       "mancano" : 108,

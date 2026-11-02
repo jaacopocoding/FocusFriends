@@ -10,8 +10,8 @@ import { PETS, PET_IDS, finalStage, focusGrowthStage, growsWithTimer, iconImage,
 const assets = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "assets");
 
 describe("Compagni", () => {
-  it("i cinque, nell'ordine dei personaggi", () => {
-    assert.deepEqual(PET_IDS, ["pianty", "porcellino", "ciccio", "gattino", "riccio"]);
+  it("i sei, nell'ordine dei personaggi", () => {
+    assert.deepEqual(PET_IDS, ["pianty", "porcellino", "ciccio", "gattino", "riccio", "tartaruga"]);
   });
 
   it("tutte le immagini esistono in assets/", () => {

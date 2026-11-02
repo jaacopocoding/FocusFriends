@@ -33,7 +33,7 @@ export function rarityColor(item: GardenItem): string {
 /** Il colore di un'isola (la stessa tinta del giardino), per il segno «solo …». */
 function islandTint(island: string, alpha: number): string {
   const rgb: Record<string, [number, number, number]> = {
-    pianty: [96, 200, 84], porcellino: [238, 150, 96], ciccio: [70, 170, 214], gattino: [112, 132, 204], riccio: [212, 124, 64],
+    pianty: [96, 200, 84], porcellino: [238, 150, 96], ciccio: [70, 170, 214], gattino: [112, 132, 204], riccio: [212, 124, 64], tartaruga: [132, 160, 82],
   };
   const c = rgb[island] ?? [140, 102, 64];
   return `rgba(${c[0]}, ${c[1]}, ${c[2]}, ${alpha})`;

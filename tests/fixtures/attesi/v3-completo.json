@@ -664,8 +664,14 @@
       {
         "col" : 3,
         "girata" : false,
-        "oggetto" : "cancelletto",
+        "oggetto" : "tavolino",
         "row" : 2
+      },
+      {
+        "col" : 6,
+        "girata" : false,
+        "oggetto" : "annaffiatoio",
+        "row" : 1
       },
       {
         "col" : 6,
@@ -683,7 +689,11 @@
       "angoli" : [
         "prato-fiorito"
       ],
-      "avvisoRegole" : null,
+      "avvisoRegole" : {
+        "riga" : "Le cose degli animali sono andate sulle loro isole.",
+        "spostate" : 1,
+        "tornate" : 0
+      },
       "casa" : "gattino",
       "compagni" : {
         "gattino" : [
@@ -695,6 +705,7 @@
       "dalRaro" : 4,
       "file" : [
         "giardino-formato1.json",
+        "giardino-prima-delle-regole.json",
         "giardino.json"
       ],
       "isole" : {
@@ -711,11 +722,18 @@
             "lavanda",
             "papaveri",
             "felci",
-            "cancelletto",
+            "altalena-uccelli",
+            "tavolino",
             "panchina"
           ],
           "copie" : [
-
+            {
+              "col" : 6,
+              "girata" : false,
+              "isola" : "ciccio",
+              "oggetto" : "altalena-uccelli",
+              "row" : 2
+            }
           ],
           "grandezza" : 8
         },
@@ -733,7 +751,7 @@
             "papaveri",
             "felci",
             "cesto-cuscino",
-            "cancelletto",
+            "tavolino",
             "panchina"
           ],
           "copie" : [
@@ -776,7 +794,7 @@
               "col" : 3,
               "girata" : false,
               "isola" : "gattino",
-              "oggetto" : "cancelletto",
+              "oggetto" : "tavolino",
               "row" : 2
             },
             {
@@ -809,11 +827,18 @@
             "lavanda",
             "papaveri",
             "felci",
-            "cancelletto",
+            "annaffiatoio",
+            "tavolino",
             "panchina"
           ],
           "copie" : [
-
+            {
+              "col" : 7,
+              "girata" : false,
+              "isola" : "pianty",
+              "oggetto" : "annaffiatoio",
+              "row" : 1
+            }
           ],
           "grandezza" : 8
         },
@@ -830,26 +855,11 @@
             "lavanda",
             "papaveri",
             "felci",
-            "cesto-carote",
-            "tunnel",
-            "cancelletto",
+            "tavolino",
             "panchina"
           ],
           "copie" : [
-            {
-              "col" : 4,
-              "girata" : false,
-              "isola" : "porcellino",
-              "oggetto" : "cesto-carote",
-              "row" : 1
-            },
-            {
-              "col" : 5,
-              "girata" : false,
-              "isola" : "porcellino",
-              "oggetto" : "tunnel",
-              "row" : 1
-            }
+
           ],
           "grandezza" : 8
         },
@@ -866,7 +876,28 @@
             "lavanda",
             "papaveri",
             "felci",
-            "cancelletto",
+            "tavolino",
+            "panchina"
+          ],
+          "copie" : [
+
+          ],
+          "grandezza" : 8
+        },
+        "tartaruga" : {
+          "angoli" : [
+
+          ],
+          "cassetta" : [
+            "margherite",
+            "trifoglio",
+            "mughetti",
+            "tulipani",
+            "funghi",
+            "lavanda",
+            "papaveri",
+            "felci",
+            "tavolino",
             "panchina"
           ],
           "copie" : [
@@ -877,13 +908,13 @@
       },
       "mancano" : 140,
       "nuove" : [
-        "cancelletto",
-        "cesto-carote",
+        "altalena-uccelli",
+        "annaffiatoio",
         "cesto-cuscino",
         "felci",
         "funghi",
         "papaveri",
-        "tunnel"
+        "tavolino"
       ],
       "ospiti" : {
 
@@ -895,8 +926,8 @@
       "riserva" : 0,
       "strada" : 0,
       "trovati" : [
-        "cancelletto",
-        "cesto-carote",
+        "altalena-uccelli",
+        "annaffiatoio",
         "cesto-cuscino",
         "felci",
         "funghi",
@@ -905,9 +936,9 @@
         "mughetti",
         "panchina",
         "papaveri",
+        "tavolino",
         "trifoglio",
-        "tulipani",
-        "tunnel"
+        "tulipani"
       ]
     },
     "isola" : 8,
@@ -920,25 +951,25 @@
       "lavanda",
       "papaveri",
       "felci",
-      "cesto-carote",
+      "annaffiatoio",
       "cesto-cuscino",
-      "tunnel",
-      "cancelletto",
+      "altalena-uccelli",
+      "tavolino",
       "panchina"
     ],
     "regaliAperti" : 7,
     "regaliTrovati" : [
       "felci",
       "papaveri",
-      "cancelletto",
-      "cesto-carote",
-      "tunnel",
+      "tavolino",
+      "annaffiatoio",
+      "altalena-uccelli",
       "funghi",
       "cesto-cuscino"
     ],
     "trovati" : {
-      "cancelletto" : 1,
-      "cesto-carote" : 1,
+      "altalena-uccelli" : 1,
+      "annaffiatoio" : 1,
       "cesto-cuscino" : 1,
       "felci" : 1,
       "funghi" : 1,
@@ -947,9 +978,9 @@
       "mughetti" : 1,
       "panchina" : 1,
       "papaveri" : 1,
+      "tavolino" : 1,
       "trifoglio" : 1,
-      "tulipani" : 1,
-      "tunnel" : 1
+      "tulipani" : 1
     }
   },
   "profilo" : {
@@ -1026,22 +1057,22 @@
       ],
       null,
       [
-        "tunnel",
+        "candela-cesto",
         "Comune"
       ],
       null,
       [
-        "cesto-cuscino",
+        "tunnel",
         "Comune"
       ],
       [
-        "lampada-fienile",
+        "hotel-insetti",
         "Raro"
       ],
       null,
       null,
       [
-        "funghi",
+        "lavanda",
         "Comune"
       ],
       null

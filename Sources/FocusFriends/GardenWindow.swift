@@ -1342,6 +1342,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
         case "ciccio": return color(70, 170, 214, 0.22 * k)
         case "gattino": return color(112, 132, 204, 0.26 * k)
         case "riccio": return color(212, 124, 64, 0.24 * k)
+        case "tartaruga": return color(132, 160, 82, 0.24 * k)
         default: return nil
         }
     }

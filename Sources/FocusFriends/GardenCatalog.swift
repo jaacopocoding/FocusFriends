@@ -54,7 +54,7 @@ struct GardenItem: Equatable {
     /// Si unisce alle uguali che ha accanto (la staccionata): un pezzo ha un braccio verso ogni vicino, e così fa gli angoli, le T e le croci da solo (`GardenLinks`). Con un vicino
     /// solo prosegue dritto; senza vicini va nel verso scelto girandolo.
     var joins = false
-    /// Fa luce la sera (il lampione, l'alberello di lucine, la lanterna, il braciere, e le cinque luci degli animali).
+    /// Fa luce la sera (il lampione, l'alberello di lucine, la lanterna, il braciere, e le sei luci degli animali).
     var glow: GardenGlow?
     /// Ha un secondo disegno, «acceso» (`giardino_<id>-acceso`), che si vede quando fa buio: il braciere con la fiamma. Fa luce solo da acceso.
     var litDrawing = false
@@ -64,12 +64,12 @@ struct GardenItem: Equatable {
     /// Può stare su questa isola? Gli universali sì, ovunque; quelli di un animale solo sulla sua.
     func fits(island other: String) -> Bool { island == nil || island == other }
 
-    /// Il nome con l'articolo, per le frasi: «il cesto di carote», «la casa del gatto», «l'annaffiatoio». (Le cose degli animali sono ventidue: la regola
+    /// Il nome con l'articolo, per le frasi: «il cesto di carote», «la casa del gatto», «l'annaffiatoio». (Le cose degli animali sono ventinove: la regola
     /// basta, e le prove le controllano tutte.)
     var nameWithArticle: String {
         let lower = name.prefix(1).lowercased() + name.dropFirst()
         if let first = lower.first, "aeiou".contains(first) || lower.hasPrefix("hotel ") { return "l'" + lower }
-        let feminine = ["casa", "lanterna", "lampada", "candela", "cassetta", "zucca", "carriola", "tana"].contains { lower.hasPrefix($0 + " ") }
+        let feminine = ["casa", "lanterna", "lampada", "candela", "cassetta", "zucca", "carriola", "tana", "bandierina"].contains { lower.hasPrefix($0 + " ") }
         return (feminine ? "la " : "il ") + lower
     }
 
@@ -172,7 +172,7 @@ struct GardenCompanionPlace: Codable, Equatable {
 enum GardenCatalog {
     /// I compagni nel giardino: alti quanto, in primo piano (unità della scena). Quelli senza voce sono 100.
     private static let companionHeights: [String: Double] = [
-        "pianty": 120, "porcellino": 60, "ciccio": 105, "gattino": 92, "riccio": 66,
+        "pianty": 120, "porcellino": 60, "ciccio": 105, "gattino": 92, "riccio": 66, "tartaruga": 64,
     ]
 
     static func companionHeight(for petID: String) -> Double { companionHeights[petID] ?? 100 }
@@ -247,6 +247,15 @@ enum GardenCatalog {
         item("hotel-insetti", "Hotel degli insetti", .companions, height: 112, price: 5, island: "riccio"),
         item("carriola-ghiande", "Carriola di ghiande", .companions, height: 78, price: 5, island: "riccio"),
         item("tana-foglie", "Tana di foglie", .companions, height: 90, price: 6, island: "riccio"),
+        // Le cose della Tartaruga, sulla sua isola (le ultime sette figurine; la lanterna di carta è la sua luce).
+        item("sasso-sole", "Sasso al sole", .companions, height: 38, price: 2, island: "tartaruga"),
+        item("lattuga", "Cespo di lattuga", .companions, height: 45, price: 2, island: "tartaruga"),
+        item("aiuola-fragole", "Aiuola di fragole", .companions, height: 62, price: 3, island: "tartaruga"),
+        item("bandiera-traguardo", "Bandierina del traguardo", .companions, height: 105, price: 4, island: "tartaruga"),
+        item("lanterna-carta", "Lanterna di carta", .companions, height: 110, price: 4,
+             glow: GardenGlow(red: 255, green: 172, blue: 92, radius: 0.75, top: 0.48, strength: 0.85), island: "tartaruga"),
+        item("laghetto", "Laghetto", .companions, height: 40, price: 5, island: "tartaruga"),
+        item("rifugio-paglia", "Rifugio di paglia", .companions, height: 90, price: 6, island: "tartaruga"),
     ]
 
     /// Gli oggetti universali (su qualunque isola) e quelli di un animale (solo sulla sua isola).
@@ -325,7 +334,11 @@ extension GardenItem {
 
     /// Dove sta l'acqua nel disegno (centro e mezze misure, in frazioni del disegno): ci si mettono i luccichii.
     var waterSpot: (u: Double, v: Double, halfWidth: Double, halfHeight: Double)? {
-        id == "bagnetto" ? (0.50, 0.255, 0.30, 0.07) : nil
+        switch id {
+        case "bagnetto": return (0.50, 0.255, 0.30, 0.07)
+        case "laghetto": return (0.46, 0.52, 0.30, 0.20)
+        default: return nil
+        }
     }
 }
 

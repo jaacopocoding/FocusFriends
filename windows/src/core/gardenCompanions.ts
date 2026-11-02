@@ -32,6 +32,9 @@ export const AFFINITIES: readonly GardenAffinity[] = [
   affinity("riccio", "tana", "tana-foglie", "sleep"),
   affinity("riccio", "dispensa", "cassetta-mele", "eat"),
   affinity("riccio", "bosco", "felci", "popcorn"),
+  affinity("tartaruga", "rifugio", "rifugio-paglia", "sleep"),
+  affinity("tartaruga", "fragole", "aiuola-fragole", "eat"),
+  affinity("tartaruga", "acqua", "ponticello", "popcorn"),
 ];
 
 const POSE_FRAMES: Readonly<Record<string, [number, number]>> = {
@@ -39,6 +42,7 @@ const POSE_FRAMES: Readonly<Record<string, [number, number]>> = {
   "porcellino/eat": [6, 10], "porcellino/sleep": [11, 14], "porcellino/popcorn": [15, 19],
   "ciccio/wings": [8, 13],
   "riccio/eat": [8, 12], "riccio/sleep": [13, 18], "riccio/popcorn": [19, 23],
+  "tartaruga/eat": [8, 12], "tartaruga/sleep": [13, 18], "tartaruga/popcorn": [19, 23],
 };
 
 /** I numeri di fotogramma (da 1, come `frame<n>.png`) di una posa per un compagno; vuoto se non la fa. */

@@ -38,7 +38,7 @@ private func catalogJSON() -> [String: Any] {
         "oggetti": items, "doppiePagine": spreads,
         "doppieComplete": [0, 6, 16, 30, 47].map { n in GardenAlbum.completedSpreads(isFound: { id in GardenCatalog.items.prefix(n).contains { $0.id == id } }) },
         "doppieSedici": GardenAlbum.completedSpreads(isFound: { found.contains($0) }),
-        "altezzeCompagni": ["pianty", "porcellino", "ciccio", "gattino", "riccio", "nessuno"].map { GardenCatalog.companionHeight(for: $0) },
+        "altezzeCompagni": ["pianty", "porcellino", "ciccio", "gattino", "riccio", "tartaruga", "nessuno"].map { GardenCatalog.companionHeight(for: $0) },
         "benvenuti": GardenIslands.all.map { island in v(GardenCatalog.welcomeGift(forIsland: island, has: { $0 == "annaffiatoio" || $0 == "cesto-carote" })) },
         "universali": GardenCatalog.universalItems.count,
     ]
@@ -221,7 +221,7 @@ private func companionsJSON() -> [String: Any] {
     let routes = [(GardenTile(col: 0, row: 0), GardenTile(col: 4, row: 0)), (GardenTile(col: 0, row: 0), GardenTile(col: 0, row: 0)), (GardenTile(col: 1, row: 1), GardenTile(col: 7, row: 7)),
                   (GardenTile(col: 0, row: 0), GardenTile(col: 2, row: 2)), (GardenTile(col: 6, row: 6), GardenTile(col: 0, row: 7))]
     return [
-        "pose": ["pianty", "porcellino", "ciccio", "gattino", "riccio"].flatMap { pet in GardenPose.allCases.map { pose in
+        "pose": ["pianty", "porcellino", "ciccio", "gattino", "riccio", "tartaruga"].flatMap { pet in GardenPose.allCases.map { pose in
             ["frame": GardenCompanions.frames(pet: pet, pose: pose), "immagini": [0, 0.4, 1.3, 7.9].map { v(GardenCompanions.resource(pet: pet, pose: pose, time: $0)) }] as [String: Any]
         } },
         "intorno": [[GardenTile(col: 0, row: 0)], [GardenTile(col: 3, row: 3), GardenTile(col: 4, row: 3)], [GardenTile(col: 7, row: 7)]].map { GardenCompanions.standingTiles(around: $0, size: 8).map(tileJSON) },

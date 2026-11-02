@@ -153,7 +153,7 @@ FocusFriends/
 │   ├── GardenSky.swift           the garden's sky: light by hour and season (`GardenSky.light`), lamps and fireflies, the motion of petals, leaves, snow and fireflies (Foundation only)
 │   ├── GardenGrid.swift          the islands and the world: GardenTile, GardenFootprint, GardenIsland (size, the old fixed path), GardenLayout (canPlace, nearest free tile, starter tiles, legacy-spot mapping), GardenLinks (a joined piece's arms from its neighbours), GardenTerrain (grass, path and detail tiles), GardenHill, GardenIslands (the four ids), GardenPaths (each island's own path), GardenLandmarks (each island's house), GardenBridge and GardenWorld (the 2×2 map, the four bridges, pending bridges and who is welcomed), legacy GardenSpot/GardenScene (Foundation only)
 │   ├── GardenDrops.swift         the end-of-focus drop: rarities, chances, pity, deterministic roll (FNV-1a + Mulberry32), simulate(), the sentences (Foundation only)
-│   ├── GardenCatalog.swift       the 47 objects (id, name, category, height, footprint, price → rarity, the animal's island, `glow`, `litDrawing`), the welcome gift of an island, GardenPlacement (island + tile + turned) + GardenAlbum pages (Foundation only)
+│   ├── GardenCatalog.swift       the 54 objects (id, name, category, height, footprint, price → rarity, the animal's island, `glow`, `litDrawing`), the welcome gift of an island, GardenPlacement (island + tile + turned) + GardenAlbum pages (Foundation only)
 │   ├── GardenPoints.swift        StudyStreak (streak with one frozen day) + GardenPoints (hours × multiplier)  (Foundation only)
 │   ├── AmbientSound.swift        AmbientSound, AmbientSettings, BackgroundChoice                        (Foundation only)
 │   ├── AmbientPlayer.swift       NoiseSynth (real-time synthesis) + AmbientPlayer (AVAudioEngine wrapper)
@@ -172,6 +172,8 @@ FocusFriends/
 │   ├── cutout_ciccio.py          Ciccio walk + flap sheets → frame1..13 on a common canvas
 │   ├── cutout_gattino.py         Gattino sheets (idle, walk, eat, sleep, groom) → frame1..23 on a common canvas
 │   ├── cutout_riccio.py          Riccio sheets (idle, walk, eat, sleep, roll, growth) → frame1..23 and `assets/garden/growth_riccio_1..5.png` on common canvases (same scale, same feet line)
+│   ├── cutout_tartaruga.py       Tartaruga sheets (idle, walk, eat, sleep, shell) → frame1..23 on one canvas, scaled and aligned on the shell (found by its colour)
+│   ├── compose_tartaruga_growth.py   the focus images `assets/garden/growth_tartaruga_1..3.png`: stepping stones and a flag that stay still, the tortoise closer each time (the last one centred, so nothing jumps at the end)
 │   ├── cutout_picked.py          "picked up by hands" drawing cut-out (generic, takes paths)
 │   ├── cutout_garden.py          5-stage collection sheet → garden_<pet>_1..5 on the 208×341 canvas (used for the live growth during a focus)
 │   ├── cutout_giardino.py        the object sheets (the three 4×3 ones, plus `luci_original.png` 2×2 and `luci2_original.png` 3×2 with cells to skip; white or magenta background) → one PNG per object + the 2× meadow; the fire bowl's two drawings are cut together (same width, same bottom)
@@ -190,13 +192,13 @@ FocusFriends/
 │   └── make_icon.py              builds AppIcon.png/.icns and docs/images/logo.png from assets/logo_original.png
 ├── assets/                       source and processed artwork, phrase files, music (see build.sh for what is bundled)
 │   ├── AppIcon.icns / AppIcon.png, logo_original.png, bubble.png / bubble_original.png
-│   ├── frasi_pianty.txt, frasi_porcellino.txt, frasi_ciccio.txt, frasi_gattino.txt, frasi_riccio.txt   bundled phrase files (one phrase per line, '#' comments)
+│   ├── frasi_pianty.txt, frasi_porcellino.txt, frasi_ciccio.txt, frasi_gattino.txt, frasi_riccio.txt, frasi_tartaruga.txt   bundled phrase files (one phrase per line, '#' comments)
 │   ├── pianty/                   original.png, picked(.png/_original.png), sheets/stage1..5.png, stage{1..5}_{1..7}.png (35 frames)
 │   ├── porcellino/               *_original.png sheets, frame1..19.png, picked(.png/_original.png)
 │   ├── ciccio/                   walk_original.png, flap_original.png, frame1..13.png, picked(.png/_original.png)
 │   ├── gattino/                  idle/walk/eat/sleep/groom_original.png sheets, frame1..23.png, picked(.png/_original.png)
 │   ├── garden/                   garden_<pet>_1..5.png (ciccio, porcellino), growth_porcellino_1..5.png, *_original sheets (live growth)
-│   ├── giardino/                 fiori/compagni/arredi/luci/luci2/luci3_original.png sheets (`riccio_original.png` 4×2 too), prato_original.png, 47 object PNGs + `braciere-acceso.png`, prato.png, erba_original.png and sentiero_original.png (terrain sheets), tessera_erba_1..12.png, tessera_sentiero_1..8.png, tessera_neve_1..12.png and tessera_sentiero_neve_1..8.png (diamond tiles), bordo_original.png, bordo_1..3.png, bordo_neve_original.png and bordo_neve_1..3.png (earth edge strips), sfondo_original.png, sfondo.png and paesaggio_original.png with the 12 paesaggio_<name>.png pieces, sfondo_inverno_original.png, sfondo_inverno.png and paesaggio_inverno_original.png with the 9 paesaggio_inverno_<name>.png pieces, neve_original.png and sentiero_neve_original.png (the snow sheets), dettagli_original.png and dettaglio_1..24.png (the scattered details), visitatori_original.png and the 12 visitatore_<name>.png guests, collina_original.png and collina_autunno/primavera/estate/inverno.png (the hill)
+│   ├── giardino/                 fiori/compagni/arredi/luci/luci2/luci3_original.png sheets (`riccio_original.png` 4×2 too, `tartaruga_original.png` with a box per object), prato_original.png, 54 object PNGs + `braciere-acceso.png`, prato.png, erba_original.png and sentiero_original.png (terrain sheets), tessera_erba_1..12.png, tessera_sentiero_1..8.png, tessera_neve_1..12.png and tessera_sentiero_neve_1..8.png (diamond tiles), bordo_original.png, bordo_1..3.png, bordo_neve_original.png and bordo_neve_1..3.png (earth edge strips), sfondo_original.png, sfondo.png and paesaggio_original.png with the 12 paesaggio_<name>.png pieces, sfondo_inverno_original.png, sfondo_inverno.png and paesaggio_inverno_original.png with the 9 paesaggio_inverno_<name>.png pieces, neve_original.png and sentiero_neve_original.png (the snow sheets), dettagli_original.png and dettaglio_1..24.png (the scattered details), visitatori_original.png and the 12 visitatore_<name>.png guests, collina_original.png and collina_autunno/primavera/estate/inverno.png (the hill)
 │   ├── album/                    copertina(.png/_original.png), doppia_pagina(.png/_original.png), guida_doppia_pagina_original.png (layout guide given to the image generator)
 │   └── music/                    5 AAC (.m4a) tracks: boredom, love, night-driving, old-age, opinions
 ├── docs/GUIDA.md                 the full Italian user + developer guide (features, data formats, structure, how to add a pet): the former README
@@ -274,8 +276,8 @@ code. All UI code runs on the main thread; the only other thread is the audio re
 
 ### 3.3 Walking, eating, sleeping, "popcorning"
 
-- **What:** the five companions walk horizontally across the screen; Porcellino, Gattino and Riccio also eat and nap (with
-  "Zzz"); Porcellino jumps; Ciccio flaps its wings, Gattino licks its paw and Riccio rolls into a ball (these use the "popcorn" slot). Movement
+- **What:** the six companions walk horizontally across the screen; Porcellino, Gattino, Riccio and Tartaruga also eat and nap (with
+  "Zzz"); Porcellino jumps; Ciccio flaps its wings, Gattino licks its paw, Riccio rolls into a ball and Tartaruga hides in her shell (these use the "popcorn" slot). Movement
   can be turned off.
 - **Entry point:** `Walker.start()` → `Walker.tick()` (30 Hz while the pet is visible, walks and movement is enabled;
   1 Hz otherwise — `tick` recreates the timer through `makeTimer(interval:)` when the wanted rate changes).
@@ -597,7 +599,7 @@ code. All UI code runs on the main thread; the only other thread is the audio re
   dragging turns the copy (a small «R per girarla» hint shows while dragging), a **double click** on a placed copy turns it (`turn(_:)`), right-click → "Gira" / "Togli dal giardino". After each drop of a fresh copy the tray reopens
   (it collapses only while a copy is being dragged), and a fence (`GardenItem.joins`) starts turned like the last one (`repeatTurned`), so a row is one drag per piece. Objects lying on a side are drawn by `GardenSprites.axial`
   (`GardenItem.gardenResource`, key suffix `@asse`), their feet are the tile centre (`standingPoint(of:ground:iso:)`) and `entity(…)` sizes them by the tile side (`sideWidth`), not by `height`. The fence (`GardenItem.joins`) **joins its neighbours**: `GardenView.linkedTiles(on:)` collects the tiles with a fence (without the one being moved), `look(of:at:turned:linked:)` asks `GardenLinks.arms` for its arms and draws `giardino_cancelletto@asse#<arms>` (never mirrored: the turn is already in the arms); the drag ghost previews the arms at the target tile, and turning a fence that has neighbours says «La staccionata segue quelle accanto.». Scroll = pan (⌘ or ⌥ = zoom), pinch = zoom, `+` `−` `0`.
-- **Islands** (`GardenIslands`, `GardenWorld`, `Garden`; steps 1 and 2 of a plan, `giardino.json` version 4). The garden is becoming a **world of islands, one per companion** (five now)
+- **Islands** (`GardenIslands`, `GardenWorld`, `Garden`; steps 1 and 2 of a plan, `giardino.json` version 4). The garden is becoming a **world of islands, one per companion** (six now)
   (`GardenIslands.all`, the ids of `Pet.all`, always in the same positions on the map). Decisions taken with the user: a companion's specimens live only on its island; objects are of
   two kinds — **universal** (the 24 flowers and furniture, anywhere) and **of an animal** (`GardenItem.island`, three per animal: the twelve "per i compagni", only on that island);
   all the islands are on the map, the ones whose companion is not yet unlocked darkened; the **bridge** to an island is built the first time the garden is entered after unlocking
@@ -608,8 +610,8 @@ code. All UI code runs on the main thread; the only other thread is the audio re
   `canPlace(…on:)`, `place(…on:)`, `formedCorners(on:)`). The calls without an island talk about the **shown** island (`showIsland`, by default the home one; it is not saved).
   Corners are formed only among copies of the same island, and are unlocked from any island.
   **Step 2, one world:** there is no separate map screen. `GardenWorld` (Foundation only, tested) puts the islands in a grid of cells (pianty top, porcellino right, ciccio left,
-  gattino bottom, riccio to the right of gattino; the cell above riccio is free and waits for another companion: always there), each cell `GardenIsland.maxSize + gap(4)` tiles, a smaller island centred in its cell so it does not move when it grows; five `bridges` between
-  neighbouring cells (three along the columns, two along the rows, never diagonal; `extent` is the square that holds every cell and `reach` how far the world goes on screen, for the camera); `span(of:)` is the strip a bridge covers and `pieceCenters` where its pieces go (each covers two
+  gattino bottom, riccio to the right of gattino, tartaruga above riccio and to the right of porcellino: the 3×2 grid is full; always there), each cell `GardenIsland.maxSize + gap(4)` tiles, a smaller island centred in its cell so it does not move when it grows; seven `bridges` between
+  neighbouring cells (four along the columns, three along the rows, never diagonal; `extent` is the square that holds every cell and `reach` how far the world goes on screen, for the camera); `span(of:)` is the strip a bridge covers and `pieceCenters` where its pieces go (each covers two
   tiles). `GardenView` has **one camera for the whole world** (`zoom`, `pan`; zoom 1 = a tile as wide as for a 10-tile island that fits the window; `worldView` gives the tile size and where
   world corner (0, 0) falls, `isoOf(id)` the `Iso` of any island, `worldIslands()` all four back to front). Zooming out (`zoomRange` 0.4…2.5 with the hill) shows the others; scrolling,
   pinching, dragging the background moves between them; the **«Isola di …» chip** (or `M`) toggles between all the islands (`worldCamera()`) and the shown one (`islandCamera(id)`,
@@ -1457,7 +1459,7 @@ file/UserDefaults writes, windows, timers, sound, global state.
 #### `GardenCatalog.swift`
 - **Responsibility:** `GardenCategory`, `GardenItem` (id, name, category, reference height, price, shadow flag, `footprint`, `axial` — lies on a tile's side, drawn by `GardenSprites.axial`, height 0 — the animal's `island` and `fits(island:)`,
   `nameWithArticle`, `islandRule`, `wrongIslandLine`, `resource`, `gardenResource`), `GardenPlacement` (tile + turned; reads the old `x`/`y`), `GardenCompanionPlace`, `GardenAlbum` (pages, completed
-  spreads) and `GardenCatalog.items` (47 objects, prices provisional; `welcomeGift(forIsland:has:)`, `retired`).
+  spreads) and `GardenCatalog.items` (54 objects, prices provisional; `welcomeGift(forIsland:has:)`, `retired`).
 
 #### `GardenGrid.swift` (714)
 - **Responsibility:** the rules of the islands and of the world, all Foundation only and tested. `GardenTile`, `GardenFootprint`, `GardenIsland` (size 8…10, the **old fixed path** `isPath`), `GardenLayout`

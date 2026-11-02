@@ -147,9 +147,9 @@ export function defaultCompanionTile(index: number, island: string | null = null
   return path[Math.min(Math.trunc(path.length * [0.2, 0.4, 0.6, 0.8][slot]!), path.length - 1)]!;
 }
 
-/** Dove stanno le cose della dotazione quando si comincia. */
+/** Dove stanno le cose della dotazione quando si comincia. I mughetti stavano in (2, 7), dove ora passa il sentiero della Tartaruga. */
 export const STARTER_ORIGINS: Readonly<Record<string, GardenTile>> = {
-  margherite: tile(7, 2), trifoglio: tile(0, 7), mughetti: tile(2, 7),
+  margherite: tile(7, 2), trifoglio: tile(0, 7), mughetti: tile(6, 6),
 };
 
 // ---- le cose che si uniscono (la staccionata)
@@ -341,7 +341,7 @@ export const HILL_HEIGHT_RATIO = 0.25 + HILL_BELOW_RATIO;
 
 // ---- le isole: una per compagno, nell'ordine dei compagni
 
-export const ISLANDS: readonly string[] = ["pianty", "porcellino", "ciccio", "gattino", "riccio"];
+export const ISLANDS: readonly string[] = ["pianty", "porcellino", "ciccio", "gattino", "riccio", "tartaruga"];
 export const FALLBACK_HOME = "pianty";
 export const isKnownIsland = (id: string): boolean => ISLANDS.includes(id);
 /** Cosa si aggiunge ai sorteggi del terreno perché ogni isola abbia i suoi (quella di Pianty è com'è sempre stata). */
@@ -350,7 +350,7 @@ export const terrainTag = (id: string): string => (id === FALLBACK_HOME ? "" : i
 // ---- le case: 3×3 tessere nell'angolo in alto
 
 export const LANDMARK_SIDE = 3;
-export const SHIPPED_LANDMARKS: ReadonlySet<string> = new Set(["pianty", "porcellino", "ciccio", "gattino", "riccio"]);
+export const SHIPPED_LANDMARKS: ReadonlySet<string> = new Set(["pianty", "porcellino", "ciccio", "gattino", "riccio", "tartaruga"]);
 /** Le case che ci sono adesso (le prove possono toglierle). */
 export const builtLandmarks: Set<string> = new Set(SHIPPED_LANDMARKS);
 
@@ -368,6 +368,7 @@ export const LANDMARK_ART: Readonly<Record<string, LandmarkArt>> = {
   ciccio: { centerX: 416.5, centerY: 638, halfWidth: 413.5, halfHeight: 251.5, lights: lights([0.49, 0.63, 0.90], [0.47, 0.10, 0.35]) },
   gattino: { centerX: 416.5, centerY: 652.5, halfWidth: 413.5, halfHeight: 253.5, lights: lights([0.71, 0.57, 0.70], [0.30, 0.70, 0.35]) },
   riccio: { centerX: 479.5, centerY: 465, halfWidth: 476.5, halfHeight: 312, lights: lights([0.41, 0.33, 0.55], [0.66, 0.54, 0.60]) },
+  tartaruga: { centerX: 443.5, centerY: 330, halfWidth: 440.5, halfHeight: 260, lights: lights([0.56, 0.54, 0.60], [0.28, 0.39, 0.40], [0.75, 0.42, 0.45], [0.36, 0.49, 0.30]) },
 };
 
 export function landmarkTiles(island: string): GardenTile[] {
@@ -397,7 +398,7 @@ export const WORLD_GAP = 4;
 export const WORLD_CELL = ISLAND_MAX_SIZE + WORLD_GAP;
 
 const SLOTS: Readonly<Record<string, GardenTile>> = {
-  pianty: tile(0, 0), porcellino: tile(1, 0), ciccio: tile(0, 1), gattino: tile(1, 1), riccio: tile(2, 1),
+  pianty: tile(0, 0), porcellino: tile(1, 0), ciccio: tile(0, 1), gattino: tile(1, 1), riccio: tile(2, 1), tartaruga: tile(2, 0),
 };
 const slotList = Object.values(SLOTS);
 

@@ -14,7 +14,7 @@ import numpy as np
 from PIL import Image
 
 DIR = "assets/giardino"
-ISLANDS = ["pianty", "porcellino", "ciccio", "gattino", "riccio"]
+ISLANDS = ["pianty", "porcellino", "ciccio", "gattino", "riccio", "tartaruga"]
 
 
 def load_tool(path, name):

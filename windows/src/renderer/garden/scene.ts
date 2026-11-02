@@ -37,7 +37,7 @@ const LIT_THRESHOLD = 0.25;
 /** Il paesaggio dipinto è più grande della finestra: centrato su di essa a zoom 1. */
 const BACKDROP_SCALE = 1.9;
 const BACKDROP = { x: SCENE_W * (1 - BACKDROP_SCALE) / 2, y: SCENE_H * (1 - BACKDROP_SCALE) / 2, w: SCENE_W * BACKDROP_SCALE, h: SCENE_H * BACKDROP_SCALE };
-const WORLD_MARGIN = { top: 340, left: 480, bottom: 520, right: 480 };
+const WORLD_MARGIN = { top: 340, left: 480, bottom: 520, right: 960 };
 
 const rgba = (r: number, g: number, b: number, a = 1): string => `rgba(${r}, ${g}, ${b}, ${a})`;
 const unit = (r: number, g: number, b: number, a = 1): string => rgba(r * 255, g * 255, b * 255, a);
@@ -196,6 +196,7 @@ function islandWash(island: string, season: Season): string | null {
     case "ciccio": return rgba(70, 170, 214, 0.22 * k);
     case "gattino": return rgba(112, 132, 204, 0.26 * k);
     case "riccio": return rgba(212, 124, 64, 0.24 * k);
+    case "tartaruga": return rgba(132, 160, 82, 0.24 * k);
     default: return null;
   }
 }

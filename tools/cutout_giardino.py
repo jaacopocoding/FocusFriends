@@ -9,6 +9,7 @@ Ogni foglio ha i suoi oggetti in una griglia (di solito 4 colonne per 3 righe), 
   luci2_original.png       su fondo magenta, 3 colonne per 2 righe: dell'alberello di lucine e della lanterna sul ceppo (le altre celle non servono)
   luci3_original.png       su fondo magenta, 2 colonne per 2 righe: le luci degli animali (barattolo di lucciole, lanterna per la voliera, lampada da fienile, candela nel cesto)
   riccio_original.png      su fondo magenta, 4 colonne per 2 righe: le sette cose del Riccio (l'ottava cella è vuota)
+  tartaruga_original.png   su fondo magenta: le sette cose della Tartaruga, quattro sopra e tre sotto, non in colonna (ognuna con il suo riquadro)
 Le celle senza id (None) si saltano (nei fogli dei fiori e dei compagni sono quelle di erba alta, vaso di erbe e vaso grande, tolti dal catalogo). Il braciere acceso e quello spento sono lo stesso disegno con la fiamma: si ritagliano insieme (stessa larghezza e stesso fondo),
 perché in giardino si scambiano di sera senza che si muova niente.
 
@@ -43,9 +44,16 @@ SHEETS = [
     ("luci2_original.png", "magenta", ["alberello-lucine", None, "lanterna-ceppo", None, None, None], set(), 3, 2),
     ("luci3_original.png", "magenta", ["barattolo-lucciole", "lanterna-voliera", "lampada-fienile", "candela-cesto"], set(), 2, 2),
     ("riccio_original.png", "magenta", ["mucchio-foglie", "cassetta-mele", "tronco-cavo", "zucca-lanterna", "hotel-insetti", "carriola-ghiande", "tana-foglie", None], set(), 4, 2),
+    # la riga di sotto è centrata, non sulla griglia: al posto di colonne e righe, il riquadro di ognuno (x0, y0, x1, y1, in pixel del foglio 1024×572)
+    ("tartaruga_original.png", "magenta",
+     [("rifugio-paglia", (0, 0, 278, 286)), ("aiuola-fragole", (278, 0, 545, 286)), ("lattuga", (545, 0, 762, 286)), ("sasso-sole", (762, 0, 1024, 286)),
+      ("laghetto", (120, 286, 440, 572)), ("bandiera-traguardo", (440, 286, 630, 572)), ("lanterna-carta", (630, 286, 880, 572))],
+     set(), None, None),
 ]
 # Coppie che si scambiano senza muoversi: stessa larghezza e stesso fondo (la cima può essere diversa).
 PAIRS = [("braciere", "braciere-acceso")]
+# L'interno buio di un'apertura (il rifugio di paglia) disegnato in viola scuro: col fondo magenta verrebbe trasparente; si tiene, in marrone d'ombra.
+DARK_POCKETS = {"rifugio-paglia"}
 BG_MIN = 240            # sul bianco: sopra questo canale minimo un pixel è sfondo
 MIN_SPECK = 25          # macchioline staccate più piccole di così si tolgono (sfondo bianco)
 MIN_PIECE = 150         # idem sul magenta: i pezzi veri (le aste delle bandierine) sono più grandi
@@ -142,6 +150,21 @@ def magenta_object(rgb):
     return np.dstack([np.clip(out, 0, 255), alpha * 255]).astype(np.uint8)
 
 
+def shade_pocket(rgb, rgba):
+    """Il viola scuro chiuso dentro il disegno (non il fondo, che è più chiaro) torna opaco, in marrone d'ombra con la stessa luce."""
+    r, g, b = rgb[..., 0], rgb[..., 1], rgb[..., 2]
+    purple = (np.minimum(r, b) - g > 25) & (np.maximum(r, b) < 205)
+    h, w = purple.shape
+    outside = flood(~purple & (rgba[..., 3] < 128), border_seeds(h, w))    # il fondo vero, raggiungibile dal bordo
+    pocket = dilate(purple, 2) & ~outside
+    light = np.clip((r + g + b) / 3 / 110, 0.35, 1.0)[..., None]
+    shade = np.array([78, 52, 28], dtype=np.float32) * light
+    out = rgba.astype(np.float32)
+    out[..., :3] = np.where(pocket[..., None], shade, out[..., :3])
+    out[..., 3] = np.where(pocket, 255, out[..., 3])
+    return out.astype(np.uint8)
+
+
 def bounds(rgba):
     """(x0, x1, y0, y1) del disegno, senza margine (estremo escluso)."""
     ys, xs = np.where(rgba[..., 3] > 25)
@@ -159,14 +182,17 @@ def main():
     for name, background, ids, keep, columns, rows in SHEETS:
         sheet = np.asarray(Image.open(f"{DIR}/{name}").convert("RGB")).astype(np.float32)
         height, width, _ = sheet.shape
-        ch, cw = height / rows, width / columns
-        assert len(ids) == columns * rows, f"{name}: servono {columns * rows} id"
-        for n, item in enumerate(ids):
-            if item is None:
-                continue
-            row, col = divmod(n, columns)
-            cell = sheet[int(row * ch):int((row + 1) * ch), int(col * cw):int((col + 1) * cw)]
+        if columns is None:
+            cells = [(item, sheet[y0:y1, x0:x1]) for item, (x0, y0, x1, y1) in ids]
+        else:
+            ch, cw = height / rows, width / columns
+            assert len(ids) == columns * rows, f"{name}: servono {columns * rows} id"
+            cells = [(item, sheet[int(n // columns * ch):int((n // columns + 1) * ch), int(n % columns * cw):int((n % columns + 1) * cw)])
+                     for n, item in enumerate(ids) if item is not None]
+        for item, cell in cells:
             cut[item] = white_object(cell, item in keep) if background == "white" else magenta_object(cell)
+            if item in DARK_POCKETS:
+                cut[item] = shade_pocket(cell, cut[item])
     boxes = {item: bounds(rgba) for item, rgba in cut.items()}
     for first, second in PAIRS:
         # stessa larghezza (l'unione) e stesso fondo; ognuno tiene la sua cima

@@ -53,6 +53,8 @@ describe("Sblocchi", () => {
   it("la frase dell'annuncio, al singolare e al plurale", () => {
     assert.equal(unlockMessage(["porcellino"]), "Hai sbloccato Porcellino! Lo trovi nel menu, tra i compagni.");
     assert.equal(unlockMessage(["ciccio", "gattino"]), "Hai sbloccato Ciccio e Gattino! Li trovi nel menu, tra i compagni.");
+    assert.equal(unlockMessage(["tartaruga"]), "Hai sbloccato Tartaruga! La trovi nel menu, tra i compagni.");
+    assert.equal(unlockMessage(["riccio", "tartaruga"]), "Hai sbloccato Riccio e Tartaruga! Li trovi nel menu, tra i compagni.");
   });
 
   it("un compagno bloccato non risulta usabile e dice quanto manca", () => {
