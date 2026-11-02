@@ -39,6 +39,7 @@ export interface CardServiceOptions {
   introDone?: (petId: string) => void;
   /** Il giardino: aprirlo, e com'è l'album (per la riga della prossima figurina). */
   garden?: () => void;
+  showAlbum?: () => void;
   album?: () => AlbumCardData;
 }
 
@@ -172,6 +173,7 @@ export function createCardService(options: CardServiceOptions): CardService {
         }
         case "showStats": options.stats(); break;
         case "showGarden": options.garden?.(); break;
+        case "showAlbum": options.showAlbum?.(); break;
         case "cycleChattiness": {
           const index = CHATTINESS.indexOf(settings.phraseFrequency);
           settings.phraseFrequency = CHATTINESS[(index + 1) % CHATTINESS.length] ?? "sometimes";

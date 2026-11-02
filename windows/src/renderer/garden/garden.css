@@ -153,6 +153,8 @@ button.chip:focus-visible, .zoom button:focus-visible { outline: 2px solid var(-
 .streak.frozen .icon { color: rgb(77, 140, 209); }
 .album { padding-left: 14px; }
 .album .number { font: 20px/26px var(--marker); color: var(--ink); }
+.album-button { width: 112px; justify-content: center; font: 600 13px var(--ui); margin-left: 2px; }
+.album-button .icon { color: var(--accent-pressed); }
 
 /* ---- lo zoom */
 

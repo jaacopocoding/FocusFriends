@@ -1,0 +1,72 @@
+/* L'album: la vista è grande come quella del Mac (980 × 730) e si scala con la finestra (che ha le stesse proporzioni). Il libro sta in un canvas;
+   le animazioni sono fogli in 3D sopra il canvas, solo mentre durano. */
+
+@font-face {
+  font-family: "Amatic SC Album";
+  font-style: normal;
+  font-weight: 700;
+  font-display: block;
+  src: url("ff://app/assets/fonts/AmaticSC-Bold.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Chewy";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: block;
+  src: url("ff://app/resources/fonts/chewy-latin-400.woff2") format("woff2");
+}
+
+:root { color-scheme: light; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: rgb(158, 191, 140);
+  user-select: none;
+  font-family: system-ui, "Segoe UI", sans-serif;
+}
+
+#view {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 980px;
+  height: 730px;
+  transform-origin: 0 0;
+}
+
+#book { position: absolute; left: 0; top: 0; width: 980px; height: 730px; cursor: pointer; }
+
+.back {
+  position: absolute;
+  left: 16px;
+  top: 14px;
+  height: 30px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 14px 0 8px;
+  border: 1.2px solid rgba(140, 102, 64, 0.45);
+  border-radius: 15px;
+  background: rgba(255, 252, 240, 0.95);
+  color: rgb(41, 26, 15);
+  font: 15px system-ui, "Segoe UI", sans-serif;
+  cursor: pointer;
+  z-index: 2;
+}
+.back:hover { background: rgb(255, 248, 228); }
+
+/* ---- le animazioni */
+
+.stage { position: absolute; left: 0; top: 0; width: 980px; height: 730px; pointer-events: none; z-index: 1; }
+.book3d { position: absolute; left: 0; top: 0; width: 980px; height: 730px; perspective: 3200px; transform-style: preserve-3d; }
+.book-shadow { position: absolute; border-radius: 13px; background: rgba(0, 0, 0, 0.31); }
+.leaf { position: absolute; transform-style: preserve-3d; }
+.face { position: absolute; backface-visibility: hidden; overflow: hidden; }
+.face canvas { position: absolute; }
+.cast { position: absolute; opacity: 0; }
+.cast.forward { background: linear-gradient(to right, rgba(0, 0, 0, 0.38), rgba(0, 0, 0, 0) 55%); }
+.cast.backward { background: linear-gradient(to left, rgba(0, 0, 0, 0.38), rgba(0, 0, 0, 0) 55%); }

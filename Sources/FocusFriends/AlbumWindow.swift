@@ -305,9 +305,9 @@ final class AlbumView: NSView {
         // il titolo sulla targa (che nell'immagine è vuota), e il resto sulla pelle
         let centerX = rect.minX + rect.width * 0.547
         let ink = NSColor(calibratedRed: 0.30, green: 0.18, blue: 0.09, alpha: 1)
-        text("L'album", in: NSRect(x: centerX - 140, y: rect.minY + rect.height * 0.19, width: 280, height: 52), font: Paper.markerFont(42), color: ink)
+        text("L'album", in: NSRect(x: centerX - 140, y: rect.minY + rect.height * 0.19 - 18, width: 280, height: 80), font: Paper.albumFont(58), color: ink)
         let owner = profile.name.map { "di \($0)" } ?? "delle figurine"
-        text(owner, in: NSRect(x: centerX - 140, y: rect.minY + rect.height * 0.285, width: 280, height: 28), font: Paper.markerFont(21), color: ink.withAlphaComponent(0.8))
+        text(owner, in: NSRect(x: centerX - 140, y: rect.minY + rect.height * 0.285 - 4, width: 280, height: 42), font: Paper.albumFont(29), color: ink.withAlphaComponent(0.8))
         let count = "\(garden.foundCount) su \(GardenCatalog.items.count) figurine"
         text(count, in: NSRect(x: centerX - 140, y: rect.minY + rect.height * 0.45, width: 280, height: 22),
              font: NSFont.systemFont(ofSize: 15, weight: .semibold), color: Self.goldInk)
@@ -332,11 +332,11 @@ final class AlbumView: NSView {
         NSColor.white.withAlphaComponent(0.06).setFill()
         NSRect(x: rect.minX + 22, y: rect.minY, width: 3, height: rect.height).fill()
         drawGoldFrame(rect)
-        let titleFont = Paper.markerFont(46)
+        let titleFont = Paper.albumFont(62)
         let gold = Self.goldInk
-        text("L'album", in: NSRect(x: rect.minX + 30, y: rect.minY + 150, width: rect.width - 50, height: 60), font: titleFont, color: gold)
+        text("L'album", in: NSRect(x: rect.minX + 30, y: rect.minY + 140, width: rect.width - 50, height: 76), font: titleFont, color: gold)
         let owner = profile.name.map { "di \($0)" } ?? "delle figurine"
-        text(owner, in: NSRect(x: rect.minX + 30, y: rect.minY + 214, width: rect.width - 50, height: 30), font: Paper.markerFont(22), color: gold.withAlphaComponent(0.85))
+        text(owner, in: NSRect(x: rect.minX + 30, y: rect.minY + 210, width: rect.width - 50, height: 40), font: Paper.albumFont(30), color: gold.withAlphaComponent(0.85))
         // un fregio
         let mid = rect.minX + 22 + (rect.width - 22) / 2
         gold.withAlphaComponent(0.7).setStroke()
@@ -473,17 +473,17 @@ final class AlbumView: NSView {
             // nella fascia del titolo, che nell'immagine è vuota
             let centerX = onSpread(isLeft ? Self.pageCenterU.left : Self.pageCenterU.right, 0).x
             let mid = onSpread(0, Self.bandCenterV).y
-            text(page.category.title, in: NSRect(x: centerX - 160, y: mid - 28, width: 320, height: 38),
-                 font: Paper.markerFont(isLeft ? 31 : 24), color: isLeft ? Paper.ink : Paper.inkLight)
+            text(page.category.title, in: NSRect(x: centerX - 160, y: mid - (isLeft ? 36 : 31), width: 320, height: 48),
+                 font: Paper.albumFont(isLeft ? 42 : 33), color: isLeft ? Paper.ink : Paper.inkLight)
             text(range, in: NSRect(x: centerX - 100, y: mid + 11, width: 200, height: 16),
                  font: NSFont.systemFont(ofSize: 11.5, weight: .medium), color: Paper.inkLight)
         } else {
             if isLeft {
-                text(page.category.title, in: NSRect(x: rect.minX + 30, y: rect.minY + 24, width: rect.width - 60, height: 40),
-                     font: Paper.markerFont(32), color: Paper.ink)
+                text(page.category.title, in: NSRect(x: rect.minX + 30, y: rect.minY + 16, width: rect.width - 60, height: 52),
+                     font: Paper.albumFont(42), color: Paper.ink)
             } else {
-                text(page.category.title, in: NSRect(x: rect.minX + 30, y: rect.minY + 32, width: rect.width - 60, height: 28),
-                     font: Paper.markerFont(20), color: Paper.inkLight)
+                text(page.category.title, in: NSRect(x: rect.minX + 30, y: rect.minY + 26, width: rect.width - 60, height: 38),
+                     font: Paper.albumFont(27), color: Paper.inkLight)
             }
             text(range, in: NSRect(x: rect.minX + 30, y: rect.minY + 66, width: rect.width - 60, height: 16),
                  font: NSFont.systemFont(ofSize: 11.5, weight: .medium), color: Paper.inkLight)

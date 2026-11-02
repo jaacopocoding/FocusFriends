@@ -30,6 +30,12 @@ Il carattere «a pennarello» di fumetti e titoli nella versione per Windows (al
 Font Diner, Inc DBA Sideshow, con la licenza **Apache 2.0** (il testo è in `windows/resources/fonts/Chewy-Apache-2.0.txt` e nell'installer). Si può usare,
 copiare e ridistribuire con l'app. L'abbiamo scelto tra 44 caratteri liberi perché, misurato contro Marker Felt Wide, è il più vicino per peso e larghezza.
 
+## Carattere dei titoli dell'album
+
+I titoli dell'album delle figurine (la copertina e le pagine) sono scritti con **Amatic SC**, Copyright 2015 The Amatic SC Project Authors
+(<https://github.com/googlefonts/AmaticSC>), con la licenza **SIL Open Font License 1.1** (il testo è in `assets/fonts/AmaticSC-OFL.txt`). Il file del carattere,
+`assets/fonts/AmaticSC-Bold.ttf`, è incluso nell'app per Mac (e lo sarà in quella per Windows): si può usare, copiare e ridistribuire con l'app, non vendere da solo.
+
 ## Electron (versione per Windows)
 
 La versione per Windows è costruita su **Electron** (licenza MIT) e quindi porta con sé Chromium e le sue dipendenze: i testi delle licenze sono inclusi

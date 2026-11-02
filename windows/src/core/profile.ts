@@ -214,6 +214,11 @@ export class Profile {
     return this._name === null ? "Il mio giardino" : `Il giardino di ${this._name}`;
   }
 
+  /** «L'album di Marco», oppure «Il mio album». */
+  get albumTitle(): string {
+    return this._name === null ? "Il mio album" : `L'album di ${this._name}`;
+  }
+
   /** «Le statistiche di Marco», oppure «Statistiche e riepilogo». */
   get statsTitle(): string {
     return this._name === null ? "Statistiche e riepilogo" : `Le statistiche di ${this._name}`;

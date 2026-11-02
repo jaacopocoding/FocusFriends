@@ -35,6 +35,8 @@ export interface GardenDeps {
   focuses: () => number;
   /** Si può fare la cerimonia d'arrivo? (Non durante un focus: aspetta la prossima entrata.) */
   canCelebrate: () => boolean;
+  /** Il pulsante «Album» del giardino. */
+  showAlbum: () => void;
   /** «‹ Menu»: si torna alla scheda. */
   onBack(): void;
 }
@@ -147,6 +149,7 @@ export function createGardenController(deps: GardenDeps): GardenController {
     if (pendingBridges.length === 0 && welcomes.length === 0) return [];
     return garden.buildBridges(pendingBridges, welcomes);
   });
+  ipcMain.on(GARDEN_CHANNEL.showAlbum, (event) => { if (trusted(event)) deps.showAlbum(); });
   ipcMain.on(GARDEN_CHANNEL.back, (event) => {
     if (!trusted(event)) return;
     window?.close();

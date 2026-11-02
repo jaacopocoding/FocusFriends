@@ -39,6 +39,19 @@ enum Paper {
     static func markerFont(_ size: CGFloat) -> NSFont {
         NSFont(name: "MarkerFelt-Wide", size: size) ?? NSFont.systemFont(ofSize: size - 2, weight: .bold)
     }
+
+    /// Il carattere dei titoli dell'album (la copertina e le pagine): Amatic SC, uno stampatello a mano, stretto, incluso nell'app (`assets/fonts`,
+    /// licenza OFL: vedi CREDITS.md). È stretto e leggero: a parità di misura sembra più piccolo del pennarello, quindi si usa più grande. Se manca, il pennarello.
+    static func albumFont(_ size: CGFloat) -> NSFont {
+        guard let descriptor = albumDescriptor, let font = NSFont(descriptor: descriptor, size: size) else { return markerFont(size) }
+        return font
+    }
+
+    private static let albumDescriptor: NSFontDescriptor? = {
+        guard let url = Bundle.main.url(forResource: "AmaticSC-Bold", withExtension: "ttf"),
+              let descriptors = CTFontManagerCreateFontDescriptorsFromURL(url as CFURL) as? [CTFontDescriptor], let first = descriptors.first else { return nil }
+        return first as NSFontDescriptor
+    }()
 }
 
 /// Il pulsante principale: una pillola color terracotta con la scritta bianca.

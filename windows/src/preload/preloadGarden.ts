@@ -15,6 +15,7 @@ const api: GardenApi = {
   phrase: (petId) => ipcRenderer.invoke(GARDEN_CHANNEL.phrase, petId) as Promise<string>,
   contextMenu: (id) => ipcRenderer.send(GARDEN_CHANNEL.contextMenu, id),
   finishArrival: (arrival) => ipcRenderer.invoke(GARDEN_CHANNEL.finishArrival, arrival) as Promise<GardenWelcome[]>,
+  showAlbum: () => ipcRenderer.send(GARDEN_CHANNEL.showAlbum),
   onMessage: (callback) => {
     ipcRenderer.on(GARDEN_CHANNEL.message, (_event, text: string) => callback(text));
   },

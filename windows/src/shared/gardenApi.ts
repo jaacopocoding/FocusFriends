@@ -81,6 +81,8 @@ export interface GardenApi {
   onMessage(callback: (text: string) => void): void;
   /** La cerimonia è finita: i ponti si salvano costruiti e le isole accolte; risponde con i regali di benvenuto. */
   finishArrival(arrival: GardenArrival): Promise<GardenWelcome[]>;
+  /** Il pulsante «Album». */
+  showAlbum(): void;
 }
 
 export const GARDEN_CHANNEL = {
@@ -93,4 +95,5 @@ export const GARDEN_CHANNEL = {
   contextMenu: "garden:context-menu",
   message: "garden:message",
   finishArrival: "garden:finish-arrival",
+  showAlbum: "garden:show-album",
 } as const;

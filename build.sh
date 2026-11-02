@@ -14,6 +14,7 @@ for arch in arm64 x86_64; do
 done
 lipo -create build/tmp/FocusFriends-arm64 build/tmp/FocusFriends-x86_64 -output "$APP/Contents/MacOS/FocusFriends"
 rm -rf build/tmp
+cp assets/fonts/AmaticSC-Bold.ttf "$APP/Contents/Resources/"
 cp assets/bubble.png assets/frasi_pianty.txt assets/frasi_porcellino.txt assets/frasi_ciccio.txt assets/frasi_gattino.txt assets/frasi_riccio.txt assets/AppIcon.icns "$APP/Contents/Resources/"
 for f in assets/porcellino/frame*.png; do cp "$f" "$APP/Contents/Resources/porcellino_$(basename "$f")"; done
 cp assets/porcellino/picked.png "$APP/Contents/Resources/porcellino_picked.png"

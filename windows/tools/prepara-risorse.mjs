@@ -25,6 +25,9 @@ const unused = /(_original|^paesaggio_.*|^prato|^bordo_.*)\.png$/;
 for (const folder of ["giardino", "album"]) {
   for (const name of readdirSync(join(assets, folder))) if (name.endsWith(".png") && !unused.test(name)) wanted.add(`${folder}/${name}`);
 }
+// il carattere dei titoli dell'album, con la sua licenza
+wanted.add("fonts/AmaticSC-Bold.ttf");
+wanted.add("fonts/AmaticSC-OFL.txt");
 for (const name of readdirSync(join(assets, "music"))) if (/\.(m4a|mp3|aac|wav|flac)$/i.test(name)) wanted.add(`music/${name}`);
 
 let missing = 0;

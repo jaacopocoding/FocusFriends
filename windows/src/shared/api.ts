@@ -48,6 +48,7 @@ export type CardCommand =
   | { name: "selectPet"; id: string }
   | { name: "showStats" }
   | { name: "showGarden" }
+  | { name: "showAlbum" }
   | { name: "cycleChattiness" }
   | { name: "toggleMovement" }
   | { name: "toggleAsk" }

@@ -517,7 +517,15 @@ circa 5.250 righe: `GardenWindow` 3.441, `AlbumWindow` 1.204, `Sticker` e `GiftC
       i nomi delle isole; quelle chiuse hanno il lucchetto e «???» con «si sblocca a N focus», e toccandole la riga dice quanto manca. La finestra del giardino non rallenta
       in sottofondo: coperta dalla finestra trasparente del compagno smetteva di disegnare (sul Mac, e probabilmente anche su Windows). Senza le chiavi `replayBridges` e
       `replayWelcome` del Mac. Provata dal vivo con `test/vivo/giardino-mondo.cjs`.
-- [ ] **G6 — L'album** (5): il libro, le pagine, le sagome, le animazioni. Dopo la G1 non dipende dalle G2–G5: si può fare in parallelo.
+- [x] **G6 — L'album** (5): il libro, le pagine, le sagome, le animazioni. Dopo la G1 non dipende dalle G2–G5: si può fare in parallelo.
+      **Fatta il 2 novembre 2026**, con i titoli nuovi del Mac (Amatic SC, `assets/fonts/AmaticSC-Bold.ttf`, licenza OFL, portato anche nell'installer).
+      `main/albumWindow.ts` (980 × 730 come la vista del Mac, si apre dalla riga «Album» della scheda, dalla riga della prossima figurina e dal pulsante «Album» del
+      giardino), `renderer/album/book.ts` (il disegno su canvas: prato, copertina con la targa, doppie pagine con le figurine di `sticker.ts`, i numeri di pagina, il
+      sigillo «completa», le frecce, le linguette e il conto) e `album.ts` (le animazioni: come sul Mac sono fotografie del libro su fogli che girano in 3D, con
+      la Web Animations API; la copertina si apre in 0,95 secondi, una pagina gira in 0,6; con «Riduci movimento» niente animazioni). Il libro si apre sulla doppia
+      pagina della prima figurina nuova e poi le segna viste; la doppia pagina si ricorda (`albumSpread` in `impostazioni.json`). Un tocco su una figurina scrive in fondo
+      cosa è e dove si mette. A metà giro i fogli si scuriscono con un filtro (solo il disegno, non i bordi trasparenti). Provato dal vivo con `test/vivo/album.cjs` e
+      confrontato con `tools/render-album.sh` (il Mac sugli stessi dati): uguali.
 - [ ] **G7 — Prima uscita** (3): parità a occhio, installer e sua misura, `PROVE_SU_WINDOWS.md` per il giardino, documenti. Versione 1.3.0.
 - [ ] **G8 — La vita** (5, seconda uscita): i compagni sull'isola con le loro pose, gli angoli con le stelline, gli ospiti, il vento, l'acqua, il fumo, le luci della sera.
 

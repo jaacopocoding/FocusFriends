@@ -959,7 +959,8 @@ code. All UI code runs on the main thread; the only other thread is the audio re
 - **The album** (`AlbumWindow.swift`): `GardenAlbum.spreads()` lays the catalog out in double pages (a category = a
   spread, six per page). `AlbumView` has three modes: `.cover` (closed book), `.opening` (the animation) and `.open`.
   Drawn by the app on top of two pictures: `assets/album/copertina.png` (title, owner, count and "nuove" on the plaque and
-  leather) and `doppia_pagina.png` (titles in the two bands, six `Sticker`s per page placed from the fractions of the
+  leather) and `doppia_pagina.png` (titles in the two bands — the titles of the cover and of the pages use `Paper.albumFont`, **Amatic SC**, bundled from
+  `assets/fonts/AmaticSC-Bold.ttf` and loaded with `CTFontManagerCreateFontDescriptorsFromURL`, larger than the marker font it replaced (November 2026) —, six `Sticker`s per page placed from the fractions of the
   picture — found ones slightly tilted by `GardenDrops.hash(id)`, missing ones dashed with the silhouette —, page numbers
   in the blobs, the "completa" seal at the gutter; each sticker has a small mark under the drawing, «universale» or «solo Gattino», `Sticker.Placing`). Without the pictures it falls back to a hand-drawn leather and paper
   book. The window is 980×730; `MeadowBackdrop` draws `giardino_sfondo.png` (the old `giardino_prato.png` if missing) behind the book (aspect-fill, centred at 40 %,

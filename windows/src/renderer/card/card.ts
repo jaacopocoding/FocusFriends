@@ -389,12 +389,17 @@ export class MenuCard {
       this.todoForm = null;
       this.rebuild(false);
     }));
-    // la strada fino alla prossima figurina, sempre in vista (un tocco apre il giardino)
+    if (data.album) {
+      const album = data.album;
+      body.append(this.option("book", "Album", `${album.found}/${album.total}` + (album.fresh > 0 ? ` · ${album.fresh} ${album.fresh === 1 ? "nuova" : "nuove"}` : ""), null,
+        () => this.command({ name: "showAlbum" }, true)));
+    }
+    // la strada fino alla prossima figurina, sempre in vista (un tocco apre l'album)
     if (data.album && data.album.minutesLeft !== null) {
       const fill = h("span", { class: "gift-bar-fill" });
       fill.style.width = `${Math.round((data.album.progress ?? 0) * 100)}%`;
       const line = nextGiftLine(data.album.minutesLeft);
-      body.append(button("gift-line", line, () => this.command({ name: "showGarden" }, true),
+      body.append(button("gift-line", line, () => this.command({ name: "showAlbum" }, true),
         h("span", { class: "gift-line-text" }, line), h("span", { class: "gift-bar" }, fill)));
     }
     body.append(this.option(data.petVisible ? "eyeOff" : "eye", data.petVisible ? `Nascondi ${pet.name}` : `Mostra ${pet.name}`, null, null,

@@ -452,6 +452,9 @@ function renderHud(): void {
   }
   top.append(chip("album", `L'album: ${data.found} figurine su ${data.total}. Le trovi studiando: ogni focus completato di almeno 20 minuti conta, e ogni tanto (60 minuti la prima, un po' di più a ogni figurina) ne arriva una. Con più giorni di fila e con i focus lunghi le figurine rare sono più probabili.`,
     h("span", { class: "number" }, `${data.found}/${data.total}`), h("span", { class: "label" }, "figurine")));
+  const albumButton = h("button", { type: "button", class: "chip button album-button", title: "Apri l'album delle figurine" }, icon("book", 14), "Album");
+  albumButton.addEventListener("click", () => api.showAlbum());
+  top.append(albumButton);
   children.push(top);
 
   // lo zoom
