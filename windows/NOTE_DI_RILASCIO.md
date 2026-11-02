@@ -1,9 +1,33 @@
-## FocusFriends per Windows 1.2.0
+## FocusFriends per Windows 1.3.0
 
 Il compagno che ti fa compagnia mentre studi, adesso anche su Windows 10 e 11 (Intel/AMD e ARM): un personaggio che cammina sul desktop,
 un timer Pomofocus con la sua schermata del focus, i suoni di sottofondo, le statistiche e i compagni da sbloccare studiando.
 Stessi dati, stesse regole e stesso aspetto dell'[app per Mac](https://github.com/jaacopocoding/FocusFriends#readme): i file di studio si possono
 leggere con l'una e con l'altra.
+
+### Novità della 1.3
+
+**Il giardino.** Studiando trovi le figurine: a fine focus (completato, di almeno 20 minuti) i minuti si mettono da parte, e quando bastano esce una
+figurina (la prima dopo 60 minuti di studio, ognuna dopo qualche minuto in più). Il compagno lo dice nella frase di fine focus («Nuova figurina: Lavanda
+(n. 6). La prossima tra 68 minuti di studio.») e la figurina compare accanto a lui. Non esce mai un doppione, e con i giorni di fila e i focus lunghi
+quelle rare sono più probabili. Quanto manca alla prossima lo vedi sempre nella scheda, sotto «Album».
+
+- **Le isole.** Ogni compagno ha la sua isola, con la sua casa e il suo sentiero, unite da ponti: un mondo solo, che si guarda da vicino o da lontano
+  (la rotellina ingrandisce, trascinando ci si sposta, «M» mostra tutte le isole). Quelle dei compagni non ancora sbloccati sono al buio, con un lucchetto.
+  Quando sblocchi un compagno, alla prima entrata nel giardino si costruisce il ponte verso la sua isola e arriva un regalo di benvenuto.
+- **Ciò che trovi è tuo.** Dalla cassetta «Da mettere» trascini le cose sull'isola (le tessere si fanno verdi dove ci stanno), quante volte vuoi; si
+  spostano, si girano (R, due tocchi o il tasto destro) e si tolgono. Le cose di un animale stanno sulla sua isola. La staccionata si unisce da sola.
+- **L'album.** Le figurine si raccolgono in un libro: una copertina da aprire, le pagine che girano, le sagome di quelle che mancano, un sigillo d'oro
+  sulle doppie pagine complete (che allargano le isole). Si apre dalla scheda o dal giardino.
+- **La luce e le stagioni.** Il giardino segue l'ora (la sera si accendono le finestre e i lampioni) e la stagione (d'inverno c'è la neve).
+- **La vita sull'isola.** Il compagno passeggia e, se gli hai preparato un angolo (la cuccia con il cuscino, il tavolino con la sdraio, i fiori…), ci va a
+  fare la sua posa; quando un angolo si forma, le stelline lo festeggiano. Le piante si muovono col vento, cadono petali, foglie o neve, la sera arrivano le
+  lucciole. Ogni tanto passa un ospite, attirato da qualcosa che hai messo: ha una stellina sopra, e toccandolo ti saluta (la prima volta ti lascia un regalo).
+  Con «Riduci movimento» di Windows niente vento né particelle.
+- **Il Riccio**, il quinto compagno: cammina, mangia, dorme e si arrotola a palla; durante un focus la schiena si riempie di cose d'autunno. Si sblocca
+  per ultimo, a 150 focus pieni.
+
+Il giardino sta in `%APPDATA%\FocusFriends\giardino.json`, nello stesso formato dell'app per Mac; «Cancella tutto…» nelle statistiche lo toglie con il resto.
 
 ### Novità della 1.2
 
@@ -56,7 +80,6 @@ Get-FileHash .\FocusFriends-Windows-<versione>-x64-Setup.exe -Algorithm SHA256
 
 ### Cosa non c'è (ancora)
 
-- **Il giardino**: arriva con la prossima uscita. Il resto c'è tutto.
 - **Sopra le app a schermo intero**: come sul Mac, il compagno resta sopra anche a un video o a una presentazione a schermo intero. Si nasconde dal menu.
 - **Desktop virtuali**: Windows non lo lascia comparire su tutti; sta sul desktop in cui l'hai aperto.
 

@@ -12,7 +12,8 @@ import type { Season } from "../core/gardenSky.ts";
 import { PET_IDS, PETS } from "../core/pets.ts";
 import { need } from "../core/rewards.ts";
 import type { Profile } from "../core/profile.ts";
-import { wallOf } from "../core/time.ts";
+import { dayString, wallOf } from "../core/time.ts";
+import { visitorWithId } from "../core/gardenVisitors.ts";
 import { GARDEN_CHANNEL } from "../shared/gardenApi.ts";
 import type { GardenArrival, GardenCommand, GardenData } from "../shared/gardenApi.ts";
 import { SCHEME } from "./protocol.ts";
@@ -75,7 +76,8 @@ export function createGardenController(deps: GardenDeps): GardenController {
         };
       }),
       shown: garden.shownIsland, home: garden.homeIsland, bridges: [...garden.bridges],
-      hour: forcedHour ?? hourOf(wallOf(now)), season, title: profile.gardenTitle,
+      hour: forcedHour ?? hourOf(wallOf(now)), hourForced: forcedHour !== null, day: dayString(wallOf(now)), newCorners: garden.takeNewCorners(),
+      season, title: profile.gardenTitle,
       found: GARDEN_ITEMS.filter((x) => garden.isFound(x.id)).length, total: GARDEN_ITEMS.length,
       minutesToNextGift: garden.minutesToNextGift, nextGiftProgress: garden.nextGiftProgress,
       has: GARDEN_ITEMS.filter((x) => garden.has(x.id)).map((x) => x.id),
@@ -150,6 +152,11 @@ export function createGardenController(deps: GardenDeps): GardenController {
     return garden.buildBridges(pendingBridges, welcomes);
   });
   ipcMain.on(GARDEN_CHANNEL.showAlbum, (event) => { if (trusted(event)) deps.showAlbum(); });
+  ipcMain.handle(GARDEN_CHANNEL.greetGuest, (event, id: unknown, reason: unknown) => {
+    if (!trusted(event) || typeof id !== "string" || !visitorWithId(id) || typeof reason !== "string") return { isFirst: false, gift: null };
+    const welcome = garden.welcomeGuest(id, dayString(wallOf(Date.now())), reason.slice(0, 80));
+    return { isFirst: welcome.isFirst, gift: welcome.gift ? itemWithId(welcome.gift.item)?.name ?? welcome.gift.item : null };
+  });
   ipcMain.on(GARDEN_CHANNEL.back, (event) => {
     if (!trusted(event)) return;
     window?.close();

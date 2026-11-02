@@ -33,6 +33,12 @@ export interface GardenData {
   bridges: string[];
   /** L'ora sull'orologio, con la virgola, e la stagione che si vede (tutte e due si possono forzare per provarle). */
   hour: number;
+  /** L'ora è forzata (`gardenHour`): non avanza da sola. */
+  hourForced: boolean;
+  /** Oggi, «AAAA-MM-GG» (per gli ospiti). */
+  day: string;
+  /** Gli angoli appena sbloccati (le stelline con «Hai sbloccato…»): ci sono una volta sola. */
+  newCorners: string[];
   season: Season;
   /** Il titolo della finestra («Il giardino di Marco»). */
   title: string;
@@ -83,6 +89,8 @@ export interface GardenApi {
   finishArrival(arrival: GardenArrival): Promise<GardenWelcome[]>;
   /** Il pulsante «Album». */
   showAlbum(): void;
+  /** Saluti l'ospite (`id` è la specie, `reason` cosa l'ha attirato): la prima volta lascia un regalo (il suo nome), le altre conta la visita. */
+  greetGuest(id: string, reason: string): Promise<{ isFirst: boolean; gift: string | null }>;
 }
 
 export const GARDEN_CHANNEL = {
@@ -96,4 +104,5 @@ export const GARDEN_CHANNEL = {
   message: "garden:message",
   finishArrival: "garden:finish-arrival",
   showAlbum: "garden:show-album",
+  greetGuest: "garden:greet-guest",
 } as const;

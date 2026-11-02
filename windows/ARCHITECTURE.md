@@ -3,9 +3,9 @@
 > Purpose: a factual description of how the Windows version works, written so that another reader (human or AI) can judge
 > whether the code is acceptable as written or needs revision. It is the counterpart of `../ARCHITECTURE.md`, which describes
 > the Mac app; features are numbered and named alike where they correspond, and `PARITA.md` compares them one by one.
-> Snapshot described: version `1.2.0`, released as `windows-v1.2.0` at `7d691bb` on 26 October 2026 (`1.1.1` is released as `windows-v1.1.1` at `e989d20`, `1.1.0` as `windows-v1.1.0` at `4b84a72`; the first release, `windows-v1.0.0`, is at `75d07e9`; 1.0.1, at `74bda89`,
+> Snapshot described: version `1.3.0` (the garden and the album, §4.19; prepared, not yet released); the last release is `1.2.0`, released as `windows-v1.2.0` at `7d691bb` on 26 October 2026 (`1.1.1` is released as `windows-v1.1.1` at `e989d20`, `1.1.0` as `windows-v1.1.0` at `4b84a72`; the first release, `windows-v1.0.0`, is at `75d07e9`; 1.0.1, at `74bda89`,
 > adds the lock-down of the windows, the gating of the test-only environment variables and the live-run scripts in `test/vivo/`, see §10;
-> 1.1.0 adds the to-do list, §4.16; 1.1.1 changes how items are added and lets them be edited; 1.2.0 asks "Hai finito?" at the end of a focus started from an item, and adds the context phrases, §4.17). Content: **everything except the garden** (see `../PIANO_WINDOWS.md`).
+> 1.1.0 adds the to-do list, §4.16; 1.1.1 changes how items are added and lets them be edited; 1.2.0 asks "Hai finito?" at the end of a focus started from an item, and adds the context phrases, §4.17). 1.3.0 adds the garden and the album, with the life on the island, §4.19.
 > Everything here was read from the files in the repository; statements that could not be fully verified are marked
 > **[uncertain]**. Rationales are labelled **[documented]** (comes from code comments, `PIANO_WINDOWS.md`, `FORMATI.md` or git
 > history) or **[inferred]** (deduced from the code).
@@ -22,11 +22,11 @@
 
 ### 1.1 What the app does
 
-Same product as the Mac app: a desktop companion (one of four characters) that walks on the desktop, speaks, and keeps a
+Same product as the Mac app: a desktop companion (one of five characters) that walks on the desktop, speaks, and keeps a
 Pomodoro-style timer ("Pomofocus") with a notebook-like card, background sounds, statistics, companion unlocking and (since 1.1) a to-do
 list with optional due days. Study
-sessions are stored in the same JSON files as on the Mac (`../FORMATI.md`). The garden (points, shop, meadow) is not part of
-this release. All data stays on the machine; the app makes no network requests (`connect-src ff:` in the page's CSP, no
+sessions are stored in the same JSON files as on the Mac (`../FORMATI.md`). Since 1.3 the garden: figurines found at the end of focuses, placed on five
+islands seen at an angle, and collected in an album (§4.19). All data stays on the machine; the app makes no network requests (`connect-src ff:` in the page's CSP, no
 HTTP client in the code **[inferred]**).
 
 ### 1.2 Stack and versions (read from `package.json`, `tsconfig.json`, `electron-builder.yml`)
@@ -97,7 +97,7 @@ Notes:
   `gardenGrid.ts`, `gardenSky.ts`, `gardenCorners.ts`, `gardenCompanions.ts`, `gardenVisitors.ts` (no `node:*`, usable by pages) and `garden.ts` (the
   `giardino.json` file, `node:fs`, main process only), one-to-one with the Swift files of the same name. They are checked against the Mac by
   `test/contratto.test.ts` (sections of `attesi/_giardino.json`, built by `test/giardino.ts`) and `test/giardino.test.ts`.
-  `PomodoroDeps.gardenLine` and `StatsDeps.onDeleteAll` are the empty hooks the garden will fill (§4.7, §4.13).
+  `PomodoroDeps.gardenLine` and `StatsDeps.onDeleteAll` are filled by the garden since 1.3 (§4.19).
 
 ---
 
@@ -269,7 +269,7 @@ Phrases that must not cover another one (unlock announcements, milestones, the w
 - **`TimerService`** (`main/timer.ts`): creates `SessionLog` and the engine, runs `setInterval(tick, 200)`, and **broadcasts a snapshot when `visibleKey(snapshot)` changes** — the key includes the
   displayed `remainingText` (so about once a second), phase, pause, subject, notes count, grace, and the growth in 1 % steps — and always right after an event or a command (`run()`). It also calls
   `onChange` to refresh the tray. The page extrapolates between messages with `timerAt`.
-- **Garden hook:** `gardenLine` (empty in this release) is where the garden's sentence about points will be added to the end-of-focus message.
+- **Garden hook:** `gardenLine` (since 1.3, §4.19) rolls the figurine and returns its sentence, added to the end-of-focus message.
 
 ### 4.8 The clock and the "+5 minutes" prompt (`renderer/clockView.ts`, `extendPrompt.ts`)
 
@@ -331,7 +331,7 @@ Phrases that must not cover another one (unlock announcements, milestones, the w
 A normal `BrowserWindow` (560 × 660, not resizable, no menu bar, background `#fff6de`) created on the first request and **destroyed when closed**, so it costs no memory meanwhile; its title follows the profile name.
 The main process sends all sessions, "now", the title and the tab to open; **the page computes everything** (`summarize`, `analyzeStreak`, `insights` and the Italian texts of `dashboard.ts`) from the same pure functions the tests compare with the Mac.
 Tabs Oggi / Settimana (from Monday) / Mese / **Anno** with arrows (the year tab is §4.18); the diary ("Mostra le sessioni") with a day strip; editing a session (subject, "apply to all sessions", note, rating, focus notes) or deleting it, CSV export (save dialog, formula-guarded
-fields), and "Cancella tutto…" (confirmation; removes sessions, in-progress file, backups and the profile; `onDeleteAll` is the garden's future hook). The window re-sends its data whenever the log changes.
+fields), and "Cancella tutto…" (confirmation; removes sessions, in-progress file, backups and the profile; `onDeleteAll` also resets the garden, since 1.3). The window re-sends its data whenever the log changes.
 
 ### 4.14 Companion unlocking (`core/rewards.ts`, `core/unlocks.ts`, `main/card.ts`)
 
@@ -426,6 +426,35 @@ of the year, strongest day, best month) and a bar chart of study per week, for a
 
 ---
 
+### 4.19 The garden and the album (since 1.3: `core/garden*.ts`, `main/gardenWindow.ts`, `main/albumWindow.ts`, `renderer/garden/*`, `renderer/album/*`, `renderer/giftCard.ts`)
+
+- **Model.** One `Garden` (`core/garden.ts`, `giardino.json` version 4, read and written like `Garden.swift`, including migrations from versions 1–3, damaged or newer files,
+  retired items, island rules, bridges and welcomes) lives in the main process. `isIslandOpen` is `Profile.isCompanionUnlocked`. At launch (and after the intro) the home
+  island is adopted, bridges between open islands are settled and island rules applied. The rules (catalogue, drops, grid, paths, terrain, world, sky, corners, companions'
+  poses, visitors) are pure modules shared with the pages and checked against the Mac (`test/contratto.test.ts`, `attesi/_giardino.json`).
+- **Gifts.** `gardenLine` in `main/main.ts` computes the streak for the day of the focus, calls `Garden.rollGift`, sends `garden:gift-found` to the overlay when a figurine
+  is found (`renderer/giftCard.ts`: a canvas next to the companion, 6.5 s, drawn with `renderer/garden/sticker.ts`) and returns `giftLine`. The card shows «Giardino», the
+  «Album» row and the next-gift line with a bar (`CardData.album`). Hidden switches in `impostazioni.json`: `quickGifts`, `gardenHour`, `gardenSeason`, `albumSpread`.
+- **Garden window.** A normal window (1000 × 600 scene units, scaled down on small screens), `backgroundThrottling: false` (covered by the transparent overlay it was
+  considered hidden and stopped drawing; it only draws when something changes anyway). The main process sends a snapshot (`shared/gardenApi.ts`: islands with
+  sizes, placements, companions and unlock thresholds, bridges, hour, season, found items, streak, focuses, and on (re)opening the arrival to celebrate); the page
+  sends commands (place, place somewhere, move, rotate, remove, move a companion) that the main process applies with `Garden`'s own rules (the page checks them
+  first with the same modules, for the green/red preview). `renderer/garden/scene.ts` draws on a `<canvas>` like `GardenView`: the static scene (backdrop with
+  mirrored copies and blur, hills tinted per island, grounds cached per island/size/tile width/season, closed islands darkened, houses, built bridges, the light
+  multiplied over everything, vignette and night veil) is rendered once into an offscreen canvas and reused while only things on top change; objects and
+  companions are drawn on top every frame from scaled and light-tinted copies (`sprites.ts`, which also builds the axial drawings and the fence pieces with arms).
+  The HUD (buttons, chips, tray, hints, bubble, island labels, celebration caption) is HTML over the canvas in scene units. Input: drag to pan, wheel zooms (touchpad
+  two-finger scroll pans, pinch zooms), keys `+ − 0 M R Esc`, right click = native menu from the main process.
+- **Album window.** 980 × 730 (scaled). `renderer/album/book.ts` draws the book on a canvas like `AlbumView` (titles in Amatic SC, bundled as
+  `assets/fonts/AmaticSC-Bold.ttf`); `album.ts` animates opening and page turns with snapshots of the book on 3D-rotated elements (Web Animations API).
+- **Life on the island.** `renderer/garden/life.ts` keeps what moves (like `GardenView`'s timers): each companion walks tile by tile on its island (`standingTiles`,
+  `route`), goes on errands and plays its pose in a formed corner (`poseFrames`, `POSE_DURATION`); a visitor may arrive once per day slot (`attractions`, `arrival`,
+  `entryRoute`), stays 70–130 s with a star above, and leaves 25 s after being greeted. Greeting calls `greetGuest` in the main process (`Garden.welcomeGuest`: the
+  diary and, the first time, a gift). Corners formed since the last snapshot come as `newCorners` (`Garden.takeNewCorners`) and get «Hai sbloccato» with stars. The
+  page runs one `requestAnimationFrame` loop that advances life and redraws at 30 fps while something moves, 15 fps otherwise; `scene.ts` reads `life` (walkers,
+  visitor, time) and draws wind (12 vertical strips per plant), water, chimney smoke on the backdrop, the corners' small effects, petals/leaves/snow, fireflies
+  and lamp flicker. With "Reduce motion" there is no wind, particles or fireflies.
+
 ## 5. Contracts, environment and self-test
 
 ### 5.1 Data contract
@@ -513,7 +542,7 @@ Those were exercised with scripted runs of the real app on macOS (simulated mous
 ## 9. Differences from the Mac app
 
 See `PARITA.md` for the row-by-row table. In short: one window instead of several; no Dock but a tray icon (Windows 11 may hide it in the "^" overflow); a generated chime instead of the system sound "Glass"; Chewy and Lucide instead of Marker Felt and SF Symbols; no
-"all desktops" behaviour (not available on Windows) and no automatic hiding over fullscreen apps (like the Mac, the companion stays above); more memory (Electron); preferences in `impostazioni.json` instead of `UserDefaults`; installer unsigned; garden not included yet; the to-do date picker is drawn in the card instead of the system one.
+"all desktops" behaviour (not available on Windows) and no automatic hiding over fullscreen apps (like the Mac, the companion stays above); more memory (Electron); preferences in `impostazioni.json` instead of `UserDefaults`; installer unsigned; the garden without the life on the island (walking companions, corners' effects, visitors, wind, smoke, particles); the to-do date picker is drawn in the card instead of the system one.
 
 ---
 
@@ -525,7 +554,7 @@ test-only environment variables count only with `FF_SELFTEST` (§5.2); the live-
 1. **Windows-specific behaviour is only partly verified.** Real click-through, keyboard focus hand-off, task bar at each side, 125–200 % scales, two monitors with different scales, a real sleep/wake, audio device changes, fullscreen apps and virtual desktops were not checked item by item (`PROVE_SU_WINDOWS.md`). A quick manual run measured ≈ 200 MB and ≈ 0 % CPU at rest.
 2. **`FF_SELFTEST` is still honoured by the installed app** (it is how the installer's contents are checked). Whoever can set it already controls the user's account; the self-test script is loaded by `require()` from the path given in `FF_SELFTEST_FILE`.
 3. **The live runs are not assertions and have only run on macOS.** They print what they observe; a person reads the output. Some may have gone stale as the UI changed (`scheda-clic.cjs` had not been updated for the "Cosa studi adesso?" step and was fixed in 1.0.1).
-4. **Unused code for the next release:** `core/points.ts` (garden points) is imported only by tests; `gardenLine` and `onDeleteAll` are empty hooks. Intended, but dead in 1.0.x.
+4. **Code used only by tests:** `core/points.ts` (the old garden points) is imported only by the contract tests. (`gardenLine` and `onDeleteAll`, empty hooks until 1.2, are used since 1.3.)
 5. **Possible hot spots [inferred, not measured]:** the statistics page gets **all sessions** at every log change (a structured clone) and recomputes the summary in the page; `buildCardData` summarises all sessions on every card refresh; `loadPhrases` re-reads the phrase file for each phrase. Fine for thousands of sessions; not tested with tens of thousands.
 6. **One stylesheet pair per page, with `card.css` duplicated** in both bundles (a few tens of KB, no functional effect).
 7. **The single-instance lock** relies on Electron's `requestSingleInstanceLock()`; how it behaves with two different Windows users or after a crash on Windows was not examined **[uncertain]**.

@@ -468,7 +468,7 @@ circa 5.250 righe: `GardenWindow` 3.441, `AlbumWindow` 1.204, `Sticker` e `GiftC
 - **Gli interruttori nascosti del Mac** (`quickGifts`, `gardenSeason`, la modalità sviluppatore che apre tutto) diventano opzioni del costruttore, che l'app per ora
   non accende (le prove dal vivo sì).
 - **Due uscite.** La prima (G0–G7) ha già il mondo, perché con il secondo compagno (20 focus pieni) serve la sua isola, e il tiro sceglie fra le cose dei compagni
-  sbloccati. La seconda (G8) è la vita sull'isola: non cambia il formato dei dati.
+  sbloccati. La seconda (G8) è la vita sull'isola: non cambia il formato dei dati. (Poi si è deciso di fare la G8 prima di pubblicare: esce tutto nella 1.3.0.)
 - **Durante il porting il giardino del Mac non cambia**, o si cambia sui due lati insieme: altrimenti le prove di contratto si spostano sotto i piedi.
 
 **Le fasi**
@@ -527,7 +527,16 @@ circa 5.250 righe: `GardenWindow` 3.441, `AlbumWindow` 1.204, `Sticker` e `GiftC
       cosa è e dove si mette. A metà giro i fogli si scuriscono con un filtro (solo il disegno, non i bordi trasparenti). Provato dal vivo con `test/vivo/album.cjs` e
       confrontato con `tools/render-album.sh` (il Mac sugli stessi dati): uguali.
 - [ ] **G7 — Prima uscita** (3): parità a occhio, installer e sua misura, `PROVE_SU_WINDOWS.md` per il giardino, documenti. Versione 1.3.0.
-- [ ] **G8 — La vita** (5, seconda uscita): i compagni sull'isola con le loro pose, gli angoli con le stelline, gli ospiti, il vento, l'acqua, il fumo, le luci della sera.
+      **Preparata il 2 novembre 2026** (manca solo la pubblicazione): la versione è 1.3.0 (`windows/package.json`), `PARITA.md` ha il §11 (il giardino e l'album, con le
+      differenze volute: la rotellina del mouse ingrandisce, l'isola viva non cambia vicino alla zona per togliere, niente `replayBridges`/`replayWelcome`), `PROVE_SU_WINDOWS.md`
+      il punto K, le note di rilascio il giardino, l'album, la vita sull'isola (G8, fatta prima di pubblicare) e il Riccio, l'architettura il §4.19. Le immagini nell'installer:
+      287 file, 46,6 MB (la 1.2.0 ne aveva 114); gli installer veri li fa la CI con il tag `windows-v1.3.0`, e si misurano lì.
+- [x] **G8 — La vita** (5, seconda uscita): i compagni sull'isola con le loro pose, gli angoli con le stelline, gli ospiti, il vento, l'acqua, il fumo, le luci della sera.
+      **Fatta il 2 novembre 2026**, ed entra nella 1.3.0 (una sola uscita invece di due). `renderer/garden/life.ts` (i compagni che passeggiano, le commissioni e le
+      pose negli angoli, l'ospite che arriva, resta e se ne va), `scene.ts` (il vento a strisce sulle piante, l'acqua, il fumo del camino sullo sfondo, gli effetti
+      degli angoli, petali, foglie e neve, le lucciole, i lampioni che tremolano), la pagina con un solo ciclo di `requestAnimationFrame` (30 fotogrammi al secondo
+      quando qualcosa si muove, 15 altrimenti). Il saluto all'ospite passa dal processo principale (`greetGuest` → `Garden.welcomeGuest`), gli angoli nuovi arrivano
+      con la fotografia (`newCorners`). Provata dal vivo con `test/vivo/giardino-vita.cjs`.
 
 Il Riccio è già in `windows/` (dal commit `5387d2e`) ma non è mai uscito su Windows: si può pubblicare da solo, prima del giardino, se si vuole.
 

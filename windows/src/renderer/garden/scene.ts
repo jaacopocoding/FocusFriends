@@ -2,7 +2,10 @@
 // compagni, la luce dell'ora e della stagione. Le misure sono quelle della scena del Mac (1000 × 600 punti); la telecamera (zoom e spostamento) è
 // una sola per tutto il mondo. Qui c'è solo il disegno: le regole sono in `core/garden*.ts`.
 
-import { applyTurn, companionHeight, fitsIsland, gardenImage, itemWithId, joinedImage, litImage } from "../../core/gardenCatalog.ts";
+import { applyTurn, companionHeight, fitsIsland, gardenImage, itemWithId, joinedImage, litImage, swayStrength, waterSpot } from "../../core/gardenCatalog.ts";
+import { poseImage } from "../../core/gardenCompanions.ts";
+import type { GardenPose } from "../../core/gardenCompanions.ts";
+import { hash } from "../../core/gardenDrops.ts";
 import type { GardenItem } from "../../core/gardenCatalog.ts";
 import { formedCorners } from "../../core/gardenCorners.ts";
 import {
@@ -12,7 +15,10 @@ import {
   terrainTag, tileKey, WORLD_EXTENT, WORLD_REACH, worldSlot,
 } from "../../core/gardenGrid.ts";
 import type { GardenPlacement, GardenTile } from "../../core/gardenGrid.ts";
-import { burstStar, BURST_STAR_COUNT, lampAmount, lightAt, lightMultiplier } from "../../core/gardenSky.ts";
+import {
+  burstStar, BURST_STAR_COUNT, butterfly, cornerFirefly, drift, firefly, FIREFLY_COUNT, fireflyAmount, lampAmount, lightAt, lightMultiplier, particle,
+  particleCount, particleKind, ripple, smoke, smokeAmount, SMOKE_COUNT, smoothstep, sparkle, SPARKLE_COUNT, sway, wind,
+} from "../../core/gardenSky.ts";
 import type { GardenLight, Season } from "../../core/gardenSky.ts";
 import { petInfo } from "../../core/pets.ts";
 import type { GardenData, GardenIslandData } from "../../shared/gardenApi.ts";
@@ -570,7 +576,25 @@ export function drawStaticScene(ctx: CanvasRenderingContext2D, data: GardenData,
 
 // ---- le cose e i compagni, dal fondo al davanti
 
+/** La vita sull'isola, com'è in questo momento (la tiene aggiornata la pagina, `life.ts`): l'ora degli effetti, i compagni che camminano o fanno una
+ *  posa, l'ospite. Il disegno la legge da qui. */
+export interface WalkerView { from: GardenTile; to: GardenTile; progress: number; pose: GardenPose | null }
+export interface VisitorView {
+  id: string; image: string; height: number; island: string; from: GardenTile; to: GardenTile; progress: number; walking: boolean;
+  facingRight: boolean; fade: number; hint: boolean;
+}
+export const life: { time: number; reduceMotion: boolean; walkers: Map<string, WalkerView>; visitor: VisitorView | null } = {
+  time: 0, reduceMotion: false, walkers: new Map(), visitor: null,
+};
+
 interface Entity {
+  kind: "placed" | "companion" | "visitor";
+  alpha: number;
+  /** Quanto ondeggia col vento (0 = fermo) e da dove parte l'onda; dov'è l'acqua nel disegno, se c'è. */
+  sway: number;
+  seed: number;
+  tile: GardenTile;
+  water: ReturnType<typeof waterSpot>;
   key: string;
   sprite: Sprite;
   feet: { x: number; y: number };
@@ -584,7 +608,7 @@ interface Entity {
 }
 
 function makeEntity(key: string, referenceHeight: number, feet: { x: number; y: number }, shadowWidth: number | null, turned: boolean,
-  depth: number, iso: Iso): Omit<Entity, "placement" | "item" | "island"> | null {
+  depth: number, iso: Iso): Omit<Entity, "placement" | "item" | "island" | "kind" | "alpha" | "sway" | "seed" | "tile" | "water"> | null {
   const s = ready(key);
   if (!s) return null;
   let height = referenceHeight * iso.scale, width = height * aspect(s);
@@ -619,6 +643,8 @@ function entities(data: GardenData, camera: Camera, light: GardenLight, skip: st
     if (!island.open) continue;
     const corner = islandCorner(island.id)!;
     const base = corner.col + corner.row;
+    // le bandierine di una festa in giardino ondeggiano di più
+    const party = new Set(formedCorners(island.placements).get("festa") ?? []);
     const linked = new Map<string, Set<string>>();
     for (const p of island.placements) {
       if (!itemWithId(p.item)?.joins || p.id === skip) continue;
@@ -645,23 +671,48 @@ function entities(data: GardenData, camera: Camera, light: GardenLight, skip: st
         height = x.height * litHeightFactor(x);
       }
       const made = makeEntity(key, height, feet, shadowWidth, turned, base + front + 0.5, iso);
-      if (made) result.push({ ...made, placement: p, item: x, island: island.id });
+      if (made) {
+        result.push({
+          ...made, kind: "placed", alpha: 1, sway: swayStrength(x) * (party.has(p.id) ? 1.7 : 1), seed: (hash(p.id) % 1000) / 1000, tile: { col: p.col, row: p.row },
+          water: waterSpot(x), placement: p, item: x, island: island.id,
+        });
+      }
     }
     if (island.companion && skip !== `compagno:${island.id}`) {
       const pet = petInfo(island.id);
-      const groundPoint = iso.center(island.companion);
+      // dove sta in questo momento: cammina da una tessera all'altra, con un saltello
+      const walker = life.walkers.get(island.id) ?? { from: island.companion, to: island.companion, progress: 1, pose: null };
+      const from = iso.center(walker.from), to = iso.center(walker.to);
+      const t = walker.progress * walker.progress * (3 - 2 * walker.progress);
+      const hop = walker.progress < 1 ? Math.sin(walker.progress * Math.PI) * iso.tileH * 0.18 : 0;
+      const groundPoint = { x: from.x + (to.x - from.x) * t, y: from.y + (to.y - from.y) * t - hop };
+      const cols = walker.from.col + (walker.to.col - walker.from.col) * t, rows = walker.from.row + (walker.to.row - walker.from.row) * t;
       if (visible(groundPoint)) {
         const feet = { x: groundPoint.x, y: groundPoint.y + iso.tileH * FEET_OFFSET };
-        const made = makeEntity(pet.iconImage.replace(/\.png$/, ""), companionHeight(pet.id), feet, iso.tileW * 0.5, false,
-          base + island.companion.col + island.companion.row + 1, iso);
-        if (made) result.push({ ...made, placement: null, item: null, island: island.id });
+        // se sta facendo una posa, il fotogramma di quel momento (se l'immagine c'è)
+        const pose = walker.pose ? poseImage(pet.id, walker.pose, life.time) : null;
+        const key = pose && ready(pose) ? pose : pet.iconImage.replace(/\.png$/, "");
+        const made = makeEntity(key, companionHeight(pet.id), feet, iso.tileW * 0.5, false, base + cols + rows + 1, iso);
+        if (made) result.push({ ...made, kind: "companion", alpha: 1, sway: 0, seed: 0, tile: walker.to, water: null, placement: null, item: null, island: island.id });
       }
+    }
+    const guest = life.visitor;
+    if (guest && guest.island === island.id) {
+      const from = iso.center(guest.from), to = iso.center(guest.to);
+      const t = guest.progress * guest.progress * (3 - 2 * guest.progress);
+      const hop = guest.walking ? Math.sin(guest.progress * Math.PI) * iso.tileH * 0.14 : 0;
+      const feet = { x: from.x + (to.x - from.x) * t, y: from.y + (to.y - from.y) * t - hop + iso.tileH * FEET_OFFSET };
+      const cols = guest.from.col + (guest.to.col - guest.from.col) * t, rows = guest.from.row + (guest.to.row - guest.from.row) * t;
+      const made = makeEntity("giardino/" + guest.image, guest.height, feet, iso.tileW * 0.34, !guest.facingRight, base + cols + rows + 1, iso);
+      if (made) result.push({ ...made, kind: "visitor", alpha: guest.fade, sway: 0, seed: 0, tile: guest.to, water: null, placement: null, item: null, island: island.id });
     }
   }
   return result.sort((a, b) => a.depth - b.depth);
 }
 
-function drawEntity(ctx: CanvasRenderingContext2D, e: Entity, season: Season, tint: Tint, dpr: number): void {
+function drawEntity(ctx: CanvasRenderingContext2D, e: Entity, season: Season, tint: Tint, dpr: number, tileW = 0): void {
+  ctx.save();
+  ctx.globalAlpha *= e.alpha;
   if (e.shadow) {
     ctx.fillStyle = season === "winter" ? unit(0.30, 0.38, 0.52, 0.22) : unit(0.24, 0.32, 0.20, 0.28);
     ctx.beginPath();
@@ -669,14 +720,25 @@ function drawEntity(ctx: CanvasRenderingContext2D, e: Entity, season: Season, ti
     ctx.fill();
   }
   const image = scaled(e.sprite, e.key, e.rect.w * dpr, e.rect.h * dpr, tint);
-  ctx.save();
   if (e.turned) {
     const mid = e.rect.x + e.rect.w / 2;
     ctx.translate(mid, 0);
     ctx.scale(-1, 1);
     ctx.translate(-mid, 0);
   }
-  ctx.drawImage(image, e.rect.x, e.rect.y, e.rect.w, e.rect.h);
+  if (e.sway > 0 && !life.reduceMotion && tileW > 0) {
+    // una pianta piegata dal vento: a strisce orizzontali, ognuna spostata di lato un po' di più della sottostante (la base sta ferma, la cima oscilla)
+    const amplitude = e.sway * wind(season) * 2.6 * tileW / 94;
+    const strips = 12, ph = image.height;
+    for (let i = 0; i < strips; i++) {
+      const first = Math.floor(i * ph / strips), last = Math.min(Math.floor((i + 1) * ph / strips) + (i === strips - 1 ? 0 : 1), ph);
+      const middle = (first + (last - first) / 2) / ph;
+      const dx = sway(life.time, e.tile.col, e.tile.row, e.seed, 1 - middle) * amplitude;
+      ctx.drawImage(image, 0, first, image.width, last - first, e.rect.x + dx, e.rect.y + e.rect.h * first / ph, e.rect.w, e.rect.h * (last - first) / ph);
+    }
+  } else {
+    ctx.drawImage(image, e.rect.x, e.rect.y, e.rect.w, e.rect.h);
+  }
   ctx.restore();
 }
 
@@ -695,7 +757,9 @@ function drawLampGlows(ctx: CanvasRenderingContext2D, laid: Entity[], data: Gard
     if (!glow || !e.placement) continue;
     if (e.item!.litDrawing && strength < LIT_THRESHOLD) continue;
     const boost = reading.has(e.placement.id) ? 1.45 : 1;
-    const power = strength * glow.strength;
+    // una fiamma vibra piano (non con «Riduci movimento»)
+    const flicker = glow.flickers && !life.reduceMotion ? 1 + 0.09 * (Math.sin(life.time * 6.1 + e.seed * 40) + 0.6 * Math.sin(life.time * 11.3 + e.seed * 17)) : 1;
+    const power = strength * glow.strength * flicker;
     const warm = (a: number): string => rgba(glow.red, glow.green, glow.blue, a);
     const radius = tileW * glow.radius;
     const top = { x: e.rect.x + e.rect.w / 2, y: e.rect.y + e.rect.h * glow.top };
@@ -741,6 +805,284 @@ function drawLandmarkLights(ctx: CanvasRenderingContext2D, data: GardenData, cam
     }
   }
   ctx.restore();
+}
+
+// ---- la vita ferma: l'acqua che luccica, il fumo, quello che cade, le lucciole, gli effetti degli angoli
+
+/** Un colore sopra la scena (che è già tinta dalla luce): si tinge allo stesso modo. */
+function litColor(r: number, g: number, b: number, a: number, light: GardenLight): string {
+  const m = lightMultiplier(light);
+  return rgba(r * m.red / 255, g * m.green / 255, b * m.blue / 255, a);
+}
+
+/** I luccichii e il cerchio d'acqua sulla vaschetta del bagnetto. */
+function drawWater(ctx: CanvasRenderingContext2D, e: Entity, light: GardenLight): void {
+  const spot = e.water;
+  if (!spot) return;
+  const cx = e.rect.x + spot.u * e.rect.w, cy = e.rect.y + spot.v * e.rect.h;
+  const halfW = spot.halfWidth * e.rect.w, halfH = spot.halfHeight * e.rect.h;
+  const time = life.reduceMotion ? 0 : life.time;
+  ctx.save();
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, halfW, halfH, 0, 0, Math.PI * 2);
+  ctx.clip();
+  const r = ripple(time, (e.tile.col * 7 + e.tile.row * 3) / 31);
+  if (!life.reduceMotion && r.alpha > 0.01) {
+    ctx.beginPath();
+    ctx.ellipse(cx + r.x * halfW, cy + r.y * halfH, r.phase * halfW / 2, r.phase * halfH / 2, 0, 0, Math.PI * 2);
+    ctx.strokeStyle = rgba(255, 255, 255, r.alpha);
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+  ctx.globalCompositeOperation = "lighter";
+  const strength = 1 - light.darkness * 0.8;
+  for (let i = 0; i < SPARKLE_COUNT; i++) {
+    const s = sparkle(i, time);
+    const a = s.glow * strength;
+    if (a <= 0.03) continue;
+    const x = cx + s.x * halfW, y = cy + s.y * halfH;
+    radial(ctx, x, y, 4.5, [rgba(255, 255, 255, 0.8 * a), rgba(255, 255, 255, 0)]);
+    ctx.fillStyle = rgba(255, 255, 255, Math.min(1, a * 1.2));
+    ctx.beginPath();
+    ctx.ellipse(x, y, 1, 1, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+/** Il fumo che esce dal camino del casale (sullo sfondo, dietro le isole). */
+function drawChimneySmoke(ctx: CanvasRenderingContext2D, data: GardenData, camera: Camera): void {
+  const amount = smokeAmount(data.season);
+  const chimney = frozen(data.season) ? { u: 0.1198, v: 0.3110 } : { u: 0.1336, v: 0.3111 };
+  const fixed = backdropPoint(chimney.u, chimney.v, data.season);
+  if (amount <= 0.01 || !fixed) return;
+  const mouth = cameraPoint(fixed, camera);
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(-20, -20, SCENE_W + 40, SCENE_H + 40);
+  for (const { iso } of worldIslands(data, camera)) outline(ctx, iso);
+  ctx.clip("evenodd");
+  const time = life.reduceMotion ? 3 : life.time;
+  // sul bianco della neve il fumo chiaro non si vedrebbe: un po' più grigio
+  const color = data.season === "winter" ? [204, 204, 214] : [226, 222, 224];
+  const k = 0.5 * camera.zoom * BACKDROP_SCALE;
+  for (let i = 0; i < SMOKE_COUNT; i++) {
+    const puff = smoke(i, time, wind(data.season));
+    const a = Math.min(puff.alpha * amount * 1.5, 0.8);
+    if (a <= 0.01) continue;
+    radial(ctx, mouth.x + puff.dx * k, mouth.y + puff.dy * k, puff.radius * 1.7 * k,
+      [rgba(color[0]!, color[1]!, color[2]!, a), rgba(color[0]!, color[1]!, color[2]!, a * 0.55), rgba(color[0]!, color[1]!, color[2]!, 0)]);
+  }
+  ctx.restore();
+}
+
+/** Petali, foglie o neve che cadono, a seconda della stagione. */
+function drawWeather(ctx: CanvasRenderingContext2D, season: Season, light: GardenLight): void {
+  const kind = particleKind(season);
+  if (!kind || life.reduceMotion) return;
+  const leaves = [[214, 120, 50], [190, 84, 44], [226, 168, 60], [150, 104, 52]];
+  for (let i = 0; i < particleCount(kind); i++) {
+    const p = particle(kind, i, life.time, SCENE_W, SCENE_H);
+    const c = kind === "petal" ? (p.tone < 0.5 ? [255, 196, 214] : [255, 238, 242]) : kind === "leaf" ? leaves[Math.min(Math.floor(p.tone * 4), 3)]! : [255, 255, 255];
+    ctx.fillStyle = litColor(c[0]!, c[1]!, c[2]!, kind === "snow" ? p.alpha * 0.9 : p.alpha, light);
+    ctx.beginPath();
+    if (kind === "snow") {
+      ctx.ellipse(p.x, p.y, p.size / 2, p.size / 2, 0, 0, Math.PI * 2);
+    } else {
+      const w = kind === "leaf" ? p.size * 1.7 : p.size * 1.5, h = kind === "leaf" ? p.size * 0.85 : p.size;
+      ctx.ellipse(p.x, p.y, w / 2, h / 2, p.angle, 0, Math.PI * 2);
+    }
+    ctx.fill();
+  }
+}
+
+/** Le lucciole: di sera, soprattutto d'estate. */
+function drawFireflies(ctx: CanvasRenderingContext2D, season: Season, light: GardenLight): void {
+  const amount = fireflyAmount(season, light);
+  if (amount <= 0.01 || life.reduceMotion) return;
+  ctx.save();
+  ctx.globalCompositeOperation = "lighter";
+  for (let i = 0; i < FIREFLY_COUNT; i++) {
+    const f = firefly(i, life.time, SCENE_W, SCENE_H);
+    const a = f.glow * amount;
+    if (a <= 0.02) continue;
+    radial(ctx, f.x, f.y, 10, [rgba(255, 238, 140, 0.85 * a), rgba(255, 238, 140, 0)]);
+    ctx.fillStyle = rgba(255, 252, 210, Math.min(1, a * 1.3));
+    ctx.beginPath();
+    ctx.ellipse(f.x, f.y, 1.4, 1.4, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+/** Finché non l'hai salutato, sopra l'ospite c'è una stellina che pulsa piano. */
+function drawVisitorHint(ctx: CanvasRenderingContext2D, laid: Entity[]): void {
+  if (!life.visitor?.hint) return;
+  const e = laid.find((x) => x.kind === "visitor");
+  if (!e) return;
+  const pulse = life.reduceMotion ? 0.5 : 0.5 + 0.5 * Math.sin(life.time * 3);
+  starPath(ctx, e.rect.x + e.rect.w / 2, e.rect.y - 9 - 2 * pulse, 5 + 2 * pulse, 0);
+  ctx.fillStyle = rgba(255, 208, 70, 0.75 + 0.25 * pulse);
+  ctx.fill();
+  ctx.strokeStyle = rgba(226, 140, 28);
+  ctx.lineWidth = 0.9;
+  ctx.stroke();
+}
+
+/** Una lettera o un simbolo (la «z» del sonno, un cuore, una nota) centrato su un punto e girato di `angle`. */
+function glyph(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, size: number, color: string, angle = 0): void {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(angle);
+  ctx.font = `900 ${size}px system-ui, "Segoe UI", sans-serif`;
+  ctx.fillStyle = color;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(text, 0, 0);
+  ctx.restore();
+}
+
+/** Quello che gli angoli formati fanno sull'isola mostrata: vapore dal tavolino, gocce dall'annaffiatoio, «z», cuori e note dalle case, farfalle sul prato
+ *  fiorito, nebbia e lucciole nel bosco, coriandoli alla festa, petali e luce rosata sotto l'arco. Niente con «Riduci movimento». */
+function drawCornerEffects(ctx: CanvasRenderingContext2D, laid: Entity[], data: GardenData, camera: Camera, light: GardenLight): void {
+  const shown = data.islands.find((i) => i.id === data.shown);
+  if (life.reduceMotion || !shown) return;
+  const formed = formedCorners(shown.placements);
+  if (formed.size === 0) return;
+  const time = life.time;
+  const tileW = worldView(camera).tileW, tileH = tileW / 2;
+  const member = (corner: string, item: string): Entity | undefined => {
+    const ids = formed.get(corner);
+    return ids ? laid.find((e) => e.placement && e.island === shown.id && ids.includes(e.placement.id) && e.placement.item === item) : undefined;
+  };
+  const center = (corner: string): { x: number; y: number } | null => {
+    const ids = formed.get(corner);
+    const feet = ids ? laid.filter((e) => e.placement && e.island === shown.id && ids.includes(e.placement.id)).map((e) => e.feet) : [];
+    return feet.length === 0 ? null : { x: feet.reduce((s, f) => s + f.x, 0) / feet.length, y: feet.reduce((s, f) => s + f.y, 0) / feet.length };
+  };
+  const rect = (e: Entity) => e.rect;
+  // il tè: un filo di vapore dal tavolino
+  const table = member("te", "tavolino");
+  if (table) {
+    const r = rect(table), ox = r.x + r.w / 2 - r.w * 0.06, oy = r.y + r.h * 0.30, k = tileW / 185;
+    for (let i = 0; i < 4; i++) {
+      const puff = smoke(i * 2, time, 0.15);
+      const a = puff.alpha * 0.9;
+      if (a <= 0.01) continue;
+      radial(ctx, ox + puff.dx * k, oy + puff.dy * k, puff.radius * 2.1 * k,
+        [litColor(188, 196, 214, Math.min(a * 1.5, 0.85), light), litColor(188, 196, 214, a * 0.7, light), litColor(188, 196, 214, 0, light)]);
+    }
+  }
+  // l'orto: le gocce dell'annaffiatoio
+  const can = member("orto", "annaffiatoio");
+  if (can) {
+    const r = rect(can), ox = r.x + r.w * 0.12, oy = r.y + r.h * 0.42;
+    for (let i = 0; i < 3; i++) {
+      const d = drift(i, time, 1.1);
+      ctx.fillStyle = litColor(150, 200, 238, d.alpha * 0.9, light);
+      ctx.beginPath();
+      ctx.ellipse(ox + d.x * tileW * 0.05, oy + d.progress * tileH * 1.1, 1.6, 2.8, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  // il gatto dorme, il porcellino è contento, gli uccelli cantano
+  for (const [corner, item, text, c, period] of [["gatto", "casetta-gatto", "z", [110, 130, 190], 3.2], ["porcellino", "casetta-porcellino", "♥", [238, 118, 150], 3.6],
+    ["uccelli", "casetta-uccelli", "♪", [96, 150, 205], 3.0]] as const) {
+    const house = member(corner, item);
+    if (!house) continue;
+    const r = rect(house), ox = r.x + r.w / 2 + r.w * 0.06, oy = r.y + r.h * 0.30;
+    for (let i = 0; i < 2; i++) {
+      const d = drift(i + 3, time, period);
+      glyph(ctx, text, ox + d.x * tileW * 0.12, oy - d.progress * tileH, 11 + d.progress * 6, litColor(c[0], c[1], c[2], d.alpha * 0.9, light), Math.sin(d.spin) * 0.25);
+    }
+  }
+  // il prato fiorito: le farfalle (non d'inverno)
+  const meadow = center("prato-fiorito");
+  if (data.season !== "winter" && meadow) {
+    const colors = [[240, 150, 60], [120, 170, 232], [240, 140, 186]];
+    for (let i = 0; i < 3; i++) {
+      const b = butterfly(i, time);
+      const x = meadow.x + b.x * tileW * 0.95, y = meadow.y - tileH * 1.1 + b.y * tileH * 0.9;
+      const wing = tileW * 0.06, spread = 0.25 + b.flap * 0.75, c = colors[i]!;
+      ctx.fillStyle = litColor(c[0]!, c[1]!, c[2]!, 1, light);
+      ctx.beginPath();
+      ctx.ellipse(x - wing * 0.95 * spread, y - wing * 0.2, wing * 0.95 * spread, wing * 0.8, 0, 0, Math.PI * 2);
+      ctx.ellipse(x + wing * 0.95 * spread, y - wing * 0.2, wing * 0.95 * spread, wing * 0.8, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = litColor(70, 52, 44, 1, light);
+      ctx.beginPath();
+      ctx.ellipse(x, y + wing * 0.05, 0.7, wing * 0.95, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  // il bosco: la nebbia di giorno, le lucciole la sera (non d'inverno)
+  const wood = center("bosco");
+  if (wood) {
+    const lamp = lampAmount(light);
+    if (lamp < 0.5) {
+      const shift = Math.sin(time * 0.12) * tileW * 0.3;
+      for (let layer = 0; layer < 2; layer++) {
+        const a = (0.17 + 0.05 * Math.sin(time * 0.3 + layer)) * (1 - lamp * 2);
+        radial(ctx, wood.x + shift * (layer === 0 ? 1 : -0.7), wood.y - tileH * (0.25 + layer * 0.3), tileW * 1.4,
+          [litColor(255, 255, 255, a, light), litColor(255, 255, 255, 0, light)], 1, 0.38);
+      }
+    }
+    const evening = smoothstep(light.darkness, 0.2, 0.45);
+    if (data.season !== "winter" && evening > 0.01) {
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      for (let i = 0; i < 6; i++) {
+        const f = cornerFirefly(i, time);
+        const a = f.glow * evening;
+        if (a <= 0.02) continue;
+        const x = wood.x + f.x * tileW, y = wood.y - tileH * 0.9 + f.y * tileH * 1.1;
+        radial(ctx, x, y, 10, [rgba(255, 238, 140, 0.85 * a), rgba(255, 238, 140, 0)]);
+        ctx.fillStyle = rgba(255, 252, 210, Math.min(1, a * 1.3));
+        ctx.beginPath();
+        ctx.ellipse(x, y, 1.4, 1.4, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+  }
+  // la festa: i coriandoli che cadono dalle bandierine
+  const flags = member("festa", "bandierine");
+  if (flags) {
+    const colors = [[240, 128, 160], [250, 205, 80], [110, 170, 235], [130, 200, 140], [242, 160, 80], [170, 130, 220]];
+    const r = rect(flags), ox = r.x + r.w / 2, oy = r.y + r.h * 0.22;
+    for (let i = 0; i < 6; i++) {
+      const d = drift(i + 10, time, 3), c = colors[i]!;
+      ctx.save();
+      ctx.translate(ox + d.x * r.w * 0.45, oy + d.progress * tileH * 1.7);
+      ctx.rotate(d.spin);
+      ctx.fillStyle = litColor(c[0]!, c[1]!, c[2]!, d.alpha, light);
+      ctx.fillRect(-2, -3.2, 4, 6.4);
+      ctx.restore();
+    }
+  }
+  // l'arco delle rose: i petali che cadono e, di sera, una luce rosata
+  const arch = member("rose", "arco-rose");
+  if (arch) {
+    const r = rect(arch), ox = r.x + r.w / 2, oy = r.y + r.h * 0.20;
+    for (let i = 0; i < 5; i++) {
+      const d = drift(i + 20, time, 4.2);
+      ctx.save();
+      ctx.translate(ox + d.x * r.w * 0.32, oy + d.progress * r.h * 0.8);
+      ctx.rotate(d.spin);
+      ctx.fillStyle = litColor(246, 150, 178, d.alpha * 0.95, light);
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 3.2, 2.1, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+    const glow = lampAmount(light);
+    if (glow > 0.02) {
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      radial(ctx, r.x + r.w / 2, r.y + r.h * 0.45, tileW * 0.95, [rgba(255, 150, 186, 0.26 * glow), rgba(255, 150, 186, 0)]);
+      ctx.restore();
+    }
+  }
 }
 
 // ---- tutto insieme
@@ -872,33 +1214,46 @@ export function drawGarden(ctx: CanvasRenderingContext2D, layers: SceneLayers, d
   ctx.restore();
   const tint = tintOf(lightMultiplier(light));
   if (effects.building) drawBuilding(ctx, data, camera, effects.building, tint, dpr);
+  drawChimneySmoke(ctx, data, camera);
   const island = carrying ? data.islands.find((i) => i.id === carrying.island) : undefined;
   const iso = island ? isoOf(island, camera) : null;
   if (carrying && iso) drawHighlight(ctx, iso, carrying.tiles, carrying.valid);
   const laid = entities(data, camera, light, carrying?.skip ?? null);
-  for (const e of laid) drawEntity(ctx, e, data.season, tint, dpr);
+  const tileWidth = worldView(camera).tileW;
+  for (const e of laid) {
+    drawEntity(ctx, e, data.season, tint, dpr, tileWidth);
+    if (e.water) drawWater(ctx, e, light);
+  }
   if (carrying?.ghost && iso) {
     const g = carrying.ghost;
     const made = makeEntity(g.key, g.height, g.feet, g.shadowWidth, g.turned, 0, iso);
     if (made) {
       ctx.save();
       ctx.globalAlpha = g.alpha;
-      drawEntity(ctx, { ...made, rect: { ...made.rect, y: made.rect.y - 6 }, placement: null, item: null, island: carrying.island }, data.season, tint, dpr);
+      drawEntity(ctx, { ...made, rect: { ...made.rect, y: made.rect.y - 6 }, kind: "placed", alpha: 1, sway: 0, seed: 0, tile: { col: 0, row: 0 }, water: null,
+        placement: null, item: null, island: carrying.island }, data.season, tint, dpr);
       ctx.restore();
     }
   }
+  drawVisitorHint(ctx, laid);
+  drawCornerEffects(ctx, laid, data, camera, light);
+  drawWeather(ctx, data.season, light);
   drawLampGlows(ctx, laid, data, camera, light);
   drawCottageWindows(ctx, data, camera, light);
   drawLandmarkLights(ctx, data, camera, light);
+  drawFireflies(ctx, data.season, light);
   const tileW = worldView(camera).tileW;
   for (const burst of effects.bursts) drawBurst(ctx, burst.x, burst.y, effects.reduceMotion ? 0.55 : burst.progress, tileW, Math.min(burst.progress * 8, (1 - burst.progress) * 3, 1), effects.reduceMotion);
 }
 
 /** Dove sta a schermo il disegno di una copia (per far uscire le stelline dal regalo), o il centro dell'isola se non c'è. */
-export function placementCenter(data: GardenData, camera: Camera, island: string, placement: string | null): { x: number; y: number } | null {
+export function placementCenter(data: GardenData, camera: Camera, island: string, placement: string | null | readonly string[], visitor = false): { x: number; y: number } | null {
   const laid = entities(data, camera, lightOf(data));
-  const found = placement === null ? undefined : laid.find((e) => e.placement?.id === placement);
-  if (found) return { x: found.rect.x + found.rect.w / 2, y: found.rect.y + found.rect.h / 2 };
+  const ids = placement === null ? [] : typeof placement === "string" ? [placement] : placement;
+  const found = laid.filter((e) => (e.placement && ids.includes(e.placement.id)) || (visitor && e.kind === "visitor"));
+  if (found.length > 0) {
+    return { x: found.reduce((sum, e) => sum + e.rect.x + e.rect.w / 2, 0) / found.length, y: found.reduce((sum, e) => sum + e.rect.y + e.rect.h / 2, 0) / found.length };
+  }
   const target = data.islands.find((i) => i.id === island);
   const iso = target && isoOf(target, camera);
   return iso ? iso.point(iso.size / 2, iso.size / 2) : null;
@@ -938,7 +1293,9 @@ export function islandMarks(data: GardenData, camera: Camera): Array<{ island: G
 
 // ---- per il mouse: cosa c'è sotto un punto, e dove ci sta una cosa
 
-export type Hit = { kind: "placed"; id: string; island: string; feet: { x: number; y: number } } | { kind: "companion"; pet: string; island: string; feet: { x: number; y: number }; rect: { x: number; y: number; w: number; h: number } };
+export type Hit = { kind: "placed"; id: string; island: string; feet: { x: number; y: number } }
+  | { kind: "companion"; pet: string; island: string; feet: { x: number; y: number }; rect: { x: number; y: number; w: number; h: number } }
+  | { kind: "visitor"; island: string };
 
 /** La cosa più davanti sotto il punto, contando solo dove l'immagine è disegnata (con una cella di margine). */
 export function hitAt(data: GardenData, camera: Camera, x: number, y: number): Hit | null {
@@ -951,6 +1308,7 @@ export function hitAt(data: GardenData, camera: Camera, x: number, y: number): H
     if (e.turned) u = 1 - u;
     if (!isDrawn(e.sprite, u, v)) continue;
     if (e.placement) return { kind: "placed", id: e.placement.id, island: e.island, feet: e.feet };
+    if (e.kind === "visitor") return { kind: "visitor", island: e.island };
     return { kind: "companion", pet: e.island, island: e.island, feet: e.feet, rect: e.rect };
   }
   return null;

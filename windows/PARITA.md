@@ -1,7 +1,7 @@
 # Parità con l'app per Mac
 
 Funzione per funzione: cosa fa l'app per Mac (`README.md` «Cosa fa» e `ARCHITECTURE.md` §3), cosa fa la versione per Windows,
-e **come è stato verificato**. Il giardino non c'è nella prima uscita (vedi `PIANO_WINDOWS.md`, G0–G8).
+e **come è stato verificato**. Il giardino c'è dalla 1.3 (vedi §11 e `PIANO_WINDOWS.md`, G0–G8).
 
 **Prova su Windows (18 ottobre 2026):** una prova sommaria su un computer Windows vero con l'installer della CI: l'app si installa, parte e «funziona bene»,
 circa 200 MB e 0 % di processore. **Le sigle W qui sotto non sono state spuntate una per una**: restano da fare con `PROVE_SU_WINDOWS.md`.
@@ -78,7 +78,7 @@ circa 200 MB e 0 % di processore. **Le sigle W qui sotto non sono state spuntate
 | Icona nella barra dei menu; clic = scheda, tasto destro / ⌥-clic = menu classico | Icona nell'area di notifica; clic = scheda, tasto destro = menu completo. **Su Windows 11 l'icona nuova finisce nel menu «^» finché non la si trascina fuori**: il tasto destro sul compagno funziona comunque | W |
 | Tasto destro o ctrl-clic sul compagno = scheda di fianco a lui, lo segue, passa dall'altro lato ai bordi | Tasto destro (non c'è il ctrl-clic su Windows); lo segue e passa dall'altro lato | S |
 | Esc o un clic fuori la chiudono | Uguale | S |
-| Pagina principale: compagni con lucchetti, durate 30/50/pausa, «Altri timer…», riquadri di oggi, impostazioni rapide, «Esci» | Uguale (senza il pulsante «Giardino», seconda uscita) | S |
+| Pagina principale: compagni con lucchetti, durate 30/50/pausa, «Altri timer…», riquadri di oggi, impostazioni rapide, «Esci» | Uguale; dalla 1.3 con «Giardino», la riga «Album» e quella della prossima figurina | S |
 | «Gira il timer»: quadrante a pomodoro 5–120 / 1–30, rotella, fino a 6 timer salvati per tipo | Uguale (anche con le frecce) | P S |
 | Pagina del focus e della pausa (verde), facce per l'ultimo focus | Uguale | S |
 | **Da fare** (dalla 1.1): riga nella scheda; lista divisa in scadute, oggi, prossime, senza data, con il «+» in alto; pagina «Nuova cosa» (nome, scadenza, materia) e «Modifica» toccando il testo di una voce (dalla 1.1.1); ▶ «Inizia un focus» (dalla 1.1.1 porta al quadrante «Gira il timer» per scegliere i minuti, e parte con la materia della voce; senza materia si chiede «Cosa studi adesso?») e × sotto il mouse; voci fatte ripiegate, tolte dopo 7 giorni | Uguale. Il calendario di «Scegli…» è disegnato nella scheda (quello di sistema si apre in una finestra a parte, che in una finestra trasparente e senza fuoco non è affidabile) | P (contratto su 4 cartelle di esempio, nei due versi) S (`test/vivo/dafare.cjs`) |
@@ -134,6 +134,23 @@ circa 200 MB e 0 % di processore. **Le sigle W qui sotto non sono state spuntate
 | Mezzanotte con la scheda o le statistiche aperte | «Oggi» si ricalcola quando la scheda si riapre, cambia la fase o cambia il registro; non allo scoccare della mezzanotte. Non l'ho confrontato riga per riga con il Mac | C |
 | Coperchio chiuso | Come lo sleep (Windows manda gli stessi messaggi) | **W** |
 | Schermo bloccato / sbloccato | Allo sblocco: come al risveglio | S (simulato) **W** |
+
+## 11. Il giardino e l'album (dalla 1.3)
+
+| Mac | Windows | Verifica |
+|---|---|---|
+| Il catalogo (47 oggetti), i tiri delle figurine (FNV-1a, Mulberry32, la riserva di minuti, le garanzie), le isole, i sentieri, il terreno, il mondo e i ponti, la luce e le stagioni, gli angoli, gli ospiti | Uguale, in `core/garden*.ts` | P (contratto: `attesi/_giardino.json`, 420 regali, sentieri e terreno delle cinque isole, luce ogni quarto d'ora, un giardino passo per passo) |
+| `giardino.json` versione 4: lettura dalle versioni 1–3, file rovinato o più nuovo, oggetti tolti dal catalogo, regole delle isole, ponti e benvenuti | Uguale | P (contratto sulle cartelle `giardino-*` e `v3-completo`; ritorno: Windows scrive, il Mac legge) |
+| A fine focus la figurina: la frase, la figurina accanto al compagno, la cosa sull'isola | Uguale | S (`test/vivo/giardino-regalo.cjs`, con `quickGifts`) |
+| La finestra del giardino: le isole viste di sbieco, colline, case, ponti, cose, compagni, luce dell'ora, stagioni, zoom e spostamenti | Uguale, su un `<canvas>` (`renderer/garden/`) | S e confronto con il Mac sugli stessi dati (`test/vivo/giardino.cjs` e `../tools/render-giardino.sh`); il disegno su una scheda video vera: **W** |
+| La cassetta «Da mettere», trascinare (verde/rosso), girare (R, due tocchi, tasto destro), togliere, la staccionata che si unisce, il compagno che parla | Uguale | S (`test/vivo/giardino-mosse.cjs`); il menu del tasto destro: C |
+| Scorrere con due dita sposta, il pizzico ingrandisce, ⌘ + rotella ingrandisce | **La rotellina del mouse ingrandisce** (a scatti di 1,3), due dita sul touchpad spostano, il pizzico ingrandisce | ≠ (su Windows con il mouse ci si aspetta che la rotella ingrandisca); il touchpad vero: **W** |
+| Trascinando una cosa sopra un'altra isola, diventa quella viva | Uguale, tranne vicino alla zona per toglierla e sopra la cassetta | ≠ (la scritta «Isola di …» non cambia a metà del gesto) |
+| La cerimonia d'arrivo di un compagno: la telecamera, i ponti pezzo per pezzo, il regalo di benvenuto con le stelline | Uguale; con «Riduci movimento» di Windows tutto insieme | S (`test/vivo/giardino-mondo.cjs`) |
+| Le isole chiuse: il lucchetto, «???», «si sblocca a N focus», la riga al tocco; i nomi rimpicciolendo | Uguale | S |
+| Le chiavi nascoste `gardenHour`, `gardenSeason`, `quickGifts`, `replayBridges`, `replayWelcome` | Le prime tre in `impostazioni.json`; le ultime due no | ≠ (servono solo a provare) |
+| L'album: la copertina, l'apertura, le pagine che girano, le figurine con le sagome, il sigillo, le linguette, la riga al tocco | Uguale (canvas e fogli in 3D), con lo stesso carattere dei titoli (Amatic SC) | S (`test/vivo/album.cjs`) e confronto con il Mac (`../tools/render-album.sh`) |
+| La vita sull'isola: i compagni che camminano e fanno le pose negli angoli, «Hai sbloccato» con le stelline quando si forma un angolo, gli ospiti (la stellina sopra, il saluto, il regalo la prima volta, il diario), il vento sulle piante, l'acqua, il fumo del camino, petali, foglie e neve, le lucciole, le luci della sera | Uguale; la pagina ridisegna a 30 fotogrammi al secondo quando qualcosa si muove, 15 altrimenti; con «Riduci movimento» niente vento, particelle e lucciole | S (`test/vivo/giardino-vita.cjs`: il compagno, l'ospite e il saluto, la sera, la notte d'estate, l'inverno); il processore su una macchina vera: **W** |
 
 ## 10. Differenze volute o limiti di Windows (da decidere dopo la prova su una macchina vera)
 

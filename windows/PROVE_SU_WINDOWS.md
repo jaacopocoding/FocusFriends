@@ -120,6 +120,30 @@ con la pioggia). Se la memoria è alta, mandami la lista dei processi con le lor
    confrontare numeri e testi delle statistiche con quelli della versione per Windows.
    (Che i file scritti dal codice per Windows siano letti uguali dal Mac è già provato con dati inventati: `test/ritorno.test.ts`.)
 
+## K. Il giardino e l'album (dalla 1.3)
+
+Per avere subito delle figurine senza studiare ore: con l'app chiusa, scrivere `"quickGifts": true` in `impostazioni.json` (un focus da un minuto conta e vale
+un'ora). Toglierlo alla fine.
+
+| Passo | Deve succedere |
+|---|---|
+| Dal menu dell'area di notifica, *Il mio giardino…* (o «Giardino» nella scheda) | Si apre una finestra con l'isola del tuo compagno, intera; se lo schermo è piccolo, più piccola ma uguale |
+| Lo stesso con la **scala** dello schermo a 125 % e 150 % | Disegno nitido, comandi nelle loro posizioni |
+| **Rotellina** del mouse sull'isola | Ingrandisce e rimpicciolisce attorno al mouse, a scatti |
+| Due dita sul **touchpad** (se c'è), poi il **pizzico** | Due dita spostano, il pizzico ingrandisce |
+| Trascinare lo sfondo | Ci si sposta; «M» mostra tutte le isole, «0» torna all'isola |
+| «Da mettere», poi trascinare una cosa sull'isola | Tessere verdi dove ci sta, rosse dove no; lasciata, resta lì |
+| R mentre si trascina, due tocchi su una cosa, **tasto destro** su una cosa | Si gira; il tasto destro apre il menu «Gira» / «Togli dal giardino» |
+| Il compagno sul desktop resta aperto mentre il giardino è aperto, e ci si sposta nel giardino | Il giardino si ridisegna sempre (la finestra trasparente del compagno, sopra, non lo ferma) |
+| Un focus da 1 minuto con `quickGifts` | A fine focus la frase dice la figurina, la figurina compare accanto al compagno, la cosa è sull'isola |
+| Scheda → «Album» | Copertina; un clic la apre (animazione fluida), le frecce girano le pagine; i titoli sono scritti a mano (Amatic SC), non in un carattere di sistema |
+| Sbloccare un compagno (o, per provare, `"developerMode": true`) e riaprire il giardino | La telecamera inquadra le isole, il ponte compare pezzo per pezzo, arriva un regalo con le stelline |
+| Lasciare il giardino aperto qualche minuto, di giorno | Il compagno cammina e ogni tanto fa una posa nel suo angolo, i fiori ondeggiano, cadono petali o foglie (non d'estate); a volte passa un ospite con una stellina sopra: toccandolo saluta e, la prima volta, lascia un regalo |
+| Con `"gardenHour": 22` (e `"gardenSeason": "summer"`) | Le finestre e i lampioni accesi, le lucciole |
+| «Riduci movimento» di Windows (Impostazioni → Accessibilità → Effetti visivi → Effetti di animazione spenti) | Niente vento, particelle e lucciole; i compagni e gli ospiti si spostano lo stesso |
+
+Mandami: una schermata del giardino e una dell'album, e la memoria e il processore (come in **I**) con il giardino aperto, fermo, mentre ci si sposta e mentre il compagno cammina.
+
 ---
 
-**Quando tutto questo è passato**, la prima uscita per Windows è pronta: versione 1.0, senza giardino.
+**Quando tutto questo è passato**, la prima uscita per Windows è pronta: versione 1.0, senza giardino. (Il punto **K** è per la 1.3, con il giardino.)

@@ -1,16 +1,17 @@
 # FocusFriends per Windows
 
-La versione per Windows di FocusFriends, scritta con **Electron** (TypeScript, HTML e CSS). La prima uscita (senza il giardino) è **uscita**: il piano è
+La versione per Windows di FocusFriends, scritta con **Electron** (TypeScript, HTML e CSS). Il piano è
 in [`../PIANO_WINDOWS.md`](../PIANO_WINDOWS.md) e i formati dei dati, comuni con l'app per Mac, in
 [`../FORMATI.md`](../FORMATI.md).
 
-**Stato:** l'ultima versione è la **1.2.0** («Da fare» con «Hai finito?», saluti legati al momento, scheda «Anno»; senza il giardino), **pubblicata** il 26 ottobre 2026:
+**Stato:** la **1.3.0**, con il giardino e l'album, è **pronta e non ancora pubblicata**.
+L'ultima pubblicata è la **1.2.0** («Da fare» con «Hai finito?», saluti legati al momento, scheda «Anno»; senza il giardino), **pubblicata** il 26 ottobre 2026:
 [release `windows-v1.2.0`](https://github.com/jaacopocoding/FocusFriends/releases/tag/windows-v1.2.0). Prima, il 21 ottobre, la 1.1.1
 ([`windows-v1.1.1`](https://github.com/jaacopocoding/FocusFriends/releases/tag/windows-v1.1.1)) e la 1.1.0
 ([`windows-v1.1.0`](https://github.com/jaacopocoding/FocusFriends/releases/tag/windows-v1.1.0)); la prima uscita, la 1.0.0, è del 18 ottobre
 ([`windows-v1.0.0`](https://github.com/jaacopocoding/FocusFriends/releases/tag/windows-v1.0.0)). È provata sul Mac con prove automatiche e prove dal vivo, sulla
 CI di GitHub (macchina Windows) e, in modo sommario, su un computer Windows vero. Il confronto con l'app per Mac, funzione per funzione, è in [`PARITA.md`](PARITA.md);
-quello che resta da provare su Windows, punto per punto, in [`PROVE_SU_WINDOWS.md`](PROVE_SU_WINDOWS.md). Il giardino è la seconda uscita.
+quello che resta da provare su Windows, punto per punto, in [`PROVE_SU_WINDOWS.md`](PROVE_SU_WINDOWS.md) (il giardino e l'album: punto **K**).
 La 1.1 aggiunge la pagina **Da fare** della scheda, come sull'app per Mac (con la 1.0.1, che non è uscita da sola).
 Clic sull'icona nell'area di notifica = la scheda; tasto destro = il menu.
 

@@ -13,11 +13,14 @@ import { petInfo } from "../../core/pets.ts";
 import type { GardenApi, GardenArrival, GardenData, GardenIslandData } from "../../shared/gardenApi.ts";
 import { h, icon } from "../card/dom.ts";
 import {
-  canPlaceOn, canStandOn, CEREMONY, clampCamera, drawGarden, FEET_OFFSET, feetOf, focusedIsland, framingCamera, hitAt, islandAt, islandCamera, islandMarks, isoOf,
+  canPlaceOn, canStandOn, CEREMONY, clampCamera, drawGarden, FEET_OFFSET, life, feetOf, focusedIsland, framingCamera, hitAt, islandAt, islandCamera, islandMarks, isoOf,
   pieceCount, placementCenter, SCENE_H, SCENE_W, wantedImages, worldCamera, zoomCamera, ZOOM_MAX, ZOOM_MIN,
 } from "./scene.ts";
 import type { Camera, Carrying, Effects, SceneLayers } from "./scene.ts";
 import { sprite, whenSpritesLoad } from "./sprites.ts";
+import { advanceLife, greetVisitor, placeCompanion, resetVisitors } from "./life.ts";
+import { cornerWithId, formedCorners } from "../../core/gardenCorners.ts";
+import { reasonText } from "../../core/gardenVisitors.ts";
 
 declare global {
   interface Window {
@@ -76,10 +79,10 @@ const reduceMotion = (): boolean => window.matchMedia("(prefers-reduced-motion: 
 const seconds = (): number => performance.now() / 1000;
 interface Ceremony { arrival: GardenArrival; from: Camera; to: Camera; start: number; pieces: number; gliding: boolean }
 let ceremony: Ceremony | null = null;
-interface Celebration { caption: string; title: string; island: string; placement: string | null; start: number | null }
+interface Celebration { caption: string; title: string; island: string; placement: string | string[] | null; visitor?: boolean; start: number | null }
 const celebrations: Celebration[] = [];
 const CELEBRATION_LENGTH = 4.6, BURST_LENGTH = 2.8;
-let animating = false;
+let receivedAt = 0;
 
 const carryItem = (c: Carry): GardenItem | undefined => {
   if (c.what.kind === "fresh") return itemWithId(c.what.item);
@@ -206,6 +209,8 @@ function focus(id: string): void {
   if (!data || id === data.shown || !data.islands.find((i) => i.id === id)?.open) return;
   data = { ...data, shown: id };
   bubble = null;
+  // l'ospite se ne va; i compagni dell'altra isola restano dove sono
+  resetVisitors();
   api.showIsland(id);
 }
 
@@ -231,9 +236,17 @@ function receive(next: GardenData): void {
   document.title = next.title;
   for (const key of wantedImages(next)) void sprite(key);
   for (const id of next.has) void sprite("giardino/" + id);
+  receivedAt = performance.now();
+  // gli angoli appena sbloccati: le stelline escono dalle loro cose, e in alto «Hai sbloccato…»
+  for (const id of next.newCorners) {
+    const corner = cornerWithId(id);
+    const island = next.islands.find((i) => formedCorners(i.placements).has(id));
+    if (corner && island) celebrations.push({ caption: "Hai sbloccato", title: corner.name, island: island.id, placement: formedCorners(island.placements).get(id) ?? null, start: null });
+  }
   if (first || next.reset) {
     trayOpen = false;
     ceremony = null;
+    resetVisitors();
     resetCamera();
     if (next.arrival) beginArrival(next.arrival);
   } else redraw();
@@ -274,33 +287,58 @@ async function finishArrival(arrival: GardenArrival): Promise<void> {
   animate();
 }
 
-/** Finché c'è una cerimonia o una festa, si ridisegna a ogni fotogramma. */
-function animate(): void {
-  if (animating) return;
-  animating = true;
-  const tick = (): void => {
-    const now = seconds();
-    if (ceremony) {
-      const elapsed = now - ceremony.start;
-      if (ceremony.gliding) {
-        const t = Math.min(Math.max(elapsed / CEREMONY.glide, 0), 1);
-        const eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-        const { from, to } = ceremony;
-        camera = clampCamera({ zoom: from.zoom + (to.zoom - from.zoom) * eased, panX: from.panX + (to.panX - from.panX) * eased, panY: from.panY + (to.panY - from.panY) * eased });
-        if (t >= 1) ceremony.gliding = false;
-      }
-      if (elapsed >= CEREMONY.glide + Math.max(ceremony.pieces - 1, 0) * CEREMONY.pieceGap + CEREMONY.pieceFade + CEREMONY.hold) void finishArrival(ceremony.arrival);
-    }
-    const current = celebrations[0];
-    if (current) {
-      current.start ??= now;
-      if (now - current.start >= CELEBRATION_LENGTH) celebrations.shift();
-    }
-    redraw();
-    if (ceremony || celebrations.length > 0) requestAnimationFrame(tick);
-    else { animating = false; renderEffects(); }
-  };
+/** L'ora che si vede adesso: quella ricevuta, che avanza con l'orologio (se non è forzata per provarla). */
+function currentHour(): number {
+  if (!data) return 12;
+  return data.hourForced ? data.hour : (data.hour + (performance.now() - receivedAt) / 3_600_000) % 24;
+}
+
+/** Il ciclo della vita: a ogni fotogramma la cerimonia, le feste, i compagni e l'ospite. Si ridisegna a 30 al secondo se qualcosa cammina (o c'è una
+ *  festa), a 15 se si muove solo l'aria (il vento, il fumo, la neve), e con «Riduci movimento» solo quando qualcosa cambia. */
+let lastTick = 0, frameTick = 0, lastMinute = -1;
+function tick(): void {
   requestAnimationFrame(tick);
+  const now = seconds();
+  const dt = Math.min(lastTick === 0 ? 0 : now - lastTick, 0.2);
+  lastTick = now;
+  if (!data || document.hidden) return;
+  frameTick += 1;
+  life.time = now;
+  life.reduceMotion = reduceMotion();
+  let busy = false;
+  if (ceremony) {
+    busy = true;
+    const elapsed = now - ceremony.start;
+    if (ceremony.gliding) {
+      const t = Math.min(Math.max(elapsed / CEREMONY.glide, 0), 1);
+      const eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+      const { from, to } = ceremony;
+      camera = clampCamera({ zoom: from.zoom + (to.zoom - from.zoom) * eased, panX: from.panX + (to.panX - from.panX) * eased, panY: from.panY + (to.panY - from.panY) * eased });
+      if (t >= 1) ceremony.gliding = false;
+    }
+    if (elapsed >= CEREMONY.glide + Math.max(ceremony.pieces - 1, 0) * CEREMONY.pieceGap + CEREMONY.pieceFade + CEREMONY.hold) void finishArrival(ceremony.arrival);
+  }
+  const current = celebrations[0];
+  if (current) {
+    busy = true;
+    current.start ??= now;
+    if (now - current.start >= CELEBRATION_LENGTH) celebrations.shift();
+  }
+  const carried = carry?.moved && carry.what.kind === "companion" ? carry.what.pet : null;
+  if (advanceLife(data, dt, currentHour(), carried)) busy = true;
+  // la luce cambia piano (sta calando la sera): una volta al minuto si aggiorna l'ora
+  const minute = Math.floor(currentHour() * 60);
+  const lightChanged = minute !== lastMinute;
+  if (lightChanged) {
+    lastMinute = minute;
+    if (!data.hourForced) { data = { ...data, hour: currentHour() }; receivedAt = performance.now(); }
+  }
+  if ((busy && frameTick % 2 === 0) || (!life.reduceMotion && frameTick % 4 === 0) || lightChanged) redraw();
+}
+
+/** Le feste e la cerimonia hanno il loro ritmo nel ciclo della vita: qui basta ridisegnare. */
+function animate(): void {
+  redraw();
 }
 
 function effects(): Effects {
@@ -308,7 +346,7 @@ function effects(): Effects {
   if (ceremony) result.building = { ids: ceremony.arrival.bridges, elapsed: seconds() - ceremony.start };
   const current = celebrations[0];
   if (current && current.start !== null && data) {
-    const middle = placementCenter(data, camera, current.island, current.placement);
+    const middle = placementCenter(data, camera, current.island, current.placement, current.visitor === true);
     if (middle) result.bursts.push({ ...middle, progress: Math.min((seconds() - current.start) / BURST_LENGTH, 1) });
   }
   return result;
@@ -546,6 +584,17 @@ async function speak(pet: string): Promise<void> {
   redraw();
 }
 
+/** Un tocco sull'ospite: lo saluti. La prima volta di una specie entra nel diario e lascia un regalo (stelline e una riga); le altre ti saluta e basta. */
+async function greet(): Promise<void> {
+  const guest = greetVisitor();
+  if (!guest || !data) return;
+  if (!guest.first) { flash(`${guest.name} ti saluta.`); return; }
+  const welcome = await api.greetGuest(guest.id, reasonText(guest.item, guest.corner));
+  if (!welcome.isFirst) { flash(`${guest.name} ti saluta.`); return; }
+  celebrations.push({ caption: "Nuovo ospite", title: guest.name, island: data.shown, placement: null, visitor: true, start: null });
+  flash(welcome.gift ? `${guest.name} è ${guest.came} a trovarti! Ti ha lasciato: ${welcome.gift}.` : `${guest.name} è ${guest.came} a trovarti!`);
+}
+
 canvas.addEventListener("mousedown", (event) => {
   if (event.button !== 0 || !data) return;
   const p = scenePoint(event);
@@ -572,6 +621,7 @@ canvas.addEventListener("mousedown", (event) => {
     }
     return;
   }
+  if (hit.kind === "visitor") { void greet(); return; }
   if (hit.kind === "placed") {
     if (event.detail === 2) { void turn(hit.id); return; }
     const placement = shownIsland()?.placements.find((x) => x.id === hit.id);
@@ -637,7 +687,10 @@ window.addEventListener("mouseup", (event) => {
     }
     case "companion": {
       if (!current.moved) { void speak(current.what.pet); break; }
-      if (!inRemoveZone(p) && target?.valid) void api.command({ name: "companion", pet: current.what.pet, col: target.origin.col, row: target.origin.row });
+      if (!inRemoveZone(p) && target?.valid) {
+        void api.command({ name: "companion", pet: current.what.pet, col: target.origin.col, row: target.origin.row });
+        placeCompanion(current.what.pet, target.origin);
+      }
       break;
     }
     case "fresh": {
@@ -718,6 +771,8 @@ window.__garden = {
   get message() { return message; },
   get ceremony() { return ceremony === null ? null : { ...ceremony.arrival, gliding: ceremony.gliding }; },
   get celebrations() { return celebrations.map((c) => `${c.caption} · ${c.title}`); },
+  get life() { return { walkers: [...life.walkers].map(([pet, w]) => ({ pet, ...w })), visitor: life.visitor }; },
+  greet,
   setCamera(next: Camera) { moveCamera(next); },
   resetCamera,
   worldView() { moveCamera(worldCamera()); },
@@ -735,4 +790,5 @@ api.onData(receive);
 api.onMessage((text) => flash(text));
 void api.getData().then((next) => { if (next) receive({ ...next, reset: true }); });
 void document.fonts.load("20px Chewy").then(() => redraw());
+requestAnimationFrame(tick);
 resize();
