@@ -526,11 +526,14 @@ circa 5.250 righe: `GardenWindow` 3.441, `AlbumWindow` 1.204, `Sticker` e `GiftC
       pagina della prima figurina nuova e poi le segna viste; la doppia pagina si ricorda (`albumSpread` in `impostazioni.json`). Un tocco su una figurina scrive in fondo
       cosa è e dove si mette. A metà giro i fogli si scuriscono con un filtro (solo il disegno, non i bordi trasparenti). Provato dal vivo con `test/vivo/album.cjs` e
       confrontato con `tools/render-album.sh` (il Mac sugli stessi dati): uguali.
-- [ ] **G7 — Prima uscita** (3): parità a occhio, installer e sua misura, `PROVE_SU_WINDOWS.md` per il giardino, documenti. Versione 1.3.0.
+- [x] **G7 — Prima uscita** (3): parità a occhio, installer e sua misura, `PROVE_SU_WINDOWS.md` per il giardino, documenti. Versione 1.3.0.
       **Preparata il 2 novembre 2026** (manca solo la pubblicazione): la versione è 1.3.0 (`windows/package.json`), `PARITA.md` ha il §11 (il giardino e l'album, con le
       differenze volute: la rotellina del mouse ingrandisce, l'isola viva non cambia vicino alla zona per togliere, niente `replayBridges`/`replayWelcome`), `PROVE_SU_WINDOWS.md`
       il punto K, le note di rilascio il giardino, l'album, la vita sull'isola (G8, fatta prima di pubblicare) e il Riccio, l'architettura il §4.19. Le immagini nell'installer:
       287 file, 46,6 MB (la 1.2.0 ne aveva 114); gli installer veri li fa la CI con il tag `windows-v1.3.0`, e si misurano lì.
+      **Pubblicata il 2 novembre 2026** come [`windows-v1.3.0`](https://github.com/jaacopocoding/FocusFriends/releases/tag/windows-v1.3.0) (tag su `43c281b`, non firmata,
+      non «Latest»: resta la `v0.11.0` per Mac), con la G8. Installer: x64 158 MB, ARM64 152 MB (la 1.2.0: 134 e 128). Prima di pubblicare la bozza: flusso verde,
+      SHA-256 uguali a `SHA256SUMS.txt`, note uguali a `NOTE_DI_RILASCIO.md`; dentro gli installer non si è guardato.
 - [x] **G8 — La vita** (5, seconda uscita): i compagni sull'isola con le loro pose, gli angoli con le stelline, gli ospiti, il vento, l'acqua, il fumo, le luci della sera.
       **Fatta il 2 novembre 2026**, ed entra nella 1.3.0 (una sola uscita invece di due). `renderer/garden/life.ts` (i compagni che passeggiano, le commissioni e le
       pose negli angoli, l'ospite che arriva, resta e se ne va), `scene.ts` (il vento a strisce sulle piante, l'acqua, il fumo del camino sullo sfondo, gli effetti

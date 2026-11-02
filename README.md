@@ -91,7 +91,7 @@ Scegli i minuti, scrivi cosa studi, premi inizio. Se vuoi, una pausa lunga ogni 
 
 **Mac** (macOS 13 o successivo) · dalle [Releases](https://github.com/jaacopocoding/FocusFriends/releases) scarica lo zip, trascina l'app in *Applicazioni* e aprila. La prima volta: clic destro → **Apri**.
 
-**Windows** (10 e 11) · dalle [Releases](https://github.com/jaacopocoding/FocusFriends/releases) scarica l'installer. La prima volta: *Ulteriori informazioni* → *Esegui comunque*. Il giardino non c'è ancora.
+**Windows** (10 e 11) · dalle [Releases](https://github.com/jaacopocoding/FocusFriends/releases) scarica l'installer. La prima volta: *Ulteriori informazioni* → *Esegui comunque*. Dalla 1.3 c'è anche il giardino, con l'album.
 
 L'app non è firmata con un account sviluppatore, per questo il sistema chiede conferma. Tutto il resto è nella [guida](docs/GUIDA.md).
 

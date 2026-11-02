@@ -4,9 +4,9 @@ La versione per Windows di FocusFriends, scritta con **Electron** (TypeScript, H
 in [`../PIANO_WINDOWS.md`](../PIANO_WINDOWS.md) e i formati dei dati, comuni con l'app per Mac, in
 [`../FORMATI.md`](../FORMATI.md).
 
-**Stato:** la **1.3.0**, con il giardino e l'album, è **pronta e non ancora pubblicata**.
-L'ultima pubblicata è la **1.2.0** («Da fare» con «Hai finito?», saluti legati al momento, scheda «Anno»; senza il giardino), **pubblicata** il 26 ottobre 2026:
-[release `windows-v1.2.0`](https://github.com/jaacopocoding/FocusFriends/releases/tag/windows-v1.2.0). Prima, il 21 ottobre, la 1.1.1
+**Stato:** l'ultima versione è la **1.3.0** (il giardino, l'album e la vita sull'isola, il Riccio), **pubblicata** il 2 novembre 2026:
+[release `windows-v1.3.0`](https://github.com/jaacopocoding/FocusFriends/releases/tag/windows-v1.3.0). Prima, il 26 ottobre, la 1.2.0
+([`windows-v1.2.0`](https://github.com/jaacopocoding/FocusFriends/releases/tag/windows-v1.2.0)); il 21 ottobre la 1.1.1
 ([`windows-v1.1.1`](https://github.com/jaacopocoding/FocusFriends/releases/tag/windows-v1.1.1)) e la 1.1.0
 ([`windows-v1.1.0`](https://github.com/jaacopocoding/FocusFriends/releases/tag/windows-v1.1.0)); la prima uscita, la 1.0.0, è del 18 ottobre
 ([`windows-v1.0.0`](https://github.com/jaacopocoding/FocusFriends/releases/tag/windows-v1.0.0)). È provata sul Mac con prove automatiche e prove dal vivo, sulla
