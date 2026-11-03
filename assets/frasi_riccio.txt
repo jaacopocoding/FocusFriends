@@ -1,16 +1,16 @@
 # Frasi del Riccio: una per riga. Le righe che iniziano con # sono ignorate.
 # Per usare le tue, scegli "Modifica le frasi…" dal menu: crea e apre
 #   ~/Library/Application Support/FocusFriends/frasi_riccio.txt
-Un passo alla volta: il mondo si esplora così, a nasino in giù.
+Un passo alla volta: prima capisci, poi vai avanti.
 Quando è troppo, ci si arrotola un attimo. Poi si riparte.
 Respira. Hai già fatto la parte più difficile: cominciare.
 Io raccolgo una foglia alla volta. Alla fine ho la schiena piena.
 Piano piano si arriva dappertutto, anche in fondo alla pagina.
-Bevi un po' d'acqua! Io, a quest'ora, vado in cerca di una pozzanghera.
+Fai una pausa e bevi qualcosa: il libro aspetta.
 Le cose belle maturano con calma, come le mele.
 Se qualcosa ti punge, tieni duro: gli aculei servono anche a questo.
 Non serve correre. Serve tornare, ogni giorno, sul libro.
-Ogni pagina è una foglia in più sulla schiena.
+Ogni pagina fatta è una pagina in meno.
 Concentrati su una cosa sola: davanti a un fungo io non mi distraggo mai.
 Fare una pausa non è perdere tempo: è come il riposo d'inverno.
 Sei più forte di quanto pensi. E più morbido, sotto gli aculei.
@@ -19,15 +19,15 @@ Hai già superato giorni più difficili. Questo è niente, in confronto.
 Un po' di costanza vale più di tanta fretta.
 Se ti distrai, è normale: torna sul libro e riprendi da dove eri.
 Mi piace stare qui mentre studi. È autunno anche quando fuori non lo è.
-Anche una piccola pagina è una pagina.
+Anche dieci minuti di studio valgono.
 Oggi è un buon giorno per un'altra pagina.
-Sei in buona compagnia. Io sono qui, e non vado da nessuna parte.
+Ti faccio compagnia finché non hai finito.
 Un respiro profondo, le spalle giù, e si riparte.
 Domani ringrazierai quello che studi oggi.
 Un bel lavoro, fatto con calma, vale più di dieci fatti di corsa.
 Fai quello che puoi, oggi. Domani ci sono altre foglie da raccogliere.
-Quando la strada sembra lunga, ricorda che anche la mela più alta si raggiunge un passo alla volta.
+Quando la strada sembra lunga, fai solo il prossimo esercizio.
 Non ti serve fare tutto subito: i ricci dormono tutto l'inverno, e a primavera sono pronti.
-Se ti blocchi, cambia posizione. Io mi arrotolo; tu magari ti alzi in piedi.
+Se ti blocchi, salta avanti e torna dopo: spesso si sblocca da solo.
 Un riccio piccolo porta a casa una mela intera. Basta cominciare.
-Sei a buon punto. Si vede dalla schiena piena.
+Sei a buon punto: manca meno di quanto pensi.
