@@ -19,6 +19,7 @@ import { cleanSubject, SUBJECT_MAX, subjectKey } from "../../core/text.ts";
 import { addDays, cleanToDoText, daysBetween, dueLabel, GROUP_TITLES, isValidDay, TODO_TEXT_MAX } from "../../core/todo.ts";
 import type { ToDoItem } from "../../core/todo.ts";
 import type { CardAnchor, CardCommand, CardOpenRequest, FocusFriendsApi } from "../../shared/api.ts";
+import { avatarCircle } from "../avatar.ts";
 import { button, h, icon } from "./dom.ts";
 import type { IconName } from "./icons.generated.ts";
 import { ACCENT, REST_GREEN, RATING_TITLE, createDial, createPostIt, createTomato, cycleDots, faceIcon, sticker } from "./widgets.ts";
@@ -268,24 +269,8 @@ export class MenuCard {
   }
 
   private avatar(pet: PetData, size: number, onClick: () => void): HTMLButtonElement {
-    const circle = h("span", { class: "avatar-image" });
-    circle.style.width = `${size}px`;
-    circle.style.height = `${size}px`;
-    // La testa del compagno ritagliata dall'immagine, centrata sul muso (iconFocus).
-    const probe = new Image();
-    probe.onload = () => {
-      const crop = pet.iconCrop ?? { x: 0, y: 0, width: 1, height: 1 };
-      const cropHeight = crop.height * probe.naturalHeight;
-      const scale = (size / cropHeight) * 1.12;
-      const shownWidth = crop.width * probe.naturalWidth * scale, shownHeight = cropHeight * scale;
-      const fullWidth = probe.naturalWidth * scale, fullHeight = probe.naturalHeight * scale;
-      circle.style.backgroundImage = `url("${this.host.urlOf(pet.iconImage)}")`;
-      circle.style.backgroundSize = `${fullWidth}px ${fullHeight}px`;
-      const x = size / 2 - shownWidth * pet.iconFocus - crop.x * fullWidth;
-      const y = size / 2 - shownHeight * 0.48 - (1 - crop.y - crop.height) * fullHeight;
-      circle.style.backgroundPosition = `${x}px ${y}px`;
-    };
-    probe.src = this.host.urlOf(pet.iconImage);
+    // La testa del compagno ritagliata dall'immagine, centrata sul muso (come nella scheda di benvenuto).
+    const circle = avatarCircle(pet, size, (path) => this.host.urlOf(path));
     const element = button("avatar", `Fai parlare ${pet.name}`, onClick, circle);
     element.style.width = `${size}px`;
     element.style.height = `${size}px`;

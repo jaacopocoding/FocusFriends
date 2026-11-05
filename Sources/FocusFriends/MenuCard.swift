@@ -263,22 +263,15 @@ private final class MenuCardView: NSView {
 
     /// Il compagno in un cerchio: un tocco e parla.
     private func addAvatar(_ s: MenuCardState, frame: NSRect) {
-        let icon = MenuController.menuIcon(for: s.pet, height: 160)
-        let focus = s.pet.iconFocus
+        let pet = s.pet
         add(frame, label: "Fai parlare \(s.pet.name)", close: true, actions.speak) { rect, pressed, hovered in
             let circle = NSBezierPath(ovalIn: rect.insetBy(dx: 2, dy: 2))
             NSColor(calibratedRed: 1.0, green: 0.99, blue: 0.94, alpha: 1).setFill()
             circle.fill()
-            if let icon {
-                NSGraphicsContext.saveGraphicsState()
-                circle.addClip()
-                let scale = rect.height / icon.size.height * 1.12
-                let size = NSSize(width: icon.size.width * scale, height: icon.size.height * scale)
-                let origin = NSPoint(x: rect.midX - size.width * focus, y: rect.midY - size.height * 0.48)
-                icon.draw(in: NSRect(origin: origin, size: size), from: .zero, operation: .sourceOver, fraction: 1,
-                          respectFlipped: true, hints: nil)
-                NSGraphicsContext.restoreGraphicsState()
-            }
+            NSGraphicsContext.saveGraphicsState()
+            circle.addClip()
+            MenuController.drawAvatar(pet, in: rect.insetBy(dx: 2, dy: 2))
+            NSGraphicsContext.restoreGraphicsState()
             (hovered || pressed ? Paper.accent : Paper.paperEdge).setStroke()
             circle.lineWidth = 2.5
             circle.stroke()
@@ -491,7 +484,7 @@ private final class MenuCardView: NSView {
         let unlocked = s.avatars.filter(\.isUnlocked)
         let subtitle = AvatarRoster.countLine(unlocked: unlocked.count, locked: s.avatars.count - unlocked.count)
         let others = unlocked.compactMap { entry in s.allPets.first { $0.id == entry.id } }.filter { $0.id != s.pet.id }
-        let heads: [(pet: Pet, icon: NSImage?)] = ([s.pet] + others).prefix(3).map { ($0, MenuController.menuIcon(for: $0, height: 80)) }
+        let heads = Array(([s.pet] + others).prefix(3))
         let open: () -> Void = { [weak self] in
             guard let self else { return }
             self.avatarIndex = nil
@@ -507,20 +500,15 @@ private final class MenuCardView: NSView {
             shape.lineWidth = 1
             shape.stroke()
             // le teste si sovrappongono: la prima sta sopra
-            for (i, head) in heads.enumerated().reversed() {
+            for (i, pet) in heads.enumerated().reversed() {
                 let circle = NSRect(x: rect.minX + 10 + CGFloat(i) * 21, y: rect.midY - 15, width: 30, height: 30)
                 let path = NSBezierPath(ovalIn: circle)
                 NSColor(calibratedRed: 1, green: 0.99, blue: 0.94, alpha: 1).setFill()
                 path.fill()
-                if let icon = head.icon {
-                    NSGraphicsContext.saveGraphicsState()
-                    path.addClip()
-                    let scale = circle.height / icon.size.height * 1.12
-                    let size = NSSize(width: icon.size.width * scale, height: icon.size.height * scale)
-                    icon.draw(in: NSRect(origin: NSPoint(x: circle.midX - size.width * head.pet.iconFocus, y: circle.midY - size.height * 0.48), size: size),
-                              from: .zero, operation: .sourceOver, fraction: 1, respectFlipped: true, hints: nil)
-                    NSGraphicsContext.restoreGraphicsState()
-                }
+                NSGraphicsContext.saveGraphicsState()
+                path.addClip()
+                MenuController.drawAvatar(pet, in: circle)
+                NSGraphicsContext.restoreGraphicsState()
                 Paper.paperEdge.setStroke()
                 path.lineWidth = 1.5
                 path.stroke()

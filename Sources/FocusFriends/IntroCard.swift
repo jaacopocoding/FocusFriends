@@ -3,12 +3,10 @@ import AppKit
 /// Il bottone-avatar di un compagno: la testa in un cerchio, il nome sotto, un anello se è scelto.
 final class CompanionButton: NSButton {
     let pet: Pet
-    private let icon: NSImage?
     var isSelected = false { didSet { needsDisplay = true } }
 
     init(pet: Pet) {
         self.pet = pet
-        self.icon = MenuController.menuIcon(for: pet, height: 120)
         super.init(frame: NSRect(x: 0, y: 0, width: 92, height: 104))
         isBordered = false
         setButtonType(.momentaryPushIn)
@@ -28,17 +26,10 @@ final class CompanionButton: NSButton {
         let circle = NSBezierPath(ovalIn: circleBox)
         NSColor(calibratedRed: 1.0, green: 0.99, blue: 0.94, alpha: 1).setFill()
         circle.fill()
-        if let icon {
-            NSGraphicsContext.saveGraphicsState()
-            circle.addClip()
-            let scale = circleBox.height / icon.size.height * 1.12
-            let size = NSSize(width: icon.size.width * scale, height: icon.size.height * scale)
-            let focus = pet.iconFocus
-            let origin = NSPoint(x: circleBox.midX - size.width * focus, y: circleBox.midY - size.height * 0.52)
-            icon.draw(in: NSRect(origin: origin, size: size), from: .zero, operation: .sourceOver, fraction: 1,
-                      respectFlipped: true, hints: nil)
-            NSGraphicsContext.restoreGraphicsState()
-        }
+        NSGraphicsContext.saveGraphicsState()
+        circle.addClip()
+        MenuController.drawAvatar(pet, in: circleBox)
+        NSGraphicsContext.restoreGraphicsState()
         (isSelected ? Paper.accent : Paper.paperEdge).setStroke()
         circle.lineWidth = isSelected ? 3.5 : 1.5
         circle.stroke()

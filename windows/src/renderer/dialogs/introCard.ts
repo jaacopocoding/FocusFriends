@@ -36,7 +36,7 @@ export function openIntroCard(host: ModalHost, options: {
       });
       row.append(...buttons);
 
-      return h("div", { class: "dialog wide" },
+      const dialog = h("div", { class: "dialog wide" },
         h("div", { class: "dialog-title" }, "Ciao! Benvenuto in FocusFriends"),
         h("div", { class: "dialog-question" }, "Come ti chiami?"),
         input,
@@ -47,6 +47,9 @@ export function openIntroCard(host: ModalHost, options: {
           button("text-button", "Salta", () => finish(null, options.currentPetId)(close), "Salta"),
           button("pill-action big", "Iniziamo!", start, "Iniziamo!")),
       );
+      // larga quanto serve perché ci stiano tutti i compagni (92 l'uno, 14 di spazio, 28 di margine per lato), come sul Mac
+      dialog.style.width = `${Math.max(466, PETS.length * 92 + (PETS.length - 1) * 14 + 56)}px`;
+      return dialog;
     },
   });
 }

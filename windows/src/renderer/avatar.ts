@@ -2,6 +2,9 @@
 
 import type { PetData } from "../core/pets.ts";
 
+/** Quanto è grande la testa nel cerchio (1 = alta quanto il cerchio): un po' meno, così si vede anche un po' del compagno attorno (come `avatarZoom` sul Mac). */
+const AVATAR_ZOOM = 0.72;
+
 /** Un cerchio grande `size` pixel con la testa del compagno (si riempie quando l'immagine è caricata). */
 export function avatarCircle(pet: PetData, size: number, urlOf: (path: string) => string, className = "avatar-image"): HTMLSpanElement {
   const circle = document.createElement("span");
@@ -12,13 +15,13 @@ export function avatarCircle(pet: PetData, size: number, urlOf: (path: string) =
   probe.onload = () => {
     const crop = pet.iconCrop ?? { x: 0, y: 0, width: 1, height: 1 };
     const cropHeight = crop.height * probe.naturalHeight;
-    const scale = (size / cropHeight) * 1.12;
+    const scale = (size / cropHeight) * AVATAR_ZOOM;
     const shownWidth = crop.width * probe.naturalWidth * scale, shownHeight = cropHeight * scale;
     const fullWidth = probe.naturalWidth * scale, fullHeight = probe.naturalHeight * scale;
     circle.style.backgroundImage = `url("${urlOf(pet.iconImage)}")`;
     circle.style.backgroundSize = `${fullWidth}px ${fullHeight}px`;
     const x = size / 2 - shownWidth * pet.iconFocus - crop.x * fullWidth;
-    const y = size / 2 - shownHeight * 0.48 - (1 - crop.y - crop.height) * fullHeight;
+    const y = size / 2 - shownHeight * 0.5 - (1 - crop.y - crop.height) * fullHeight;
     circle.style.backgroundPosition = `${x}px ${y}px`;
   };
   probe.src = urlOf(pet.iconImage);

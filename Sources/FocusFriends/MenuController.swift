@@ -961,6 +961,33 @@ final class MenuController: NSObject, NSMenuDelegate {
         }
     }
 
+    /// Quanto è grande la testa di un compagno nel suo cerchio (1 = alta quanto il cerchio): un po' meno, così si vede anche un po' di lui attorno.
+    static let avatarZoom: CGFloat = 0.72
+    private static var avatarSources: [String: NSImage] = [:]
+
+    /// Disegna un compagno dentro un cerchio (chi chiama ha già messo il fondo e la maschera): l'immagine intera, con la testa (`iconCrop`) alta
+    /// `zoom` volte il cerchio e il muso (`iconFocus`, a metà altezza della testa) al centro.
+    static func drawAvatar(_ pet: Pet, in circle: NSRect, zoom: CGFloat = avatarZoom) {
+        let source: NSImage
+        if let known = avatarSources[pet.iconResource] {
+            source = known
+        } else {
+            guard let url = Bundle.main.url(forResource: pet.iconResource, withExtension: "png"), let image = NSImage(contentsOf: url) else { return }
+            avatarSources[pet.iconResource] = image
+            source = image
+        }
+        let crop = pet.iconCrop ?? NSRect(x: 0, y: 0, width: 1, height: 1)
+        let scale = circle.height / (crop.height * source.size.height) * zoom
+        let size = NSSize(width: source.size.width * scale, height: source.size.height * scale)
+        // il muso, dall'angolo in basso a sinistra del disegno (in una vista capovolta l'origine è in alto)
+        let faceUp = (crop.minY + crop.height * 0.5) * size.height
+        let flipped = NSGraphicsContext.current?.isFlipped ?? false
+        let x = circle.midX - (crop.minX + crop.width * pet.iconFocus) * size.width
+        let y = flipped ? circle.midY - (size.height - faceUp) : circle.midY - faceUp
+        source.draw(in: NSRect(x: x, y: y, width: size.width, height: size.height), from: .zero,
+                    operation: .sourceOver, fraction: 1, respectFlipped: true, hints: nil)
+    }
+
     /// Il personaggio (o solo la sua testa) ritagliato dall'immagine, alto quanto richiesto.
     static func menuIcon(for pet: Pet, height: CGFloat) -> NSImage? {
         guard let url = Bundle.main.url(forResource: pet.iconResource, withExtension: "png"),
