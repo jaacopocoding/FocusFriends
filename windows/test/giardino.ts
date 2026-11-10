@@ -30,7 +30,7 @@ import {
 import type { GardenParticleKind } from "../src/core/gardenSky.ts";
 import { arrival, daySlotOf, entryRoute, GARDEN_VISITORS, isRareVisitor, reasonText, visitorCame, visitorImage } from "../src/core/gardenVisitors.ts";
 import type { GardenDaySlot } from "../src/core/gardenVisitors.ts";
-import { GARDEN_INTERACTIONS, interactionCandidates, interactionDuration, interactionImage, pickInteraction } from "../src/core/gardenInteractions.ts";
+import { GARDEN_INTERACTIONS, interactionCandidates, interactionDuration, interactionImage, pickInteraction, sceneId, sceneSpreads } from "../src/core/gardenInteractions.ts";
 import type { StudySession } from "../src/core/log.ts";
 import { DAY_MS, dayString } from "../src/core/time.ts";
 
@@ -241,7 +241,7 @@ function companionsJson(): Record<string, unknown> {
 /** I compagni che usano le cose: la tabella e quali sceglierebbero (come `interactionsJSON` nel generatore del Mac). */
 function interactionsJson(): Record<string, unknown> {
   const tabella = GARDEN_INTERACTIONS.map((i) => ({
-    compagno: i.pet, oggetto: i.item, effetto: i.effect, scala: i.scale, x: i.x, y: i.y, immagine: interactionImage(i).replace("/", "_"), durata: interactionDuration(i),
+    compagno: i.pet, oggetto: i.item, didascalia: i.caption, id: sceneId(i), effetto: i.effect, scala: i.scale, x: i.x, y: i.y, immagine: interactionImage(i).replace("/", "_"), durata: interactionDuration(i),
   }));
   const extra: Array<[string, number, number]> = [["cesto-cuscino", 8, 4], ["tunnel", 5, 6], ["casetta-uccelli", 3, 6]];
   const all = [...samplePlacements(), ...extra.map(([item, col, row], index) => ({ id: fixedId(300 + index), item, island: "", col, row, turned: false }))];
@@ -259,7 +259,7 @@ function interactionsJson(): Record<string, unknown> {
       }
     }
   }
-  return { tabella, scene };
+  return { tabella, scene, album: sceneSpreads().map((s) => [s.left, s.right]) };
 }
 
 function visitorsJson(): Record<string, unknown> {
@@ -301,6 +301,7 @@ export function gardenStateJson(g: Garden): Record<string, unknown> {
     mancano: g.minutesToNextGift, strada: progress === null ? null : r(progress),
     compagni: Object.fromEntries([...g.companionTiles].map(([pet, x]) => [pet, t(x)])),
     ospiti: Object.fromEntries(Object.entries(g.guests).map(([id, x]) => [id, { primo: x.first, visite: x.visits, motivo: x.reason }])),
+    scene: [...g.scenes],
   };
 }
 
@@ -349,8 +350,9 @@ function gardenStepsJson(): Record<string, unknown> {
     g.setCompanionTile("gattino", tile(4, 4));
     g.setCompanionTile("pianty", tile(40, 4));
     const guests = [g.welcomeGuest("pettirosso", "2026-10-26", "Bagnetto uccelli"), g.welcomeGuest("pettirosso", "2026-10-27", "x"), g.welcomeGuest("volpe", "2026-10-28", "L'angolo del tè")];
+    const sceneNotes = [g.noteScene("gattino", "amaca"), g.noteScene("gattino", "amaca"), g.noteScene("pianty", "sdraio"), g.noteScene("gattino", "picnic")];
     step("mosse", {
-      messe: placed, aCaso: somewhere, spostate: moved, angoliNuovi: corners, ospiti: guests.map((x) => [x.isFirst, x.gift?.item ?? "niente"]),
+      messe: placed, aCaso: somewhere, spostate: moved, angoliNuovi: corners, sceneViste: sceneNotes, ospiti: guests.map((x) => [x.isFirst, x.gift?.item ?? "niente"]),
       compagnoPianty: t(g.companionTile("pianty", 0)), compagnoRiccio: t(g.companionTile("riccio", 4)),
       canPlace: [g.canPlace("casetta-gatto", tile(5, 8), false, "porcellino"), g.canPlace("amaca", tile(8, 8), true)],
       copie: g.count("margherite"), file: savedFileJson(directory),

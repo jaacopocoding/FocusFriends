@@ -7,6 +7,8 @@ export interface AlbumData {
   /** Gli oggetti trovati, e quelli non ancora visti nell'album (portano il nastrino «NUOVA»). */
   has: string[];
   unseen: string[];
+  /** Le scene dei compagni già viste nel giardino («gattino-amaca»): la sezione «Scene». */
+  scenes: string[];
   /** Quante copie di ogni oggetto ci sono sulle isole. */
   counts: Record<string, number>;
   /** I compagni: il nome e se sono sbloccati (chi non c'è ancora resta «???» sulle figurine delle sue cose). */

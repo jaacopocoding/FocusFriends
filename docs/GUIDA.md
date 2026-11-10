@@ -626,7 +626,9 @@ capolino dal tunnel, mangia sul tappeto da picnic e va sull'altalena; Ciccio fa 
 casa per uccelli e sul girasole; il riccio si tuffa nel mucchio di foglie, mangia una mela accanto alla cassetta, dorme nel tronco cavo e si siede
 nella carriola fra le ghiande; la tartaruga dorme al sole sul sasso, mangia la lattuga, beve al laghetto e si ritira nel rifugio di paglia;
 Pianty si fa annaffiare, si pianta nell'aiuola, prende il sole sulla sdraio e guarda le lucciole uscire dal barattolo. Il compagno sparisce e la cosa diventa un disegno con lui dentro (`assets/interazioni/`, fatti con Gemini e ritagliati
-da `tools/cutout_interazioni.py`); chi dorme fa le «z», nel bagnetto ci sono gli schizzi. Dopo un po' ricompare lì accanto.
+da `tools/cutout_interazioni.py`); chi dorme fa le «z», nel bagnetto ci sono gli schizzi. Dopo un po' ricompare lì accanto. La prima volta che vedi una scena, il giardino la festeggia («Nuova scena nell'album») e la
+scena entra nell'album, nella sezione **Scene**: una pagina per compagno, con le sue quattro scene. Quelle viste sono fotografie con la didascalia; le altre
+sono sagome con il nome della cosa che serve («??? · Panchina»), e toccandole l'album dice cosa fare (metti quella cosa sull'isola del compagno e aspetta).
 
 **Ciccio durante un focus** sta fermo e prende il posto del suo nido (`focusGrowthResources` in `Pet.swift`,
 le immagini `garden_ciccio_<1..5>.png`): parte dall'uovo e, con il tempo, passa al guscio

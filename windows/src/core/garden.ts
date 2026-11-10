@@ -9,6 +9,7 @@ import { readText, stringifyJson, writeFileAtomic } from "./files.ts";
 import { applyTurn, completedSpreads, fitsIsland, GARDEN_ITEMS, isStarter, itemNumber, itemWithId, RETIRED_ITEMS, welcomeGift } from "./gardenCatalog.ts";
 import type { GardenItem } from "./gardenCatalog.ts";
 import { GARDEN_CORNERS, formedCorners } from "./gardenCorners.ts";
+import { interactionOf, sceneId } from "./gardenInteractions.ts";
 import { cloneDropState, credit, DROP_MINIMUM_SECONDS, DropStream, giftProgress, hash, hasSomethingToFind, isEligible, minutesToNextGift, roll, startingDropState } from "./gardenDrops.ts";
 import type { GardenDrop, GardenDropState, GardenGift } from "./gardenDrops.ts";
 import {
@@ -122,6 +123,7 @@ interface Contents {
   home?: string;
   corners?: string[];
   guests?: Record<string, GardenGuest>;
+  scenes?: string[];
   bridges?: string[];
   welcomed?: string[];
   islandRules?: number;
@@ -149,6 +151,7 @@ function decodeContents(raw: unknown): Contents {
     home: opt(source, "home", str),
     corners: opt(source, "corners", strings),
     guests: opt(source, "guests", (v) => dict(v, decodeGuest)),
+    scenes: opt(source, "scenes", strings),
     bridges: opt(source, "bridges", strings),
     welcomed: opt(source, "welcomed", strings),
     islandRules: opt(source, "islandRules", int),
@@ -175,6 +178,7 @@ export class Garden {
   private _companionTiles = new Map<string, GardenTile>();
   private _corners: string[] = [];
   private _guests: Record<string, GardenGuest> = {};
+  private _scenes: string[] = [];
   private _bridges: string[] = [];
   private _welcomed: string[] = [];
   private bridgesUnsettled = false;
@@ -298,6 +302,7 @@ export class Garden {
     this.rulesNotice = contents.rulesNotice ?? null;
     this._corners = contents.corners ?? [];
     this._guests = contents.guests ?? {};
+    this._scenes = contents.scenes ?? [];
     this._allPlacements = placements.map(({ legacy: _, ...rest }) => rest);
     this.settle(placements, legacyCompanions);
     this._formedCorners = formedCorners(this.placements);
@@ -317,6 +322,7 @@ export class Garden {
     this._corners = [];
     this.newCorners = [];
     this._guests = {};
+    this._scenes = [];
     this._bridges = [];
     this._welcomed = [];
     this.bridgesUnsettled = true;
@@ -408,6 +414,8 @@ export class Garden {
   get companionTiles(): ReadonlyMap<string, GardenTile> { return this._companionTiles; }
   get corners(): readonly string[] { return this._corners; }
   get guests(): Readonly<Record<string, GardenGuest>> { return this._guests; }
+  /** Le scene dei compagni già viste («gattino-amaca»), nell'ordine in cui si sono viste: la sezione «Scene» dell'album. */
+  get scenes(): readonly string[] { return this._scenes; }
   get bridges(): readonly string[] { return this._bridges; }
   get welcomed(): readonly string[] { return this._welcomed; }
   get formedCorners(): ReadonlyMap<string, string[]> { return this._formedCorners; }
@@ -823,6 +831,15 @@ export class Garden {
     return { isFirst: true, gift };
   }
 
+  /** Un compagno ha usato una cosa davanti a te: la prima volta la sua scena entra nell'album (e si salva). Dice se è la prima volta. */
+  noteScene(pet: string, item: string): boolean {
+    const scene = interactionOf(pet, item);
+    if (!scene || this._scenes.includes(sceneId(scene))) return false;
+    this._scenes.push(sceneId(scene));
+    this.save();
+    return true;
+  }
+
   // ---- da capo
 
   /** Toglie tutto (per «Cancella tutto…»): si riparte dalla dotazione. */
@@ -856,6 +873,7 @@ export class Garden {
         home: this._home ?? undefined,
         corners: this._corners.length === 0 ? undefined : this._corners,
         guests: Object.keys(this._guests).length === 0 ? undefined : this._guests,
+        scenes: this._scenes.length === 0 ? undefined : this._scenes,
         bridges: this.bridgesUnsettled ? undefined : this._bridges,
         welcomed: this.welcomedUnsettled ? undefined : this._welcomed,
         islandRules: this.rulesUnsettled ? undefined : ISLAND_RULES_VERSION,

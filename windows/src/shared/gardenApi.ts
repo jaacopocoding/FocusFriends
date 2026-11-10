@@ -91,6 +91,8 @@ export interface GardenApi {
   showAlbum(): void;
   /** Saluti l'ospite (`id` è la specie, `reason` cosa l'ha attirato): la prima volta lascia un regalo (il suo nome), le altre conta la visita. */
   greetGuest(id: string, reason: string): Promise<{ isFirst: boolean; gift: string | null }>;
+  /** Un compagno usa una cosa davanti a te: la prima volta la sua scena entra nell'album. Risponde se era la prima volta. */
+  noteScene(pet: string, item: string): Promise<boolean>;
 }
 
 export const GARDEN_CHANNEL = {
@@ -105,4 +107,5 @@ export const GARDEN_CHANNEL = {
   finishArrival: "garden:finish-arrival",
   showAlbum: "garden:show-album",
   greetGuest: "garden:greet-guest",
+  noteScene: "garden:note-scene",
 } as const;

@@ -1,4 +1,4 @@
-// Disegna fuori schermo l'album vero dell'app (AlbumView): la copertina e alcune doppie pagine, da una cartella di dati (o da un giardino nuovo).
+// Disegna fuori schermo l'album vero dell'app (AlbumView): la copertina, alcune doppie pagine e la sezione «Scene», da una cartella di dati (o da un giardino nuovo).
 // Si lancia da tools/render-album.sh: render <cartella dei dati> <cartella dove scrivere>
 import AppKit
 
@@ -31,6 +31,13 @@ struct Render {
             view.spread = index
             view.needsDisplay = true
             save("album-pagine-\(index)")
+        }
+        // la sezione «Scene», dopo le figurine
+        let first = GardenAlbum.spreads().count
+        for index in 0..<GardenInteractions.albumSpreads.count {
+            view.spread = first + index
+            view.needsDisplay = true
+            save("album-scene-\(index)")
         }
         print("album in", out.path)
     }

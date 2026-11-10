@@ -81,6 +81,8 @@ final class Garden {
         var corners: [String]?
         /// Gli ospiti che hanno fatto visita (anche questo: facoltativo).
         var guests: [String: GardenGuest]?
+        /// Le scene dei compagni già viste (`GardenInteraction.id`), nell'ordine in cui si sono viste (facoltativo, come gli ospiti).
+        var scenes: [String]?
         /// I ponti già costruiti (`GardenBridge.id`). Si scrive sempre, anche vuoto; manca solo nei file di prima (vedi `settleBridges`).
         var bridges: [String]?
         /// Le isole che hanno già ricevuto il regalo di benvenuto (la casa e quelle già aperte quando si è calcolato l'elenco, poi una per ogni compagno sbloccato). Come `bridges`.
@@ -115,6 +117,8 @@ final class Garden {
     private(set) var corners: [String] = []
     /// Gli ospiti salutati, per specie (`GardenVisitor.id`).
     private(set) var guests: [String: GardenGuest] = [:]
+    /// Le scene dei compagni già viste (`GardenInteraction.id`: «gattino-amaca»), nell'ordine in cui si sono viste: la sezione «Scene» dell'album.
+    private(set) var scenes: [String] = []
     /// I ponti già costruiti (`GardenBridge.id`), nell'ordine in cui si sono costruiti. Un ponte compare solo se è qui; finché non si è calcolato (`bridgesUnsettled`) è vuoto.
     private(set) var bridges: [String] = []
     /// Le isole che hanno già ricevuto il regalo di benvenuto (`GardenBridge` non c'entra: il regalo arriva anche se non nasce nessun ponte). L'isola di casa non lo riceve, ma c'è.
@@ -226,6 +230,7 @@ final class Garden {
             rulesNotice = contents.rulesNotice
             corners = contents.corners ?? []
             guests = contents.guests ?? [:]
+            scenes = contents.scenes ?? []
             settle(legacyCompanions: legacyCompanions)
             formedCorners = GardenCorners.formed(by: placements)
         } else {
@@ -256,6 +261,7 @@ final class Garden {
         corners = []
         newCorners = []
         guests = [:]
+        scenes = []
         bridges = []
         welcomed = []
         bridgesUnsettled = true
@@ -796,6 +802,16 @@ final class Garden {
         return GardenGuestWelcome(isFirst: true, gift: gift)
     }
 
+    /// Un compagno ha usato una cosa davanti a te (la sua scena di `GardenInteractions`): la prima volta entra nell'album (e si salva). Dice se è la prima volta.
+    @discardableResult
+    func noteScene(pet: String, item: String) -> Bool {
+        guard let scene = GardenInteractions.interaction(pet: pet, item: item), !scenes.contains(scene.id) else { return false }
+        scenes.append(scene.id)
+        save()
+        observers.forEach { $0() }
+        return true
+    }
+
     // MARK: - Da capo
 
     /// Toglie tutto (per "Cancella tutto…"): le figurine trovate, le copie e le posizioni. Si riparte dalla dotazione.
@@ -820,6 +836,7 @@ final class Garden {
                                     placements: allPlacements,
                                     companions: companionTiles.mapValues { GardenCompanionPlace(col: $0.col, row: $0.row, x: nil, y: nil) }, home: home,
                                     corners: corners.isEmpty ? nil : corners, guests: guests.isEmpty ? nil : guests,
+                                    scenes: scenes.isEmpty ? nil : scenes,
                                     bridges: bridgesUnsettled ? nil : bridges, welcomed: welcomedUnsettled ? nil : welcomed,
                                     islandRules: rulesUnsettled ? nil : Self.islandRulesVersion, rulesNotice: rulesNotice)
             let encoder = JSONEncoder()

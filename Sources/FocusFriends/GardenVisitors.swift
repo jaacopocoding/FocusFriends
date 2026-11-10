@@ -66,8 +66,9 @@ enum GardenVisitors {
                       seasons: [.spring], slots: [.morning, .day], height: 42, weight: 1),
         GardenVisitor(id: "lucertola", name: "La lucertola", feminine: true, items: ["panchina", "tunnel"], haunts: [],
                       seasons: [.summer], slots: [.day], height: 30, weight: 1),
-        GardenVisitor(id: "tartaruga", name: "La tartaruga", feminine: true, items: ["sdraio", "picnic"], haunts: [],
-                      seasons: [.spring, .summer], slots: [.day], height: 40, weight: 1),
+        // la lepre ha preso il posto della tartaruga, diventata una compagna (la favola: la lepre si riposa sulla sdraio e al picnic)
+        GardenVisitor(id: "lepre", name: "La lepre", feminine: true, items: ["sdraio", "picnic"], haunts: [],
+                      seasons: [.spring, .summer], slots: [.day], height: 70, weight: 1),
         GardenVisitor(id: "topolino", name: "Il topolino", feminine: false, items: ["cesto-carote", "picnic"], haunts: [],
                       seasons: [.autumn, .winter], slots: [.evening], height: 30, weight: 1),
         GardenVisitor(id: "scoiattolo", name: "Lo scoiattolo", feminine: false, items: ["altalena", "amaca", "tiragraffi"], haunts: [],

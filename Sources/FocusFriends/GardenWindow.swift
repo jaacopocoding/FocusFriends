@@ -771,6 +771,11 @@ final class GardenView: NSView, NSViewToolTipOwner {
         interacting.remaining = Double.random(in: interacting.candidate.interaction.duration)
         interacting.started = effectsClock()
         walker.interacting = interacting
+        // la prima volta che la vedi, la scena entra nell'album: le stelline escono dalla cosa
+        let scene = interacting.candidate.interaction
+        if garden.noteScene(pet: petID, item: scene.item) {
+            celebrations.append(Celebration(caption: "Nuova scena nell'album", title: scene.caption, members: [interacting.candidate.placement.id], visitor: nil, start: nil))
+        }
         return true
     }
 

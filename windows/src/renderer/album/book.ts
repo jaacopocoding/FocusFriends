@@ -2,17 +2,30 @@
 // figurine per pagina (le trovate incollate un po' storte), i numeri di pagina, il sigillo «completa» e i comandi sotto il libro. Le misure sono
 // quelle della vista del Mac (980 × 730 punti). Qui c'è solo il disegno: le regole sono in `core/gardenCatalog.ts`.
 
-import { albumSpreads, CATEGORY_TITLES, GARDEN_CATEGORIES, itemNumber } from "../../core/gardenCatalog.ts";
+import { albumSpreads, CATEGORY_TITLES, GARDEN_CATEGORIES, itemNumber, itemWithId } from "../../core/gardenCatalog.ts";
 import type { AlbumPage, AlbumSpread, GardenItem } from "../../core/gardenCatalog.ts";
 import { hash } from "../../core/gardenDrops.ts";
+import { interactionImage, sceneId, sceneSpreads, scenesOf, GARDEN_INTERACTIONS } from "../../core/gardenInteractions.ts";
+import type { GardenInteraction } from "../../core/gardenInteractions.ts";
 import type { Season } from "../../core/gardenSky.ts";
 import type { AlbumData } from "../../shared/albumApi.ts";
-import { picture } from "../garden/sprites.ts";
+import { makeCanvas, picture, ready } from "../garden/sprites.ts";
+import type { Sprite } from "../garden/sprites.ts";
 import { drawSticker } from "../garden/sticker.ts";
 import type { StickerLook } from "../garden/sticker.ts";
 
 export const SIZE = { width: 980, height: 730 } as const;
 export const SPREADS: readonly AlbumSpread[] = albumSpreads();
+/** Dopo le figurine, la sezione «Scene»: le cose che i compagni usano nel giardino, un compagno per pagina (come in AlbumWindow.swift). */
+export const SCENE_SPREADS = sceneSpreads();
+export const SPREAD_COUNT = SPREADS.length + SCENE_SPREADS.length;
+/** Se la doppia pagina `index` è una della sezione «Scene», quale. */
+export const sceneSpreadAt = (index: number): { left: string; right: string | null } | null => (index >= SPREADS.length ? SCENE_SPREADS[index - SPREADS.length] ?? null : null);
+
+/** Le linguette sotto il libro: le tre sezioni delle figurine e le scene. */
+export type Tab = AlbumPage["category"] | "scenes";
+export const TABS: readonly Tab[] = [...GARDEN_CATEGORIES, "scenes"];
+export const tabTitle = (tab: Tab): string => (tab === "scenes" ? "Scene" : CATEGORY_TITLES[tab]);
 
 export type Mode = "cover" | "opening" | "open";
 
@@ -59,7 +72,7 @@ export function slots(isLeft: boolean): Rect[] {
   return Array.from({ length: 6 }, (_, i) => ({ x: originX + (i % 3) * (w + gapX), y: top + Math.floor(i / 3) * (h + gapY), w, h }));
 }
 
-export interface Controls { previous: Rect; next: Rect; tabs: Array<{ category: AlbumPage["category"]; rect: Rect }> }
+export interface Controls { previous: Rect; next: Rect; tabs: Array<{ tab: Tab; rect: Rect }> }
 
 const TAB_FONT = `600 12.5px ${UI}`;
 
@@ -67,10 +80,19 @@ export function controls(ctx: CanvasRenderingContext2D): Controls {
   const s = spreadRect();
   const y = s.y + s.h + 7;
   ctx.font = TAB_FONT;
-  const widths = GARDEN_CATEGORIES.map((c) => Math.ceil(ctx.measureText(CATEGORY_TITLES[c]).width) + 26);
+  const widths = TABS.map((t) => Math.ceil(ctx.measureText(tabTitle(t)).width) + 26);
   let x = (SIZE.width - (widths.reduce((a, b) => a + b, 0) + (widths.length - 1) * 8)) / 2;
-  const tabs = GARDEN_CATEGORIES.map((category, i) => { const rect = { x, y, w: widths[i]!, h: 28 }; x += widths[i]! + 8; return { category, rect }; });
+  const tabs = TABS.map((tab, i) => { const rect = { x, y, w: widths[i]!, h: 28 }; x += widths[i]! + 8; return { tab, rect }; });
   return { previous: { x: s.x, y: y - 2, w: 38, h: 32 }, next: { x: s.x + s.w - 38, y: y - 2, w: 38, h: 32 }, tabs };
+}
+
+/** Le quattro caselle delle scene di una pagina (2 per 2), dove ci sarebbero le sei figurine. */
+export function sceneSlots(isLeft: boolean): Rect[] {
+  const six = slots(isLeft);
+  const x0 = Math.min(...six.map((r) => r.x)), y0 = Math.min(...six.map((r) => r.y));
+  const x1 = Math.max(...six.map((r) => r.x + r.w)), y1 = Math.max(...six.map((r) => r.y + r.h));
+  const gapX = 14, gapY = 18, w = (x1 - x0 - gapX) / 2, h = (y1 - y0 - gapY) / 2;
+  return Array.from({ length: 4 }, (_, i) => ({ x: x0 + (i % 2) * (w + gapX), y: y0 + Math.floor(i / 2) * (h + gapY), w, h }));
 }
 
 export const inside = (r: Rect, x: number, y: number): boolean => x >= r.x && y >= r.y && x <= r.x + r.w && y <= r.y + r.h;
@@ -197,11 +219,94 @@ function drawPage(ctx: CanvasRenderingContext2D, page: AlbumPage, isLeft: boolea
   text(ctx, String(number), { x: cx - 30, y: onSpread(0, PAGE_NUMBER_V).y - 9, w: 60, h: 18 }, `15px ${MARKER}`, "rgba(102, 77, 51, 0.85)");
 }
 
+/** Una pagina della sezione «Scene»: il nome del compagno (o «???»), quante scene ha visto, e le sue quattro scene (come `drawScenePage` sul Mac). */
+function drawScenePage(ctx: CanvasRenderingContext2D, pet: string, isLeft: boolean, data: AlbumData, state: BookState): void {
+  const island = data.islands.find((i) => i.id === pet);
+  const open = island?.open ?? false;
+  const scenes = scenesOf(pet);
+  const seen = scenes.filter((scene) => data.scenes.includes(sceneId(scene))).length;
+  const cx = onSpread(isLeft ? PAGE_CENTER_U.left : PAGE_CENTER_U.right, 0).x, mid = onSpread(0, BAND_CENTER_V).y;
+  text(ctx, open ? island!.name : "???", { x: cx - 160, y: mid - (isLeft ? 36 : 31), w: 320, h: 48 }, `${isLeft ? 42 : 33}px ${TITLE}`, isLeft ? INK : INK_LIGHT);
+  text(ctx, `${seen} su ${scenes.length} scene`, { x: cx - 100, y: mid + 11, w: 200, h: 16 }, `500 11.5px ${UI}`, INK_LIGHT);
+  scenes.forEach((scene, i) => drawSceneCard(ctx, scene, sceneSlots(isLeft)[i]!, data.scenes.includes(sceneId(scene)), open));
+  const number = state.spread * 2 + (isLeft ? 1 : 2);
+  text(ctx, String(number), { x: cx - 30, y: onSpread(0, PAGE_NUMBER_V).y - 9, w: 60, h: 18 }, `15px ${MARKER}`, "rgba(102, 77, 51, 0.85)");
+}
+
+const sceneSilhouettes = new Map<string, HTMLCanvasElement>();
+
+/** La sagoma di una scena: dove è disegnata, tutta di un colore (si riconosce la forma, non chi c'è dentro). */
+function sceneSilhouette(s: Sprite, key: string): HTMLCanvasElement {
+  const known = sceneSilhouettes.get(key);
+  if (known) return known;
+  const made = makeCanvas(s.src.w, s.src.h);
+  const c = made.getContext("2d")!;
+  c.drawImage(s.image, s.src.x, s.src.y, s.src.w, s.src.h, 0, 0, s.src.w, s.src.h);
+  c.globalCompositeOperation = "source-in";
+  c.fillStyle = "rgba(140, 102, 64, 0.45)";
+  c.fillRect(0, 0, made.width, made.height);
+  sceneSilhouettes.set(key, made);
+  return made;
+}
+
+/** Una scena: vista, una fotografia incollata un po' storta con la didascalia; da vedere, la sua sagoma e cosa serve. */
+function drawSceneCard(ctx: CanvasRenderingContext2D, scene: GardenInteraction, slot: Rect, seen: boolean, petOpen: boolean): void {
+  ctx.save();
+  const inset = { x: slot.x + 0.75, y: slot.y + 0.75, w: slot.w - 1.5, h: slot.h - 1.5 };
+  if (seen) {
+    const tilt = ((hash(sceneId(scene)) % 9) - 4) * 0.5 * Math.PI / 180;
+    ctx.translate(slot.x + slot.w / 2, slot.y + slot.h / 2);
+    ctx.rotate(tilt);
+    ctx.translate(-(slot.x + slot.w / 2), -(slot.y + slot.h / 2));
+    ctx.fillStyle = "rgba(0, 0, 0, 0.18)";
+    roundRect(ctx, { ...slot, x: slot.x + 1.5, y: slot.y + 2.5 }, 10);
+    ctx.fill();
+    roundRect(ctx, inset, 10);
+    ctx.fillStyle = "rgb(255, 252, 240)";
+    ctx.fill();
+    ctx.strokeStyle = "rgba(140, 102, 64, 0.45)";
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+  } else {
+    roundRect(ctx, inset, 10);
+    ctx.fillStyle = "rgba(140, 102, 64, 0.13)";
+    ctx.fill();
+    ctx.setLineDash([4, 3]);
+    ctx.strokeStyle = "rgba(140, 102, 64, 0.32)";
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  const box = { x: slot.x + 8, y: slot.y + 8, w: slot.w - 16, h: slot.h - 8 - 26 };
+  const s = ready(interactionImage(scene));
+  if (s) {
+    const k = Math.min(box.w / Math.max(s.src.w, 1), box.h / Math.max(s.src.h, 1));
+    const w = s.src.w * k, h = s.src.h * k, x = box.x + (box.w - w) / 2, y = box.y + (box.h - h) / 2;
+    ctx.imageSmoothingQuality = "high";
+    if (seen) {
+      ctx.drawImage(s.image, s.src.x, s.src.y, s.src.w, s.src.h, x, y, w, h);
+    } else {
+      ctx.globalAlpha *= 0.45;
+      ctx.drawImage(sceneSilhouette(s, sceneId(scene)), x, y, w, h);
+      ctx.globalAlpha /= 0.45;
+    }
+  }
+  const caption = { x: slot.x + 6, y: slot.y + slot.h - 23, w: slot.w - 12, h: 16 };
+  if (seen) text(ctx, scene.caption, caption, `600 11.5px ${UI}`, INK);
+  else text(ctx, petOpen ? `??? · ${itemWithId(scene.item)?.name ?? scene.item}` : "???", caption, `600 11px ${UI}`, INK_LIGHT);
+  ctx.restore();
+}
+
 /** Il sigillo d'oro quando la doppia pagina è completa. */
 function drawSeal(ctx: CanvasRenderingContext2D, spread: AlbumSpread, data: AlbumData): void {
   const items = [...spread.left.items, ...(spread.right?.items ?? [])];
   const has = new Set(data.has);
   if (items.length === 0 || !items.every((x) => has.has(x.id))) return;
+  drawSealMark(ctx);
+}
+
+/** Il sigillo d'oro «completa», al centro in alto. */
+function drawSealMark(ctx: CanvasRenderingContext2D): void {
   const c = onSpread(0.498, 0.185);
   ctx.fillStyle = "rgba(0, 0, 0, 0.25)";
   ctx.beginPath();
@@ -232,7 +337,7 @@ function drawSeal(ctx: CanvasRenderingContext2D, spread: AlbumSpread, data: Albu
 function drawControls(ctx: CanvasRenderingContext2D, data: AlbumData, state: BookState): void {
   const c = controls(ctx);
   const ink = (a: number): string => rgba(LEATHER_DARK, a);
-  for (const [pointsLeft, r, enabled] of [[true, c.previous, state.spread > 0], [false, c.next, state.spread < SPREADS.length - 1]] as const) {
+  for (const [pointsLeft, r, enabled] of [[true, c.previous, state.spread > 0], [false, c.next, state.spread < SPREAD_COUNT - 1]] as const) {
     ctx.fillStyle = ink(enabled ? 0.18 : 0.06);
     roundRect(ctx, r, 10);
     ctx.fill();
@@ -247,16 +352,17 @@ function drawControls(ctx: CanvasRenderingContext2D, data: AlbumData, state: Boo
     ctx.lineJoin = "round";
     ctx.stroke();
   }
-  const current = SPREADS[state.spread]!.left.category;
+  const current: Tab = sceneSpreadAt(state.spread) ? "scenes" : SPREADS[state.spread]!.left.category;
   for (const tab of c.tabs) {
-    const selected = tab.category === current;
+    const selected = tab.tab === current;
     roundRect(ctx, tab.rect, 14);
     if (selected) { ctx.fillStyle = ink(1); ctx.fill(); }
     else { ctx.strokeStyle = ink(0.55); ctx.lineWidth = 1.2; ctx.stroke(); }
-    text(ctx, CATEGORY_TITLES[tab.category], { x: tab.rect.x, y: tab.rect.y + 6, w: tab.rect.w, h: 16 }, TAB_FONT, selected ? PAPER_LIGHT : ink(0.85));
+    text(ctx, tabTitle(tab.tab), { x: tab.rect.x, y: tab.rect.y + 6, w: tab.rect.w, h: 16 }, TAB_FONT, selected ? PAPER_LIGHT : ink(0.85));
   }
   const total = SPREADS.flatMap((s) => [...s.left.items, ...(s.right?.items ?? [])]).length;
-  text(ctx, `${data.has.length} su ${total}`, { x: c.previous.x + c.previous.w + 10, y: c.previous.y + 8, w: 140, h: 16 }, `500 12.5px ${UI}`, ink(0.8), "left");
+  const counter = sceneSpreadAt(state.spread) ? `${data.scenes.length} su ${GARDEN_INTERACTIONS.length} scene` : `${data.has.length} su ${total}`;
+  text(ctx, counter, { x: c.previous.x + c.previous.w + 10, y: c.previous.y + 8, w: 140, h: 16 }, `500 12.5px ${UI}`, ink(0.8), "left");
 }
 
 function drawSpread(ctx: CanvasRenderingContext2D, data: AlbumData, state: BookState): void {
@@ -271,12 +377,20 @@ function drawSpread(ctx: CanvasRenderingContext2D, data: AlbumData, state: BookS
     ctx.drawImage(image, r.x, r.y, r.w, r.h);
   }
   if (!state.content) return;
-  const current = SPREADS[state.spread]!;
   ctx.save();
   ctx.globalAlpha = state.contentAlpha;
-  drawPage(ctx, current.left, true, data, state);
-  if (current.right) drawPage(ctx, current.right, false, data, state);
-  drawSeal(ctx, current, data);
+  const pets = sceneSpreadAt(state.spread);
+  if (pets) {
+    drawScenePage(ctx, pets.left, true, data, state);
+    if (pets.right) drawScenePage(ctx, pets.right, false, data, state);
+    const all = [...scenesOf(pets.left), ...(pets.right ? scenesOf(pets.right) : [])];
+    if (all.length > 0 && all.every((scene) => data.scenes.includes(sceneId(scene)))) drawSealMark(ctx);
+  } else {
+    const current = SPREADS[state.spread]!;
+    drawPage(ctx, current.left, true, data, state);
+    if (current.right) drawPage(ctx, current.right, false, data, state);
+    drawSeal(ctx, current, data);
+  }
   if (!state.capturing) drawControls(ctx, data, state);
   ctx.restore();
   if (state.message !== null && !state.capturing) {
@@ -293,5 +407,5 @@ export function drawBook(ctx: CanvasRenderingContext2D, data: AlbumData, state: 
 /** Le immagini che servono: il libro, il prato e le figurine. */
 export function wantedImages(): string[] {
   return ["album/copertina", "album/doppia_pagina", "giardino/sfondo", "giardino/sfondo_inverno",
-    ...SPREADS.flatMap((s) => [...s.left.items, ...(s.right?.items ?? [])]).map((x) => "giardino/" + x.id)];
+    ...SPREADS.flatMap((s) => [...s.left.items, ...(s.right?.items ?? [])]).map((x) => "giardino/" + x.id), ...GARDEN_INTERACTIONS.map(interactionImage)];
 }

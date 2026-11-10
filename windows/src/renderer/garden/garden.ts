@@ -18,7 +18,7 @@ import {
 } from "./scene.ts";
 import type { Camera, Carrying, Effects, SceneLayers } from "./scene.ts";
 import { sprite, whenSpritesLoad } from "./sprites.ts";
-import { advanceLife, greetVisitor, placeCompanion, resetVisitors, showInteraction } from "./life.ts";
+import { advanceLife, greetVisitor, placeCompanion, resetVisitors, setSceneNotifier, showInteraction } from "./life.ts";
 import { cornerWithId, formedCorners } from "../../core/gardenCorners.ts";
 import { reasonText } from "../../core/gardenVisitors.ts";
 
@@ -793,6 +793,12 @@ window.__garden = {
   },
 };
 
+// la prima volta che vedi un compagno usare una cosa, la scena entra nell'album: le stelline escono dalla cosa
+setSceneNotifier((pet, seen) => {
+  void api.noteScene(pet, seen.interaction.item).then((first) => {
+    if (first) celebrations.push({ caption: "Nuova scena nell'album", title: seen.interaction.caption, island: pet, placement: seen.placement.id, start: null });
+  });
+});
 api.onData(receive);
 api.onMessage((text) => flash(text));
 void api.getData().then((next) => { if (next) receive({ ...next, reset: true }); });

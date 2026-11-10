@@ -42,7 +42,7 @@ export function createAlbumController(deps: AlbumDeps): AlbumController {
     for (const p of garden.allPlacements) counts[p.item] = (counts[p.item] ?? 0) + 1;
     const forced = settings.gardenSeason;
     return {
-      has: GARDEN_ITEMS.filter((x) => garden.has(x.id)).map((x) => x.id), unseen: [...garden.unseen], counts,
+      has: GARDEN_ITEMS.filter((x) => garden.has(x.id)).map((x) => x.id), unseen: [...garden.unseen], scenes: [...garden.scenes], counts,
       islands: ISLANDS.map((id) => ({ id, name: PETS.find((pet) => pet.id === id)?.name ?? id, open: profile.isCompanionUnlocked(id) })),
       owner: profile.name, title: profile.albumTitle, season: shownSeason(wallOf(Date.now()), isSeason(forced) ? forced : null),
       spread: settings.albumSpread, ...(prepare ? { prepare: true } : {}),

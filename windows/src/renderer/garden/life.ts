@@ -111,7 +111,7 @@ function startInteraction(pet: string, walker: Walker, island: GardenIslandData,
 }
 
 /** Un passo di chi va a usare una cosa (si chiama quando è fermo su una tessera): cammina fino alla tessera accanto, poi ci sta e alla fine ricompare lì. */
-function advanceInteraction(walker: Walker, dt: number, size: number, occupied: ReadonlySet<string>, taken: ReadonlySet<string>): boolean {
+function advanceInteraction(pet: string, walker: Walker, dt: number, size: number, occupied: ReadonlySet<string>, taken: ReadonlySet<string>): boolean {
   const it = walker.interacting!;
   if (it.remaining !== null) {
     it.remaining -= dt;
@@ -133,8 +133,13 @@ function advanceInteraction(walker: Walker, dt: number, size: number, occupied: 
   const [low, high] = interactionDuration(it.candidate.interaction);
   it.remaining = random(low, high);
   it.started = life.time;
+  sceneSeen?.(pet, it.candidate);
   return true;
 }
+
+/** Chi segna la scena la prima volta che la vedi (la pagina lo chiede al processo principale, e se era la prima volta la festeggia). */
+let sceneSeen: ((pet: string, interaction: InteractionCandidate) => void) | null = null;
+export function setSceneNotifier(callback: (pet: string, interaction: InteractionCandidate) => void): void { sceneSeen = callback; }
 
 /** Per le prove: il compagno sta già usando la prima copia di `item` sull'isola mostrata (se sa usarla). */
 export function showInteraction(data: GardenData, pet: string, item: string): void {
@@ -174,7 +179,7 @@ function advanceWalker(data: GardenData, dt: number, carried: string | null): bo
   } else {
     walker.from = walker.to;
     if (walker.interacting) {
-      if (advanceInteraction(walker, dt, size, occupied, taken)) moving = true;
+      if (advanceInteraction(pet, walker, dt, size, occupied, taken)) moving = true;
     } else if (walker.activity) {
       // fa la posa: i fotogrammi cambiano, quindi si ridisegna
       walker.activity.remaining -= dt;

@@ -17,6 +17,7 @@ const api: GardenApi = {
   finishArrival: (arrival) => ipcRenderer.invoke(GARDEN_CHANNEL.finishArrival, arrival) as Promise<GardenWelcome[]>,
   showAlbum: () => ipcRenderer.send(GARDEN_CHANNEL.showAlbum),
   greetGuest: (id, reason) => ipcRenderer.invoke(GARDEN_CHANNEL.greetGuest, id, reason) as Promise<{ isFirst: boolean; gift: string | null }>,
+  noteScene: (pet, item) => ipcRenderer.invoke(GARDEN_CHANNEL.noteScene, pet, item) as Promise<boolean>,
   onMessage: (callback) => {
     ipcRenderer.on(GARDEN_CHANNEL.message, (_event, text: string) => callback(text));
   },

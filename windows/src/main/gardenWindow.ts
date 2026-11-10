@@ -157,6 +157,10 @@ export function createGardenController(deps: GardenDeps): GardenController {
     const welcome = garden.welcomeGuest(id, dayString(wallOf(Date.now())), reason.slice(0, 80));
     return { isFirst: welcome.isFirst, gift: welcome.gift ? itemWithId(welcome.gift.item)?.name ?? welcome.gift.item : null };
   });
+  ipcMain.handle(GARDEN_CHANNEL.noteScene, (event, pet: unknown, item: unknown) => {
+    if (!trusted(event) || typeof pet !== "string" || typeof item !== "string" || !isKnownIsland(pet)) return false;
+    return garden.noteScene(pet, item);
+  });
   ipcMain.on(GARDEN_CHANNEL.back, (event) => {
     if (!trusted(event)) return;
     window?.close();

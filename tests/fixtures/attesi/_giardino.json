@@ -9331,6 +9331,9 @@
 
         ],
         "riserva" : 0,
+        "scene" : [
+
+        ],
         "strada" : 0,
         "trovati" : [
           "margherite",
@@ -9469,6 +9472,9 @@
 
         ],
         "riserva" : 0,
+        "scene" : [
+
+        ],
         "strada" : 0,
         "trovati" : [
           "margherite",
@@ -9694,6 +9700,9 @@
 
         ],
         "riserva" : 4160,
+        "scene" : [
+
+        ],
         "strada" : 0.59799999999999998,
         "trovati" : [
           "casetta-gatto",
@@ -10039,6 +10048,9 @@
 
         ],
         "riserva" : 4940,
+        "scene" : [
+
+        ],
         "strada" : 0.41999999999999998,
         "trovati" : [
           "alberello-lucine",
@@ -10456,6 +10468,9 @@
           "riserva"
         ],
         "riserva" : 4940,
+        "scene" : [
+
+        ],
         "strada" : 0.41999999999999998,
         "trovati" : [
           "alberello-lucine",
@@ -10845,6 +10860,9 @@
           "ciccio-gattino"
         ],
         "riserva" : 4940,
+        "scene" : [
+
+        ],
         "strada" : 0.38800000000000001,
         "trovati" : [
           "alberello-lucine",
@@ -11217,6 +11235,10 @@
               "row" : 3,
               "turned" : false
             }
+          ],
+          "scenes" : [
+            "gattino-amaca",
+            "pianty-sdraio"
           ],
           "unseen" : [
             "alberello-lucine",
@@ -11660,6 +11682,16 @@
           "ciccio-gattino"
         ],
         "riserva" : 4940,
+        "scene" : [
+          "gattino-amaca",
+          "pianty-sdraio"
+        ],
+        "sceneViste" : [
+          true,
+          false,
+          true,
+          false
+        ],
         "spostate" : [
           false,
           false,
@@ -12114,6 +12146,10 @@
           "ciccio-gattino"
         ],
         "riserva" : 4940,
+        "scene" : [
+          "gattino-amaca",
+          "pianty-sdraio"
+        ],
         "strada" : 0.36099999999999999,
         "trovati" : [
           "alberello-lucine",
@@ -12274,6 +12310,9 @@
 
         ],
         "riserva" : 0,
+        "scene" : [
+
+        ],
         "strada" : 0,
         "trovati" : [
           "margherite",
@@ -18471,6 +18510,20 @@
     ]
   },
   "interazioni" : {
+    "album" : [
+      [
+        "pianty",
+        "porcellino"
+      ],
+      [
+        "ciccio",
+        "gattino"
+      ],
+      [
+        "riccio",
+        "tartaruga"
+      ]
+    ],
     "scene" : [
       {
         "scelte" : [
@@ -21009,11 +21062,13 @@
     "tabella" : [
       {
         "compagno" : "gattino",
+        "didascalia" : "Dorme nel cesto",
         "durata" : [
           20,
           35
         ],
         "effetto" : "sleep",
+        "id" : "gattino-cesto-cuscino",
         "immagine" : "interazioni_gattino-cesto-cuscino",
         "oggetto" : "cesto-cuscino",
         "scala" : 1.6870000000000001,
@@ -21022,11 +21077,13 @@
       },
       {
         "compagno" : "gattino",
+        "didascalia" : "Si fa le unghie",
         "durata" : [
           12,
           20
         ],
         "effetto" : "none",
+        "id" : "gattino-tiragraffi",
         "immagine" : "interazioni_gattino-tiragraffi",
         "oggetto" : "tiragraffi",
         "scala" : 1.4890000000000001,
@@ -21035,11 +21092,13 @@
       },
       {
         "compagno" : "gattino",
+        "didascalia" : "Pisolino sulla panchina",
         "durata" : [
           20,
           35
         ],
         "effetto" : "sleep",
+        "id" : "gattino-panchina",
         "immagine" : "interazioni_gattino-panchina",
         "oggetto" : "panchina",
         "scala" : 1.6579999999999999,
@@ -21048,11 +21107,13 @@
       },
       {
         "compagno" : "gattino",
+        "didascalia" : "Dondola nell'amaca",
         "durata" : [
           20,
           35
         ],
         "effetto" : "sleep",
+        "id" : "gattino-amaca",
         "immagine" : "interazioni_gattino-amaca",
         "oggetto" : "amaca",
         "scala" : 1.609,
@@ -21061,11 +21122,13 @@
       },
       {
         "compagno" : "porcellino",
+        "didascalia" : "Una carota dal cesto",
         "durata" : [
           12,
           20
         ],
         "effetto" : "none",
+        "id" : "porcellino-cesto-carote",
         "immagine" : "interazioni_porcellino-cesto-carote",
         "oggetto" : "cesto-carote",
         "scala" : 1.5600000000000001,
@@ -21074,11 +21137,13 @@
       },
       {
         "compagno" : "porcellino",
+        "didascalia" : "Fa capolino dal tunnel",
         "durata" : [
           12,
           20
         ],
         "effetto" : "none",
+        "id" : "porcellino-tunnel",
         "immagine" : "interazioni_porcellino-tunnel",
         "oggetto" : "tunnel",
         "scala" : 1.6599999999999999,
@@ -21087,11 +21152,13 @@
       },
       {
         "compagno" : "porcellino",
+        "didascalia" : "Merenda sul picnic",
         "durata" : [
           12,
           20
         ],
         "effetto" : "none",
+        "id" : "porcellino-picnic",
         "immagine" : "interazioni_porcellino-picnic",
         "oggetto" : "picnic",
         "scala" : 1.9299999999999999,
@@ -21100,11 +21167,13 @@
       },
       {
         "compagno" : "porcellino",
+        "didascalia" : "Sull'altalena",
         "durata" : [
           12,
           20
         ],
         "effetto" : "none",
+        "id" : "porcellino-altalena",
         "immagine" : "interazioni_porcellino-altalena",
         "oggetto" : "altalena",
         "scala" : 1.306,
@@ -21113,11 +21182,13 @@
       },
       {
         "compagno" : "ciccio",
+        "didascalia" : "Il bagnetto",
         "durata" : [
           12,
           20
         ],
         "effetto" : "splash",
+        "id" : "ciccio-bagnetto",
         "immagine" : "interazioni_ciccio-bagnetto",
         "oggetto" : "bagnetto",
         "scala" : 1.2150000000000001,
@@ -21126,11 +21197,13 @@
       },
       {
         "compagno" : "ciccio",
+        "didascalia" : "Sulla sua altalena",
         "durata" : [
           12,
           20
         ],
         "effetto" : "none",
+        "id" : "ciccio-altalena-uccelli",
         "immagine" : "interazioni_ciccio-altalena-uccelli",
         "oggetto" : "altalena-uccelli",
         "scala" : 1.2909999999999999,
@@ -21139,11 +21212,13 @@
       },
       {
         "compagno" : "ciccio",
+        "didascalia" : "Sul tetto della casetta",
         "durata" : [
           12,
           20
         ],
         "effetto" : "none",
+        "id" : "ciccio-casetta-uccelli",
         "immagine" : "interazioni_ciccio-casetta-uccelli",
         "oggetto" : "casetta-uccelli",
         "scala" : 1.093,
@@ -21152,11 +21227,13 @@
       },
       {
         "compagno" : "ciccio",
+        "didascalia" : "I semi del girasole",
         "durata" : [
           12,
           20
         ],
         "effetto" : "none",
+        "id" : "ciccio-girasole",
         "immagine" : "interazioni_ciccio-girasole",
         "oggetto" : "girasole",
         "scala" : 1.083,
@@ -21165,11 +21242,13 @@
       },
       {
         "compagno" : "riccio",
+        "didascalia" : "Tuffo nelle foglie",
         "durata" : [
           12,
           20
         ],
         "effetto" : "none",
+        "id" : "riccio-mucchio-foglie",
         "immagine" : "interazioni_riccio-mucchio-foglie",
         "oggetto" : "mucchio-foglie",
         "scala" : 1.2290000000000001,
@@ -21178,11 +21257,13 @@
       },
       {
         "compagno" : "riccio",
+        "didascalia" : "Una mela dalla cassetta",
         "durata" : [
           12,
           20
         ],
         "effetto" : "none",
+        "id" : "riccio-cassetta-mele",
         "immagine" : "interazioni_riccio-cassetta-mele",
         "oggetto" : "cassetta-mele",
         "scala" : 1.2,
@@ -21191,11 +21272,13 @@
       },
       {
         "compagno" : "riccio",
+        "didascalia" : "Dorme nel tronco",
         "durata" : [
           20,
           35
         ],
         "effetto" : "sleep",
+        "id" : "riccio-tronco-cavo",
         "immagine" : "interazioni_riccio-tronco-cavo",
         "oggetto" : "tronco-cavo",
         "scala" : 1.512,
@@ -21204,11 +21287,13 @@
       },
       {
         "compagno" : "riccio",
+        "didascalia" : "Nella carriola di ghiande",
         "durata" : [
           12,
           20
         ],
         "effetto" : "none",
+        "id" : "riccio-carriola-ghiande",
         "immagine" : "interazioni_riccio-carriola-ghiande",
         "oggetto" : "carriola-ghiande",
         "scala" : 1.347,
@@ -21217,11 +21302,13 @@
       },
       {
         "compagno" : "tartaruga",
+        "didascalia" : "Al sole sul sasso",
         "durata" : [
           20,
           35
         ],
         "effetto" : "sleep",
+        "id" : "tartaruga-sasso-sole",
         "immagine" : "interazioni_tartaruga-sasso-sole",
         "oggetto" : "sasso-sole",
         "scala" : 1.5980000000000001,
@@ -21230,11 +21317,13 @@
       },
       {
         "compagno" : "tartaruga",
+        "didascalia" : "Morde la lattuga",
         "durata" : [
           12,
           20
         ],
         "effetto" : "none",
+        "id" : "tartaruga-lattuga",
         "immagine" : "interazioni_tartaruga-lattuga",
         "oggetto" : "lattuga",
         "scala" : 0.90100000000000002,
@@ -21243,11 +21332,13 @@
       },
       {
         "compagno" : "tartaruga",
+        "didascalia" : "Beve al laghetto",
         "durata" : [
           12,
           20
         ],
         "effetto" : "none",
+        "id" : "tartaruga-laghetto",
         "immagine" : "interazioni_tartaruga-laghetto",
         "oggetto" : "laghetto",
         "scala" : 1.518,
@@ -21256,11 +21347,13 @@
       },
       {
         "compagno" : "tartaruga",
+        "didascalia" : "Nel suo rifugio",
         "durata" : [
           20,
           35
         ],
         "effetto" : "sleep",
+        "id" : "tartaruga-rifugio-paglia",
         "immagine" : "interazioni_tartaruga-rifugio-paglia",
         "oggetto" : "rifugio-paglia",
         "scala" : 1.2929999999999999,
@@ -21269,11 +21362,13 @@
       },
       {
         "compagno" : "pianty",
+        "didascalia" : "Si fa annaffiare",
         "durata" : [
           12,
           20
         ],
         "effetto" : "splash",
+        "id" : "pianty-annaffiatoio",
         "immagine" : "interazioni_pianty-annaffiatoio",
         "oggetto" : "annaffiatoio",
         "scala" : 1.242,
@@ -21282,11 +21377,13 @@
       },
       {
         "compagno" : "pianty",
+        "didascalia" : "Piantata nell'aiuola",
         "durata" : [
           12,
           20
         ],
         "effetto" : "none",
+        "id" : "pianty-aiuola",
         "immagine" : "interazioni_pianty-aiuola",
         "oggetto" : "aiuola",
         "scala" : 1.4610000000000001,
@@ -21295,11 +21392,13 @@
       },
       {
         "compagno" : "pianty",
+        "didascalia" : "Sole sulla sdraio",
         "durata" : [
           20,
           35
         ],
         "effetto" : "sleep",
+        "id" : "pianty-sdraio",
         "immagine" : "interazioni_pianty-sdraio",
         "oggetto" : "sdraio",
         "scala" : 1.4990000000000001,
@@ -21308,11 +21407,13 @@
       },
       {
         "compagno" : "pianty",
+        "didascalia" : "Le lucciole!",
         "durata" : [
           12,
           20
         ],
         "effetto" : "none",
+        "id" : "pianty-barattolo-lucciole",
         "immagine" : "interazioni_pianty-barattolo-lucciole",
         "oggetto" : "barattolo-lucciole",
         "scala" : 0.65800000000000003,
@@ -21715,7 +21816,7 @@
         "copia" : 1,
         "motivo" : "Sdraio",
         "oggetto" : "sdraio",
-        "ospite" : "tartaruga"
+        "ospite" : "lepre"
       },
       {
         "angolo" : null,
@@ -21743,7 +21844,7 @@
         "copia" : 1,
         "motivo" : "Sdraio",
         "oggetto" : "sdraio",
-        "ospite" : "tartaruga"
+        "ospite" : "lepre"
       },
       {
         "angolo" : null,
@@ -21809,7 +21910,7 @@
         "copia" : 1,
         "motivo" : "Sdraio",
         "oggetto" : "sdraio",
-        "ospite" : "tartaruga"
+        "ospite" : "lepre"
       },
       {
         "angolo" : null,
@@ -21931,7 +22032,7 @@
         "copia" : 1,
         "motivo" : "Sdraio",
         "oggetto" : "sdraio",
-        "ospite" : "tartaruga"
+        "ospite" : "lepre"
       },
       null,
       {
@@ -21969,7 +22070,7 @@
         "copia" : 1,
         "motivo" : "Sdraio",
         "oggetto" : "sdraio",
-        "ospite" : "tartaruga"
+        "ospite" : "lepre"
       },
       {
         "angolo" : null,
@@ -22123,7 +22224,7 @@
         "copia" : 1,
         "motivo" : "Sdraio",
         "oggetto" : "sdraio",
-        "ospite" : "tartaruga"
+        "ospite" : "lepre"
       },
       {
         "angolo" : null,
@@ -22629,7 +22730,7 @@
       "La rana/venuta/false/giardino_visitatore_rana",
       "L'anatroccolo/venuto/false/giardino_visitatore_anatroccolo",
       "La lucertola/venuta/false/giardino_visitatore_lucertola",
-      "La tartaruga/venuta/false/giardino_visitatore_tartaruga",
+      "La lepre/venuta/false/giardino_visitatore_lepre",
       "Il topolino/venuto/false/giardino_visitatore_topolino",
       "Lo scoiattolo/venuto/false/giardino_visitatore_scoiattolo",
       "La civetta/venuta/true/giardino_visitatore_civetta",

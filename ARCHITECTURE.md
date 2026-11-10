@@ -705,7 +705,10 @@ code. All UI code runs on the main thread; the only other thread is the audio re
   After a walk, with no corner errand, a companion idle for 15 s has a 35 % chance to pick one of `candidates(…)` (its things on the island, reachable,
   not the last one); it walks next to it, disappears, and `sceneEntity` draws the scene in place of the thing (laid so that the thing stays where it was;
   `amaca` and `altalena` go through the same slanted drawing, their scenes being cut on the thing's box) for 12–20 s (20–35 s asleep, with rising «z»;
-  the bird bath and the watering can splash), then it reappears beside it. `showInteraction(pet:item:)` is for the benches.
+  the bird bath and the watering can splash), then it reappears beside it. The first time a scene is seen `Garden.noteScene` writes it in `scenes`
+  (`giardino.json`) and the garden celebrates «Nuova scena nell'album»; the album has a «Scene» tab after the three sections: `GardenInteractions.albumSpreads`
+  (two companions per spread), a page per companion with its four scenes (seen: a tilted photo with the `caption`; not yet: the silhouette and «??? · <thing>»,
+  or only «???» for a locked companion), the «completa» seal, and a click that says what is missing. `showInteraction(pet:item:)` is for the benches.
   **The companions at the corners** (`GardenCompanions.swift`, pure and tested; behaviour in `advanceWalkers`): `GardenCompanions.affinities` says who likes which
   corner and what they do there (the cat sleeps at hers and in the salotto and grooms at the reading corner, the guinea pig eats in the vegetable patch and at the picnic and hops at her house
   and at the party, the budgie flaps his wings at the bird bath, at the party and at the wind music; Pianty has no poses). The poses are the frames the desktop companions already
@@ -730,8 +733,8 @@ code. All UI code runs on the main thread; the only other thread is the audio re
   `drawWorld(in:zoom:pan:…)` draws it with the same transform as the island (`p' = centre + (p − centre) · zoom + pan`, `Iso.origin`), then the veil and the dark corners on the
   screen. The chimney smoke and the cottage windows go through the same transform (`cameraPoint`, sizes times `zoom`), so they stay glued to the house. With the hill the zoom
   range is 0.8…2.5 (below 0.8 the world margins would not be enough).
-- **Guests** (`GardenVisitors.swift`, Foundation only, tested; `Garden.guests`; lifecycle in `GardenView`): twelve animals — hedgehog, robin, wild rabbit, fox,
-  squirrel, frog, owl, tortoise, mouse, great tit, duckling, lizard — come to visit while the window is open. `GardenVisitors.all` says for each the seasons and the
+- **Guests** (`GardenVisitors.swift`, Foundation only, tested; `Garden.guests`; lifecycle in `GardenView`): twelve animals — snail (in place of the hedgehog, now a companion), robin, wild rabbit, fox,
+  squirrel, frog, owl, hare (in place of the tortoise, now a companion), mouse, great tit, duckling, lizard — come to visit while the window is open. `GardenVisitors.all` says for each the seasons and the
   `GardenDaySlot`s (morning 6–10, day 10–17, evening 17–21, night) in which it can come, and what attracts it: the ten common ones a thing on the island (one of a
   list), the two rare ones (owl, fox) a formed corner (`GardenVisitorHaunt`: the corner and the thing they stop by). The lists end with things of the animals, since those stay on their
   island and Pianty and Gattino would otherwise have one species all year: the rabbit also comes for the aiuola and the frog for the annaffiatoio (Pianty), the hedgehog for the cesto-cuscino and the

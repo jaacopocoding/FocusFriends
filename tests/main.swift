@@ -1548,7 +1548,7 @@ let owl = GardenVisitors.attractions(placements: readingPlace, formedCorners: re
 check(owl.map { $0.visitor.id } == ["civetta"] && owl.first?.placement.item == "panchina" && owl.first?.corner == "lettura", "con l'angolo di lettura, di notte viene la civetta, vicino alla panchina")
 let teaPlace = [put("tavolino", 0, 0), put("sdraio", 2, 0)]
 let fox = GardenVisitors.attractions(placements: teaPlace, formedCorners: GardenCorners.formed(by: teaPlace), season: .summer, slot: .evening)
-check(fox.contains { $0.visitor.id == "volpe" && $0.corner == "te" && $0.placement.item == "tavolino" } && fox.contains { $0.visitor.id == "tartaruga" } == false, "con l'angolo del tè, di sera, viene la volpe (la tartaruga solo di giorno)")
+check(fox.contains { $0.visitor.id == "volpe" && $0.corner == "te" && $0.placement.item == "tavolino" } && fox.contains { $0.visitor.id == "lepre" } == false, "con l'angolo del tè, di sera, viene la volpe (la lepre solo di giorno)")
 // chi viene davvero: sempre lo stesso per lo stesso giorno
 let someDays = (1...200).map { "2026-\($0 / 31 + 1 < 10 ? "0" : "")\($0 / 31 + 1)-\(String(format: "%02d", $0 % 28 + 1))" }
 var present = 0, sameEveryTime = true
@@ -3069,6 +3069,20 @@ check(GardenInteractions.candidates(pet: "gattino", placements: scenePlaced, fro
       "l'ultima cosa usata non si riprende subito")
 check(GardenInteractions.pick(sceneFound, value: 0.2)?.placement.item == "panchina" && GardenInteractions.pick(sceneFound, value: 0.7)?.placement.item == "cesto-cuscino"
       && GardenInteractions.pick([], value: 0.5) == nil, "la scelta fra quelle che ci sono, tutte uguali")
+// l'album: la sezione «Scene», e il diario delle scene viste
+check(GardenInteractions.all.allSatisfy { !$0.caption.isEmpty && $0.caption.count <= 26 } && Set(GardenInteractions.all.map(\.caption)).count == 24,
+      "ogni scena ha la sua didascalia, corta")
+check(GardenInteractions.albumSpreads.map { "\($0.left)+\($0.right ?? "")" } == ["pianty+porcellino", "ciccio+gattino", "riccio+tartaruga"]
+      && GardenIslands.all.allSatisfy { GardenInteractions.scenes(of: $0).count == 4 }, "tre doppie pagine di scene, due compagni ciascuna, quattro scene per compagno")
+let sceneDirectory = tempDirectory()
+let sceneGarden = Garden(directory: sceneDirectory)
+check(sceneGarden.noteScene(pet: "gattino", item: "amaca") && !sceneGarden.noteScene(pet: "gattino", item: "amaca") && !sceneGarden.noteScene(pet: "gattino", item: "picnic")
+      && sceneGarden.noteScene(pet: "riccio", item: "tronco-cavo") && sceneGarden.scenes == ["gattino-amaca", "riccio-tronco-cavo"],
+      "una scena si segna la prima volta che la vedi, nell'ordine; una che il compagno non fa no")
+check(Garden(directory: sceneDirectory).scenes == ["gattino-amaca", "riccio-tronco-cavo"] && (gardenFileObject(sceneDirectory)["scenes"] as? [String]) == ["gattino-amaca", "riccio-tronco-cavo"],
+      "si salva in giardino.json («scenes») e si rilegge")
+sceneGarden.reset()
+check(sceneGarden.scenes.isEmpty, "«Cancella tutto» toglie anche le scene")
 
 print("\n\(checks) controlli, \(failures) falliti")
 exit(failures == 0 ? 0 : 1)

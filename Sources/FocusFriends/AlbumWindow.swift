@@ -17,6 +17,24 @@ final class AlbumView: NSView {
     private let profile: Profile
 
     private let spreadList = GardenAlbum.spreads()
+    /// Dopo le figurine, la sezione «Scene»: le cose che i compagni usano nel giardino (`GardenInteractions`), un compagno per pagina.
+    private let sceneSpreads = GardenInteractions.albumSpreads
+    private var spreadCount: Int { spreadList.count + sceneSpreads.count }
+    /// Se la doppia pagina mostrata è una della sezione «Scene», quale.
+    private var sceneSpread: (left: String, right: String?)? { spread >= spreadList.count ? sceneSpreads[spread - spreadList.count] : nil }
+
+    /// Le linguette sotto il libro: le tre sezioni delle figurine e le scene.
+    fileprivate enum Tab: Equatable {
+        case category(GardenCategory)
+        case scenes
+        var title: String {
+            switch self {
+            case .category(let category): return category.title
+            case .scenes: return "Scene"
+            }
+        }
+        static let all: [Tab] = GardenCategory.allCases.map { .category($0) } + [.scenes]
+    }
     fileprivate enum Mode { case cover, opening, open }
     private var mode: Mode = .cover
     private var spread = 0
@@ -69,7 +87,7 @@ final class AlbumView: NSView {
         newOnes = garden.unseen
         message = nil
         let saved = UserDefaults.standard.integer(forKey: Self.lastSpreadKey)
-        spread = min(max(saved, 0), spreadList.count - 1)
+        spread = min(max(saved, 0), spreadCount - 1)
         needsDisplay = true
     }
 
@@ -100,13 +118,18 @@ final class AlbumView: NSView {
         goToSpread((queuedSpread ?? spread) + step)
     }
 
-    private func goTo(_ category: GardenCategory) {
-        guard let index = spreadList.firstIndex(where: { $0.left.category == category }) else { return }
-        goToSpread(index)
+    private func goTo(_ tab: Tab) {
+        switch tab {
+        case .category(let category):
+            guard let index = spreadList.firstIndex(where: { $0.left.category == category }) else { return }
+            goToSpread(index)
+        case .scenes:
+            if !sceneSpreads.isEmpty { goToSpread(spreadList.count) }
+        }
     }
 
     private func goToSpread(_ index: Int) {
-        let target = min(max(index, 0), spreadList.count - 1)
+        let target = min(max(index, 0), spreadCount - 1)
         if isAnimating {
             if mode == .open { queuedSpread = target }
             return
@@ -183,18 +206,18 @@ final class AlbumView: NSView {
     private struct Controls {
         var previous: NSRect
         var next: NSRect
-        var tabs: [(category: GardenCategory, rect: NSRect)]
+        var tabs: [(tab: Tab, rect: NSRect)]
     }
 
     private static let tabFont = NSFont.systemFont(ofSize: 12.5, weight: .semibold)
 
     private func controls() -> Controls {
         let y = spreadRect.maxY + (Self.spreadImage == nil ? 16 : 7)
-        var tabs: [(category: GardenCategory, rect: NSRect)] = []
-        let widths = GardenCategory.allCases.map { ceil(($0.title as NSString).size(withAttributes: [.font: Self.tabFont]).width) + 26 }
+        var tabs: [(tab: Tab, rect: NSRect)] = []
+        let widths = Tab.all.map { ceil(($0.title as NSString).size(withAttributes: [.font: Self.tabFont]).width) + 26 }
         var x = (Self.size.width - (widths.reduce(0, +) + CGFloat(widths.count - 1) * 8)) / 2
-        for (category, width) in zip(GardenCategory.allCases, widths) {
-            tabs.append((category, NSRect(x: x, y: y, width: width, height: 28)))
+        for (tab, width) in zip(Tab.all, widths) {
+            tabs.append((tab, NSRect(x: x, y: y, width: width, height: 28)))
             x += width + 8
         }
         return Controls(previous: NSRect(x: spreadRect.minX, y: y - 2, width: 38, height: 32),
@@ -377,6 +400,10 @@ final class AlbumView: NSView {
     // MARK: le doppie pagine
 
     private func drawSpread() {
+        if let scenes = sceneSpread {
+            drawSceneSpread(scenes)
+            return
+        }
         let current = spreadList[spread]
         if let image = Self.spreadImage {
             let rect = spreadRect
@@ -415,8 +442,157 @@ final class AlbumView: NSView {
         }
     }
 
-    /// Il libro fatto a mano (pelle e carta disegnate nel codice), per quando manca l'immagine.
-    private func drawHandMadeSpread(_ current: (left: GardenAlbum.Page, right: GardenAlbum.Page?)) {
+    /// Una doppia pagina della sezione «Scene»: come quelle delle figurine, con un compagno per pagina.
+    private func drawSceneSpread(_ pets: (left: String, right: String?)) {
+        if let image = Self.spreadImage {
+            let rect = spreadRect
+            if !capturing {
+                NSColor.black.withAlphaComponent(0.30).setFill()
+                NSBezierPath(roundedRect: Self.openShadow(for: rect), xRadius: 14, yRadius: 14).fill()
+            }
+            image.draw(in: rect, from: .zero, operation: .sourceOver, fraction: 1, respectFlipped: true, hints: [.interpolation: NSImageInterpolation.high])
+        } else {
+            drawHandMadeSpread(nil)
+        }
+        guard capturesContent else { return }
+        let context = NSGraphicsContext.current?.cgContext
+        let fading = contentAlpha < 1
+        if fading {
+            context?.saveGState()
+            context?.setAlpha(contentAlpha)
+            context?.beginTransparencyLayer(auxiliaryInfo: nil)
+        }
+        let illustrated = Self.spreadImage != nil
+        drawScenePage(illustrated ? spreadRect : leftPage, pet: pets.left, isLeft: true)
+        if let right = pets.right { drawScenePage(illustrated ? spreadRect : rightPage, pet: right, isLeft: false) }
+        let all = GardenInteractions.scenes(of: pets.left) + (pets.right.map { GardenInteractions.scenes(of: $0) } ?? [])
+        if !all.isEmpty, all.allSatisfy({ garden.scenes.contains($0.id) }) { drawSealMark() }
+        if !capturing { drawControls() }
+        if fading {
+            context?.endTransparencyLayer()
+            context?.restoreGState()
+        }
+        if let message, !capturing {
+            text(message, in: NSRect(x: 60, y: Self.size.height - 24, width: Self.size.width - 120, height: 18),
+                 font: NSFont.systemFont(ofSize: 13, weight: .medium), color: deskInk)
+        }
+    }
+
+    /// Le quattro caselle delle scene di una pagina (2 per 2), dove ci sarebbero le sei figurine.
+    private func sceneSlots(isLeft: Bool) -> [NSRect] {
+        let six = slots(isLeft: isLeft)
+        let area = six.dropFirst().reduce(six[0]) { $0.union($1) }
+        let gapX: CGFloat = 14, gapY: CGFloat = 18
+        let w = (area.width - gapX) / 2, h = (area.height - gapY) / 2
+        return (0..<4).map { NSRect(x: area.minX + CGFloat($0 % 2) * (w + gapX), y: area.minY + CGFloat($0 / 2) * (h + gapY), width: w, height: h) }
+    }
+
+    /// Una pagina della sezione «Scene»: il nome del compagno (o «???» se non è ancora sbloccato), quante scene ha visto, e le sue quattro scene.
+    private func drawScenePage(_ rect: NSRect, pet: String, isLeft: Bool) {
+        let illustrated = Self.spreadImage != nil
+        if !illustrated { drawPaper(rect, isLeft: isLeft) }
+        let open = profile.isCompanionUnlocked(pet)
+        let scenes = GardenInteractions.scenes(of: pet)
+        let seen = scenes.filter { garden.scenes.contains($0.id) }.count
+        let title = open ? ownerName(pet) : AvatarRoster.hiddenName
+        let count = "\(seen) su \(scenes.count) scene"
+        if illustrated {
+            let centerX = onSpread(isLeft ? Self.pageCenterU.left : Self.pageCenterU.right, 0).x
+            let mid = onSpread(0, Self.bandCenterV).y
+            text(title, in: NSRect(x: centerX - 160, y: mid - (isLeft ? 36 : 31), width: 320, height: 48),
+                 font: Paper.albumFont(isLeft ? 42 : 33), color: isLeft ? Paper.ink : Paper.inkLight)
+            text(count, in: NSRect(x: centerX - 100, y: mid + 11, width: 200, height: 16), font: NSFont.systemFont(ofSize: 11.5, weight: .medium), color: Paper.inkLight)
+        } else {
+            text(title, in: NSRect(x: rect.minX + 30, y: rect.minY + 16, width: rect.width - 60, height: 52), font: Paper.albumFont(isLeft ? 42 : 33), color: Paper.ink)
+            text(count, in: NSRect(x: rect.minX + 30, y: rect.minY + 66, width: rect.width - 60, height: 16), font: NSFont.systemFont(ofSize: 11.5, weight: .medium), color: Paper.inkLight)
+        }
+        for (slot, scene) in zip(sceneSlots(isLeft: isLeft), scenes) {
+            drawSceneCard(scene, in: slot, seen: garden.scenes.contains(scene.id), petOpen: open)
+        }
+        let pageNumber = (spread * 2) + (isLeft ? 1 : 2)
+        let numberRect = illustrated ? NSRect(x: onSpread(isLeft ? Self.pageCenterU.left : Self.pageCenterU.right, 0).x - 30, y: onSpread(0, Self.pageNumberV).y - 9, width: 60, height: 18)
+            : NSRect(x: rect.minX, y: rect.maxY - 30, width: rect.width, height: 16)
+        text("\(pageNumber)", in: numberRect, font: Paper.markerFont(illustrated ? 15 : 14), color: Paper.inkLight.withAlphaComponent(0.85))
+    }
+
+    private static var sceneSilhouettes: [String: NSImage] = [:]
+
+    /// La sagoma di un disegno: dove è disegnato, il colore della carta più scuro (in una bitmap, così vale qualunque cosa sia il disegno).
+    private static func silhouette(of sprite: GardenSprite) -> NSImage? {
+        guard let cg = sprite.image.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return nil }
+        let sx = CGFloat(cg.width) / sprite.image.size.width, sy = CGFloat(cg.height) / sprite.image.size.height
+        let crop = CGRect(x: sprite.source.minX * sx, y: CGFloat(cg.height) - sprite.source.maxY * sy, width: sprite.source.width * sx, height: sprite.source.height * sy).integral
+        guard let part = cg.cropping(to: crop),
+              let context = CGContext(data: nil, width: part.width, height: part.height, bitsPerComponent: 8, bytesPerRow: 0,
+                                      space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return nil }
+        let box = CGRect(x: 0, y: 0, width: part.width, height: part.height)
+        context.draw(part, in: box)
+        context.setBlendMode(.sourceIn)
+        context.setFillColor(Paper.paperEdge.usingColorSpace(.deviceRGB)?.cgColor ?? Paper.paperEdge.cgColor)
+        context.fill(box)
+        guard let flat = context.makeImage() else { return nil }
+        return NSImage(cgImage: flat, size: sprite.source.size)
+    }
+
+    /// Una scena: vista, una fotografia incollata un po' storta con la didascalia; da vedere, la sua sagoma e cosa serve.
+    private func drawSceneCard(_ scene: GardenInteraction, in slot: NSRect, seen: Bool, petOpen: Bool) {
+        let radius: CGFloat = 10
+        NSGraphicsContext.saveGraphicsState()
+        if seen {
+            let tilt = (CGFloat(GardenDrops.hash(scene.id) % 9) - 4) * 0.5
+            let t = NSAffineTransform()
+            t.translateX(by: slot.midX, yBy: slot.midY)
+            t.rotate(byDegrees: tilt)
+            t.translateX(by: -slot.midX, yBy: -slot.midY)
+            t.concat()
+            NSColor.black.withAlphaComponent(0.18).setFill()
+            NSBezierPath(roundedRect: slot.offsetBy(dx: 1.5, dy: 2.5), xRadius: radius, yRadius: radius).fill()
+            Sticker.card.setFill()
+            let shape = NSBezierPath(roundedRect: slot.insetBy(dx: 0.75, dy: 0.75), xRadius: radius, yRadius: radius)
+            shape.fill()
+            Paper.paperEdge.setStroke()
+            shape.lineWidth = 1.2
+            shape.stroke()
+        } else {
+            let shape = NSBezierPath(roundedRect: slot.insetBy(dx: 0.75, dy: 0.75), xRadius: radius, yRadius: radius)
+            Paper.track.setFill()
+            shape.fill()
+            Paper.paperEdge.withAlphaComponent(0.7).setStroke()
+            shape.lineWidth = 1.2
+            shape.setLineDash([4, 3], count: 2, phase: 0)
+            shape.stroke()
+        }
+        let box = NSRect(x: slot.minX + 8, y: slot.minY + 8, width: slot.width - 16, height: slot.height - 8 - 26)
+        if let sprite = GardenSprites.sprite(scene.resource) {
+            let scale = min(box.width / max(sprite.source.width, 1), box.height / max(sprite.source.height, 1))
+            let size = NSSize(width: sprite.source.width * scale, height: sprite.source.height * scale)
+            let target = NSRect(x: box.midX - size.width / 2, y: box.midY - size.height / 2, width: size.width, height: size.height)
+            var image = sprite.image
+            var from = sprite.source
+            if !seen {
+                if let known = Self.sceneSilhouettes[scene.id] {
+                    image = known
+                } else if let made = Self.silhouette(of: sprite) {
+                    // tutta di un colore: si riconosce la forma, non chi c'è dentro
+                    Self.sceneSilhouettes[scene.id] = made
+                    image = made
+                }
+                from = .zero
+            }
+            image.draw(in: target, from: from, operation: .sourceOver, fraction: seen ? 1 : 0.45, respectFlipped: true, hints: [.interpolation: NSImageInterpolation.high])
+        }
+        let captionRect = NSRect(x: slot.minX + 6, y: slot.maxY - 23, width: slot.width - 12, height: 16)
+        if seen {
+            text(scene.caption, in: captionRect, font: NSFont.systemFont(ofSize: 11.5, weight: .semibold), color: Paper.ink)
+        } else {
+            let hint = petOpen ? "??? · " + (GardenCatalog.item(withID: scene.item)?.name ?? scene.item) : "???"
+            text(hint, in: captionRect, font: NSFont.systemFont(ofSize: 11, weight: .semibold), color: Paper.inkLight)
+        }
+        NSGraphicsContext.restoreGraphicsState()
+    }
+
+    /// Il libro fatto a mano (pelle e carta disegnate nel codice), per quando manca l'immagine. Senza pagine (nil), solo la carta: le scene le disegna chi chiama.
+    private func drawHandMadeSpread(_ current: (left: GardenAlbum.Page, right: GardenAlbum.Page?)?) {
         let board = boardRect
         NSColor.black.withAlphaComponent(0.38).setFill()
         NSBezierPath(roundedRect: board.offsetBy(dx: 5, dy: 9), xRadius: 14, yRadius: 14).fill()
@@ -429,11 +605,16 @@ final class AlbumView: NSView {
             NSRect(x: leftShape.minX - CGFloat(i) * 1.4, y: leftShape.minY + CGFloat(i), width: 2, height: leftShape.height - CGFloat(i) * 2).fill()
             NSRect(x: rightShape.maxX - 2 + CGFloat(i) * 1.4, y: rightShape.minY + CGFloat(i), width: 2, height: rightShape.height - CGFloat(i) * 2).fill()
         }
-        drawPage(leftShape, page: current.left, isLeft: true)
-        if let right = current.right {
-            drawPage(rightShape, page: right, isLeft: false)
+        if let current {
+            drawPage(leftShape, page: current.left, isLeft: true)
+            if let right = current.right {
+                drawPage(rightShape, page: right, isLeft: false)
+            } else {
+                drawBlankPage(rightShape)
+            }
         } else {
-            drawBlankPage(rightShape)
+            drawPaper(leftShape, isLeft: true)
+            drawPaper(rightShape, isLeft: false)
         }
         // la piega al centro
         let spine = NSGradient(colors: [NSColor.black.withAlphaComponent(0), NSColor.black.withAlphaComponent(0.30), NSColor.black.withAlphaComponent(0)])
@@ -527,6 +708,11 @@ final class AlbumView: NSView {
     private func drawSeal(for spread: (left: GardenAlbum.Page, right: GardenAlbum.Page?)) {
         let items = spread.left.items + (spread.right?.items ?? [])
         guard !items.isEmpty, items.allSatisfy({ garden.has($0.id) }) else { return }
+        drawSealMark()
+    }
+
+    /// Il sigillo d'oro «completa», al centro in alto.
+    private func drawSealMark() {
         let center = Self.spreadImage == nil ? NSPoint(x: leftPage.maxX, y: leftPage.minY + 56) : onSpread(0.498, 0.185)
         NSColor.black.withAlphaComponent(0.25).setFill()
         NSBezierPath(ovalIn: NSRect(x: center.x - 30, y: center.y - 28, width: 60, height: 60)).fill()
@@ -567,7 +753,7 @@ final class AlbumView: NSView {
 
     private func drawControls() {
         let c = controls()
-        for (pointsLeft, rect, enabled) in [(true, c.previous, spread > 0), (false, c.next, spread < spreadList.count - 1)] {
+        for (pointsLeft, rect, enabled) in [(true, c.previous, spread > 0), (false, c.next, spread < spreadCount - 1)] {
             let shape = NSBezierPath(roundedRect: rect, xRadius: 10, yRadius: 10)
             deskInk.withAlphaComponent(enabled ? 0.18 : 0.06).setFill()
             shape.fill()
@@ -583,9 +769,9 @@ final class AlbumView: NSView {
             arrow.lineJoinStyle = .round
             arrow.stroke()
         }
-        let currentCategory = spreadList[spread].left.category
+        let currentTab: Tab = sceneSpread == nil ? .category(spreadList[spread].left.category) : .scenes
         for tab in c.tabs {
-            let selected = tab.category == currentCategory
+            let selected = tab.tab == currentTab
             let path = NSBezierPath(roundedRect: tab.rect, xRadius: 14, yRadius: 14)
             if selected {
                 deskInk.setFill()
@@ -595,10 +781,10 @@ final class AlbumView: NSView {
                 path.lineWidth = 1.2
                 path.stroke()
             }
-            text(tab.category.title, in: NSRect(x: tab.rect.minX, y: tab.rect.minY + 6, width: tab.rect.width, height: 16),
+            text(tab.tab.title, in: NSRect(x: tab.rect.minX, y: tab.rect.minY + 6, width: tab.rect.width, height: 16),
                  font: Self.tabFont, color: selected ? deskInkOn : deskInk.withAlphaComponent(0.85))
         }
-        let total = "\(garden.foundCount) su \(GardenCatalog.items.count)"
+        let total = sceneSpread == nil ? "\(garden.foundCount) su \(GardenCatalog.items.count)" : "\(garden.scenes.count) su \(GardenInteractions.all.count) scene"
         text(total, in: NSRect(x: c.previous.maxX + 10, y: c.previous.minY + 8, width: 140, height: 16), font: NSFont.systemFont(ofSize: 12.5, weight: .medium),
              color: deskInk.withAlphaComponent(0.8), alignment: .left)
     }
@@ -617,7 +803,17 @@ final class AlbumView: NSView {
             let c = controls()
             if c.previous.contains(p) { turn(by: -1); return }
             if c.next.contains(p) { turn(by: 1); return }
-            if let tab = c.tabs.first(where: { $0.rect.contains(p) }) { goTo(tab.category); return }
+            if let tab = c.tabs.first(where: { $0.rect.contains(p) }) { goTo(tab.tab); return }
+            if let pets = sceneSpread {
+                for (isLeft, pet) in [(true, Optional(pets.left)), (false, pets.right)] {
+                    guard let pet else { continue }
+                    for (slot, scene) in zip(sceneSlots(isLeft: isLeft), GardenInteractions.scenes(of: pet)) where slot.contains(p) {
+                        describe(scene)
+                        return
+                    }
+                }
+                return
+            }
             let current = spreadList[spread]
             for (isLeft, items) in [(true, current.left.items), (false, current.right?.items ?? [])] {
                 for (slot, item) in zip(slots(isLeft: isLeft), items) where slot.contains(p) {
@@ -651,6 +847,18 @@ final class AlbumView: NSView {
             flash("n. \(number) · \(item.rarity.title) · \(rule): ancora da trovare. Esce a fine focus quando sblocchi \(ownerName(owner)).")
         } else {
             flash("n. \(number) · \(item.rarity.title) · \(rule): ancora da trovare. Esce a fine focus.")
+        }
+    }
+
+    private func describe(_ scene: GardenInteraction) {
+        let name = ownerName(scene.pet)
+        if garden.scenes.contains(scene.id) {
+            flash("\(name) · \(scene.caption)")
+        } else if !profile.isCompanionUnlocked(scene.pet) {
+            flash("Ancora da vedere: si scopre quando sblocchi un nuovo compagno.")
+        } else {
+            let item = GardenCatalog.item(withID: scene.item)
+            flash("Ancora da vedere: metti \(item?.nameWithArticle ?? scene.item) sull'isola di \(name), e prima o poi \(name) ci va.")
         }
     }
 

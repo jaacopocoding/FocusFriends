@@ -233,7 +233,7 @@ private func companionsJSON() -> [String: Any] {
 
 /// I compagni che usano le cose (`GardenInteractions`): la tabella e quali sceglierebbero, da alcuni punti delle copie di prova.
 private func interactionsJSON() -> [String: Any] {
-    let table = GardenInteractions.all.map { ["compagno": $0.pet, "oggetto": $0.item, "effetto": $0.effect.rawValue, "scala": $0.scale, "x": $0.x, "y": $0.y,
+    let table = GardenInteractions.all.map { ["compagno": $0.pet, "oggetto": $0.item, "didascalia": $0.caption, "id": $0.id, "effetto": $0.effect.rawValue, "scala": $0.scale, "x": $0.x, "y": $0.y,
                                                "immagine": $0.resource, "durata": [$0.duration.lowerBound, $0.duration.upperBound]] as [String: Any] }
     let all = samplePlacements() + [("cesto-cuscino", 8, 4), ("tunnel", 5, 6), ("casetta-uccelli", 3, 6)].enumerated().map {
         GardenPlacement(id: fixedUUID(300 + $0.offset), item: $0.element.0, tile: GardenTile(col: $0.element.1, row: $0.element.2), turned: false)
@@ -250,7 +250,7 @@ private func interactionsJSON() -> [String: Any] {
             }
         }
     }
-    return ["tabella": table, "scene": scenes]
+    return ["tabella": table, "scene": scenes, "album": GardenInteractions.albumSpreads.map { [$0.left, opt($0.right)] }]
 }
 
 private func visitorsJSON() -> [String: Any] {
@@ -290,6 +290,7 @@ private func gardenStateJSON(_ g: Garden) -> [String: Any] {
         "nuove": g.unseen.sorted(), "casa": v(g.home), "isole": islands, "angoli": g.corners, "ponti": g.bridges, "accolti": g.welcomed,
         "mancano": opt(g.minutesToNextGift), "strada": opt(g.nextGiftProgress.map(r)),
         "compagni": g.companionTiles.mapValues(tileJSON), "ospiti": g.guests.mapValues { ["primo": $0.first, "visite": $0.visits, "motivo": $0.reason] as [String: Any] },
+        "scene": g.scenes,
     ]
 }
 
@@ -357,7 +358,8 @@ func gardenStepsJSON() throws -> [String: Any] {
     g.setCompanionTile("pianty", to: GardenTile(col: 40, row: 4))
     let guests = [g.welcomeGuest("pettirosso", day: "2026-10-26", reason: "Bagnetto uccelli"), g.welcomeGuest("pettirosso", day: "2026-10-27", reason: "x"),
                   g.welcomeGuest("volpe", day: "2026-10-28", reason: "L'angolo del tè")]
-    step("mosse", ["messe": placed, "aCaso": somewhere, "spostate": moved, "angoliNuovi": corners,
+    let sceneNotes = [g.noteScene(pet: "gattino", item: "amaca"), g.noteScene(pet: "gattino", item: "amaca"), g.noteScene(pet: "pianty", item: "sdraio"), g.noteScene(pet: "gattino", item: "picnic")]
+    step("mosse", ["messe": placed, "aCaso": somewhere, "spostate": moved, "angoliNuovi": corners, "sceneViste": sceneNotes,
                    "ospiti": guests.map { [$0.isFirst, $0.gift?.item ?? "niente"] as [Any] },
                    "compagnoPianty": tileJSON(g.companionTile("pianty", index: 0)), "compagnoRiccio": tileJSON(g.companionTile("riccio", index: 4)),
                    "canPlace": [g.canPlace("casetta-gatto", at: GardenTile(col: 5, row: 8), on: "porcellino"), g.canPlace("amaca", at: GardenTile(col: 8, row: 8), turned: true)],

@@ -2,12 +2,14 @@
 // linguette delle sezioni, la tastiera o la rotellina. Come sul Mac, le animazioni (la copertina che si apre, la pagina che gira) sono fotografie
 // del libro (`book.ts` disegnato senza prato né comandi) su fogli che girano in 3D, che ci sono solo mentre durano.
 
-import { CATEGORY_TITLES, islandRule, itemNumber, RARITY_TITLES, rarityOf } from "../../core/gardenCatalog.ts";
+import { CATEGORY_TITLES, islandRule, itemNumber, itemWithId, nameWithArticle, RARITY_TITLES, rarityOf } from "../../core/gardenCatalog.ts";
+import { sceneId, scenesOf } from "../../core/gardenInteractions.ts";
+import type { GardenInteraction } from "../../core/gardenInteractions.ts";
 import type { GardenItem } from "../../core/gardenCatalog.ts";
 import type { AlbumApi, AlbumData } from "../../shared/albumApi.ts";
 import { h, icon } from "../card/dom.ts";
 import { makeCanvas, sprite, whenSpritesLoad } from "../garden/sprites.ts";
-import { closedShadow, controls, coverRect, drawBook, inside, openShadow, SIZE, slots, spreadRect, SPREADS, wantedImages } from "./book.ts";
+import { closedShadow, controls, coverRect, drawBook, inside, openShadow, sceneSlots, sceneSpreadAt, SIZE, slots, SPREAD_COUNT, spreadRect, SPREADS, tabTitle, wantedImages } from "./book.ts";
 import type { BookState, Mode, Rect } from "./book.ts";
 
 declare global {
@@ -75,7 +77,7 @@ function prepare(next: AlbumData): void {
   mode = "cover";
   newOnes = new Set(next.unseen);
   message = null;
-  spread = Math.min(Math.max(next.spread, 0), SPREADS.length - 1);
+  spread = Math.min(Math.max(next.spread, 0), SPREAD_COUNT - 1);
 }
 
 function receive(next: AlbumData): void {
@@ -228,7 +230,7 @@ function finishOpening(): void {
 // ---- la pagina che gira
 
 function goToSpread(index: number): void {
-  const target = Math.min(Math.max(index, 0), SPREADS.length - 1);
+  const target = Math.min(Math.max(index, 0), SPREAD_COUNT - 1);
   if (stage) {
     if (mode === "open") queued = target;
     return;
@@ -304,6 +306,18 @@ function describe(item: GardenItem): void {
   }
 }
 
+/** Una scena: vista, la didascalia; da vedere, cosa serve per vederla. */
+function describeScene(scene: GardenInteraction): void {
+  if (!data) return;
+  const name = ownerName(scene.pet);
+  if (data.scenes.includes(sceneId(scene))) flash(`${name} · ${scene.caption}`);
+  else if (!data.islands.find((i) => i.id === scene.pet)?.open) flash("Ancora da vedere: si scopre quando sblocchi un nuovo compagno.");
+  else {
+    const item = itemWithId(scene.item);
+    flash(`Ancora da vedere: metti ${item ? nameWithArticle(item) : scene.item} sull'isola di ${name}, e prima o poi ${name} ci va.`);
+  }
+}
+
 canvas.addEventListener("mousedown", (event) => {
   if (event.button !== 0) return;
   const p = { x: event.offsetX / scale(), y: event.offsetY / scale() };
@@ -316,7 +330,17 @@ canvas.addEventListener("mousedown", (event) => {
   if (inside(c.previous, p.x, p.y)) { goToSpread((queued ?? spread) - 1); return; }
   if (inside(c.next, p.x, p.y)) { goToSpread((queued ?? spread) + 1); return; }
   const tab = c.tabs.find((t) => inside(t.rect, p.x, p.y));
-  if (tab) { goToSpread(SPREADS.findIndex((s) => s.left.category === tab.category)); return; }
+  if (tab) { goToSpread(tab.tab === "scenes" ? SPREADS.length : SPREADS.findIndex((s) => s.left.category === tab.tab)); return; }
+  const pets = sceneSpreadAt(spread);
+  if (pets) {
+    for (const [isLeft, pet] of [[true, pets.left], [false, pets.right]] as const) {
+      if (!pet) continue;
+      const scenes = scenesOf(pet);
+      const found = sceneSlots(isLeft).findIndex((slot, i) => i < scenes.length && inside(slot, p.x, p.y));
+      if (found >= 0) { describeScene(scenes[found]!); return; }
+    }
+    return;
+  }
   const current = SPREADS[spread]!;
   for (const [isLeft, items] of [[true, current.left.items], [false, current.right?.items ?? []]] as const) {
     const found = slots(isLeft).findIndex((slot, i) => i < items.length && inside(slot, p.x, p.y));
@@ -358,7 +382,7 @@ window.__album = {
   get animating() { return stage !== null; },
   open,
   goToSpread,
-  categoryTitle: (index: number) => CATEGORY_TITLES[SPREADS[index]!.left.category],
+  categoryTitle: (index: number) => (sceneSpreadAt(index) ? tabTitle("scenes") : CATEGORY_TITLES[SPREADS[index]!.left.category]),
 };
 
 for (const key of wantedImages()) void sprite(key);

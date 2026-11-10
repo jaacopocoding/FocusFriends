@@ -2,7 +2,7 @@
 """Ritaglia gli animali ospiti del giardino: assets/giardino/visitatori_original.png -> assets/giardino/visitatore_<nome>.png
 
 Il foglio ha 12 animaletti (4 colonne per 3 righe, in ordine di lettura, ognuno nella sua cella) su fondo magenta #FF00FF, visti di tre quarti e rivolti
-a destra: riccio (non più usato), pettirosso, coniglio, volpe, scoiattolo, rana, civetta, tartaruga, topolino, cinciallegra, anatroccolo, lucertola.
+a destra: riccio (non più usato), pettirosso, coniglio, volpe, scoiattolo, rana, civetta, tartaruga (non più usata), topolino, cinciallegra, anatroccolo, lucertola.
 Il fondo si toglie come per gli oggetti del giardino (tools/cutout_giardino.py: stessa funzione). Gli animali non stanno per forza dentro la loro cella (la coda della
 volpe scende in quella sotto): si cercano i pezzi staccati (come per il paesaggio, tools/cutout_paesaggio.py) e ognuno va all'animale della cella più vicina al suo centro.
 
@@ -14,9 +14,10 @@ from PIL import Image
 
 DIR = "assets/giardino"
 COLUMNS, ROWS = 4, 3
-# Il riccio del foglio non c'è più fra gli ospiti (è diventato un compagno): la sua cella si salta. La lumaca ha preso il suo posto, disegnata a parte.
-RETIRED = {"riccio"}
-EXTRAS = ["lumaca"]
+# Il riccio e la tartaruga del foglio non ci sono più fra gli ospiti (sono diventati compagni): le loro celle si saltano. La lumaca e la lepre hanno preso
+# il loro posto, disegnate a parte.
+RETIRED = {"riccio", "tartaruga"}
+EXTRAS = ["lumaca", "lepre"]
 NAMES = ["riccio", "pettirosso", "coniglio", "volpe", "scoiattolo", "rana", "civetta", "tartaruga", "topolino", "cinciallegra", "anatroccolo", "lucertola"]
 
 

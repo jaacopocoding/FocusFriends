@@ -213,6 +213,9 @@
         "pianty-porcellino"
       ],
       "riserva" : 1800,
+      "scene" : [
+
+      ],
       "strada" : 0.35699999999999998,
       "trovati" : [
         "cesto-carote",

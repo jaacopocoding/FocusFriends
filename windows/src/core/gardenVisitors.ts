@@ -55,7 +55,8 @@ export const GARDEN_VISITORS: readonly GardenVisitor[] = [
   visitor("rana", "La rana", true, ["bagnetto", "ponticello", "annaffiatoio", "laghetto"], [], ["spring", "summer"], ["evening"], 36, 1),
   visitor("anatroccolo", "L'anatroccolo", false, ["ponticello", "bagnetto"], [], ["spring"], ["morning", "day"], 42, 1),
   visitor("lucertola", "La lucertola", true, ["panchina", "tunnel"], [], ["summer"], ["day"], 30, 1),
-  visitor("tartaruga", "La tartaruga", true, ["sdraio", "picnic"], [], ["spring", "summer"], ["day"], 40, 1),
+  // la lepre ha preso il posto della tartaruga, diventata una compagna
+  visitor("lepre", "La lepre", true, ["sdraio", "picnic"], [], ["spring", "summer"], ["day"], 70, 1),
   visitor("topolino", "Il topolino", false, ["cesto-carote", "picnic"], [], ["autumn", "winter"], ["evening"], 30, 1),
   visitor("scoiattolo", "Lo scoiattolo", false, ["altalena", "amaca", "tiragraffi"], [], ["spring", "autumn"], ["morning", "day"], 66, 1),
   visitor("civetta", "La civetta", true, [], [{ corner: "lettura", item: "panchina" }], ALL_SEASONS, ["night"], 60, 0.4),

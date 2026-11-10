@@ -6,3 +6,4 @@ windows/dist/
 windows/out/
 windows/resources/fonts-prova/
 windows/release/
+__pycache__/
