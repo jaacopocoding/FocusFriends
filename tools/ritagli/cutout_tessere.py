@@ -8,7 +8,7 @@ sinistra al vertice sinistro (le colonne della tessera vanno verso destra e in b
 
 Scrive assets/giardino/tessera_<nome>_<n>.png (320x160, RGBA, bordi del rombo sfumati); build.sh le copia come giardino_tessera_<nome>_<n>.png.
 
-Uso, dalla cartella principale:  python3 tools/cutout_tessere.py
+Uso, dalla cartella principale:  python3 tools/ritagli/cutout_tessere.py
 """
 import numpy as np
 from PIL import Image, ImageDraw

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Ritaglia il disegno di un personaggio sollevato dalle mani.
 
-    python3 tools/cutout_picked.py [originale.png [ritaglio.png [soglia_sfondo]]]
+    python3 tools/ritagli/cutout_picked.py [originale.png [ritaglio.png [soglia_sfondo]]]
 
 Senza argomenti: assets/porcellino/picked_original.png -> assets/porcellino/picked.png
 (per Pianty: assets/pianty/picked_original.png assets/pianty/picked.png).

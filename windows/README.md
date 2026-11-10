@@ -1,7 +1,7 @@
 # FocusFriends per Windows
 
 La versione per Windows di FocusFriends, scritta con **Electron** (TypeScript, HTML e CSS). Il piano è
-in [`../PIANO_WINDOWS.md`](../PIANO_WINDOWS.md) e i formati dei dati, comuni con l'app per Mac, in
+in [`PIANO_WINDOWS.md`](PIANO_WINDOWS.md) e i formati dei dati, comuni con l'app per Mac, in
 [`../FORMATI.md`](../FORMATI.md).
 
 **Stato:** l'ultima versione è la **1.3.0** (il giardino, l'album e la vita sull'isola, il Riccio), **pubblicata** il 2 novembre 2026:

@@ -104,7 +104,7 @@ costruiscono quando sblocchi i compagni. I compagni sbloccati camminano sulla lo
 `FocusFriends-Windows-<versione>-x64-Setup.exe` (o `…-arm64-Setup.exe` per i computer ARM) e lancialo; non è firmato, quindi la prima volta
 Windows può mostrare «Windows ha protetto il PC» (*Ulteriori informazioni* → *Esegui comunque*). Ha tutto tranne il giardino, che arriva con la
 prossima uscita. I dati (uguali per i due sistemi, vedi [`FORMATI.md`](../FORMATI.md)) stanno in `%APPDATA%\FocusFriends`. Il piano e lo stato sono in
-[`PIANO_WINDOWS.md`](../PIANO_WINDOWS.md), il confronto con questa app in [`windows/PARITA.md`](../windows/PARITA.md).
+[`windows/PIANO_WINDOWS.md`](../windows/PIANO_WINDOWS.md), il confronto con questa app in [`windows/PARITA.md`](../windows/PARITA.md).
 
 Non ha icona nel Dock: la trovi nella barra dei menu e con il tasto destro sul personaggio. I dati (sessioni,
 nome) restano sul tuo Mac, in `~/Library/Application Support/FocusFriends/`: nessuna rete, nessun invio.
@@ -455,13 +455,13 @@ loro pesi (`snowWeights`, `snowPathWeights`). I lati diventano zolle con la neve
 dettagli sparsi sono pochi (le tessere hanno già le loro orme): qualche cumulo di neve e qualche sasso, mai erba verde. Per provarlo fuori stagione:
 `defaults write com.jacopo.focusfriends gardenSeason -string winter` (e `defaults delete com.jacopo.focusfriends gardenSeason` per toglierlo).
 
-L'isola è l'**altopiano di una collina** d'erba (`assets/giardino/collina_<stagione>.png`, preparata da `tools/prepara_collina.py` da un disegno di Gemini): dalle tessere il
+L'isola è l'**altopiano di una collina** d'erba (`assets/giardino/collina_<stagione>.png`, preparata da `tools/ritagli/prepara_collina.py` da un disegno di Gemini): dalle tessere il
 pendio scende senza nessuno stacco di terra, con il contorno sottile e netto sui fianchi e sfumato in basso, dove la collina si perde nella nebbia del lago. Ce n'è una per
 stagione (verde in primavera e in estate, ocra in autunno, bianca e azzurra d'inverno). Con la collina l'isola, a zoom normale, è un quarto più piccola: si ingrandisce con lo zoom. Ogni isola ha la sua collina (quelle dei compagni ancora bloccati sono scure). Quando ci si sposta o si ingrandisce, si muove tutto il mondo insieme (collina, lago, colline lontane e casale con il suo fumo): è la telecamera che si muove, non la collina che scivola sullo sfondo.
 
-Lo **sfondo** è un paesaggio di Gemini (`assets/giardino/sfondo_original.png`: colline, cielo e un lago) preparato da `tools/prepara_sfondo.py`: lo
+Lo **sfondo** è un paesaggio di Gemini (`assets/giardino/sfondo_original.png`: colline, cielo e un lago) preparato da `tools/ritagli/prepara_sfondo.py`: lo
 ingrandisce a 2048×1012, copre con una sfumatura la piccola isola che Gemini aveva dipinto in mezzo al lago (la nostra ci sta sopra) e compone
-sulle rive lontane il **casale**, gli alberi e gli abeti ritagliati dal foglio del paesaggio (`paesaggio_original.png`, `tools/cutout_paesaggio.py`),
+sulle rive lontane il **casale**, gli alberi e gli abeti ritagliati dal foglio del paesaggio (`paesaggio_original.png`, `tools/ritagli/cutout_paesaggio.py`),
 un po' sfocati e schiariti come le cose lontane. Il fumo del camino e le finestre accese di sera stanno sul casale composto (`MeadowBackdrop.chimney`
 e `windows`). È lo stesso sfondo dell'album, ma nel giardino è uno solo, ingrandito 1,9 volte, e copre tutte le isole. **D'inverno** c'è un altro paesaggio (`sfondo_inverno_original.png`, `paesaggio_inverno_original.png`):
 il lago è ghiacciato, le colline sono coperte di neve e sulle rive, al posto del casale d'estate, ci sono quello con la neve sul tetto e le finestre già
@@ -558,27 +558,27 @@ con il resto (e il giardino riparte dalla dotazione: 3 figurine, già sull'isola
 Si chiede a un generatore di immagini un foglio di 12 oggetti in una griglia di 4 per 3, nello stesso stile, su
 sfondo **magenta pieno** (`#FF00FF`: si toglie senza intaccare petali o campanule bianche), senza ombre e con la base
 di ogni oggetto sul fondo della sua cella. Poi: il foglio in `assets/giardino/<nome>_original.png`, una riga in
-`SHEETS` di `tools/cutout_giardino.py` (che scrive `assets/giardino/<id>.png`), una riga per oggetto in
+`SHEETS` di `tools/ritagli/cutout_giardino.py` (che scrive `assets/giardino/<id>.png`), una riga per oggetto in
 `GardenCatalog.swift`. `./tests/run.sh` controlla che ogni oggetto del catalogo abbia il suo disegno. Il libro dell'album
-si rifà allo stesso modo: i fogli `assets/album/*_original.png` su sfondo magenta e `tools/cutout_album.py`.
+si rifà allo stesso modo: i fogli `assets/album/*_original.png` su sfondo magenta e `tools/ritagli/cutout_album.py`.
 
 Anche il terreno viene da fogli di Gemini, ma **senza magenta**: quadrati visti esattamente dall'alto, in una griglia con un contorno scuro intorno a
-ogni cella (`assets/giardino/erba_original.png`, 4×3, e `sentiero_original.png`, 4×2). `tools/cutout_tessere.py` ritaglia il centro di ogni cella
+ogni cella (`assets/giardino/erba_original.png`, 4×3, e `sentiero_original.png`, 4×2). `tools/ritagli/cutout_tessere.py` ritaglia il centro di ogni cella
 (via il contorno), lo rende quadrato e lo schiaccia in un rombo 2:1 (`assets/giardino/tessera_erba_<n>.png`, `tessera_sentiero_<n>.png`, 320×160),
 come lo vede l'isola; si aggiunge una riga in `SHEETS` con i bordi della griglia. `build.sh` le copia come `giardino_tessera_…`.
-I dettagli (`dettagli_original.png`, 6×4 su magenta) li ritaglia `tools/cutout_dettagli.py`, che scrive `dettaglio_<n>.png`.
-Il bordo (`bordo_original.png`, tre strisce su fondo bianco) lo ritaglia `tools/cutout_bordo.py` (toglie il bianco, porta le strisce alla stessa misura, fa svanire le estremità).
+I dettagli (`dettagli_original.png`, 6×4 su magenta) li ritaglia `tools/ritagli/cutout_dettagli.py`, che scrive `dettaglio_<n>.png`.
+Il bordo (`bordo_original.png`, tre strisce su fondo bianco) lo ritaglia `tools/ritagli/cutout_bordo.py` (toglie il bianco, porta le strisce alla stessa misura, fa svanire le estremità).
 
-Le **case** delle isole e i **ponti** si fanno allo stesso modo, su magenta: `tools/cutout_case.py` ritaglia
+Le **case** delle isole e i **ponti** si fanno allo stesso modo, su magenta: `tools/ritagli/cutout_case.py` ritaglia
 `casa_<isola>_original.png` in `casa_<isola>.png` e stampa le misure dello zoccolo (centro e mezzi assi del rombo) da copiare
-in `GardenLandmarks.art`; `tools/cutout_ponte.py` ritaglia i due pezzi del ponte (`ponte_colonna_1..2.png`, `ponte_riga_1..2.png`).
+in `GardenLandmarks.art`; `tools/ritagli/cutout_ponte.py` ritaglia i due pezzi del ponte (`ponte_colonna_1..2.png`, `ponte_riga_1..2.png`).
 
 ### La crescita durante un focus
 
 La crescita **dal vivo** durante un focus (il seme di Pianty che cresce, il nido di Ciccio, la carota del
 Porcellino) segue invece quel focus: un quinto del tempo per stadio. Sono le immagini `garden_ciccio_<1..5>.png` e
 `growth_porcellino_<1..5>.png` in `assets/garden/` (stessa tela di Pianty, 208×341, piedi sulla stessa riga);
-`tools/cutout_garden.py` ritaglia il foglio (`assets/garden/ciccio_nido_original.png`,
+`tools/ritagli/cutout_garden.py` ritaglia il foglio (`assets/garden/ciccio_nido_original.png`,
 `assets/garden/porcellino_carota_original.png`).
 
 ## La crescita di Pianty
@@ -615,7 +615,7 @@ d'autunno e due angoli (la tana e la dispensa).
 La Tartaruga, la sesta compagna, ha un disegno da ferma, 6 fotogrammi di camminata, 5 di quando mangia una fragola, 6 di sonno (assonnata,
 poi sdraiata) e 5 di quando si ritira nel guscio e rispunta (`popcornFrames`). Parla con le frasi di `assets/frasi_tartaruga.txt` («Piano piano si
 arriva»). **Durante un focus** cammina piano piano lungo un sentiero di sassi verso una bandierina, in tre posizioni (la partenza, a metà strada,
-arrivata: `assets/garden/growth_tartaruga_<1..3>.png`, composte da `tools/compose_tartaruga_growth.py`); all'ultima ha davanti la fragola, e a fine
+arrivata: `assets/garden/growth_tartaruga_<1..3>.png`, composte da `tools/ritagli/compose_tartaruga_growth.py`); all'ultima ha davanti la fragola, e a fine
 focus la mangia. Se la sollevi col mouse la tengono due mani per il guscio. Si sblocca per ultima (a 200 focus pieni). La sua isola ha la casa col
 tetto a guscio, sette cose (sasso al sole, cespo di lattuga, aiuola di fragole, bandierina del traguardo, lanterna di carta, laghetto e rifugio di paglia)
 e due angoli: il rifugio (ci dorme) e l'orto delle fragole (ci mangia); vicino al ponticello, nell'angolo dell'acqua, si ritira nel guscio.
@@ -626,7 +626,7 @@ capolino dal tunnel, mangia sul tappeto da picnic e va sull'altalena; Ciccio fa 
 casa per uccelli e sul girasole; il riccio si tuffa nel mucchio di foglie, mangia una mela accanto alla cassetta, dorme nel tronco cavo e si siede
 nella carriola fra le ghiande; la tartaruga dorme al sole sul sasso, mangia la lattuga, beve al laghetto e si ritira nel rifugio di paglia;
 Pianty si fa annaffiare, si pianta nell'aiuola, prende il sole sulla sdraio e guarda le lucciole uscire dal barattolo. Il compagno sparisce e la cosa diventa un disegno con lui dentro (`assets/interazioni/`, fatti con Gemini e ritagliati
-da `tools/cutout_interazioni.py`); chi dorme fa le «z», nel bagnetto ci sono gli schizzi. Dopo un po' ricompare lì accanto. La prima volta che vedi una scena, il giardino la festeggia («Nuova scena nell'album») e la
+da `tools/ritagli/cutout_interazioni.py`); chi dorme fa le «z», nel bagnetto ci sono gli schizzi. Dopo un po' ricompare lì accanto. La prima volta che vedi una scena, il giardino la festeggia («Nuova scena nell'album») e la
 scena entra nell'album, nella sezione **Scene**: una pagina per compagno, con le sue quattro scene. Quelle viste sono fotografie con la didascalia; le altre
 sono sagome con il nome della cosa che serve («??? · Panchina»), e toccandole l'album dice cosa fare (metti quella cosa sull'isola del compagno e aspetta).
 
@@ -640,7 +640,7 @@ fermi) torna a camminare. Mentre lo sollevi col mouse compare il solito disegno 
 carota (la matura occupa quasi tutta l'altezza), lui è più piccolo e sta a guardarla; il **gruppo**
 porcellino + carota sta al centro, sopra l'orologio, che durante questa fase si abbassa di 12 punti per non
 coprire le zampe
-(`growth_porcellino_1..5.png`, composte da `tools/compose_porcellino_growth.py` con il suo fotogramma a riposo
+(`growth_porcellino_1..5.png`, composte da `tools/ritagli/compose_porcellino_growth.py` con il suo fotogramma a riposo
 rimpicciolito e le carote di `garden_porcellino_<1..5>.png`). La finestra si allarga attorno ai suoi piedi per fare spazio alla carota (e resta nello schermo),
 poi torna com'era. Ogni stadio dura un quinto del focus; **a fine focus, se lo hai completato, mangia la
 carota** con la sua animazione, poi riprende a camminare. Se fermi il focus a metà torna a camminare senza
@@ -648,7 +648,7 @@ mangiare.
 
 Pianty cammina *e* cresce: per ognuno dei 5 stadi ci sono 7 immagini (fermo + 6 fotogrammi del passo, a 15
 al secondo), quindi mentre il focus avanza lo stadio cambia con una dissolvenza e il passo continua senza
-interruzioni. I passi non sono disegnati uno per uno: `tools/cutout_pianty.py` parte dal disegno fermo di ogni
+interruzioni. I passi non sono disegnati uno per uno: `tools/ritagli/cutout_pianty.py` parte dal disegno fermo di ogni
 stadio e muove solo le gambe, così la pianta è identica in tutti i fotogrammi. Non mangia e non dorme.
 
 Il Porcellino ha un ciclo di passi a 4 fotogrammi, una posa con le orecchie che saltellano mentre
@@ -795,38 +795,39 @@ Sources/FocusFriends/
 assets/
   pianty/original.png   immagine di partenza di Pianty senza piedini (5 stadi, non più usata dal ritaglio)
   pianty/sheets/stage1..5.png   le tavole di Pianty con i piedini (un foglio per stadio; si usa il primo fotogramma)
-  pianty/stage{1..5}_{1..7}.png   i 35 fotogrammi (_1 fermo, _2.._7 passo), generati da tools/cutout_pianty.py
-  pianty/picked_original.png, picked.png   Pianty sollevata dalle mani (tools/cutout_picked.py)
+  pianty/stage{1..5}_{1..7}.png   i 35 fotogrammi (_1 fermo, _2.._7 passo), generati da tools/ritagli/cutout_pianty.py
+  pianty/picked_original.png, picked.png   Pianty sollevata dalle mani (tools/ritagli/cutout_picked.py)
   porcellino/original.png     immagine di partenza del porcellino (5 fotogrammi)
   porcellino/eat_original.png, sleep_original.png, jump_original.png   i fogli della carota, del sonno e del popcorning
-  porcellino/frame*.png       fotogrammi ritagliati e allineati (1-5 cammino, 6-10 mangia, 11-14 dorme, 15-19 popcorning), da tools/cutout_porcellino.py
-  porcellino/picked_original.png, picked.png   il porcellino sollevato (tools/cutout_picked.py)
+  porcellino/frame*.png       fotogrammi ritagliati e allineati (1-5 cammino, 6-10 mangia, 11-14 dorme, 15-19 popcorning), da tools/ritagli/cutout_porcellino.py
+  porcellino/picked_original.png, picked.png   il porcellino sollevato (tools/ritagli/cutout_picked.py)
   ciccio/walk_original.png, flap_original.png   le tavole della cocorita (camminata e ali, 6 fotogrammi ciascuna)
-  ciccio/picked_original.png, picked.png   Ciccio sollevato dalle mani (tools/cutout_picked.py ... 252: maniche quasi bianche)
-  ciccio/frame1..13.png   fermo (ali chiuse, zampe a terra), 6 di camminata, 6 di ali (tools/cutout_ciccio.py)
+  ciccio/picked_original.png, picked.png   Ciccio sollevato dalle mani (tools/ritagli/cutout_picked.py ... 252: maniche quasi bianche)
+  ciccio/frame1..13.png   fermo (ali chiuse, zampe a terra), 6 di camminata, 6 di ali (tools/ritagli/cutout_ciccio.py)
   gattino/idle_original.png, walk_original.png, eat_original.png, sleep_original.png, groom_original.png   le tavole del gatto
-  gattino/frame1..23.png   fermo, 6 di camminata, 5 mangia, 6 dorme, 5 si lecca la zampa, sulla stessa tela (tools/cutout_gattino.py)
-  gattino/picked_original.png, picked.png   il gatto sollevato dalle mani (tools/cutout_picked.py ... 252: maniche quasi bianche)
+  gattino/frame1..23.png   fermo, 6 di camminata, 5 mangia, 6 dorme, 5 si lecca la zampa, sulla stessa tela (tools/ritagli/cutout_gattino.py)
+  gattino/picked_original.png, picked.png   il gatto sollevato dalle mani (tools/ritagli/cutout_picked.py ... 252: maniche quasi bianche)
   riccio/idle_original.png, walk_original.png, eat_original.png, sleep_original.png, roll_original.png, growth_original.png   le tavole del riccio
-  riccio/picked_original.png, picked.png   il riccio sollevato dalle mani (tools/cutout_picked.py)
-  riccio/frame1..23.png   fermo, 6 di camminata, 5 mangia, 6 dorme, 5 si arrotola, sulla stessa tela; garden/growth_riccio_1..5.png la schiena che si riempie (tools/cutout_riccio.py)
+  riccio/picked_original.png, picked.png   il riccio sollevato dalle mani (tools/ritagli/cutout_picked.py)
+  riccio/frame1..23.png   fermo, 6 di camminata, 5 mangia, 6 dorme, 5 si arrotola, sulla stessa tela; garden/growth_riccio_1..5.png la schiena che si riempie (tools/ritagli/cutout_riccio.py)
   tartaruga/idle_original.png, walk_original.png, eat_original.png, sleep_original.png, shell_original.png, path_original.png   le tavole della tartaruga
-  tartaruga/frame1..23.png   ferma, 6 di camminata, 5 mangia, 6 dorme, 5 si ritira nel guscio (tools/cutout_tartaruga.py); picked.png sollevata; garden/growth_tartaruga_1..3.png il sentiero del focus (tools/compose_tartaruga_growth.py)
+  tartaruga/frame1..23.png   ferma, 6 di camminata, 5 mangia, 6 dorme, 5 si ritira nel guscio (tools/ritagli/cutout_tartaruga.py); picked.png sollevata; garden/growth_tartaruga_1..3.png il sentiero del focus (tools/ritagli/compose_tartaruga_growth.py)
   giardino/*_original.png   i fogli degli oggetti del giardino (fiori, case dei compagni, arredi) e il prato
-  giardino/<id>.png, prato.png   gli oggetti ritagliati, uno per file (tools/cutout_giardino.py), e il prato ingrandito
-  giardino/casa_<isola>.png, ponte_*.png   le case delle isole e i pezzi dei ponti (tools/cutout_case.py, tools/cutout_ponte.py)
-  bubble_original.png, bubble.png   fumetto e ritaglio (tools/cutout_bubble.py)
+  giardino/<id>.png, prato.png   gli oggetti ritagliati, uno per file (tools/ritagli/cutout_giardino.py), e il prato ingrandito
+  giardino/casa_<isola>.png, ponte_*.png   le case delle isole e i pezzi dei ponti (tools/ritagli/cutout_case.py, tools/ritagli/cutout_ponte.py)
+  bubble_original.png, bubble.png   fumetto e ritaglio (tools/ritagli/cutout_bubble.py)
   frasi_pianty.txt, frasi_porcellino.txt, frasi_ciccio.txt, frasi_gattino.txt, frasi_riccio.txt, frasi_tartaruga.txt   frasi incluse nell'app
   logo_original.png     il logo: un pomodoro-timer con l'anello che mostra il tempo
   AppIcon.png, AppIcon.icns   icona dell'app, generata da tools/make_icon.py (il logo nella forma delle icone di macOS);
                         la stessa immagine è in docs/images/logo.png, quella che mostra il README
-tools/                  script per ritagli e icona (Python con Pillow e numpy) e genera-pets.sh (i dati dei compagni per Windows)
+tools/                  ritagli/ (i ritagli dei disegni, Python con Pillow e numpy), banchi/ (disegnano l'app fuori schermo per i confronti),
+                        genera-pets.sh (i dati dei compagni per Windows), compone-readme.sh (le immagini del README), make_icon.py (l'icona)
 build.sh                compila e crea build/FocusFriends.app
 tests/                  prove del registro e delle statistiche (./tests/run.sh) e i dati di esempio con i risultati attesi (fixtures/) che la versione per Windows deve rispettare
 .github/workflows/      la verifica automatica su GitHub: le prove e la compilazione del Mac, e quelle di Windows (con gli installer a ogni tag windows-v…)
 FORMATI.md              i formati dei file di dati, uguali per Mac e Windows
-PIANO_WINDOWS.md        il piano, le scelte e lo stato della versione per Windows
-ARCHITECTURE.md        come funziona il codice dell'app per Mac (e ARCHITECTURE_REVIEW.md, la revisione); windows/ARCHITECTURE.md quello della versione per Windows
+windows/PIANO_WINDOWS.md  il piano, le scelte e lo stato della versione per Windows
+ARCHITECTURE.md        come funziona il codice dell'app per Mac (e docs/archivio/ARCHITECTURE_REVIEW.md, la revisione di ottobre); windows/ARCHITECTURE.md quello della versione per Windows
 windows/                la versione per Windows (Electron + TypeScript): vedi windows/README.md
 ```
 
@@ -836,7 +837,7 @@ Un personaggio è una riga in `Pet.swift` (con `pickedResource` può avere un di
 allineate sulla linea di terra), file delle frasi, dimensione della finestra. Un solo stadio = personaggio
 fisso, più stadi = cresce con il timer; con `walks: true` le immagini sono pose e il personaggio
 cammina; con `framesPerStage` ogni stadio ha il suo gruppo di pose (cresce e cammina, come Pianty); `stepInterval` regola la velocità del passo. Per ritagliare un'immagine su sfondo bianco si può partire da
-`tools/cutout_picked.py` (un solo disegno) o `tools/cutout_ciccio.py` (tavole con più fotogrammi).
+`tools/ritagli/cutout_picked.py` (un solo disegno) o `tools/ritagli/cutout_ciccio.py` (tavole con più fotogrammi).
 
 ## Licenza
 

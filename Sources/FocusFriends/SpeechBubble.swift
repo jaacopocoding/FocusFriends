@@ -31,7 +31,7 @@ final class BubbleWindow: OverlayWindow {
 
 /// Disegna il fumetto (assets/bubble.png) scalato sul testo, con la frase centrata nell'ovale.
 final class BubbleView: NSView {
-    // Geometria dell'immagine, misurata da tools/cutout_bubble.py.
+    // Geometria dell'immagine, misurata da tools/ritagli/cutout_bubble.py.
     static let ellipseHeightFraction: CGFloat = 0.837   // l'ovale occupa il 83,7% dell'altezza, il resto è la codina
     private static let ellipseAspect: CGFloat = 1.63            // larghezza / altezza dell'ovale
     /// Posizione orizzontale della punta della codina, come frazione della larghezza.

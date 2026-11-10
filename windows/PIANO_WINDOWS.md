@@ -489,7 +489,7 @@ circa 5.250 righe: `GardenWindow` 3.441, `AlbumWindow` 1.204, `Sticker` e `GiftC
       `sprites.ts` le immagini: parte visibile, disegni sul lato con i bracci, tinta della luce). Tutte le isole con colline, terreno, dettagli, case, ponti costruiti, cose e
       compagni (fermi), la luce dell'ora e della stagione, le finestre accese di sera, zoom con la rotellina e spostamento trascinando, «+», «−», «0», «M». La scena ferma
       si dipinge una volta e si ridisegna solo se cambia qualcosa; spostandosi un fotogramma sta nei 16 ms. Il confronto: `test/vivo/giardino.cjs` fa le schermate su
-      Windows e `tools/render-giardino.sh` disegna la stessa cartella di dati con la `GardenView` vera del Mac (a mezzogiorno d'autunno, la sera, d'inverno, tutte le
+      Windows e `tools/banchi/render-giardino.sh` disegna la stessa cartella di dati con la `GardenView` vera del Mac (a mezzogiorno d'autunno, la sera, d'inverno, tutte le
       isole): uguali, a parte quello che appartiene alle fasi dopo (i comandi, i nomi delle isole, il fumo). L'ora e la stagione si forzano con `gardenHour` e
       `gardenSeason` in `impostazioni.json`. L'installer porta 285 file di immagini (46 MB): restano fuori i fogli originali, i pezzi del paesaggio, il vecchio prato e il bordo.
 - [x] **G3 — Si gioca** (3): la cassetta «Da mettere», trascinare con l'anteprima verde o rossa, girare, togliere, i comandi in alto. Copioni in `test/vivo/`.
@@ -525,7 +525,7 @@ circa 5.250 righe: `GardenWindow` 3.441, `AlbumWindow` 1.204, `Sticker` e `GiftC
       la Web Animations API; la copertina si apre in 0,95 secondi, una pagina gira in 0,6; con «Riduci movimento» niente animazioni). Il libro si apre sulla doppia
       pagina della prima figurina nuova e poi le segna viste; la doppia pagina si ricorda (`albumSpread` in `impostazioni.json`). Un tocco su una figurina scrive in fondo
       cosa è e dove si mette. A metà giro i fogli si scuriscono con un filtro (solo il disegno, non i bordi trasparenti). Provato dal vivo con `test/vivo/album.cjs` e
-      confrontato con `tools/render-album.sh` (il Mac sugli stessi dati): uguali.
+      confrontato con `tools/banchi/render-album.sh` (il Mac sugli stessi dati): uguali.
 - [x] **G7 — Prima uscita** (3): parità a occhio, installer e sua misura, `PROVE_SU_WINDOWS.md` per il giardino, documenti. Versione 1.3.0.
       **Preparata il 2 novembre 2026** (manca solo la pubblicazione): la versione è 1.3.0 (`windows/package.json`), `PARITA.md` ha il §11 (il giardino e l'album, con le
       differenze volute: la rotellina del mouse ingrandisce, l'isola viva non cambia vicino alla zona per togliere, niente `replayBridges`/`replayWelcome`), `PROVE_SU_WINDOWS.md`

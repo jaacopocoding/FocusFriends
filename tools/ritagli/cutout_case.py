@@ -2,11 +2,11 @@
 """Ritaglia le case delle isole: assets/giardino/casa_<isola>_original.png -> assets/giardino/casa_<isola>.png
 
 Ogni isola ha la sua casa (3×3 tessere), un disegno solo su fondo magenta #FF00FF, in prospettiva isometrica, appoggiata a uno zoccolo a rombo che
-riempie la base. Il fondo si toglie come per gli oggetti del giardino (tools/cutout_giardino.py: stessa funzione) e si toglie il rosa che resta fra le
+riempie la base. Il fondo si toglie come per gli oggetti del giardino (tools/ritagli/cutout_giardino.py: stessa funzione) e si toglie il rosa che resta fra le
 cose. Dello zoccolo si stampano le misure (centro del rombo, mezza larghezza, mezza altezza, in pixel del disegno ritagliato): sono quelle di
 `GardenLandmarks.art` in Sources/FocusFriends/GardenGrid.swift, che servono a incastrare lo zoccolo sulle 3×3 tessere.
 
-Uso, dalla cartella principale:  python3 tools/cutout_case.py
+Uso, dalla cartella principale:  python3 tools/ritagli/cutout_case.py
 """
 import importlib.util
 import os
@@ -37,7 +37,7 @@ def remove_pink(rgba):
 
 
 def main():
-    garden = load_tool("tools/cutout_giardino.py", "cutout_giardino")
+    garden = load_tool("tools/ritagli/cutout_giardino.py", "cutout_giardino")
     for island in ISLANDS:
         source = f"{DIR}/casa_{island}_original.png"
         if not os.path.exists(source):

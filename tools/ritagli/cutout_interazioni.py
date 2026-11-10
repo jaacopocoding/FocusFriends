@@ -8,10 +8,10 @@ il posto di quello dell'oggetto: per questo bisogna sapere dove sta l'oggetto de
 migliore) e stampo, per ogni scena, la scala e lo spostamento: sono quelli di `GardenInteractions` (Sources/FocusFriends/GardenInteractions.swift e
 windows/src/core/gardenInteractions.ts).
 
-Il fondo si toglie come per gli oggetti (tools/cutout_giardino.py), ma tenendo i pezzi piccoli (gli schizzi d'acqua del bagnetto); ogni pezzo va alla
+Il fondo si toglie come per gli oggetti (tools/ritagli/cutout_giardino.py), ma tenendo i pezzi piccoli (gli schizzi d'acqua del bagnetto); ogni pezzo va alla
 scena del quadrante in cui cade il suo centro (una coperta da picnic può sporgere un po' nel quadrante accanto).
 
-Uso, dalla cartella principale:  python3 tools/cutout_interazioni.py [--preview]
+Uso, dalla cartella principale:  python3 tools/ritagli/cutout_interazioni.py [--preview]
 """
 import importlib.util
 import os

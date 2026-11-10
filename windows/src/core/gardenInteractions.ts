@@ -25,7 +25,7 @@ export interface GardenInteraction {
 const scene = (pet: string, item: string, caption: string, effect: InteractionEffect, scale: number, x: number, y: number): GardenInteraction =>
   ({ pet, item, caption, effect, scale, x, y });
 
-/** Le interazioni, per compagno (le misure da tools/cutout_interazioni.py; l'amaca e l'altalena sono ritagliate sul loro riquadro). */
+/** Le interazioni, per compagno (le misure da tools/ritagli/cutout_interazioni.py; l'amaca e l'altalena sono ritagliate sul loro riquadro). */
 export const GARDEN_INTERACTIONS: readonly GardenInteraction[] = [
   scene("gattino", "cesto-cuscino", "Dorme nel cesto", "sleep", 1.687, 0, 0),
   scene("gattino", "tiragraffi", "Si fa le unghie", "none", 1.489, 0, 0),

@@ -7,7 +7,7 @@ Tavole su fondo bianco, con i disegni ben staccati (3 colonne per 2 righe):
   eat_original.png     mangia una fragola: 5 fotogrammi (la fragola per terra fa parte del disegno)
   sleep_original.png   si addormenta: 6 fotogrammi (assonnata, sbadiglia, si sdraia, dorme)
   shell_original.png   si ritira nel guscio e ne riesce: 5 fotogrammi
-  picked_original.png  (a parte) sollevata dalle mani: la ritaglia tools/cutout_picked.py -> picked.png
+  picked_original.png  (a parte) sollevata dalle mani: la ritaglia tools/ritagli/cutout_picked.py -> picked.png
 
 Escono immagini tutte sulla stessa tela, con il guscio nello stesso punto e le zampe sulla stessa linea di terra:
   frame1       ferma

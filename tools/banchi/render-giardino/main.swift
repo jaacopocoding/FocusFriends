@@ -1,5 +1,5 @@
 // Disegna fuori schermo il giardino vero dell'app (GardenView) da una cartella di dati, a un'ora e in una stagione date, per confrontarlo con
-// quello di Windows (windows/test/vivo/giardino.cjs). Si lancia da tools/render-giardino.sh:
+// quello di Windows (windows/test/vivo/giardino.cjs). Si lancia da tools/banchi/render-giardino.sh:
 //   render <cartella dei dati> <file.png> <ora> <stagione> [casa|mondo] [compagno:cosa,…]
 // L'ora e la stagione si danno con le preferenze «registrate» (non si scrivono da nessuna parte), e senza movimento (niente vento né particelle).
 import AppKit

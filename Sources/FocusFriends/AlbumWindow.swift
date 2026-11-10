@@ -887,7 +887,7 @@ enum MeadowBackdrop {
     private static var rendered: [String: CGImage] = [:]
     private static let ciContext = CIContext()
 
-    /// Lo sfondo: il paesaggio con il lago (assets/giardino/sfondo.png, da `tools/prepara_sfondo.py`); in mancanza, il vecchio prato dipinto.
+    /// Lo sfondo: il paesaggio con il lago (assets/giardino/sfondo.png, da `tools/ritagli/prepara_sfondo.py`); in mancanza, il vecchio prato dipinto.
     private static let landscapeURL = Bundle.main.url(forResource: "giardino_sfondo", withExtension: "png")
     private static let meadowURL: URL? = landscapeURL ?? Bundle.main.url(forResource: "giardino_prato", withExtension: "png")
 
@@ -1004,7 +1004,7 @@ enum MeadowBackdrop {
         return NSPoint(x: (CGFloat(u) * scaled.width - cropX) / 2, y: (target.height - CGFloat(1 - v) * scaled.height) / 2)
     }
 
-    /// Dove stanno, nel disegno del prato, la bocca del camino e le finestre del casale (frazioni dell'immagine; i numeri li stampa `tools/prepara_sfondo.py`).
+    /// Dove stanno, nel disegno del prato, la bocca del camino e le finestre del casale (frazioni dell'immagine; i numeri li stampa `tools/ritagli/prepara_sfondo.py`).
     static func chimney(_ season: Season) -> (u: Double, v: Double) {
         if isFrozen(season) { return (0.1198, 0.3110) }
         return hasLandscape ? (0.1336, 0.3111) : (0.305, 0.229)

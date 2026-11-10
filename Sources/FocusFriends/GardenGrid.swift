@@ -307,7 +307,7 @@ enum GardenTerrain {
 
     static let decalCount = 24
 
-    /// Quali dei 24 dettagli (assets/giardino/dettaglio_<n>.png, da `tools/cutout_dettagli.py`) sono ciuffi, trifogli, fiori, sassi, foglie, petali e neve.
+    /// Quali dei 24 dettagli (assets/giardino/dettaglio_<n>.png, da `tools/ritagli/cutout_dettagli.py`) sono ciuffi, trifogli, fiori, sassi, foglie, petali e neve.
     enum DecalGroup: Int, CaseIterable {
         case tufts, clover, flowers, stones, leaves, petals, snow
 
@@ -405,7 +405,7 @@ enum GardenTerrain {
 }
 
 
-/// La collina sotto l'isola: un'immagine d'erba (assets/giardino/collina_<stagione>.png, da `tools/prepara_collina.py`) con un buco a rombo in cima, dove sta l'isola.
+/// La collina sotto l'isola: un'immagine d'erba (assets/giardino/collina_<stagione>.png, da `tools/ritagli/prepara_collina.py`) con un buco a rombo in cima, dove sta l'isola.
 /// L'isola si ingrandisce un po' perché ne copra il bordo, e la collina si ingrandisce con lei. Qui sono i numeri e il conto; il disegno sta in GardenWindow.swift.
 enum GardenHill {
     /// La misura dell'immagine, in pixel, e gli angoli del buco (il rombo, largo circa il doppio dell'altezza).
@@ -638,12 +638,12 @@ enum GardenLandmarks {
     /// Quante tessere per lato.
     static let side = 3
 
-    /// Le isole che hanno la casa disegnata (`assets/giardino/casa_<isola>.png`, da `tools/cutout_case.py`).
+    /// Le isole che hanno la casa disegnata (`assets/giardino/casa_<isola>.png`, da `tools/ritagli/cutout_case.py`).
     static let shipped: Set<String> = ["pianty", "porcellino", "ciccio", "gattino", "riccio", "tartaruga"]
     /// Quelle che ci sono adesso (le prove la svuotano per provare il resto del giardino senza case).
     static var built: Set<String> = shipped
 
-    /// Come sta il disegno rispetto alle 3×3 tessere, in pixel del disegno ritagliato (i numeri li stampa `tools/cutout_case.py`): il centro del rombo dello zoccolo, la sua
+    /// Come sta il disegno rispetto alle 3×3 tessere, in pixel del disegno ritagliato (i numeri li stampa `tools/ritagli/cutout_case.py`): il centro del rombo dello zoccolo, la sua
     /// mezza larghezza (dal centro agli angoli sinistro e destro) e la sua mezza altezza (dal centro all'angolo davanti); poi dove brillano le finestre di sera
     /// (`u` e `v` da 0 a 1 dall'angolo in alto a sinistra del disegno) e quanto sono grandi (in tessere).
     struct Art {

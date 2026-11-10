@@ -4,9 +4,9 @@
 - copertina: la copertina del libro (vista frontale, con la targa vuota dove l'app scrive il titolo); si ritaglia sul contenuto.
 - doppia_pagina: il libro aperto con le pagine vuote (fasce per i titoli, sei aree per pagina, un posto per il numero). NON si ritaglia: l'app
   conosce le posizioni delle aree come frazioni dell'immagine intera, quindi la tela deve restare quella di Gemini.
-Il fondo magenta si toglie come per gli oggetti del giardino (tools/cutout_giardino.py: stessa funzione, che ripulisce anche il rosa sui contorni).
+Il fondo magenta si toglie come per gli oggetti del giardino (tools/ritagli/cutout_giardino.py: stessa funzione, che ripulisce anche il rosa sui contorni).
 
-Uso, dalla cartella principale:  python3 tools/cutout_album.py
+Uso, dalla cartella principale:  python3 tools/ritagli/cutout_album.py
 """
 import importlib.util
 import numpy as np
@@ -18,7 +18,7 @@ SHEETS = [("copertina", True), ("doppia_pagina", False)]
 
 
 def load_garden_tools():
-    spec = importlib.util.spec_from_file_location("cutout_giardino", "tools/cutout_giardino.py")
+    spec = importlib.util.spec_from_file_location("cutout_giardino", "tools/ritagli/cutout_giardino.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module

@@ -5,10 +5,10 @@
 1. Si ingrandisce 2x con una buona interpolazione (come il vecchio prato).
 2. Sul lago Gemini ha disegnato una piccola isola: la nostra isola ci sta sopra, ma rimpicciolendo si vedrebbero due isole. Si ricopre con l'acqua
    (presa dall'acqua sotto) e con le colline (prese da sopra), sfumando i bordi.
-3. Sulle rive lontane si mettono il casale, gli alberi e gli abeti ritagliati da tools/cutout_paesaggio.py, un po' sfocati e schiariti come le cose
+3. Sulle rive lontane si mettono il casale, gli alberi e gli abeti ritagliati da tools/ritagli/cutout_paesaggio.py, un po' sfocati e schiariti come le cose
    lontane. La posizione del camino e delle finestre del casale si stampa: serve all'app (MeadowBackdrop) per il fumo e la luce di sera.
 
-Uso, dalla cartella principale:  python3 tools/cutout_paesaggio.py && python3 tools/prepara_sfondo.py
+Uso, dalla cartella principale:  python3 tools/ritagli/cutout_paesaggio.py && python3 tools/ritagli/prepara_sfondo.py
 """
 import numpy as np
 from PIL import Image, ImageFilter

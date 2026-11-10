@@ -361,7 +361,7 @@ export interface LandmarkArt {
 
 const lights = (...values: Array<[number, number, number]>) => values.map(([u, v, size]) => ({ u, v, size }));
 
-/** Come sta il disegno della casa rispetto alle 3×3 tessere, in pixel del disegno ritagliato (da `tools/cutout_case.py`), e dove brillano le finestre. */
+/** Come sta il disegno della casa rispetto alle 3×3 tessere, in pixel del disegno ritagliato (da `tools/ritagli/cutout_case.py`), e dove brillano le finestre. */
 export const LANDMARK_ART: Readonly<Record<string, LandmarkArt>> = {
   pianty: { centerX: 465.5, centerY: 616, halfWidth: 462, halfHeight: 270, lights: lights([0.31, 0.64, 0.75], [0.19, 0.51, 0.55], [0.70, 0.60, 0.80], [0.80, 0.52, 0.55]) },
   porcellino: { centerX: 465.5, centerY: 616, halfWidth: 462, halfHeight: 270, lights: lights([0.31, 0.38, 0.50]) },

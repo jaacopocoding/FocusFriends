@@ -3052,7 +3052,7 @@ check(GardenInteractions.all.count == 24 && Set(GardenInteractions.all.map { "\(
       && GardenInteractions.all.allSatisfy { GardenCatalog.item(withID: $0.item) != nil && GardenIslands.isKnown($0.pet) && $0.scale > 0.5 && $0.scale < 3 },
       "ventiquattro scene: quattro per ogni compagno, ognuna con una cosa del catalogo")
 check(GardenInteractions.all.allSatisfy { FileManager.default.fileExists(atPath: "assets/interazioni/\($0.pet)-\($0.item).png") },
-      "ogni scena ha la sua immagine (tools/cutout_interazioni.py)")
+      "ogni scena ha la sua immagine (tools/ritagli/cutout_interazioni.py)")
 check(GardenInteractions.all.allSatisfy { scene in GardenCatalog.item(withID: scene.item).map { $0.island == nil || $0.island == scene.pet } ?? false },
       "ognuno usa cose che possono stare sulla sua isola")
 check(GardenInteractions.interaction(pet: "gattino", item: "amaca")?.duration == 20...35 && GardenInteractions.interaction(pet: "porcellino", item: "tunnel")?.duration == 12...20

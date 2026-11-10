@@ -4,10 +4,10 @@
 Il foglio ha 24 piccoli elementi (6 colonne per 4 righe, in ordine di lettura, ognuno nella sua cella) su fondo magenta #FF00FF:
   1-4 ciuffi d'erba   5-6 trifogli   7-10 fiorellini (bianco, rosa, giallo, azzurro)   11-13 sassi   14-17 foglie cadute (arancio, rossa, gialla, marrone)
   18-20 petali caduti   21-24 ciuffi di neve e ghiaccio
-Il fondo si toglie come per gli oggetti del giardino (tools/cutout_giardino.py: stessa funzione); ogni immagine si ritaglia sul contenuto.
+Il fondo si toglie come per gli oggetti del giardino (tools/ritagli/cutout_giardino.py: stessa funzione); ogni immagine si ritaglia sul contenuto.
 L'app sa quali numeri sono ciuffi, fiori, sassi… (GardenDecalGroup in GardenGrid.swift).
 
-Uso, dalla cartella principale:  python3 tools/cutout_dettagli.py
+Uso, dalla cartella principale:  python3 tools/ritagli/cutout_dettagli.py
 """
 import importlib.util
 import numpy as np
@@ -18,7 +18,7 @@ COLUMNS, ROWS = 6, 4
 
 
 def load_garden_tools():
-    spec = importlib.util.spec_from_file_location("cutout_giardino", "tools/cutout_giardino.py")
+    spec = importlib.util.spec_from_file_location("cutout_giardino", "tools/ritagli/cutout_giardino.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module

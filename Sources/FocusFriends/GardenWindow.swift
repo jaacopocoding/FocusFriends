@@ -715,7 +715,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
         return moving
     }
 
-    /// Per i banchi di prova (tools/render-giardino): il compagno sta già usando la prima copia di `item` (se sa usarla), da `since` secondi.
+    /// Per i banchi di prova (tools/banchi/render-giardino): il compagno sta già usando la prima copia di `item` (se sa usarla), da `since` secondi.
     func showInteraction(pet petID: String, item: String, since: Double = 1) {
         guard let placement = garden.placements.first(where: { $0.item == item }), let interaction = GardenInteractions.interaction(pet: petID, item: item) else { return }
         let candidate = GardenInteractions.Candidate(placement: placement, interaction: interaction, route: [])
@@ -1419,7 +1419,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
 
     /// Il terreno: i lati di terra, le tessere d'erba e di sentiero, la griglia (più visibile mentre si trascina) e, se si sta
     /// trascinando qualcosa, le tessere dove cadrebbe (verdi se ci sta, rosse se no).
-    /// Le dodici tessere d'erba disegnate (rombi 2:1, già pronte da `tools/cutout_tessere.py`); se ne manca una, si disegna l'erba a mano.
+    /// Le dodici tessere d'erba disegnate (rombi 2:1, già pronte da `tools/ritagli/cutout_tessere.py`); se ne manca una, si disegna l'erba a mano.
     private static var grassImages: [NSImage]? = {
         let images = (1...GardenTerrain.grassCount).compactMap { index in
             GardenSprites.loadImage("giardino_tessera_erba_\(index)")
@@ -1435,7 +1435,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
         return images.count == GardenTerrain.pathCount ? images : nil
     }()
 
-    /// La collina sotto l'isola (`collina_<stagione>.png`, da `tools/prepara_collina.py`); senza, il giardino si disegna come prima, con la striscia di terra e l'ombra.
+    /// La collina sotto l'isola (`collina_<stagione>.png`, da `tools/ritagli/prepara_collina.py`); senza, il giardino si disegna come prima, con la striscia di terra e l'ombra.
     private static let hillNames: [Season: String] = [.spring: "primavera", .summer: "estate", .autumn: "autunno", .winter: "inverno"]
     static let hasHill = Bundle.main.url(forResource: "giardino_collina_autunno", withExtension: "png") != nil
     private static let hillLock = NSLock()
@@ -1507,7 +1507,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
         return NSImage(cgImage: made, size: NSSize(width: source.width, height: source.height))
     }
 
-    /// D'inverno: le dodici tessere con la neve e le otto del sentiero innevato (da `tools/cutout_tessere.py`); se ne manca una, la neve si disegna a mano.
+    /// D'inverno: le dodici tessere con la neve e le otto del sentiero innevato (da `tools/ritagli/cutout_tessere.py`); se ne manca una, la neve si disegna a mano.
     private static var snowImages: [NSImage]? = {
         let images = (1...GardenTerrain.grassCount).compactMap { index in
             GardenSprites.loadImage("giardino_tessera_neve_\(index)")
@@ -1522,7 +1522,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
         return images.count == GardenTerrain.pathCount ? images : nil
     }()
 
-    /// Le tre strisce del bordo di terra (assets/giardino/bordo_<n>.png, da `tools/cutout_bordo.py`): 24 pixel d'erba sopra la linea e 110 di terra sotto.
+    /// Le tre strisce del bordo di terra (assets/giardino/bordo_<n>.png, da `tools/ritagli/cutout_bordo.py`): 24 pixel d'erba sopra la linea e 110 di terra sotto.
     private static let edgeLip: CGFloat = 24, edgeBody: CGFloat = 110, edgeFade: CGFloat = 30
     private static func loadEdges(_ name: String) -> [NSImage]? {
         let images = (1...GardenTerrain.edgeCount).compactMap { index in

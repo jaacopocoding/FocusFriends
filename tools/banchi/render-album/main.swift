@@ -1,5 +1,5 @@
 // Disegna fuori schermo l'album vero dell'app (AlbumView): la copertina, alcune doppie pagine e la sezione «Scene», da una cartella di dati (o da un giardino nuovo).
-// Si lancia da tools/render-album.sh: render <cartella dei dati> <cartella dove scrivere>
+// Si lancia da tools/banchi/render-album.sh: render <cartella dei dati> <cartella dove scrivere>
 import AppKit
 
 @main

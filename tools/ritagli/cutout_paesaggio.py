@@ -3,9 +3,9 @@
 
 Dodici elementi sparsi sul foglio (tredici quello d'inverno, paesaggio_inverno_original.png -> paesaggio_inverno_<nome>.png) (non in una griglia): si trovano guardando i pezzi staccati (l'elemento fatto di più parti, come lo steccato o il
 tronco con il ceppo, si riunisce) e si riconoscono dalla posizione sul foglio. Il fondo si toglie come per gli oggetti del giardino
-(tools/cutout_giardino.py: stessa funzione).
+(tools/ritagli/cutout_giardino.py: stessa funzione).
 
-Uso, dalla cartella principale:  python3 tools/cutout_paesaggio.py
+Uso, dalla cartella principale:  python3 tools/ritagli/cutout_paesaggio.py
 """
 import importlib.util
 import numpy as np
@@ -31,7 +31,7 @@ SHEETS = [
 
 
 def load_garden_tools():
-    spec = importlib.util.spec_from_file_location("cutout_giardino", "tools/cutout_giardino.py")
+    spec = importlib.util.spec_from_file_location("cutout_giardino", "tools/ritagli/cutout_giardino.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module

@@ -8,7 +8,7 @@ Tavole su fondo bianco, con i disegni ben staccati (3 colonne per 2 righe, o in 
   sleep_original.png   dorme: 6 fotogrammi (il primo in piedi, assopito)
   roll_original.png    si arrotola e si riapre: 5 fotogrammi
   growth_original.png  la schiena che si riempie di foglia, fungo, mela e ghianda: 5 immagini (gli stadi del focus)
-  picked_original.png  (a parte) sollevato dalle mani, spaventato: lo ritaglia tools/cutout_picked.py -> picked.png
+  picked_original.png  (a parte) sollevato dalle mani, spaventato: lo ritaglia tools/ritagli/cutout_picked.py -> picked.png
 
 Escono immagini tutte sulla stessa tela, con il corpo al centro e le zampe sulla stessa linea di terra:
   frame1       fermo

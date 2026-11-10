@@ -88,7 +88,7 @@ struct Pet: Equatable {
 
     /// Una succulenta con due piedini: cresce durante il focus (cinque stadi, dal seme alla pianta adulta) e cammina.
     /// Per ognuno dei 5 stadi ci sono 7 immagini: la prima è "fermo", le altre 6 sono il ciclo dei passi
-    /// (generato da tools/cutout_pianty.py muovendo solo le gambe, così la pianta resta identica).
+    /// (generato da tools/ritagli/cutout_pianty.py muovendo solo le gambe, così la pianta resta identica).
     static let pianty = Pet(
         id: "pianty",
         name: "Pianty",
@@ -168,7 +168,7 @@ struct Pet: Equatable {
     )
 
     /// Un gatto soriano: cammina per lo schermo, mangia un pesce, dorme e ogni tanto si lecca la zampa; si può sollevare.
-    /// Le pose vengono da tools/cutout_gattino.py (stessa tela, zampe a terra, la camminata allineata sugli occhi).
+    /// Le pose vengono da tools/ritagli/cutout_gattino.py (stessa tela, zampe a terra, la camminata allineata sugli occhi).
     static let gattino = Pet(
         id: "gattino",
         name: "Gattino",
@@ -197,7 +197,7 @@ struct Pet: Equatable {
     )
 
     /// Un riccio tondo e paffuto: cammina per lo schermo, mangia uno spicchio di mela, dorme sdraiato e ogni tanto si arrotola a palla; durante un focus sta fermo
-    /// e la schiena si riempie di cose d'autunno (una foglia, un fungo, una mela, una ghianda), e a fine focus mangia. Le pose vengono da tools/cutout_riccio.py
+    /// e la schiena si riempie di cose d'autunno (una foglia, un fungo, una mela, una ghianda), e a fine focus mangia. Le pose vengono da tools/ritagli/cutout_riccio.py
     /// (stessa tela, zampe a terra, il dorso fermo da un fotogramma all'altro).
     static let riccio = Pet(
         id: "riccio",
@@ -231,7 +231,7 @@ struct Pet: Equatable {
 
     /// Una tartaruga di terra: cammina per lo schermo, mangia una fragola, dorme sdraiata e ogni tanto si ritira nel guscio; durante un focus cammina piano piano
     /// lungo un sentiero di sassi verso una bandierina (tre posizioni: la partenza, a metà, alla fragola), e a fine focus mangia la fragola. Le pose vengono da
-    /// tools/cutout_tartaruga.py (stessa tela, zampe a terra, il guscio fermo da un fotogramma all'altro), il sentiero da tools/compose_tartaruga_growth.py.
+    /// tools/ritagli/cutout_tartaruga.py (stessa tela, zampe a terra, il guscio fermo da un fotogramma all'altro), il sentiero da tools/ritagli/compose_tartaruga_growth.py.
     static let tartaruga = Pet(
         id: "tartaruga",
         name: "Tartaruga",

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Ritaglia una collezione del giardino: un foglio con 5 stadi in fila -> assets/garden/garden_<personaggio>_1..5.png
 
-    python3 tools/cutout_garden.py assets/garden/ciccio_nido_original.png ciccio [scala]
+    python3 tools/ritagli/cutout_garden.py assets/garden/ciccio_nido_original.png ciccio [scala]
 
 Ogni stadio finisce sulla stessa tela delle piantine di Pianty (208x341, piedi a 1,76% dal fondo), così il
 giardino li disegna alla stessa misura. Il "piede" di un nido è il suo bordo più basso, e il centro è il

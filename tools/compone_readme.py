@@ -102,7 +102,7 @@ def crescita():
 
 
 # ---------------------------------------------------------------------------------------------------------------------------------------------------
-# Il compagno sullo schermo: una scrivania con gli appunti, e lui che cammina, con il fumetto e l'orologio veri dell'app (disegnati da tools/render-fumetti).
+# Il compagno sullo schermo: una scrivania con gli appunti, e lui che cammina, con il fumetto e l'orologio veri dell'app (disegnati da tools/banchi/render-fumetti).
 
 
 def fumetto(n):

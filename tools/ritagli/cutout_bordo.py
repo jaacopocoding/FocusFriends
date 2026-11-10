@@ -8,7 +8,7 @@ dell'isola, ripetute e sovrapposte di `FADE` pixel: le estremità svaniscono pia
 
 Lo stesso per il foglio d'inverno (bordo_neve_original.png -> bordo_neve_<n>.png): lì la «terra» comincia dove comincia lo strato di neve, che ha un contorno scuro.
 
-Uso, dalla cartella principale:  python3 tools/cutout_bordo.py
+Uso, dalla cartella principale:  python3 tools/ritagli/cutout_bordo.py
 """
 import importlib.util
 import numpy as np
@@ -30,7 +30,7 @@ PAD = 8
 
 
 def load_garden_tools():
-    spec = importlib.util.spec_from_file_location("cutout_giardino", "tools/cutout_giardino.py")
+    spec = importlib.util.spec_from_file_location("cutout_giardino", "tools/ritagli/cutout_giardino.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Compone le immagini del focus della tartaruga: più passa il tempo, più si avvicina alla bandierina, lungo un sentiero di sassi: tre posizioni (la partenza, a metà strada, alla fragola).
 
-    python3 tools/compose_tartaruga_growth.py [--preview]
+    python3 tools/ritagli/compose_tartaruga_growth.py [--preview]
 
-Legge le pose già ritagliate (assets/tartaruga/frame*.png, da tools/cutout_tartaruga.py) e la tavola
+Legge le pose già ritagliate (assets/tartaruga/frame*.png, da tools/ritagli/cutout_tartaruga.py) e la tavola
 assets/tartaruga/path_original.png (a sinistra la tartaruga, solo per la scala; cinque sassi; la bandierina; una fragola),
 e scrive assets/garden/growth_tartaruga_1..3.png (come le carote del porcellino).
 

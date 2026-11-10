@@ -16,8 +16,8 @@ cat > "$B/B.app/Contents/Info.plist" <<'PLIST'
     <key>CFBundlePackageType</key><string>APPL</string>
 </dict></plist>
 PLIST
-bash tools/render-scheda.sh
-swiftc -O -parse-as-library -o "$B/B.app/Contents/MacOS/render" Sources/FocusFriends/SpeechBubble.swift Sources/FocusFriends/TimerBubble.swift tools/render-fumetti/main.swift
+bash tools/banchi/render-scheda.sh
+swiftc -O -parse-as-library -o "$B/B.app/Contents/MacOS/render" Sources/FocusFriends/SpeechBubble.swift Sources/FocusFriends/TimerBubble.swift tools/banchi/render-fumetti/main.swift
 # 1: sulla scrivania (Gattino); 2-5: nella riga delle frasi (Pianty, Porcellino, Gattino, Riccio)
 "$B/B.app/Contents/MacOS/render" build/readme \
     "Stai andando bene. Davvero." \

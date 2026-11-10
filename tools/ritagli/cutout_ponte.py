@@ -9,9 +9,9 @@ in fila con uno scarto di STEP pixel, i paletti di un pezzo coincidono con quell
   ponte_colonna_1, ponte_colonna_2   il ponte lungo le colonne (scende a destra), i due tratti da alternare
   ponte_riga_1,    ponte_riga_2      gli stessi specchiati: il ponte lungo le righe (scende a sinistra)
 
-Il fondo si toglie come per gli oggetti del giardino (tools/cutout_giardino.py: stessa funzione); in più si toglie il rosa che resta fra i paletti e le assi.
+Il fondo si toglie come per gli oggetti del giardino (tools/ritagli/cutout_giardino.py: stessa funzione); in più si toglie il rosa che resta fra i paletti e le assi.
 
-Uso, dalla cartella principale:  python3 tools/cutout_ponte.py
+Uso, dalla cartella principale:  python3 tools/ritagli/cutout_ponte.py
 """
 import importlib.util
 import numpy as np
@@ -46,8 +46,8 @@ def remove_pink(rgba, garden):
 
 
 def main():
-    garden = load_tool("tools/cutout_giardino.py", "cutout_giardino")
-    scenery = load_tool("tools/cutout_paesaggio.py", "cutout_paesaggio")
+    garden = load_tool("tools/ritagli/cutout_giardino.py", "cutout_giardino")
+    scenery = load_tool("tools/ritagli/cutout_paesaggio.py", "cutout_paesaggio")
     sheet = np.asarray(Image.open(f"{DIR}/ponte_original.png").convert("RGB")).astype(np.float32)
     height, width = sheet.shape[:2]
     rgba = garden.magenta_object(sheet)

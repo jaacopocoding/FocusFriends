@@ -35,7 +35,7 @@ done
 for f in assets/garden/garden_*.png assets/garden/growth_*.png; do
     [ -f "$f" ] && cp "$f" "$APP/Contents/Resources/$(basename "$f")"
 done
-# I compagni che usano le cose del giardino: le scene ritagliate (tools/cutout_interazioni.py), senza le tavole *_original.png.
+# I compagni che usano le cose del giardino: le scene ritagliate (tools/ritagli/cutout_interazioni.py), senza le tavole *_original.png.
 for f in assets/interazioni/*.png; do
     case "$f" in *_original.png) continue ;; esac
     cp "$f" "$APP/Contents/Resources/interazioni_$(basename "$f")"

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Compone le immagini di crescita del porcellino durante un focus: la carota che cresce, e lui accanto.
 
-    python3 tools/compose_porcellino_growth.py [cartella_giardino]
+    python3 tools/ritagli/compose_porcellino_growth.py [cartella_giardino]
 
 Legge assets/porcellino/frame1.png (il porcellino a riposo) e le cinque carote del giardino
 (<cartella>/garden_porcellino_1..5.png, sulla tela delle piantine 208x341) e scrive

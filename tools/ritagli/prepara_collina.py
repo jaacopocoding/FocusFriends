@@ -3,7 +3,7 @@
 
 Gemini ha dipinto la collina in prospettiva isometrica, con un rombo MAGENTA in cima (largo il doppio dell'altezza, come le nostre tessere) dove sta l'isola.
 Si fa questo:
-1. si toglie il magenta (tools/cutout_giardino.py) e si tiene il pezzo più grande; il buco in cima è la parte trasparente non collegata al bordo;
+1. si toglie il magenta (tools/ritagli/cutout_giardino.py) e si tiene il pezzo più grande; il buco in cima è la parte trasparente non collegata al bordo;
 2. i pendii sono più alti di quanto serve: la parte sotto il fondo del buco si accorcia (`SQUASH`); sopra non si tocca, quindi il buco resta un rombo 2:1;
 3. il contorno scuro attorno al buco si toglie (l'erba vicina lo ricopre), così fra le tessere e il pendio non c'è nessun distacco;
 4. il contorno esterno resta netto sui fianchi (una linea marrone sottile: via la sfumatura viola lasciata dal magenta) e sfuma morbido solo in basso, dove la
@@ -12,7 +12,7 @@ Si fa questo:
    si ricavano da questa cambiando i colori (finché Gemini non ne dipinge di vere: stesso nome, stesse misure, stesso buco).
 Si stampano la misura dell'immagine e i quattro angoli del buco: stanno in `GardenHill` (GardenGrid.swift) e servono a mettere l'isola nel buco.
 
-Uso, dalla cartella principale:  python3 tools/prepara_collina.py
+Uso, dalla cartella principale:  python3 tools/ritagli/prepara_collina.py
 """
 import importlib.util
 import numpy as np
@@ -25,7 +25,7 @@ UPSCALE = 1.5         # il disegno di Gemini è piccolo (una collina larga ~1000
 
 
 def load_tools():
-    spec = importlib.util.spec_from_file_location("cutout_giardino", "tools/cutout_giardino.py")
+    spec = importlib.util.spec_from_file_location("cutout_giardino", "tools/ritagli/cutout_giardino.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module

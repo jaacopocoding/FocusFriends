@@ -23,7 +23,7 @@ module.exports = async ({ sleep, gardenWindow, garden, settings }) => {
     fs.writeFileSync(`${out}/${name}.png`, image.toPNG());
   };
   const run = (code) => gardenWindow.window.webContents.executeJavaScript(code);
-  // le stesse schermate di tools/render-giardino.sh (il Mac, sugli stessi dati): l'ora e la stagione con le chiavi nascoste delle impostazioni
+  // le stesse schermate di tools/banchi/render-giardino.sh (il Mac, sugli stessi dati): l'ora e la stagione con le chiavi nascoste delle impostazioni
   const at = (hour, season) => { settings["values"]["gardenHour"] = hour; settings["values"]["gardenSeason"] = season; };
   at(14, "autumn");
   gardenWindow.show();

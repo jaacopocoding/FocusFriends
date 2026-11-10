@@ -19,7 +19,7 @@ sul bianco, invece, il bianco chiuso fra gli steli e le foglie è sfondo, tranne
 
 Il prato (prato_original.png, 1024x506) viene ingrandito 2x con una buona interpolazione -> prato.png.
 
-Uso, dalla cartella principale:  python3 tools/cutout_giardino.py
+Uso, dalla cartella principale:  python3 tools/ritagli/cutout_giardino.py
 """
 from collections import deque
 import numpy as np

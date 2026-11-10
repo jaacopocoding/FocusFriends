@@ -1,5 +1,5 @@
 // Disegna fuori schermo la scheda del menu vera dell'app (MenuCardView) in un PNG, con dati inventati, per le immagini del README.
-// Si lancia da tools/render-scheda.sh: render <file.png> [riposo|focus] [compagno]
+// Si lancia da tools/banchi/render-scheda.sh: render <file.png> [riposo|focus] [compagno]
 import AppKit
 
 @main

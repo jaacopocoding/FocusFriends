@@ -2,7 +2,7 @@ import Foundation
 
 /// Un compagno che usa una cosa del giardino: il gattino dorme nel cesto con cuscino, il porcellino fa capolino dal tunnel, Ciccio fa il bagno nel
 /// bagnetto. Ogni interazione è un disegno solo, la cosa con il compagno dentro (`assets/interazioni/<compagno>-<cosa>.png`, ritagliati da
-/// tools/cutout_interazioni.py dalle tavole fatte con Gemini): quando il compagno la usa, lui sparisce e il disegno della cosa diventa quello.
+/// tools/ritagli/cutout_interazioni.py dalle tavole fatte con Gemini): quando il compagno la usa, lui sparisce e il disegno della cosa diventa quello.
 /// Solo Foundation e con prove; Windows ha la stessa tabella (`windows/src/core/gardenInteractions.ts`).
 struct GardenInteraction: Equatable {
     /// Cosa si vede in più mentre la usa: niente, le «z» di chi dorme, gli schizzi d'acqua.
@@ -13,7 +13,7 @@ struct GardenInteraction: Equatable {
     /// La didascalia nell'album («Dorme nell'amaca»).
     let caption: String
     let effect: Effect
-    /// Dove sta la cosa nel disegno della scena (lo trova tools/cutout_interazioni.py): quanto è più grande del suo disegno di sempre, e il suo angolo in
+    /// Dove sta la cosa nel disegno della scena (lo trova tools/ritagli/cutout_interazioni.py): quanto è più grande del suo disegno di sempre, e il suo angolo in
     /// alto a sinistra, in pixel della scena. Così la scena si mette proprio sopra la cosa (l'animale che sporge sporge attorno).
     let scale: Double
     let x: Double
@@ -33,7 +33,7 @@ enum GardenInteractions {
         GardenInteraction(pet: pet, item: item, caption: caption, effect: effect, scale: scale, x: x, y: y)
     }
 
-    /// Le interazioni, per compagno (le misure da tools/cutout_interazioni.py; l'amaca e l'altalena sono ritagliate sul loro riquadro).
+    /// Le interazioni, per compagno (le misure da tools/ritagli/cutout_interazioni.py; l'amaca e l'altalena sono ritagliate sul loro riquadro).
     static let all: [GardenInteraction] = [
         scene("gattino", "cesto-cuscino", "Dorme nel cesto", .sleep, scale: 1.687, x: 0, y: 0),
         scene("gattino", "tiragraffi", "Si fa le unghie", scale: 1.489, x: 0, y: 0),

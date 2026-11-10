@@ -90,7 +90,7 @@ Notes:
 - The rule that keeps `core/` reusable: modules imported by a page must not import `node:*`. Where a module needed both, it was split:
   `rules.ts`/`settings.ts`, `tracks.ts`/`music.ts`, `todo.ts`/`todoList.ts`. Nothing enforces this except the page bundle failing to build **[inferred]**.
 - `core/points.ts` (garden points) is **not imported by any app module**; it exists for the garden release and for the contract tests (`test/atteso.ts`).
-- **The garden's logic (G1 of `../PIANO_WINDOWS.md`, November 2026)** is in `core/`; since G2 the app keeps a `Garden` in the main process (`main/main.ts`: home island,
+- **The garden's logic (G1 of `PIANO_WINDOWS.md`, November 2026)** is in `core/`; since G2 the app keeps a `Garden` in the main process (`main/main.ts`: home island,
   bridges and island rules settled at launch and after the intro) and draws it in its own window (`main/gardenWindow.ts`, `renderer/garden/scene.ts` and `garden.ts`, opened from the tray
   menu: the island, the controls, the "Da mettere" tray and dragging; since G4 the end-of-focus gift too (`gardenLine` in `main/main.ts`,
   `renderer/giftCard.ts`, the "Giardino" pill and the next-gift line in the card); still without the album). The logic files are `gardenCatalog.ts`, `gardenDrops.ts`,
