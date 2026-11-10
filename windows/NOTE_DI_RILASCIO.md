@@ -1,9 +1,31 @@
-## FocusFriends per Windows 1.3.0
+## FocusFriends per Windows 1.4.0
 
 Il compagno che ti fa compagnia mentre studi, adesso anche su Windows 10 e 11 (Intel/AMD e ARM): un personaggio che cammina sul desktop,
 un timer Pomofocus con la sua schermata del focus, i suoni di sottofondo, le statistiche e i compagni da sbloccare studiando.
 Stessi dati, stesse regole e stesso aspetto dell'[app per Mac](https://github.com/jaacopocoding/FocusFriends#readme): i file di studio si possono
 leggere con l'una e con l'altra.
+
+### Novità della 1.4
+
+**La Tartaruga**, la sesta compagna: cammina, mangia una fragola, dorme e ogni tanto si ritira nel guscio. **Durante un focus** avanza piano lungo un
+sentiero di sassi verso una bandierina, e a fine focus mangia la fragola che la aspetta lì. Ha trenta frasi sue («Piano piano si arriva») e si sblocca
+per ultima, a 200 focus pieni.
+
+- **La sua isola**, la sesta, a destra di quella di Porcellino e sopra quella del Riccio, con la casa dal tetto a guscio, il suo verde oliva e sette
+  figurine nuove (il sasso al sole, il cespo di lattuga, l'aiuola di fragole, la bandierina del traguardo, la lanterna di carta, il laghetto, il rifugio
+  di paglia). Due angoli nuovi, e il coniglio e la rana vengono anche per la lattuga e il laghetto.
+- **I compagni usano le cose del giardino.** Dopo una passeggiata il compagno va a una delle sue cose e la usa: il gattino dondola nell'amaca, il
+  porcellino fa capolino dal tunnel, Ciccio fa il bagnetto, il riccio si tuffa nel mucchio di foglie, la tartaruga si scalda sul sasso, Pianty si fa annaffiare.
+  Quattro scene disegnate per ogni compagno, ventiquattro in tutto; dopo un po' il compagno torna a passeggiare.
+- **Le scene nell'album.** Una linguetta nuova, «Scene»: la prima volta che vedi una scena il giardino lo festeggia e la scena entra nell'album, con la
+  sua didascalia. Quelle che mancano sono una sagoma, e toccandole l'album ti dice quale cosa serve.
+- **La lepre**: la tartaruga era un ospite e adesso è una compagna, quindi al suo posto arriva la lepre, per la sdraio e il picnic, di giorno, in
+  primavera e in estate. Se la tartaruga ti aveva già salutato, la lepre la prima volta ti lascia un regalo nuovo.
+- **Le frasi**: trentasei riscritte, più semplici e meno ripetute fra un compagno e l'altro.
+- **Gli avatar** nel cerchio si vedono per intero, non più solo la testa da vicino, e la scheda di benvenuto si allarga per i sei compagni.
+
+Il giardino resta nello stesso file e nello stesso formato: le scene viste si aggiungono in `giardino.json` (`scenes`). Si installa sopra la 1.3 e
+non si perde niente.
 
 ### Novità della 1.3
 
