@@ -33,10 +33,28 @@ struct GardenSprite {
 /// schermo non obbliga a convertire i colori ad ogni fotogramma (che costava quanto tutto il resto).
 enum GardenDisplay {
     static func colorSpace(_ window: NSWindow? = nil) -> CGColorSpace {
-        window?.colorSpace?.cgColorSpace ?? NSScreen.main?.colorSpace?.cgColorSpace ?? CGColorSpace(name: CGColorSpace.sRGB)!
+        if let space = window?.colorSpace?.cgColorSpace { return space }
+        // quello dello schermo si chiede al sistema al massimo due volte al secondo: le immagini già pronte lo chiedono per ogni cosa, a ogni fotogramma
+        let now = CACurrentMediaTime()
+        if let known = screenSpace, now - screenSpaceAt < 0.5 { return known }
+        let space = NSScreen.main?.colorSpace?.cgColorSpace ?? CGColorSpace(name: CGColorSpace.sRGB)!
+        screenSpace = space
+        screenSpaceAt = now
+        return space
     }
+    private static var screenSpace: CGColorSpace?
+    private static var screenSpaceAt: CFTimeInterval = 0
 
     static func name(_ space: CGColorSpace) -> String { (space.name as String?) ?? "?" }
+}
+
+/// La chiave di un'immagine già pronta (ridimensionata e tinta): una struttura invece di un testo, perché si cerca per ogni cosa a ogni fotogramma.
+private struct ScaledKey: Hashable {
+    let resource: String
+    let width: Int
+    let height: Int
+    let space: String
+    let tint: GardenTint
 }
 
 /// La tinta della luce del momento (di notte azzurra, di giorno nessuna: 255, 255, 255), a scalini, per dipingere gli oggetti già tinti.
@@ -83,7 +101,7 @@ enum GardenBlit {
 /// Le immagini del giardino, lette e analizzate una volta sola.
 enum GardenSprites {
     private static var cache: [String: GardenSprite] = [:]
-    private static var scaledCache: [String: CGImage] = [:]
+    private static var scaledCache: [ScaledKey: CGImage] = [:]
     private static var stripCache: [String: [CGImage]] = [:]
 
     /// Lo stesso oggetto tagliato in `count` strisce orizzontali (dall'alto), ognuna con un pixel in più sotto perché non si veda lo stacco: serve a
@@ -108,7 +126,7 @@ enum GardenSprites {
     /// fotogramma, con una buona interpolazione, costa molto più che copiarlo. Si rifà solo se la grandezza cambia (lo zoom).
     static func scaled(_ sprite: GardenSprite, resource: String, pixelWidth: Int, pixelHeight: Int, tint: GardenTint = .none) -> CGImage? {
         let space = GardenDisplay.colorSpace()
-        let key = "\(resource)|\(pixelWidth)x\(pixelHeight)|\(GardenDisplay.name(space))|\(tint.red),\(tint.green),\(tint.blue)"
+        let key = ScaledKey(resource: resource, width: pixelWidth, height: pixelHeight, space: GardenDisplay.name(space), tint: tint)
         if let known = scaledCache[key] { return known }
         guard pixelWidth > 0, pixelHeight > 0,
               let context = CGContext(data: nil, width: pixelWidth, height: pixelHeight, bitsPerComponent: 8, bytesPerRow: 0, space: space,

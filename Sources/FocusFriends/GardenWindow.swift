@@ -2126,15 +2126,30 @@ final class GardenView: NSView, NSViewToolTipOwner {
     }
 
     private func tinted(_ symbol: String, size: CGFloat, color: NSColor) -> NSImage? {
+        // si dipinge una volta sola (a 2×) e si tiene: un'immagine con il disegno «a richiesta» si ridipingerebbe a ogni fotogramma
+        let key = "\(symbol)|\(size)|\(color.description)"
+        if let known = Self.tintedIcons[key] { return known }
         let config = NSImage.SymbolConfiguration(pointSize: size, weight: .semibold)
         guard let source = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)?.withSymbolConfiguration(config) else { return nil }
-        return NSImage(size: source.size, flipped: false) { box in
-            source.draw(in: box)
-            color.set()
-            box.fill(using: .sourceAtop)
-            return true
-        }
+        let scale: CGFloat = 2
+        guard let context = CGContext(data: nil, width: Int((source.size.width * scale).rounded(.up)), height: Int((source.size.height * scale).rounded(.up)),
+                                      bitsPerComponent: 8, bytesPerRow: 0, space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                                      bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue) else { return nil }
+        context.scaleBy(x: scale, y: scale)
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = NSGraphicsContext(cgContext: context, flipped: false)
+        let box = NSRect(origin: .zero, size: source.size)
+        source.draw(in: box)
+        color.set()
+        box.fill(using: .sourceAtop)
+        NSGraphicsContext.restoreGraphicsState()
+        guard let cg = context.makeImage() else { return nil }
+        let image = NSImage(cgImage: cg, size: source.size)
+        if Self.tintedIcons.count > 200 { Self.tintedIcons.removeAll() }
+        Self.tintedIcons[key] = image
+        return image
     }
+    private static var tintedIcons: [String: NSImage] = [:]
 
     private func drawHUD() {
         let hud = hudLayout()
