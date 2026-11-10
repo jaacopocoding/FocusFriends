@@ -3046,5 +3046,29 @@ check(openFound, "sbloccato un compagno, escono di nuovo regali: le sue cose")
 check(GardenDrops.line(for: .found(GardenDrop(item: "rosaio", rarity: .legendary))) == "Una figurina leggendaria: Rosaio (n. 10)!"
       && GardenDrops.line(for: .found(GardenDrop(item: "tulipani", rarity: .common))).hasPrefix("Nuova figurina: Tulipani"), "le frasi dei regali non parlano più di copie")
 
+// ---------------------------------------------------------------- i compagni usano le cose
+section("Giardino: i compagni usano le cose")
+check(GardenInteractions.all.count == 24 && Set(GardenInteractions.all.map { "\($0.pet)-\($0.item)" }).count == 24
+      && GardenInteractions.all.allSatisfy { GardenCatalog.item(withID: $0.item) != nil && GardenIslands.isKnown($0.pet) && $0.scale > 0.5 && $0.scale < 3 },
+      "ventiquattro scene: quattro per ogni compagno, ognuna con una cosa del catalogo")
+check(GardenInteractions.all.allSatisfy { FileManager.default.fileExists(atPath: "assets/interazioni/\($0.pet)-\($0.item).png") },
+      "ogni scena ha la sua immagine (tools/cutout_interazioni.py)")
+check(GardenInteractions.all.allSatisfy { scene in GardenCatalog.item(withID: scene.item).map { $0.island == nil || $0.island == scene.pet } ?? false },
+      "ognuno usa cose che possono stare sulla sua isola")
+check(GardenInteractions.interaction(pet: "gattino", item: "amaca")?.duration == 20...35 && GardenInteractions.interaction(pet: "porcellino", item: "tunnel")?.duration == 12...20
+      && GardenInteractions.interaction(pet: "ciccio", item: "bagnetto")?.effect == .splash && GardenInteractions.interaction(pet: "gattino", item: "lavanda") == nil,
+      "chi dorme ci sta di più; Ciccio nel bagnetto schizza; le cose senza scena non si usano")
+let sceneSofa = GardenPlacement(id: UUID(uuidString: "00000000-0000-4000-8000-000000000911")!, item: "panchina", tile: GardenTile(col: 4, row: 4), turned: false)
+let sceneBasket = GardenPlacement(id: UUID(uuidString: "00000000-0000-4000-8000-000000000912")!, item: "cesto-cuscino", tile: GardenTile(col: 6, row: 5), turned: false)
+let sceneCarrots = GardenPlacement(id: UUID(uuidString: "00000000-0000-4000-8000-000000000913")!, item: "cesto-carote", tile: GardenTile(col: 2, row: 6), turned: false)
+let scenePlaced = [sceneSofa, sceneBasket, sceneCarrots]
+let sceneFound = GardenInteractions.candidates(pet: "gattino", placements: scenePlaced, from: GardenTile(col: 5, row: 7), size: 8, occupied: Set(scenePlaced.map(\.tile)), last: nil)
+check(sceneFound.map(\.placement.item) == ["panchina", "cesto-cuscino"] && sceneFound.allSatisfy { !$0.route.isEmpty && GardenCompanions.standingTiles(around: [$0.placement.tile], size: 8).contains($0.route.last!) },
+      "il gattino trova la panchina e il cesto (non il cesto di carote), con la strada fino a una tessera accanto")
+check(GardenInteractions.candidates(pet: "gattino", placements: scenePlaced, from: GardenTile(col: 5, row: 7), size: 8, occupied: Set(scenePlaced.map(\.tile)), last: sceneSofa.id).map(\.placement.item) == ["cesto-cuscino"],
+      "l'ultima cosa usata non si riprende subito")
+check(GardenInteractions.pick(sceneFound, value: 0.2)?.placement.item == "panchina" && GardenInteractions.pick(sceneFound, value: 0.7)?.placement.item == "cesto-cuscino"
+      && GardenInteractions.pick([], value: 0.5) == nil, "la scelta fra quelle che ci sono, tutte uguali")
+
 print("\n\(checks) controlli, \(failures) falliti")
 exit(failures == 0 ? 0 : 1)

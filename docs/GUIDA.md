@@ -620,6 +620,14 @@ focus la mangia. Se la sollevi col mouse la tengono due mani per il guscio. Si s
 tetto a guscio, sette cose (sasso al sole, cespo di lattuga, aiuola di fragole, bandierina del traguardo, lanterna di carta, laghetto e rifugio di paglia)
 e due angoli: il rifugio (ci dorme) e l'orto delle fragole (ci mangia); vicino al ponticello, nell'angolo dell'acqua, si ritira nel guscio.
 
+**I compagni usano le cose del giardino.** Tutti e sei i compagni, passeggiando sulla loro isola, ogni tanto vanno a usare una cosa: il
+gattino dorme nel cesto con cuscino, sulla panchina o nell'amaca e si fa le unghie al tiragraffi; il porcellino sgranocchia una carota dal cesto, fa
+capolino dal tunnel, mangia sul tappeto da picnic e va sull'altalena; Ciccio fa il bagno nel bagnetto, si dondola sulla sua altalena, si posa sulla
+casa per uccelli e sul girasole; il riccio si tuffa nel mucchio di foglie, mangia una mela accanto alla cassetta, dorme nel tronco cavo e si siede
+nella carriola fra le ghiande; la tartaruga dorme al sole sul sasso, mangia la lattuga, beve al laghetto e si ritira nel rifugio di paglia;
+Pianty si fa annaffiare, si pianta nell'aiuola, prende il sole sulla sdraio e guarda le lucciole uscire dal barattolo. Il compagno sparisce e la cosa diventa un disegno con lui dentro (`assets/interazioni/`, fatti con Gemini e ritagliati
+da `tools/cutout_interazioni.py`); chi dorme fa le «z», nel bagnetto ci sono gli schizzi. Dopo un po' ricompare lì accanto.
+
 **Ciccio durante un focus** sta fermo e prende il posto del suo nido (`focusGrowthResources` in `Pet.swift`,
 le immagini `garden_ciccio_<1..5>.png`): parte dall'uovo e, con il tempo, passa al guscio
 incrinato, al pulcino, al piccolo con le piume e infine alla cocorita adulta sul nido; ogni stadio dura un

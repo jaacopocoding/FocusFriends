@@ -18,7 +18,7 @@ import {
 } from "./scene.ts";
 import type { Camera, Carrying, Effects, SceneLayers } from "./scene.ts";
 import { sprite, whenSpritesLoad } from "./sprites.ts";
-import { advanceLife, greetVisitor, placeCompanion, resetVisitors } from "./life.ts";
+import { advanceLife, greetVisitor, placeCompanion, resetVisitors, showInteraction } from "./life.ts";
 import { cornerWithId, formedCorners } from "../../core/gardenCorners.ts";
 import { reasonText } from "../../core/gardenVisitors.ts";
 
@@ -778,6 +778,8 @@ window.__garden = {
   get celebrations() { return celebrations.map((c) => `${c.caption} · ${c.title}`); },
   get life() { return { walkers: [...life.walkers].map(([pet, w]) => ({ pet, ...w })), visitor: life.visitor }; },
   greet,
+  /** Per le prove: il compagno sta già usando la prima copia di `item` (la scena di GardenInteractions). */
+  showInteraction(pet: string, item: string) { if (data) showInteraction(data, pet, item); redraw(); },
   setCamera(next: Camera) { moveCamera(next); },
   resetCamera,
   worldView() { moveCamera(worldCamera()); },

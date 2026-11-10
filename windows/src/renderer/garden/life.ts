@@ -6,6 +6,8 @@ import { applyTurn, itemWithId } from "../../core/gardenCatalog.ts";
 import { AFFINITIES, POSE_DURATION, route, standingTiles } from "../../core/gardenCompanions.ts";
 import type { GardenAffinity } from "../../core/gardenCompanions.ts";
 import { formedCorners } from "../../core/gardenCorners.ts";
+import { interactionCandidates, interactionDuration, interactionOf, pickInteraction } from "../../core/gardenInteractions.ts";
+import type { InteractionCandidate } from "../../core/gardenInteractions.ts";
 import { mixedHash } from "../../core/gardenDrops.ts";
 import { footprintTiles, isWalkable, landmarkTiles, occupiedTiles, tileKey } from "../../core/gardenGrid.ts";
 import type { GardenTile } from "../../core/gardenGrid.ts";
@@ -27,6 +29,18 @@ interface Walker {
   activity: { affinity: GardenAffinity; remaining: number } | null;
   /** Da quanti secondi non fa niente di speciale (parte alto, così la prima posa viene presto). */
   idle: number;
+  /** Se sta usando una cosa (`GardenInteractions`), e l'ultima che ha usato (non la riprende subito). */
+  interacting?: Interacting | null;
+  lastInteraction?: string | null;
+}
+
+/** Un compagno che va a usare una cosa: la strada che manca, poi il tempo che ci sta (sparisce, e la cosa diventa la scena con lui dentro). */
+interface Interacting {
+  candidate: InteractionCandidate;
+  route: GardenTile[];
+  /** Quanto manca alla fine, da quando è arrivato (null finché cammina), e quando è arrivato (l'ora degli effetti). */
+  remaining: number | null;
+  started: number;
 }
 
 const walkers = new Map<string, Walker>();
@@ -89,6 +103,50 @@ function startErrand(pet: string, walker: Walker, island: GardenIslandData, occu
   return best ? { route: best, affinity } : null;
 }
 
+/** Ogni tanto, dopo una passeggiata (un po' dopo l'ultima cosa fatta), va a usare una cosa della sua isola che sa usare (`GardenInteractions`). */
+function startInteraction(pet: string, walker: Walker, island: GardenIslandData, occupied: ReadonlySet<string>, taken: ReadonlySet<string>): Interacting | null {
+  if (walker.idle <= 15 || Math.random() >= 0.35) return null;
+  const chosen = pickInteraction(interactionCandidates(pet, island.placements, walker.from, island.size, occupied, walker.lastInteraction ?? null, taken), Math.random());
+  return chosen ? { candidate: chosen, route: [...chosen.route], remaining: null, started: 0 } : null;
+}
+
+/** Un passo di chi va a usare una cosa (si chiama quando è fermo su una tessera): cammina fino alla tessera accanto, poi ci sta e alla fine ricompare lì. */
+function advanceInteraction(walker: Walker, dt: number, size: number, occupied: ReadonlySet<string>, taken: ReadonlySet<string>): boolean {
+  const it = walker.interacting!;
+  if (it.remaining !== null) {
+    it.remaining -= dt;
+    if (it.remaining > 0) return it.candidate.interaction.effect !== "none";
+    // finito: ricompare accanto, e per un po' fa altro
+    walker.interacting = null;
+    walker.lastInteraction = it.candidate.placement.id;
+    walker.idle = 0;
+    walker.rest = 1.5;
+    return true;
+  }
+  walker.rest -= dt;
+  if (walker.rest > 0) return false;
+  const next = it.route.shift();
+  if (next) {
+    if (isWalkable(next, size, occupied) && !taken.has(tileKey(next))) { walker.to = next; walker.progress = 0; } else { walker.interacting = null; walker.idle = 0; }      // la strada si è chiusa
+    return true;
+  }
+  const [low, high] = interactionDuration(it.candidate.interaction);
+  it.remaining = random(low, high);
+  it.started = life.time;
+  return true;
+}
+
+/** Per le prove: il compagno sta già usando la prima copia di `item` sull'isola mostrata (se sa usarla). */
+export function showInteraction(data: GardenData, pet: string, item: string): void {
+  const island = data.islands.find((i) => i.id === pet);
+  const placement = island?.placements.find((p) => p.item === item);
+  const interaction = interactionOf(pet, item);
+  if (!island || !placement || !interaction) return;
+  const walker = walkers.get(pet) ?? { from: placement, to: placement, progress: 1, rest: 1, errand: null, activity: null, idle: 0 };
+  walker.interacting = { candidate: { placement, interaction, route: [] }, route: [], remaining: 30, started: life.time - 1 };
+  walkers.set(pet, walker);
+}
+
 /** Fa fare un passo (di `dt` secondi) al compagno dell'isola mostrata. Ritorna se si muove. `carried`: il compagno che si sta portando con il mouse. */
 function advanceWalker(data: GardenData, dt: number, carried: string | null): boolean {
   const island = data.islands.find((i) => i.id === data.shown);
@@ -98,6 +156,11 @@ function advanceWalker(data: GardenData, dt: number, carried: string | null): bo
   let walker = walkers.get(pet) ?? { from: home, to: home, progress: 1, rest: random(1, 4), errand: null, activity: null, idle: 20 };
   // gli hanno messo un oggetto sotto i piedi (o l'isola è cambiata): torna a casa
   if (!isWalkable(walker.from, size, occupied) || !isWalkable(walker.to, size, occupied)) walker = { ...walker, from: home, to: home, progress: 1, rest: 1, errand: null, activity: null };
+  // la cosa che stava usando non c'è più, o è stata spostata: smette (e ricompare accanto)
+  if (walker.interacting) {
+    const was = walker.interacting.candidate.placement, now = island.placements.find((p) => p.id === was.id);
+    if (!now || now.col !== was.col || now.row !== was.row || now.turned !== was.turned) { walker.interacting = null; walker.idle = 0; }
+  }
   // l'angolo si è sciolto mentre ci andava o ci stava: smette
   const formed = formedCorners(island.placements);
   if (walker.errand && !formed.has(walker.errand.affinity.corner)) walker.errand = null;
@@ -110,7 +173,9 @@ function advanceWalker(data: GardenData, dt: number, carried: string | null): bo
     moving = true;
   } else {
     walker.from = walker.to;
-    if (walker.activity) {
+    if (walker.interacting) {
+      if (advanceInteraction(walker, dt, size, occupied, taken)) moving = true;
+    } else if (walker.activity) {
       // fa la posa: i fotogrammi cambiano, quindi si ridisegna
       walker.activity.remaining -= dt;
       moving = true;
@@ -137,8 +202,12 @@ function advanceWalker(data: GardenData, dt: number, carried: string | null): bo
       walker.rest -= dt;
       if (walker.rest <= 0) {
         const errand = startErrand(pet, walker, island, occupied, taken);
+        const interacting = errand ? null : startInteraction(pet, walker, island, occupied, taken);
         if (errand) {
           walker.errand = errand;
+          walker.rest = 0;
+        } else if (interacting) {
+          walker.interacting = interacting;
           walker.rest = 0;
         } else {
           const around = [[1, 0], [-1, 0], [0, 1], [0, -1]].map(([dc, dr]) => ({ col: walker.from.col + dc!, row: walker.from.row + dr! }));
@@ -250,7 +319,11 @@ function advanceVisitor(data: GardenData, dt: number, hour: number): boolean {
 export function advanceLife(data: GardenData, dt: number, hour: number, carried: string | null): boolean {
   const walking = advanceWalker(data, dt, carried);
   const guesting = advanceVisitor(data, dt, hour);
-  life.walkers = new Map([...walkers].map(([pet, w]) => [pet, { from: w.from, to: w.to, progress: w.progress, pose: w.activity?.affinity.pose ?? null }]));
+  life.walkers = new Map([...walkers].map(([pet, w]) => {
+    const it = w.interacting && w.interacting.remaining !== null ? w.interacting : null;
+    const scene = it === null ? null : { placement: it.candidate.placement.id, interaction: it.candidate.interaction, started: it.started };
+    return [pet, { from: w.from, to: w.to, progress: w.progress, pose: w.activity?.affinity.pose ?? null, scene }];
+  }));
   const guest = visitor;
   life.visitor = guest === null ? null : {
     id: guest.attraction.visitor.id, image: visitorImage(guest.attraction.visitor), height: guest.attraction.visitor.height, island: guest.island,

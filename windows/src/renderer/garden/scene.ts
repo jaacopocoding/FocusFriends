@@ -5,6 +5,8 @@
 import { applyTurn, companionHeight, fitsIsland, gardenImage, itemWithId, joinedImage, litImage, swayStrength, waterSpot } from "../../core/gardenCatalog.ts";
 import { poseImage } from "../../core/gardenCompanions.ts";
 import type { GardenPose } from "../../core/gardenCompanions.ts";
+import { interactionImage } from "../../core/gardenInteractions.ts";
+import type { GardenInteraction } from "../../core/gardenInteractions.ts";
 import { hash } from "../../core/gardenDrops.ts";
 import type { GardenItem } from "../../core/gardenCatalog.ts";
 import { formedCorners } from "../../core/gardenCorners.ts";
@@ -22,7 +24,7 @@ import {
 import type { GardenLight, Season } from "../../core/gardenSky.ts";
 import { petInfo } from "../../core/pets.ts";
 import type { GardenData, GardenIslandData } from "../../shared/gardenApi.ts";
-import { aspect, isDrawn, makeCanvas, NO_TINT, picture, ready, scaled, tintOf } from "./sprites.ts";
+import { aspect, isDrawn, makeCanvas, NO_TINT, picture, ready, scaled, sprite, tintOf } from "./sprites.ts";
 import type { Sprite, Tint } from "./sprites.ts";
 
 export const SCENE_W = 1000, SCENE_H = 600;
@@ -579,7 +581,11 @@ export function drawStaticScene(ctx: CanvasRenderingContext2D, data: GardenData,
 
 /** La vita sull'isola, com'è in questo momento (la tiene aggiornata la pagina, `life.ts`): l'ora degli effetti, i compagni che camminano o fanno una
  *  posa, l'ospite. Il disegno la legge da qui. */
-export interface WalkerView { from: GardenTile; to: GardenTile; progress: number; pose: GardenPose | null }
+export interface WalkerView {
+  from: GardenTile; to: GardenTile; progress: number; pose: GardenPose | null;
+  /** Se sta usando una cosa (`GardenInteractions`): quale copia, quale scena, da quando. Intanto lui non si vede. */
+  scene?: { placement: string; interaction: GardenInteraction; started: number } | null;
+}
 export interface VisitorView {
   id: string; image: string; height: number; island: string; from: GardenTile; to: GardenTile; progress: number; walking: boolean;
   facingRight: boolean; fade: number; hint: boolean;
@@ -628,6 +634,25 @@ function makeEntity(key: string, referenceHeight: number, feet: { x: number; y: 
   return { key, sprite: s, feet, rect, shadow, turned, depth };
 }
 
+/** La cosa usata da un compagno: la scena con lui dentro al posto del disegno della cosa, messa in modo che la cosa resti dov'era (come `sceneEntity` in
+ *  GardenWindow.swift). Le cose sul lato passano per lo stesso disegno storto. Null finché l'immagine non è pronta (intanto si vede la cosa). */
+function sceneEntity<T extends { key: string; sprite: Sprite; rect: { x: number; y: number; w: number; h: number }; turned: boolean }>(
+  scene: GardenInteraction, made: T, x: GardenItem, key: string): T | null {
+  if (x.axial) {
+    const swapped = key.replace("giardino/" + x.id, interactionImage(scene));
+    const s = ready(swapped);
+    if (!s) { void sprite(swapped); return null; }
+    return { ...made, key: swapped, sprite: s };
+  }
+  const own = interactionImage(scene), s = ready(own);
+  if (!s) { void sprite(own); return null; }
+  const k = made.rect.w / (made.sprite.width * scene.scale);
+  const w = s.width * k, h = s.height * k;
+  let left = made.rect.x - scene.x * k;
+  if (made.turned) left = 2 * (made.rect.x + made.rect.w / 2) - left - w;      // specchiata: la scena si specchia attorno alla cosa
+  return { ...made, key: own, sprite: s, rect: { x: left, y: made.rect.y - scene.y * k, w, h } };
+}
+
 /** Il disegno acceso è più alto di quello spento (la fiamma), con gli stessi piedi e la stessa larghezza. */
 function litHeightFactor(x: GardenItem): number {
   const lit = litImage(x);
@@ -646,6 +671,9 @@ function entities(data: GardenData, camera: Camera, light: GardenLight, skip: st
     const base = corner.col + corner.row;
     // le bandierine di una festa in giardino ondeggiano di più
     const party = new Set(formedCorners(island.placements).get("festa") ?? []);
+    // le cose che un compagno sta usando diventano la scena con lui dentro
+    const inUse = new Map<string, GardenInteraction>();
+    for (const w of life.walkers.values()) if (w.scene) inUse.set(w.scene.placement, w.scene.interaction);
     const linked = new Map<string, Set<string>>();
     for (const p of island.placements) {
       if (!itemWithId(p.item)?.joins || p.id === skip) continue;
@@ -671,7 +699,9 @@ function entities(data: GardenData, camera: Camera, light: GardenLight, skip: st
         key = "giardino/" + litImage(x)!;
         height = x.height * litHeightFactor(x);
       }
-      const made = makeEntity(key, height, feet, shadowWidth, turned, base + front + 0.5, iso);
+      let made = makeEntity(key, height, feet, shadowWidth, turned, base + front + 0.5, iso);
+      const used = inUse.get(p.id);
+      if (made && used) made = sceneEntity(used, made, x, key) ?? made;
       if (made) {
         result.push({
           ...made, kind: "placed", alpha: 1, sway: swayStrength(x) * (party.has(p.id) ? 1.7 : 1), seed: (hash(p.id) % 1000) / 1000, tile: { col: p.col, row: p.row },
@@ -679,7 +709,7 @@ function entities(data: GardenData, camera: Camera, light: GardenLight, skip: st
         });
       }
     }
-    if (island.companion && skip !== `compagno:${island.id}`) {
+    if (island.companion && skip !== `compagno:${island.id}` && !life.walkers.get(island.id)?.scene) {
       const pet = petInfo(island.id);
       // dove sta in questo momento: cammina da una tessera all'altra, con un saltello
       const walker = life.walkers.get(island.id) ?? { from: island.companion, to: island.companion, progress: 1, pose: null };
@@ -945,6 +975,35 @@ function glyph(ctx: CanvasRenderingContext2D, text: string, x: number, y: number
 
 /** Quello che gli angoli formati fanno sull'isola mostrata: vapore dal tavolino, gocce dall'annaffiatoio, «z», cuori e note dalle case, farfalle sul prato
  *  fiorito, nebbia e lucciole nel bosco, coriandoli alla festa, petali e luce rosata sotto l'arco. Niente con «Riduci movimento». */
+/** Mentre un compagno usa una cosa: le «z» che salgono da chi dorme, gli schizzi d'acqua di chi fa il bagno (come in GardenWindow.swift). */
+function drawInteractionEffects(ctx: CanvasRenderingContext2D, laid: Entity[], camera: Camera, light: GardenLight): void {
+  if (life.reduceMotion) return;
+  const tileW = worldView(camera).tileW, tileH = tileW / 2;
+  for (const walker of life.walkers.values()) {
+    const scene = walker.scene;
+    if (!scene || scene.interaction.effect === "none") continue;
+    const shown = laid.find((e) => e.placement?.id === scene.placement);
+    if (!shown) continue;
+    const r = shown.rect, time = life.time - scene.started;
+    if (scene.interaction.effect === "sleep") {
+      const ox = r.x + r.w / 2 + r.w * 0.12, oy = r.y + r.h * 0.25;
+      for (let i = 0; i < 2; i++) {
+        const d = drift(i + 3, time, 3.2);
+        glyph(ctx, "z", ox + d.x * tileW * 0.12, oy - d.progress * tileH, 11 + d.progress * 6, litColor(110, 130, 190, d.alpha * 0.9, light), Math.sin(d.spin) * 0.25);
+      }
+    } else {
+      for (let i = 0; i < 4; i++) {
+        const d = drift(i + 11, time, 0.9);
+        // un piccolo arco: sale e ricade, di lato
+        ctx.fillStyle = litColor(150, 200, 238, d.alpha * 0.85, light);
+        ctx.beginPath();
+        ctx.ellipse(r.x + r.w / 2 + d.x * r.w * 0.45, r.y + r.h * 0.35 - Math.sin(d.progress * Math.PI) * tileH * 0.5, 1.5, 2, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+}
+
 function drawCornerEffects(ctx: CanvasRenderingContext2D, laid: Entity[], data: GardenData, camera: Camera, light: GardenLight): void {
   const shown = data.islands.find((i) => i.id === data.shown);
   if (life.reduceMotion || !shown) return;
@@ -1238,6 +1297,7 @@ export function drawGarden(ctx: CanvasRenderingContext2D, layers: SceneLayers, d
   }
   drawVisitorHint(ctx, laid);
   drawCornerEffects(ctx, laid, data, camera, light);
+  drawInteractionEffects(ctx, laid, camera, light);
   drawWeather(ctx, data.season, light);
   drawLampGlows(ctx, laid, data, camera, light);
   drawCottageWindows(ctx, data, camera, light);

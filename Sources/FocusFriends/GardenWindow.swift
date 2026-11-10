@@ -63,6 +63,20 @@ final class GardenView: NSView, NSViewToolTipOwner {
         var activity: Activity?
         /// Da quanti secondi non fa niente di speciale: dopo una posa passa un po' prima della prossima. Parte alto, così la prima viene presto.
         var idle: Double = 20
+        /// Se sta usando una cosa (`GardenInteractions`), e l'ultima che ha usato (non la riprende subito).
+        var interacting: Interacting?
+        var lastInteraction: UUID?
+    }
+    /// Un compagno che va a usare una cosa: la strada che manca, poi il tempo che ci sta (sparisce, e la cosa diventa la scena con lui dentro).
+    private struct Interacting {
+        var candidate: GardenInteractions.Candidate
+        var route: [GardenTile]
+        /// La tessera accanto dove si ferma, e da dove riparte.
+        var stand: GardenTile
+        /// Quanto manca alla fine, da quando è arrivato (nil finché cammina), e quando è arrivato (l'orologio degli effetti).
+        var remaining: Double?
+        var started = 0.0
+        var arrived: Bool { remaining != nil }
     }
     private struct Errand {
         var route: [GardenTile]
@@ -523,6 +537,10 @@ final class GardenView: NSView, NSViewToolTipOwner {
         let party = Set(garden.formedCorners["festa"] ?? [])
         let linked = linkedTiles(on: garden.shownIsland)
         let lit = skyState().light.lamp >= Self.litThreshold
+        var inUse: [UUID: GardenInteraction] = [:]
+        for walker in walkers.values {
+            if let interacting = walker.interacting, interacting.arrived { inUse[interacting.candidate.placement.id] = interacting.candidate.interaction }
+        }
         for placement in garden.placements {
             guard let item = GardenCatalog.item(withID: placement.item) else { continue }
             if carryMoved, carry == .placed(placement.id) { continue }
@@ -534,6 +552,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
             let drawn = look(of: item, at: placement.tile, turned: placement.turned, linked: linked, lit: lit)
             guard var made = entity(kind: .placed(placement.id), resource: drawn.resource, referenceHeight: drawn.height, feet: feet,
                                     shadowWidth: shadowWidth, turned: drawn.turned, depth: front + 0.5, iso: iso) else { continue }
+            if let scene = inUse[placement.id], let swapped = sceneEntity(scene, replacing: made, item: item, resource: drawn.resource, iso: iso) { made = swapped }
             made.sway = item.swayStrength * (party.contains(placement.id) ? 1.7 : 1)
             made.seed = Double(GardenDrops.hash(placement.id.uuidString) % 1000) / 1000
             made.tile = placement.tile
@@ -542,6 +561,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
         }
         for (index, pet) in companionsHere() {
             if carryMoved, carry == .companion(pet.id) { continue }
+            if walkers[pet.id]?.interacting?.arrived == true { continue }
             let home = garden.companionTile(pet.id, index: index)
             let ground = companionGround(pet.id, home: home, iso: iso)
             let feet = NSPoint(x: ground.point.x, y: ground.point.y + iso.tileH * Self.feetOffset)
@@ -565,6 +585,29 @@ final class GardenView: NSView, NSViewToolTipOwner {
         }
         for entry in worldIslands() where entry.open && entry.id != here { result += staticEntities(on: entry.id, iso: entry.iso) }
         result.sort { $0.depth < $1.depth }
+        return result
+    }
+
+    /// La cosa usata da un compagno: la scena con lui dentro al posto del disegno della cosa, messa in modo che la cosa resti dov'era (l'animale sporge
+    /// attorno). Le cose sul lato passano per lo stesso disegno storto (la loro scena è ritagliata sul loro riquadro).
+    private func sceneEntity(_ scene: GardenInteraction, replacing made: Entity, item: GardenItem, resource: String, iso: Iso) -> Entity? {
+        if item.axial {
+            let swapped = resource.replacingOccurrences(of: item.resource, with: scene.resource)
+            guard let sprite = GardenSprites.sprite(swapped) else { return nil }
+            var result = made
+            result.sprite = sprite
+            result.resource = swapped
+            return result
+        }
+        guard let sprite = GardenSprites.sprite(scene.resource) else { return nil }
+        let k = made.rect.width / (made.sprite.image.size.width * CGFloat(scene.scale))
+        let width = sprite.image.size.width * k, height = sprite.image.size.height * k
+        var x = made.rect.minX - CGFloat(scene.x) * k
+        if made.turned { x = 2 * made.rect.midX - x - width }      // specchiata: la scena si specchia attorno alla cosa
+        var result = made
+        result.sprite = sprite
+        result.resource = scene.resource
+        result.rect = NSRect(x: x, y: made.rect.minY - CGFloat(scene.y) * k, width: width, height: height)
         return result
     }
 
@@ -599,6 +642,11 @@ final class GardenView: NSView, NSViewToolTipOwner {
                 // Gli hanno messo un oggetto sotto i piedi (o l'isola è cambiata): torna a casa.
                 walker = Walker(from: home, to: home, progress: 1, rest: 1)
             }
+            // la cosa che stava usando non c'è più, o è stata spostata: smette (e ricompare accanto)
+            if let interacting = walker.interacting, !garden.placements.contains(interacting.candidate.placement) {
+                walker.interacting = nil
+                walker.idle = 0
+            }
             // l'angolo si è sciolto mentre ci andava o ci stava: smette
             if let errand = walker.errand, garden.formedCorners[errand.affinity.corner] == nil { walker.errand = nil }
             if let activity = walker.activity, garden.formedCorners[activity.affinity.corner] == nil { walker.activity = nil; walker.idle = 0 }
@@ -609,7 +657,9 @@ final class GardenView: NSView, NSViewToolTipOwner {
                 moving = true
             } else {
                 walker.from = walker.to
-                if var activity = walker.activity {
+                if walker.interacting != nil {
+                    if advanceInteraction(&walker, petID: pet.id, dt: dt, size: size, occupied: occupied, taken: taken) { moving = true }
+                } else if var activity = walker.activity {
                     // fa la posa: i fotogrammi cambiano, quindi si ridisegna
                     activity.remaining -= dt
                     moving = true
@@ -644,6 +694,9 @@ final class GardenView: NSView, NSViewToolTipOwner {
                         if let errand = startErrand(for: pet.id, walker: walker, size: size, occupied: occupied, taken: taken) {
                             walker.errand = errand
                             walker.rest = 0
+                        } else if let interacting = startInteraction(for: pet.id, walker: walker, size: size, occupied: occupied, taken: taken) {
+                            walker.interacting = interacting
+                            walker.rest = 0
                         } else {
                             let around = [(1, 0), (-1, 0), (0, 1), (0, -1)].map { GardenTile(col: walker.from.col + $0.0, row: walker.from.row + $0.1) }
                             let free = around.filter { GardenLayout.isWalkable($0, size: size, occupied: occupied) && !taken.contains($0) }
@@ -660,6 +713,65 @@ final class GardenView: NSView, NSViewToolTipOwner {
             walkers[pet.id] = walker
         }
         return moving
+    }
+
+    /// Per i banchi di prova (tools/render-giardino): il compagno sta già usando la prima copia di `item` (se sa usarla), da `since` secondi.
+    func showInteraction(pet petID: String, item: String, since: Double = 1) {
+        guard let placement = garden.placements.first(where: { $0.item == item }), let interaction = GardenInteractions.interaction(pet: petID, item: item) else { return }
+        let candidate = GardenInteractions.Candidate(placement: placement, interaction: interaction, route: [])
+        var walker = walkers[petID] ?? Walker(from: placement.tile, to: placement.tile, progress: 1, rest: 1)
+        walker.interacting = Interacting(candidate: candidate, route: [], stand: walker.from, remaining: 30, started: effectsClock() - since)
+        walkers[petID] = walker
+        needsDisplay = true
+    }
+
+    /// Ogni tanto, dopo una passeggiata (un po' dopo l'ultima cosa fatta), un compagno va a usare una cosa della sua isola che sa usare (`GardenInteractions`).
+    private func startInteraction(for petID: String, walker: Walker, size: Int, occupied: Set<GardenTile>, taken: Set<GardenTile>) -> Interacting? {
+        guard walker.idle > 15, Double.random(in: 0..<1) < 0.35 else { return nil }
+        let options = GardenInteractions.candidates(pet: petID, placements: garden.placements, from: walker.from, size: size, occupied: occupied,
+                                                    last: walker.lastInteraction, taken: taken)
+        guard let chosen = GardenInteractions.pick(options, value: Double.random(in: 0..<1)) else { return nil }
+        return Interacting(candidate: chosen, route: chosen.route, stand: chosen.route.last ?? walker.from)
+    }
+
+    /// Un passo di chi va a usare una cosa (si chiama quando è fermo su una tessera): cammina fino alla tessera accanto, poi ci sta (sparisce dentro la
+    /// scena) e alla fine ricompare lì. Ritorna true se si muove (o se c'è un effetto da animare).
+    private func advanceInteraction(_ walker: inout Walker, petID: String, dt: TimeInterval, size: Int, occupied: Set<GardenTile>, taken: Set<GardenTile>) -> Bool {
+        guard var interacting = walker.interacting else { return false }
+        if let remaining = interacting.remaining {
+            interacting.remaining = remaining - dt
+            if remaining - dt > 0 {
+                walker.interacting = interacting
+                return interacting.candidate.interaction.effect != .none
+            }
+            // finito: ricompare accanto, e per un po' fa altro
+            walker.interacting = nil
+            walker.lastInteraction = interacting.candidate.placement.id
+            walker.idle = 0
+            walker.rest = 1.5
+            return true
+        }
+        walker.rest -= dt
+        guard walker.rest <= 0 else {
+            walker.interacting = interacting
+            return false
+        }
+        if let next = interacting.route.first {
+            interacting.route.removeFirst()
+            if GardenLayout.isWalkable(next, size: size, occupied: occupied) && !taken.contains(next) {
+                walker.to = next
+                walker.progress = 0
+                walker.interacting = interacting
+            } else {
+                walker.interacting = nil      // la strada si è chiusa: lascia perdere
+                walker.idle = 0
+            }
+            return true
+        }
+        interacting.remaining = Double.random(in: interacting.candidate.interaction.duration)
+        interacting.started = effectsClock()
+        walker.interacting = interacting
+        return true
     }
 
     /// Se un compagno ha un angolo che gli piace e c'è (e nessun altro ci sta andando), ogni tanto ci va: la strada più corta fino a una tessera accanto
@@ -921,6 +1033,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
         drawGhost(target, iso: iso)
         drawVisitorHint(laid)
         drawCornerEffects(laid, season: sky.season, light: sky.light, iso: iso)
+        drawInteractionEffects(laid, light: sky.light, iso: iso)
         drawWeather(sky.season, light: sky.light)
         drawLampGlows(laid, iso: iso, light: sky.light)
         drawCottageWindows(light: sky.light, season: sky.season, iso: iso)
@@ -2412,6 +2525,38 @@ extension GardenView {
     /// Quello che gli angoli formati fanno nel giardino: vapore dal tavolino, gocce dall'annaffiatoio, «z» sulla casa del gatto, cuori su quella del
     /// porcellino, note sulla casa degli uccelli, farfalle sul prato fiorito, lucciole e nebbia nel bosco, coriandoli alla festa, petali di rosa e luce
     /// rosata sotto l'arco. Niente di tutto questo si vede con «Riduci movimento» (la luce più forte del lampione di lettura sì).
+    /// Mentre un compagno usa una cosa: le «z» che salgono da chi dorme, gli schizzi d'acqua di chi fa il bagno.
+    private func drawInteractionEffects(_ laid: [Entity], light: GardenLight, iso: Iso) {
+        guard !reduceMotion else { return }
+        for walker in walkers.values {
+            guard let interacting = walker.interacting, interacting.arrived, interacting.candidate.interaction.effect != .none,
+                  let scene = laid.first(where: { $0.kind == .placed(interacting.candidate.placement.id) }) else { continue }
+            let time = effectsClock() - interacting.started
+            let rect = scene.rect
+            switch interacting.candidate.interaction.effect {
+            case .sleep:
+                let origin = NSPoint(x: rect.midX + rect.width * 0.12, y: rect.minY + rect.height * 0.25)
+                for index in 0..<2 {
+                    let d = GardenSky.drift(index: index + 3, time: time, period: 3.2)
+                    let c = NSPoint(x: origin.x + CGFloat(d.x) * iso.tileW * 0.12, y: origin.y - CGFloat(d.progress) * iso.tileH * 1.0)
+                    drawGlyph("z", at: c, size: 11 + CGFloat(d.progress) * 6, color: lit(Self.color(110, 130, 190), light).withAlphaComponent(CGFloat(d.alpha) * 0.9),
+                              angle: CGFloat(sin(d.spin)) * 0.25)
+                }
+            case .splash:
+                let drop = lit(Self.color(150, 200, 238), light)
+                for index in 0..<4 {
+                    let d = GardenSky.drift(index: index + 11, time: time, period: 0.9)
+                    // un piccolo arco: sale e ricade, di lato
+                    let c = NSPoint(x: rect.midX + CGFloat(d.x) * rect.width * 0.45, y: rect.minY + rect.height * 0.35 - CGFloat(sin(d.progress * .pi)) * iso.tileH * 0.5)
+                    drop.withAlphaComponent(CGFloat(d.alpha) * 0.85).setFill()
+                    NSBezierPath(ovalIn: NSRect(x: c.x - 1.5, y: c.y - 2, width: 3, height: 4)).fill()
+                }
+            case .none:
+                break
+            }
+        }
+    }
+
     private func drawCornerEffects(_ laid: [Entity], season: Season, light: GardenLight, iso: Iso) {
         guard !reduceMotion, !garden.formedCorners.isEmpty else { return }
         let time = effectsClock()

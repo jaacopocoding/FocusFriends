@@ -9,6 +9,7 @@ import { Garden, GARDEN_FORMAT_VERSION } from "../src/core/garden.ts";
 import { GARDEN_ITEMS, itemNumber, itemWithId, nameWithArticle, rarityOf, RETIRED_ITEMS } from "../src/core/gardenCatalog.ts";
 import { DropStream, hash, mixedHash } from "../src/core/gardenDrops.ts";
 import { BRIDGES, bridgeId, ISLANDS, pathTiles } from "../src/core/gardenGrid.ts";
+import { GARDEN_INTERACTIONS, interactionImage } from "../src/core/gardenInteractions.ts";
 import type { StudySession } from "../src/core/log.ts";
 import { tempDirectory } from "./util.ts";
 
@@ -145,5 +146,16 @@ describe("Giardino: i regali", () => {
     assert.ok(GARDEN_ITEMS.every((x) => g.isFound(x.id)));
     assert.equal(g.foundCount, 3);
     assert.equal(g.islandSize, 10);
+  });
+});
+
+describe("Giardino: i compagni usano le cose", () => {
+  it("ventiquattro scene, ognuna con la sua immagine in assets/interazioni e una cosa che può stare sull'isola del compagno", () => {
+    assert.equal(GARDEN_INTERACTIONS.length, 24);
+    for (const i of GARDEN_INTERACTIONS) {
+      assert.ok(existsSync(join(import.meta.dirname, "..", "..", "assets", interactionImage(i) + ".png")), interactionImage(i));
+      const item = itemWithId(i.item);
+      assert.ok(item && (item.island === null || item.island === i.pet), i.item);
+    }
   });
 });

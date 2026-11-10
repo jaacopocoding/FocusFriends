@@ -186,7 +186,8 @@ enum GardenSprites {
         let sx = CGFloat(cg.width) / flat.image.size.width, sy = CGFloat(cg.height) / flat.image.size.height
         let crop = CGRect(x: flat.source.minX * sx, y: CGFloat(cg.height) - flat.source.maxY * sy, width: flat.source.width * sx, height: flat.source.height * sy).integral
         guard let part = cg.cropping(to: crop) else { return nil }
-        let slope = CGFloat(GardenCatalog.items.first { $0.resource == resource }?.slope ?? 0.5)
+        // la pendenza della cosa (anche per la scena di un compagno che la usa: «interazioni_<compagno>-<cosa>»)
+        let slope = CGFloat(GardenCatalog.items.first { $0.resource == resource || (resource.hasPrefix("interazioni_") && resource.hasSuffix("-" + $0.id)) }?.slope ?? 0.5)
         let w = CGFloat(part.width), h = CGFloat(part.height) * axialStretch(slope: slope)
         guard let context = CGContext(data: nil, width: Int(w), height: Int((h + slope * w).rounded(.up)), bitsPerComponent: 8, bytesPerRow: 0,
                                       space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return nil }

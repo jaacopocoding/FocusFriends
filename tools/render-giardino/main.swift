@@ -1,6 +1,6 @@
 // Disegna fuori schermo il giardino vero dell'app (GardenView) da una cartella di dati, a un'ora e in una stagione date, per confrontarlo con
 // quello di Windows (windows/test/vivo/giardino.cjs). Si lancia da tools/render-giardino.sh:
-//   render <cartella dei dati> <file.png> <ora> <stagione> [casa|mondo]
+//   render <cartella dei dati> <file.png> <ora> <stagione> [casa|mondo] [compagno:cosa,…]
 // L'ora e la stagione si danno con le preferenze «registrate» (non si scrivono da nessuna parte), e senza movimento (niente vento né particelle).
 import AppKit
 
@@ -26,6 +26,13 @@ struct Render {
         view.effectsClock = { 3 }
         if args.count > 5 && args[5] == "mondo" { view.toggleWorldView() } else { view.resetCamera() }
         view.reload()
+        // facoltativo: «compagno:cosa,compagno:cosa» = i compagni stanno già usando quelle cose (le scene di GardenInteractions)
+        if args.count > 6 {
+            for pair in args[6].split(separator: ",") {
+                let parts = pair.split(separator: ":").map(String.init)
+                if parts.count == 2 { view.showInteraction(pet: parts[0], item: parts[1]) }
+            }
+        }
         let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds)!
         view.cacheDisplay(in: view.bounds, to: rep)
         try! rep.representation(using: .png, properties: [:])!.write(to: URL(fileURLWithPath: out))

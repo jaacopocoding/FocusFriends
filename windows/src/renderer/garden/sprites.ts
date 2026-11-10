@@ -99,7 +99,8 @@ async function axial(base: string, sides: number, arms: number | null): Promise<
   const flat = await sprite(base);
   if (!flat) return null;
   const id = base.slice(base.lastIndexOf("/") + 1);
-  const slope = GARDEN_ITEMS.find((x) => x.id === id)?.slope ?? 0.5;
+  // la pendenza della cosa (anche per la scena di un compagno che la usa: «interazioni/<compagno>-<cosa>»)
+  const slope = GARDEN_ITEMS.find((x) => x.id === id || (base.startsWith("interazioni/") && id.endsWith("-" + x.id)))?.slope ?? 0.5;
   const w = flat.src.w, h = flat.src.h * axialStretch(slope);
   const height = Math.ceil(h + slope * w);
   let result = canvas(w, height);

@@ -447,6 +447,9 @@ of the year, strongest day, best month) and a bar chart of study per week, for a
   two-finger scroll pans, pinch zooms), keys `+ − 0 M R Esc`, right click = native menu from the main process.
 - **Album window.** 980 × 730 (scaled). `renderer/album/book.ts` draws the book on a canvas like `AlbumView` (titles in Amatic SC, bundled as
   `assets/fonts/AmaticSC-Bold.ttf`); `album.ts` animates opening and page turns with snapshots of the book on 3D-rotated elements (Web Animations API).
+- **Companions use things.** `core/gardenInteractions.ts` is `GardenInteractions.swift` (the twenty-four scenes, `interactionCandidates`, `pickInteraction`;
+  checked by the contract); `life.ts` runs the same `startInteraction`/`advanceInteraction` steps, `scene.ts` hides the companion and draws the scene in
+  place of the thing (`sceneEntity`) with its effects; the scenes are packed from `assets/interazioni/`. Live run: `test/vivo/giardino-interazioni.cjs`.
 - **Life on the island.** `renderer/garden/life.ts` keeps what moves (like `GardenView`'s timers): each companion walks tile by tile on its island (`standingTiles`,
   `route`), goes on errands and plays its pose in a formed corner (`poseFrames`, `POSE_DURATION`); a visitor may arrive once per day slot (`attractions`, `arrival`,
   `entryRoute`), stays 70–130 s with a star above, and leaves 25 s after being greeted. Greeting calls `greetGuest` in the main process (`Garden.welcomeGuest`: the

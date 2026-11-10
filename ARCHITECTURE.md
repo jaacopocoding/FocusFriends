@@ -148,6 +148,7 @@ FocusFriends/
 │   ├── CompanionRewards.swift    thresholds for unlocking companions                                    (Foundation only)
 │   ├── Garden.swift              giardino.json v4: objects found, drop counters, unseen/pending gifts, copies on each island (island + tile + turned), the home island, companion tiles, corners, guests, the built bridges and welcomed islands (with the welcome gifts); v1/v2/v3 migration (Foundation only)
 │   ├── GardenCorners.swift       the garden's "corners": which things placed close together make something happen, and which of them the placements form now (Foundation only)
+│   ├── GardenInteractions.swift  a companion using a thing (the cat sleeping in the hammock): the twenty-four scenes drawn with Gemini (six companions × four things), where the thing sits inside each scene, and the deterministic choice of one on the island (Foundation only)
 │   ├── GardenCompanions.swift    what the companions do at a corner: the poses (which frames, how fast, how long), who likes which corner, the standing places around a thing and the shortest walk there (Foundation only)
 │   ├── GardenVisitors.swift      the animal guests: who can come at which hour and season, what attracts each (a thing on the island, or a corner for the two rare ones), the entry route (Foundation only)
 │   ├── GardenSky.swift           the garden's sky: light by hour and season (`GardenSky.light`), lamps and fireflies, the motion of petals, leaves, snow and fireflies (Foundation only)
@@ -698,6 +699,13 @@ code. All UI code runs on the main thread; the only other thread is the audio re
   houses, butterflies on the meadow (not in winter), mist by day and fireflies in the evening in the wood (`GardenSky.cornerFirefly`, none in winter), confetti
   from the bunting (which also sways 1.7× as much), rose petals and a pink glow at night under the arch; the reading corner's lamp is lit 1.45× wider. The
   motion is `GardenSky.drift(index:time:period:)` (falling or rising things) and `butterfly`, pure functions of time. The effects stop with Reduce Motion.
+  **The companions use things** (`GardenInteractions.swift`, pure and tested, the same table in `windows/src/core/gardenInteractions.ts`; behaviour in
+  `startInteraction`/`advanceInteraction`): each interaction is one picture, the thing with the companion in it (`assets/interazioni/<pet>-<item>.png`, cut by
+  `tools/cutout_interazioni.py` from 2×2 Gemini sheets, which also finds where the thing sits in each scene by matching silhouettes: `scale`, `x`, `y`).
+  After a walk, with no corner errand, a companion idle for 15 s has a 35 % chance to pick one of `candidates(…)` (its things on the island, reachable,
+  not the last one); it walks next to it, disappears, and `sceneEntity` draws the scene in place of the thing (laid so that the thing stays where it was;
+  `amaca` and `altalena` go through the same slanted drawing, their scenes being cut on the thing's box) for 12–20 s (20–35 s asleep, with rising «z»;
+  the bird bath and the watering can splash), then it reappears beside it. `showInteraction(pet:item:)` is for the benches.
   **The companions at the corners** (`GardenCompanions.swift`, pure and tested; behaviour in `advanceWalkers`): `GardenCompanions.affinities` says who likes which
   corner and what they do there (the cat sleeps at hers and in the salotto and grooms at the reading corner, the guinea pig eats in the vegetable patch and at the picnic and hops at her house
   and at the party, the budgie flaps his wings at the bird bath, at the party and at the wind music; Pianty has no poses). The poses are the frames the desktop companions already

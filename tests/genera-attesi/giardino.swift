@@ -231,6 +231,28 @@ private func companionsJSON() -> [String: Any] {
     ]
 }
 
+/// I compagni che usano le cose (`GardenInteractions`): la tabella e quali sceglierebbero, da alcuni punti delle copie di prova.
+private func interactionsJSON() -> [String: Any] {
+    let table = GardenInteractions.all.map { ["compagno": $0.pet, "oggetto": $0.item, "effetto": $0.effect.rawValue, "scala": $0.scale, "x": $0.x, "y": $0.y,
+                                               "immagine": $0.resource, "durata": [$0.duration.lowerBound, $0.duration.upperBound]] as [String: Any] }
+    let all = samplePlacements() + [("cesto-cuscino", 8, 4), ("tunnel", 5, 6), ("casetta-uccelli", 3, 6)].enumerated().map {
+        GardenPlacement(id: fixedUUID(300 + $0.offset), item: $0.element.0, tile: GardenTile(col: $0.element.1, row: $0.element.2), turned: false)
+    }
+    let occupied = Set(all.flatMap { p in GardenLayout.tiles(of: GardenCatalog.item(withID: p.item)!.footprint.applying(turned: p.turned), at: p.tile) })
+    var scenes: [Any] = []
+    for pet in ["gattino", "porcellino", "ciccio", "riccio"] {
+        for from in [GardenTile(col: 5, row: 5), GardenTile(col: 0, row: 0), GardenTile(col: 9, row: 0), GardenTile(col: 3, row: 3)] {
+            for last in [nil, fixedUUID(102)] {
+                let found = GardenInteractions.candidates(pet: pet, placements: all, from: from, size: 10, occupied: occupied, last: last)
+                let index = { (c: GardenInteractions.Candidate) in all.firstIndex { $0.id == c.placement.id }! }
+                scenes.append(["scelte": found.map { [index($0), $0.route.map(tileJSON)] as [Any] },
+                               "sorteggi": [0, 0.3, 0.6, 0.9, 0.999].map { opt(GardenInteractions.pick(found, value: $0).map(index)) }])
+            }
+        }
+    }
+    return ["tabella": table, "scene": scenes]
+}
+
 private func visitorsJSON() -> [String: Any] {
     let all = samplePlacements()
     let formed = GardenCorners.formed(by: all)
@@ -354,7 +376,7 @@ func gardenStepsJSON() throws -> [String: Any] {
 func gardenSyntheticJSON() throws -> [String: Any] {
     [
         "catalogo": catalogJSON(), "regali": dropsJSON(), "griglia": gardenGridJSON(), "terreno": terrainJSON(), "mondo": worldJSON(),
-        "cielo": skyJSON(), "angoli": cornersJSON(), "compagni": companionsJSON(), "ospiti": visitorsJSON(), "giardino": try gardenStepsJSON(),
+        "cielo": skyJSON(), "angoli": cornersJSON(), "compagni": companionsJSON(), "interazioni": interactionsJSON(), "ospiti": visitorsJSON(), "giardino": try gardenStepsJSON(),
     ]
 }
 

@@ -8,6 +8,6 @@ swiftc -O -o build/fixtures/genera-attesi \
     Sources/FocusFriends/SessionLog.swift Sources/FocusFriends/Profile.swift Sources/FocusFriends/GardenCatalog.swift \
     Sources/FocusFriends/Garden.swift Sources/FocusFriends/GardenPoints.swift Sources/FocusFriends/CompanionRewards.swift \
     Sources/FocusFriends/ToDo.swift Sources/FocusFriends/Remarks.swift Sources/FocusFriends/YearStats.swift Sources/FocusFriends/GardenDrops.swift Sources/FocusFriends/GardenGrid.swift Sources/FocusFriends/GardenCorners.swift \
-    Sources/FocusFriends/GardenSky.swift Sources/FocusFriends/GardenCompanions.swift Sources/FocusFriends/GardenVisitors.swift \
+    Sources/FocusFriends/GardenSky.swift Sources/FocusFriends/GardenCompanions.swift Sources/FocusFriends/GardenInteractions.swift Sources/FocusFriends/GardenVisitors.swift \
     tests/genera-attesi/main.swift tests/genera-attesi/giardino.swift
 build/fixtures/genera-attesi tests/fixtures tests/fixtures/attesi

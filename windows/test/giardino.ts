@@ -30,6 +30,7 @@ import {
 import type { GardenParticleKind } from "../src/core/gardenSky.ts";
 import { arrival, daySlotOf, entryRoute, GARDEN_VISITORS, isRareVisitor, reasonText, visitorCame, visitorImage } from "../src/core/gardenVisitors.ts";
 import type { GardenDaySlot } from "../src/core/gardenVisitors.ts";
+import { GARDEN_INTERACTIONS, interactionCandidates, interactionDuration, interactionImage, pickInteraction } from "../src/core/gardenInteractions.ts";
 import type { StudySession } from "../src/core/log.ts";
 import { DAY_MS, dayString } from "../src/core/time.ts";
 
@@ -237,6 +238,30 @@ function companionsJson(): Record<string, unknown> {
   };
 }
 
+/** I compagni che usano le cose: la tabella e quali sceglierebbero (come `interactionsJSON` nel generatore del Mac). */
+function interactionsJson(): Record<string, unknown> {
+  const tabella = GARDEN_INTERACTIONS.map((i) => ({
+    compagno: i.pet, oggetto: i.item, effetto: i.effect, scala: i.scale, x: i.x, y: i.y, immagine: interactionImage(i).replace("/", "_"), durata: interactionDuration(i),
+  }));
+  const extra: Array<[string, number, number]> = [["cesto-cuscino", 8, 4], ["tunnel", 5, 6], ["casetta-uccelli", 3, 6]];
+  const all = [...samplePlacements(), ...extra.map(([item, col, row], index) => ({ id: fixedId(300 + index), item, island: "", col, row, turned: false }))];
+  const occupied = occupiedTiles(all);
+  const scene = [];
+  for (const pet of ["gattino", "porcellino", "ciccio", "riccio"]) {
+    for (const from of [tile(5, 5), tile(0, 0), tile(9, 0), tile(3, 3)]) {
+      for (const last of [null, fixedId(102)]) {
+        const found = interactionCandidates(pet, all, from, 10, occupied, last);
+        const index = (c: { placement: GardenPlacement }) => all.findIndex((p) => p.id === c.placement.id);
+        scene.push({
+          scelte: found.map((c) => [index(c), c.route.map(t)]),
+          sorteggi: [0, 0.3, 0.6, 0.9, 0.999].map((v) => { const c = pickInteraction(found, v); return c === null ? null : index(c); }),
+        });
+      }
+    }
+  }
+  return { tabella, scene };
+}
+
 function visitorsJson(): Record<string, unknown> {
   const all = samplePlacements();
   const formed = formedCorners(all);
@@ -345,7 +370,7 @@ function gardenStepsJson(): Record<string, unknown> {
 export function gardenSyntheticJson(): Record<string, unknown> {
   return {
     catalogo: catalogJson(), regali: dropsJson(), griglia: gridJson(), terreno: terrainJson(), mondo: worldJson(),
-    cielo: skyJson(), angoli: cornersJson(), compagni: companionsJson(), ospiti: visitorsJson(), giardino: gardenStepsJson(),
+    cielo: skyJson(), angoli: cornersJson(), compagni: companionsJson(), interazioni: interactionsJson(), ospiti: visitorsJson(), giardino: gardenStepsJson(),
   };
 }
 

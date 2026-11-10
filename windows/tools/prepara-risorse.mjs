@@ -22,7 +22,7 @@ for (const pet of pets) {
 // il giardino: le immagini del paesaggio, delle isole e degli oggetti, e l'album (senza i fogli originali, i pezzi con cui si è composto il paesaggio,
 // il vecchio prato e le strisce del bordo di terra: con la collina sotto le isole non servono)
 const unused = /(_original|^paesaggio_.*|^prato|^bordo_.*)\.png$/;
-for (const folder of ["giardino", "album"]) {
+for (const folder of ["giardino", "album", "interazioni"]) {
   for (const name of readdirSync(join(assets, folder))) if (name.endsWith(".png") && !unused.test(name)) wanted.add(`${folder}/${name}`);
 }
 // il carattere dei titoli dell'album, con la sua licenza
