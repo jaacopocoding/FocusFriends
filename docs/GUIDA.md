@@ -64,7 +64,7 @@ inganna: così a fine settimana vedi anche *quando* rendi meglio.
 </p>
 
 **Statistiche**: un riepilogo calmo (il totale in grande, le materie in una barra, i giorni di fila e «Com'è andata»)
-e, da «Mostra le sessioni», una tendina sotto il riepilogo con la nota e la faccia di ogni focus.
+e, per un giorno, subito sotto le sessioni con la nota e la faccia di ogni focus (per la settimana e il mese le apre «Mostra le sessioni»).
 
 <p align="center">
   <img src="images/statistiche-settimana.png" width="360" alt="Statistiche della settimana">
@@ -315,12 +315,16 @@ un file di una versione precedente si legge e si riscrive nel nuovo, tenendo int
 
 *Statistiche e riepilogo…* apre una finestra (`DashboardWindow.swift`) con quattro schede: **Oggi**, **Settimana**
 (da lunedì), **Mese** e **Anno**. Con le frecce si va ai periodi precedenti. Il **riepilogo** è fatto per essere calmo:
-il totale di studio in grande, quanti focus (completi e interrotti), le barre sottili dei giorni (settimana e mese),
-una sola barra a segmenti con le materie e la sua legenda, i giorni di fila e come è andata (con le frasi su
-quando rendi meglio, se ci sono dati sufficienti). Sotto, **Mostra le sessioni** apre una **tendina nella stessa
-pagina** (il riepilogo resta sopra): per un giorno, una striscia con un blocco colorato per ogni focus sulle ore e
-l'elenco con ora, materia, nota, faccia e durata; per una settimana o un mese, le sessioni sotto il loro giorno (con il
-totale del giorno). La finestra resta della stessa altezza: la pagina scorre con la rotella. Toccando una sessione si
+il totale di studio in grande, quanti focus (completi e interrotti), per la settimana e il mese **l'andamento per giorno**,
+come quello dell'anno: il massimo in un giorno, le materie da scegliere (*Tutte* e le più studiate del periodo: scelta una,
+le barre sono solo sue, del suo colore) e una barra per giorno (i giorni che devono ancora venire non ce l'hanno: passandoci
+sopra si legge il giorno, «Martedì 10 novembre · 2 h 20 · 3 focus», e cliccandola si apre in *Oggi*), una sola barra a segmenti con le materie e la sua legenda, e su una riga i giorni di fila
+e le facce di come è andata. Sotto, le frasi su quando rendi meglio **in quel periodo**, se ci sono dati sufficienti
+(almeno 8 focus con un voto), e **solo in positivo** («Rendi meglio di mattina: 9 focus su 11 sono andati bene.»): dove
+va peggio non si dice. Per un giorno solo la frase è più semplice, la materia con più «bene» («Con Anatomia è andata bene.»).
+Per un giorno, sotto il riepilogo ci sono **subito le sessioni**: una striscia con un blocco colorato per ogni focus sulle
+ore e l'elenco con ora, materia, nota, faccia e durata. Per una settimana o un mese, **Mostra le sessioni** apre una
+tendina nella stessa pagina con le sessioni sotto il loro giorno (con il totale del giorno). La finestra resta della stessa altezza: la pagina scorre con la rotella. Toccando una sessione si
 cambia la materia, la nota, le note del focus e il voto, o la si elimina; *Esporta CSV…* salva tutte le sessioni per un foglio di
 calcolo. I dati restano sul Mac: nessun invio da nessuna parte.
 

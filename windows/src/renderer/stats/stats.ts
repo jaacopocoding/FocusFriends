@@ -1,15 +1,16 @@
 // La finestra delle statistiche (DashboardView in DashboardWindow.swift). Il riepilogo è calmo: un grande numero, una barra con le
-// materie, i giorni di fila e come è andata. «Mostra le sessioni» apre il diario: le sessioni una per una, con la nota e la faccia.
+// materie, i giorni di fila e come è andata. Per un giorno sotto ci sono subito le sessioni, una per una, con la nota e la faccia;
+// per la settimana e il mese le apre «Mostra le sessioni».
 
 import { subjectColor } from "../../core/colors.ts";
 import { subjectKey } from "../../core/text.ts";
 import {
-  RATING_ORDER, canGoNext, chartLabel, dayText, diaryEntries, focusNotesLine, monthLabel, periodTitle, secondaryLine, sessionHeading, streakLabel,
+  RATING_ORDER, canGoNext, chartLabel, dayText, dayTrendCaption, diaryEntries, focusNotesLine, monthLabel, periodTitle, secondaryLine, sessionHeading, streakLabel,
   subjectRows, subtitle, trendCaption, weekText, yearTiles,
 } from "../../core/dashboard.ts";
 import type { DiaryEntry, SubjectRow } from "../../core/dashboard.ts";
 import type { Rating, StudySession } from "../../core/log.ts";
-import { analyzeStreak, duration, insights, periodContaining, shiftedPeriod, startTime, summarize } from "../../core/stats.ts";
+import { analyzeStreak, dayInsight, duration, insights, periodContaining, shiftedPeriod, startTime, summarize } from "../../core/stats.ts";
 import type { Period, PeriodKind, Summary } from "../../core/stats.ts";
 import { startOfDay, wallOf } from "../../core/time.ts";
 import { cellOf, columnsOf, highlights, monthStarts, showsTrend, trendSubjects, weeklyTrend, yearDays } from "../../core/yearStats.ts";
@@ -107,12 +108,17 @@ function render(resetScroll: boolean): void {
     if (kind !== "day") page.append(miniChart(summary, wall));
     const rows = subjectRows(summary);
     page.append(subjectBar(rows), legend(rows));
-    if (streak.days > 0) page.append(streakLine(streak.days, streak.isFrozen));
-    if (summary.ratingCounts.good !== undefined || summary.ratingCounts.soso !== undefined || summary.ratingCounts.poor !== undefined) page.append(ratings(summary));
-    const lines = insights(sessions, undefined);
+    const rated = summary.ratingCounts.good !== undefined || summary.ratingCounts.soso !== undefined || summary.ratingCounts.poor !== undefined;
+    if (streak.days > 0 || rated) {
+      page.append(h("div", { class: "status" }, streak.days > 0 ? streakLine(streak.days, streak.isFrozen) : null, rated ? ratings(summary) : null));
+    }
+    // i consigli dal periodo che si guarda, solo in positivo; per un giorno, la materia andata bene
+    const lines = kind === "day" ? [dayInsight(summary.sessions, undefined)].filter((line): line is string => line !== null) : insights(summary.sessions, undefined);
     if (lines.length > 0) page.append(h("div", { class: "insights" }, ...lines.map((line) => h("div", {}, line))));
   }
-  if (summary.sessions.length > 0 && kind !== "year") {
+  if (summary.sessions.length > 0 && kind === "day") {
+    page.append(diary(summary));
+  } else if (summary.sessions.length > 0 && kind !== "year") {
     const toggle = button("diary-toggle", showsDiary ? "Nascondi le sessioni" : "Mostra le sessioni", () => {
       showsDiary = !showsDiary;
       render(false);
@@ -125,18 +131,59 @@ function render(resetScroll: boolean): void {
   page.scrollTop = resetScroll ? 0 : scroll;
 }
 
-/** Le barre sottili, una per giorno: niente numeri, solo la forma della settimana o del mese. */
+/** Le materie dell'andamento: «Tutte» e le più studiate del periodo; la scelta resta in `trendSubject` e ridisegna la pagina. */
+function trendChips(names: string[]): HTMLElement | null {
+  if (names.length === 0) return null;
+  return h("div", { class: "trend-chips", role: "group", "aria-label": "Materia" },
+    ...[null, ...names].map((name) => {
+      const on = name === trendSubject;
+      const chip = button(`trend-chip${on ? " on" : ""}`, name ?? "Tutte le materie", () => { trendSubject = name; render(false); }, name ?? "Tutte");
+      chip.setAttribute("aria-pressed", String(on));
+      if (on) chip.style.background = name === null ? "var(--accent)" : subjectColor(name);
+      return chip;
+    }));
+}
+
+/** La materia scelta, se è ancora tra quelle da scegliere (scritta come nella lista); altrimenti tutte. */
+function chosenSubject(names: string[]): string | null {
+  if (trendSubject === null) return null;
+  const chosen = subjectKey(trendSubject);
+  return names.find((name) => subjectKey(name) === chosen) ?? null;
+}
+
+/** L'andamento per giorno della settimana o del mese, come quello dell'anno: il titolo e il massimo, le materie, una barra per giorno (della
+ *  materia scelta, del suo colore). I giorni che devono ancora venire non hanno la barra. Passandoci sopra si legge il giorno (nella riga
+ *  sotto), cliccandola si apre. */
 function miniChart(summary: Summary, wall: number): HTMLElement {
-  const maxSeconds = Math.max(...summary.buckets.map((b) => b.seconds), 1);
+  const names = trendSubjects(summary);
+  trendSubject = chosenSubject(names);
+  const days = yearDays(sessions, period, undefined, trendSubject);
+  const most = Math.max(0, ...days.map((d) => d.seconds));
+  const color = trendSubject === null ? "var(--accent)" : subjectColor(trendSubject);
   const today = startOfDay(wall);
+  const tip = h("div", { class: "chart-tip", "aria-live": "polite" }, DEFAULT_TIP);
+  const setTip = (text: string): void => { tip.textContent = text; tip.classList.toggle("hover", text !== DEFAULT_TIP); };
   const chart = h("div", { class: `chart ${kind}`, role: "img", "aria-label": "Ore di studio per giorno" });
-  for (const bucket of summary.buckets) {
-    const bar = h("div", { class: `bar${bucket.seconds === 0 ? " none" : ""}${startOfDay(bucket.start) === today ? " today" : ""}` });
-    bar.style.height = `${bucket.seconds === 0 ? 3 : Math.max((bucket.seconds / maxSeconds) * 56, 5)}px`;
-    const label = chartLabel(kind, bucket.start);
-    chart.append(h("div", { class: "slot" }, h("div", { class: "bar-area" }, bar), h("div", { class: "bar-label" }, label)));
+  chart.style.setProperty("--bar", color);
+  for (const day of days) {
+    const future = day.start > today;
+    const area = h("div", { class: "bar-area" });
+    if (!future) {
+      const bar = h("div", { class: `bar${day.seconds === 0 ? " none" : ""}${day.start === today ? " today" : ""}` });
+      bar.style.height = `${day.seconds === 0 ? 3 : Math.max((day.seconds / Math.max(most, 1)) * 80, 5)}px`;
+      area.append(bar);
+    }
+    const slot = h("div", { class: `slot${future ? " future" : ""}` }, area, h("div", { class: "bar-label" }, chartLabel(kind, day.start)));
+    if (!future) {
+      slot.addEventListener("mouseenter", () => setTip(dayText(day)));
+      slot.addEventListener("mouseleave", () => setTip(DEFAULT_TIP));
+      slot.addEventListener("click", () => openDay(day.start));
+    }
+    chart.append(slot);
   }
-  return chart;
+  return h("div", { class: "trend day-trend" },
+    h("div", { class: "trend-head" }, h("span", { class: "trend-title" }, "Andamento per giorno"), h("span", { class: "trend-caption" }, dayTrendCaption(most))),
+    trendChips(names), chart, tip);
 }
 
 /** Una sola barra, a segmenti, con le materie del periodo. */
@@ -159,16 +206,18 @@ function legend(rows: SubjectRow[]): HTMLElement {
   }));
 }
 
+/** I giorni di fila (la fiamma, o il fiocco se la serie è ghiacciata); sta sulla stessa riga delle facce. */
 function streakLine(days: number, frozen: boolean): HTMLElement {
   const line = h("div", { class: `streak${frozen ? " frozen" : ""}` }, icon(frozen ? "snowflake" : "flame", 15), streakLabel(days, frozen));
   return line;
 }
 
-/** Quante volte bene, così così, poca testa nel periodo. */
+/** Quante volte bene, così così, poca testa nel periodo: la faccia e il numero. */
 function ratings(summary: Summary): HTMLElement {
   return h("div", { class: "ratings" }, ...RATING_ORDER.map((rating) => {
     const count = summary.ratingCounts[rating] ?? 0;
-    return h("span", { class: `rating${count > 0 ? "" : " zero"}` }, faceIcon(rating, 20), `${RATING_TITLE[rating]} ${count}`);
+    const item = h("span", { class: `rating${count > 0 ? "" : " zero"}`, "aria-label": `${RATING_TITLE[rating]} ${count}` }, faceIcon(rating, 20), String(count));
+    return item;
   }));
 }
 
@@ -233,21 +282,11 @@ function yearView(wall: number): HTMLElement[] {
   const all = weeklyTrend(sessions, period, null, through, undefined);
   if (showsTrend(all)) {
     const names = trendSubjects(summarize(sessions, period, undefined));
-    if (trendSubject !== null) {
-      const chosen = subjectKey(trendSubject);
-      trendSubject = names.find((name) => subjectKey(name) === chosen) ?? null;
-    }
+    trendSubject = chosenSubject(names);
     const weeks = trendSubject === null ? all : weeklyTrend(sessions, period, trendSubject, through, undefined);
     const most = Math.max(0, ...weeks.map((week) => week.seconds));
     const color = trendSubject === null ? "var(--accent)" : subjectColor(trendSubject);
-    const chips = names.length === 0 ? null : h("div", { class: "trend-chips", role: "group", "aria-label": "Materia" },
-      ...[null, ...names].map((name) => {
-        const on = name === trendSubject;
-        const chip = button(`trend-chip${on ? " on" : ""}`, name ?? "Tutte le materie", () => { trendSubject = name; render(false); }, name ?? "Tutte");
-        chip.setAttribute("aria-pressed", String(on));
-        if (on) chip.style.background = name === null ? "var(--accent)" : subjectColor(name);
-        return chip;
-      }));
+    const chips = trendChips(names);
     const bars = h("div", { class: "trend-bars", role: "img", "aria-label": "Ore di studio per settimana" });
     weeks.forEach((week) => {
       const bar = h("div", { class: `trend-bar${week.seconds === 0 ? " none" : ""}` });

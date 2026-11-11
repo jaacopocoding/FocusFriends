@@ -21,6 +21,9 @@ per ultima, a 200 focus pieni.
   sua didascalia. Quelle che mancano sono una sagoma, e toccandole l'album ti dice quale cosa serve.
 - **La lepre**: la tartaruga era un ospite e adesso è una compagna, quindi al suo posto arriva la lepre, per la sdraio e il picnic, di giorno, in
   primavera e in estate. Se la tartaruga ti aveva già salutato, la lepre la prima volta ti lascia un regalo nuovo.
+- **Le statistiche**: in «Oggi» le sessioni si vedono subito, senza aprire niente. Nella settimana e nel mese c'è l'andamento per giorno, come quello dell'anno: scegli una materia
+  e vedi solo i suoi giorni; passando sopra un giorno leggi quanto hai studiato, e cliccandolo lo apri. I consigli su quando rendi meglio parlano del periodo che guardi e solo
+  di quello che va bene; per un giorno solo dicono quale materia è andata bene.
 - **Le frasi**: trentasei riscritte, più semplici e meno ripetute fra un compagno e l'altro.
 - **Gli avatar** nel cerchio si vedono per intero, non più solo la testa da vicino, e la scheda di benvenuto si allarga per i sei compagni.
 

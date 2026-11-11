@@ -1,4 +1,4 @@
-// Le statistiche: periodi, modifica di una sessione, esporta CSV, elimina, cancella tutto.
+// Le statistiche: periodi, l'andamento del mese (sopra, clic, una materia), le sessioni di oggi già aperte, modifica di una sessione, esporta CSV, elimina, cancella tutto.
 const fs = require("fs");
 module.exports = async ({ js, sleep, timer, stats, settings }) => {
   const svc = timer();
@@ -32,11 +32,26 @@ module.exports = async ({ js, sleep, timer, stats, settings }) => {
   await cap("stats-settimana");
   await run("document.querySelector('.tab[data-kind=\"month\"]').click()"); await sleep(400);
   await cap("stats-mese");
+  // le barre del mese: passando sopra un giorno passato si legge, cliccandolo si apre in «Oggi»
+  const slots = await run("document.querySelectorAll('.chart .slot').length + ' giorni, ' + document.querySelectorAll('.chart .slot.future').length + ' da venire, ' + document.querySelectorAll('.chart .bar').length + ' barre'");
+  console.log("mese:", slots);
+  await run("(() => { const s = [...document.querySelectorAll('.chart .slot:not(.future)')]; s[s.length - 2].dispatchEvent(new MouseEvent('mouseenter')); })()"); await sleep(200);
+  console.log("sopra un giorno:", await run("document.querySelector('.chart-tip').textContent"));
+  await cap("stats-mese-sopra");
+  // l'andamento di una materia sola: le barre del suo colore, il massimo suo
+  const captionBefore = await run("document.querySelector('.day-trend .trend-caption').textContent");
+  await run("document.querySelectorAll('.day-trend .trend-chip')[1].click()"); await sleep(300);
+  console.log("materia:", await run("document.querySelector('.day-trend .trend-chip.on').textContent"), "·", captionBefore, "→", await run("document.querySelector('.day-trend .trend-caption').textContent"));
+  await cap("stats-mese-materia");
+  await run("document.querySelectorAll('.day-trend .trend-chip')[0].click()"); await sleep(300);
+  await run("(() => { const s = [...document.querySelectorAll('.chart .slot:not(.future)')]; s[s.length - 2].click(); })()"); await sleep(400);
+  console.log("dopo il clic:", await run("document.querySelector('.tab.on').textContent + ' · ' + document.querySelector('.period-title').textContent + ' · sessioni aperte: ' + (document.querySelector('.diary') !== null)"));
   await run("document.querySelector('.tab[data-kind=\"week\"]').click()"); await sleep(300);
   await run("document.querySelector('.diary-toggle').click()"); await sleep(500);
   await cap("stats-diario-settimana");
-  await run("document.querySelector('.tab[data-kind=\"day\"]').click()"); await sleep(300);
-  await run("document.querySelector('.diary-toggle').click()"); await sleep(500);
+  await run("document.querySelector('.tab[data-kind=\"day\"]').click()"); await sleep(500);
+  console.log("oggi: sessioni già aperte?", await run("document.querySelector('.diary') !== null && document.querySelector('.diary-toggle') === null"),
+    "· consiglio:", await run("document.querySelector('.insights')?.textContent ?? '(nessuno)'"));
   await cap("stats-diario-giorno");
   // modifica di una sessione
   await run("document.querySelector('.session').click()"); await sleep(400);

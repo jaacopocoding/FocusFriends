@@ -4,7 +4,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import type { StudySession } from "../src/core/log.ts";
-import { dayText, monthLabel, periodTitle, trendCaption, weekText, yearTiles } from "../src/core/dashboard.ts";
+import { dayText, dayTrendCaption, monthLabel, periodTitle, trendCaption, weekText, yearTiles } from "../src/core/dashboard.ts";
 import { periodContaining, shiftedPeriod, summarize } from "../src/core/stats.ts";
 import { cellOf, columnsOf, highlights, level, monthStarts, showsTrend, trendSubjects, weeklyTrend, yearDays } from "../src/core/yearStats.ts";
 import { date, session, wall, ZONE } from "./util.ts";
@@ -56,6 +56,13 @@ describe("I giorni della mappa", () => {
     assert.equal(days.find((day) => day.start === wall(2026, 1, 2))!.level, 1);
     assert.equal(days.find((day) => day.start === wall(2026, 1, 3))!.level, 0);
     assert.equal(days.reduce((total, day) => total + day.seconds, 0), 1800 + 3000 + 600 + 1500 + 7200 + 1000 + 900, "il 31 dicembre dell'anno prima non conta");
+  });
+
+  it("i giorni di una materia sola (le scritture diverse insieme)", () => {
+    const days = yearDays(sessions, year2026, ZONE, "CHIMICA");
+    assert.equal(days.length, 365);
+    assert.equal(days.reduce((total, day) => total + day.seconds, 0), 8200);
+    assert.equal(days.reduce((total, day) => total + day.focusCount, 0), 2);
   });
 
   it("i tre numeri: giorni, serie, giorno più forte, mese migliore", () => {
@@ -148,6 +155,7 @@ describe("I testi della scheda «Anno»", () => {
   it("passando sopra una barra e la didascalia", () => {
     assert.equal(weekText({ start: wall(2026, 6, 29), seconds: 34_500 }), "Settimana del 29 giu · 9 h 35");
     assert.equal(trendCaption(55_800), "al massimo 15 h 30 in una settimana");
+    assert.equal(dayTrendCaption(8400), "al massimo 2 h 20 in un giorno");
   });
 
   it("le tre caselle, e senza studio la sola serie", () => {

@@ -423,6 +423,12 @@ for i in 0..<4 { many.append(rated(5 + i, 21, i % 2 == 0 ? "Anatomia" : "Chimica
 let found = StudyStats.insights(sessions: many, calendar: cal)
 check(!found.isEmpty && found.count <= 2, "con abbastanza voti compare una frase (\(found))")
 check(found.contains(where: { $0.contains("di mattina") && $0.contains("4 focus su 4") }), "la mattina è la fascia migliore, con i conteggi (\(found))")
+check(!found.contains(where: { $0.contains("Rendi meno") || $0.contains("fatica") }), "solo in positivo: la sera non si cita (\(found))")
+// il giorno: la materia con più «bene», a pari merito quella cominciata prima
+let dayGood = [rated(12, 9, "Anatomia", .good), rated(12, 11, "Chimica", .good), rated(12, 15, "Chimica", .good), rated(12, 17, "Anatomia", .poor)]
+check(StudyStats.dayInsight(sessions: dayGood, calendar: cal) == "Con Chimica è andata bene.", "giorno: la materia con più «bene»")
+check(StudyStats.dayInsight(sessions: Array(dayGood.prefix(2)), calendar: cal) == "Con Anatomia è andata bene.", "giorno: a pari merito, la prima")
+check(StudyStats.dayInsight(sessions: [rated(12, 9, "Anatomia", .poor), rated(12, 10, "Anatomia", .soso)], calendar: cal) == nil, "giorno: senza «bene», niente")
 // tutto uguale: niente da dire
 var flat: [StudySession] = []
 for i in 0..<10 { flat.append(rated(5 + i % 5, (i / 2) % 2 == 0 ? 9 : 16, "Anatomia", i % 2 == 0 ? .good : .poor)) }
@@ -2313,6 +2319,9 @@ let yrOct12 = yrDays.first { $0.start == date(2026, 10, 12) }
 check(yrOct12 == YearStats.Day(start: date(2026, 10, 12), seconds: 4800, focusCount: 2, level: 2), "un giorno con due focus: 80 minuti, livello 2 (\(String(describing: yrOct12)))")
 check(yrDays.first { $0.start == date(2026, 1, 2) }?.level == 1 && yrDays.first { $0.start == date(2026, 1, 3) }?.level == 0, "un focus breve è il livello 1; senza studio è 0")
 check(yrDays.reduce(0) { $0 + $1.seconds } == 1800 + 3000 + 600 + 1500 + 7200 + 1000 + 900, "una sessione del 31 dicembre dell'anno prima non conta")
+let chemDays = YearStats.days(sessions: yrSessions, period: yr2026, subject: "CHIMICA", calendar: cal)
+check(chemDays.count == 365 && chemDays.reduce(0) { $0 + $1.seconds } == 8200 && chemDays.reduce(0) { $0 + $1.focusCount } == 2,
+      "i giorni di una materia sola (le scritture diverse insieme)")
 
 // la griglia: una colonna per settimana (da lunedì), una riga per giorno
 check(YearStats.cell(of: date(2026, 1, 1), in: yr2026, calendar: cal) == (0, 3) && YearStats.cell(of: date(2026, 1, 5), in: yr2026, calendar: cal) == (1, 0),
@@ -2357,6 +2366,7 @@ check(YearStats.dayText(YearStats.Day(start: date(2026, 10, 14), seconds: 7800, 
 check(YearStats.dayText(YearStats.Day(start: date(2026, 10, 14), seconds: 1500, focusCount: 1, level: 1), calendar: cal) == "Mercoledì 14 ottobre · 25 min · 1 focus", "un focus solo")
 check(YearStats.weekText(StudyBucket(start: date(2026, 6, 29), seconds: 34_500), calendar: cal) == "Settimana del 29 giu · 9 h 35", "il testo di una settimana")
 check(YearStats.trendCaption(maxSeconds: 55_800) == "al massimo 15 h 30 in una settimana", "la didascalia dell'andamento")
+check(YearStats.dayTrendCaption(maxSeconds: 8400) == "al massimo 2 h 20 in un giorno", "la didascalia dell'andamento per giorno")
 check(YearStats.tiles(yrHighlights, calendar: cal) == [YearStats.Tile(value: "3 giorni", caption: "la serie più lunga"),
                                                        YearStats.Tile(value: "2 h", caption: "il giorno più forte · 3 mar"),
                                                        YearStats.Tile(value: "Marzo", caption: "il mese migliore · 2 h 17")],

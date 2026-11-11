@@ -10,7 +10,7 @@ import type { StudySession } from "../src/core/log.ts";
 import { Profile } from "../src/core/profile.ts";
 import { csv } from "../src/core/csv.ts";
 import { DAY_MS, dayString, localString, wallOf } from "../src/core/time.ts";
-import { analyzeStreak, insights, periodContaining, summarize } from "../src/core/stats.ts";
+import { analyzeStreak, dayInsight, insights, periodContaining, summarize } from "../src/core/stats.ts";
 import type { PeriodKind, Summary } from "../src/core/stats.ts";
 import { balance, earnedPoints, multiplierToday, pointsForWeightedMinutes, progressToNextPoint, weightedMinutes } from "../src/core/points.ts";
 import { earned, focuses } from "../src/core/rewards.ts";
@@ -255,6 +255,7 @@ export function derive(fixtures: string, name: string): Record<string, unknown> 
           "verso il prossimo": round(progressToNextPoint(weighted)), valoreMinutoOggi: multiplierToday(streak),
         };
         stats["frasi"] = insights(sessions, ZONE);
+        stats["fraseGiorno"] = dayInsight(sessions, ZONE);
         stats["csv"] = csv(sessions);
         // le figurine che il registro avrebbe dato, da un album appena cominciato
         stats["figurine"] = simulate(sessions, NOW, ZONE).map((x) => (x.drop === null ? null : [x.drop.item, RARITY_TITLES[x.drop.rarity]]));

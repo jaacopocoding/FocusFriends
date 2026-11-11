@@ -244,6 +244,7 @@ for entry in try fm.contentsOfDirectory(atPath: fixtures.path).sorted() {
                               "verso il prossimo": r(GardenPoints.progressToNextPoint(weightedMinutes: weighted)),
                               "valoreMinutoOggi": GardenPoints.multiplierToday(streak)] as [String: Any]
             stats["frasi"] = StudyStats.insights(sessions: sessions, calendar: cal)
+            stats["fraseGiorno"] = opt(StudyStats.dayInsight(sessions: sessions, calendar: cal))
             stats["csv"] = SessionCSV.csv(for: sessions)
             // le figurine che il registro avrebbe dato, da un album appena cominciato (GardenDrops.simulate)
             stats["figurine"] = GardenDrops.simulate(sessions: sessions, now: now, calendar: cal).map { opt($0.drop.map { [$0.item, $0.rarity.title] }) }

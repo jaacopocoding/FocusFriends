@@ -32,13 +32,16 @@ export interface YearDay {
   level: number;
 }
 
-/** Un elemento per ogni giorno del periodo (anche senza studio), in ordine. Una sessione va al giorno in cui è iniziata. */
-export function yearDays(sessions: readonly StudySession[], period: Period, zone?: string): YearDay[] {
+/** Un elemento per ogni giorno del periodo (anche senza studio), in ordine. Una sessione va al giorno in cui è iniziata. Con `subject`, solo
+ *  le sessioni di quella materia (le scritture diverse della stessa materia contano insieme). */
+export function yearDays(sessions: readonly StudySession[], period: Period, zone?: string, subject: string | null = null): YearDay[] {
   const seconds = new Map<Wall, number>();
   const focus = new Map<Wall, number>();
+  const key = subject === null ? null : subjectKey(subject);
   for (const session of sessions) {
     const at = startTime(session, zone);
     if (at < period.start || at >= period.end) continue;
+    if (key !== null && (session.subject === undefined || subjectKey(session.subject) !== key)) continue;
     const day = startOfDay(at);
     seconds.set(day, (seconds.get(day) ?? 0) + session.seconds);
     focus.set(day, (focus.get(day) ?? 0) + 1);

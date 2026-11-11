@@ -27,12 +27,15 @@ enum YearStats {
     }
 
     /// Un elemento per ogni giorno del periodo (anche senza studio), in ordine. Una sessione va al giorno in cui è iniziata.
-    static func days(sessions: [StudySession], period: StudyPeriod, calendar: Calendar = StudyPeriod.calendar()) -> [Day] {
+    /// Con `subject`, solo le sessioni di quella materia (le scritture diverse della stessa materia contano insieme).
+    static func days(sessions: [StudySession], period: StudyPeriod, subject: String? = nil, calendar: Calendar = StudyPeriod.calendar()) -> [Day] {
         var seconds: [Date: Int] = [:]
         var focus: [Date: Int] = [:]
+        let key = subject.map { Subject.key($0) }
         for s in sessions {
             let t = s.startTime(in: calendar)
             guard period.contains(t) else { continue }
+            if let key, s.subject.map({ Subject.key($0) }) != key { continue }
             let day = calendar.startOfDay(for: t)
             seconds[day, default: 0] += s.seconds
             focus[day, default: 0] += 1
@@ -197,6 +200,11 @@ enum YearStats {
     /// Cosa si legge passando sopra una barra: «Settimana del 29 giu · 9 h 35».
     static func weekText(_ week: StudyBucket, calendar: Calendar = StudyPeriod.calendar()) -> String {
         "Settimana del \(formatted(week.start, "d MMM", calendar)) · \(StudyStats.duration(seconds: week.seconds))"
+    }
+
+    /// Sopra le barre della settimana e del mese, a destra: «al massimo 2 h 20 in un giorno».
+    static func dayTrendCaption(maxSeconds: Int) -> String {
+        "al massimo \(StudyStats.duration(seconds: maxSeconds)) in un giorno"
     }
 
     /// Sopra le barre, a destra: «al massimo 15 h 30 in una settimana».

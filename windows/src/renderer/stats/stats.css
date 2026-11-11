@@ -159,19 +159,51 @@ textarea:focus-visible {
   color: rgba(102, 77, 51, 0.85);
 }
 
+.chart-tip {
+  margin-top: 4px;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--ink-light);
+}
+
+.chart-tip.hover {
+  color: var(--ink);
+}
+
 .chart {
-  margin-top: 24px;
+  margin-top: 12px;
   display: flex;
-  height: 80px;
+  height: 104px;
+}
+
+.day-trend .bar-area {
+  border-bottom: 1px solid rgba(140, 102, 64, 0.6);
 }
 
 .slot {
   flex: 1;
   min-width: 0;
+  cursor: pointer;
+}
+
+.slot.future {
+  cursor: default;
+}
+
+.slot.future .bar-label {
+  opacity: 0.45;
+}
+
+.slot:not(.future):hover .bar {
+  opacity: 1;
+}
+
+.slot:not(.future):hover .bar.none {
+  background: rgba(140, 102, 64, 0.7);
 }
 
 .bar-area {
-  height: 56px;
+  height: 80px;
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -181,16 +213,19 @@ textarea:focus-visible {
   width: 55%;
   max-width: 22px;
   min-width: 3px;
+  margin-bottom: 1px;
   border-radius: 4px;
-  background: rgba(217, 120, 56, 0.55);
+  background: var(--bar, var(--accent));
+  opacity: 0.6;
 }
 
 .bar.today {
-  background: var(--accent);
+  opacity: 1;
 }
 
 .bar.none {
   background: rgba(140, 102, 64, 0.35);
+  opacity: 1;
 }
 
 .bar-label {
@@ -242,8 +277,15 @@ textarea:focus-visible {
   flex: none;
 }
 
-.streak {
+.status {
   margin-top: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+}
+
+.streak {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -261,10 +303,9 @@ textarea:focus-visible {
 }
 
 .ratings {
-  margin-top: 16px;
   display: flex;
   justify-content: center;
-  gap: 16px;
+  gap: 12px;
   font-size: 13px;
 }
 
@@ -304,6 +345,11 @@ textarea:focus-visible {
 
 .diary {
   margin: 10px -12px 0;
+}
+
+.insights + .diary,
+.status + .diary {
+  margin-top: 20px;
 }
 
 .strip {

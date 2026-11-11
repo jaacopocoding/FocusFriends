@@ -2,7 +2,7 @@
 
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { analyzeStreak, dayLine, duration, encouragement, insights, periodContaining, secondsOnDayOf, shiftedPeriod,
+import { analyzeStreak, dayInsight, dayLine, duration, encouragement, insights, periodContaining, secondsOnDayOf, shiftedPeriod,
   periodContains, startTime, summarize } from "../src/core/stats.ts";
 import type { PeriodKind, StreakResult } from "../src/core/stats.ts";
 import { balance, earnedPoints, multiplierForStreak, multiplierToday, progressToNextPoint, weightedMinutes } from "../src/core/points.ts";
@@ -230,6 +230,13 @@ describe("Quando rendi meglio", () => {
     const found = insights(many, ZONE);
     assert.ok(found.length >= 1 && found.length <= 2, String(found));
     assert.ok(found.some((line) => line.includes("di mattina") && line.includes("4 focus su 4")), String(found));
+    assert.ok(!found.some((line) => line.includes("Rendi meno") || line.includes("fatica")), "solo in positivo: " + String(found));
+  });
+  it("il giorno: la materia con più «bene», a pari merito quella cominciata prima", () => {
+    const day = [rated(12, 9, "Anatomia", "good"), rated(12, 11, "Chimica", "good"), rated(12, 15, "Chimica", "good"), rated(12, 17, "Anatomia", "poor")];
+    assert.equal(dayInsight(day, ZONE), "Con Chimica è andata bene.");
+    assert.equal(dayInsight(day.slice(0, 2), ZONE), "Con Anatomia è andata bene.");
+    assert.equal(dayInsight([rated(12, 9, "Anatomia", "poor"), rated(12, 10, "Anatomia", "soso")], ZONE), null);
   });
   it("nessuna differenza: nessuna frase", () => {
     const flat = Array.from({ length: 10 }, (_, i) => rated(5 + (i % 5), Math.floor(i / 2) % 2 === 0 ? 9 : 16, "Anatomia", i % 2 === 0 ? "good" : "poor"));

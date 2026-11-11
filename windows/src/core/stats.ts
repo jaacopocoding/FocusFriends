@@ -202,7 +202,7 @@ interface Candidate {
   dimension: number;
 }
 
-/** Fino a due frasi su quando o con cosa i focus vanno meglio o peggio, con i conteggi; niente se i dati sono pochi. */
+/** Fino a due frasi su quando o con cosa i focus vanno meglio, con i conteggi; niente se i dati sono pochi. Solo in positivo. */
 export function insights(sessions: readonly StudySession[], zone?: string): string[] {
   const rated = sessions.filter((s) => s.rating !== undefined);
   if (rated.length < MINIMUM_RATED_FOR_INSIGHTS) return [];
@@ -210,8 +210,7 @@ export function insights(sessions: readonly StudySession[], zone?: string): stri
   const candidates: Candidate[] = [];
 
   const evaluate = (dimension: number, key: (s: StudySession) => string | null, display: (key: string) => string,
-                    best: (name: string, good: number, total: number) => string,
-                    worst: (name: string, good: number, total: number) => string): void => {
+                    best: (name: string, good: number, total: number) => string): void => {
     const groups = new Map<string, { good: number; total: number }>();
     for (const s of rated) {
       const k = key(s);
@@ -221,7 +220,7 @@ export function insights(sessions: readonly StudySession[], zone?: string): stri
       if (s.rating === "good") group.good += 1;
       groups.set(k, group);
     }
-    // Dal migliore e dal peggiore: si ordina anche per nome per avere sempre lo stesso risultato.
+    // Dal migliore: si ordina anche per nome per avere sempre lo stesso risultato.
     const scored = [...groups.entries()]
       .filter(([, g]) => g.total >= MINIMUM_PER_GROUP)
       .map(([k, g]) => ({ key: k, share: g.good / g.total, good: g.good, total: g.total }))
@@ -230,22 +229,15 @@ export function insights(sessions: readonly StudySession[], zone?: string): stri
     if (top && top.share - overall >= MINIMUM_GAP && scored.length > 1) {
       candidates.push({ gap: top.share - overall, text: best(display(top.key), top.good, top.total), dimension });
     }
-    const low = scored[scored.length - 1];
-    if (low && overall - low.share >= MINIMUM_GAP && scored.length > 1) {
-      candidates.push({ gap: overall - low.share, text: worst(display(low.key), low.good, low.total), dimension });
-    }
   };
 
   evaluate(0, (s) => daySlot(partsOf(startTime(s, zone)).hour), (k) => k,
-    (n, g, t) => `Rendi meglio ${n}: ${g} focus su ${t} sono andati bene.`,
-    (n, g, t) => `Rendi meno ${n}: ${g} focus su ${t} sono andati bene.`);
+    (n, g, t) => `Rendi meglio ${n}: ${g} focus su ${t} sono andati bene.`);
   evaluate(1, (s) => String(partsOf(startTime(s, zone)).weekday), (k) => weekdayName(Number(k) || 1),
-    (n, g, t) => `Il ${n} rendi meglio: ${g} focus su ${t} sono andati bene.`,
-    (n, g, t) => `Il ${n} fai più fatica: ${g} focus su ${t} sono andati bene.`);
+    (n, g, t) => `Il ${n} rendi meglio: ${g} focus su ${t} sono andati bene.`);
   evaluate(2, (s) => (s.subject === undefined ? null : subjectKey(s.subject)),
     (k) => rated.find((s) => s.subject !== undefined && subjectKey(s.subject) === k)?.subject ?? k,
-    (n, g, t) => `Con ${n} vai bene: ${g} focus su ${t} sono andati bene.`,
-    (n, g, t) => `Con ${n} fai più fatica: ${g} focus su ${t} sono andati bene.`);
+    (n, g, t) => `Con ${n} vai bene: ${g} focus su ${t} sono andati bene.`);
 
   const result: string[] = [];
   const used = new Set<number>();
@@ -257,6 +249,26 @@ export function insights(sessions: readonly StudySession[], zone?: string): stri
     if (result.length === 2) break;
   }
   return result;
+}
+
+/** Per un giorno solo: la materia con più focus andati «bene» («Con Anatomia è andata bene.»), a pari merito quella cominciata prima;
+ *  null se nessun focus con una materia ha avuto «bene». */
+export function dayInsight(sessions: readonly StudySession[], zone?: string): string | null {
+  const good = new Map<string, { count: number; first: number; name: string }>();
+  for (const s of sessions) {
+    if (s.rating !== "good" || s.subject === undefined || s.subject === NO_SUBJECT) continue;
+    const key = subjectKey(s.subject);
+    const start = startTime(s, zone);
+    const entry = good.get(key) ?? { count: 0, first: start, name: s.subject };
+    entry.count += 1;
+    if (start < entry.first) { entry.first = start; entry.name = s.subject; }
+    good.set(key, entry);
+  }
+  let best: { count: number; first: number; name: string } | null = null;
+  for (const entry of good.values()) {
+    if (best === null || entry.count > best.count || (entry.count === best.count && entry.first < best.first)) best = entry;
+  }
+  return best === null ? null : `Con ${best.name} è andata bene.`;
 }
 
 // ---- testi

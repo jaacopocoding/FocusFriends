@@ -52,7 +52,7 @@ perché `FF_SELFTEST` è acceso: in uso normale l'app non le legge.
 | `introduzione.cjs` | la scheda di benvenuto: nome e primo compagno | `FF_INTRO=1` |
 | `riflessione.cjs`, `riflessione-saltata.cjs` | «Com'è andata?»: faccia, nota, Salta | la prima ≈ 75 s |
 | `sblocchi.cjs` | compagni bloccati e sbloccati, nome, titolo della finestra delle statistiche | |
-| `statistiche.cjs` | periodi, modifica, esporta CSV, elimina, «Cancella tutto» | usa le variabili di prova |
+| `statistiche.cjs` | periodi, l'andamento del mese (sopra, clic, una materia), le sessioni di oggi già aperte, modifica, esporta CSV, elimina, «Cancella tutto» | usa le variabili di prova |
 | `salvataggio.cjs` | quali focus finiscono nelle statistiche (sotto il minuto no, dopo sì) | ≈ 2 minuti |
 | `compagni.cjs` | cambio di compagno, movimento acceso e spento | misure |
 | `trascinamento.cjs` | clic che passano sul vuoto, trascinamento in aria | schermate |

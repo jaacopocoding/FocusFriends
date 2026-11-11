@@ -7,6 +7,9 @@ private struct LegendItem {
     var width: CGFloat
 }
 
+/// Una materia da scegliere per l'andamento (nil = tutte), con il suo posto.
+private typealias TrendChip = (subject: String?, title: String, rect: NSRect)
+
 /// Le posizioni della vista «Anno»: la mappa (una colonna per settimana, una riga per giorno), i tre numeri e l'andamento.
 private struct YearLayout {
     var monthsY: CGFloat = 0
@@ -19,7 +22,7 @@ private struct YearLayout {
     var tilesY: CGFloat = 0
     /// Il titolo dell'andamento (nil se non ce n'è uno da mostrare), le materie tra cui scegliere e le barre.
     var trendY: CGFloat?
-    var chips: [(subject: String?, title: String, rect: NSRect)] = []
+    var chips: [TrendChip] = []
     var bars = NSRect.zero
     var axisY: CGFloat = 0
 }
@@ -33,13 +36,17 @@ private enum YearHover: Equatable {
 /// Le posizioni verticali delle parti del riepilogo, calcolate dai dati (vedi DashboardView.buildLayout).
 private struct SummaryLayout {
     var year: YearLayout?
+    /// Settimana e mese: l'andamento per giorno (il titolo, le materie, le barre) e sotto la riga di quello che c'è sotto il mouse.
+    var chartTitleY: CGFloat?
+    var chartChips: [TrendChip] = []
     var chartTop: CGFloat?
+    var chartTipY: CGFloat?
     var barY: CGFloat?
     var legend: [(items: [LegendItem], y: CGFloat)] = []
-    var streakY: CGFloat?
-    var reflectY: CGFloat?
+    /// I giorni di fila e le facce, su una riga.
+    var statusY: CGFloat?
     var insightsY: CGFloat?
-    /// Dove finisce il riepilogo (in coordinate della pagina): sotto c'è il pulsante della tendina.
+    /// Dove finisce il riepilogo (in coordinate della pagina): sotto ci sono le sessioni (o, per settimana e mese, il pulsante della tendina).
     var contentEnd: CGFloat = 130
 }
 
@@ -52,7 +59,7 @@ private final class PageView: NSView {
         owner?.drawSummary()
     }
 
-    // Il mouse serve solo alla vista «Anno»: il giorno sotto il cursore, un clic su un giorno o su una materia.
+    // Il mouse serve alle barre della settimana e del mese e alla vista «Anno»: il giorno sotto il cursore, un clic su un giorno o su una materia.
     override func updateTrackingAreas() {
         super.updateTrackingAreas()
         trackingAreas.forEach(removeTrackingArea)
@@ -66,7 +73,8 @@ private final class PageView: NSView {
 }
 
 /// La finestra delle statistiche. Il riepilogo è calmo: un grande numero, una barra con le materie, i giorni di
-/// fila e come è andata. «Mostra le sessioni» apre il diario: le sessioni una per una, con la nota e la faccia.
+/// fila e come è andata. Per un giorno sotto ci sono subito le sessioni, una per una, con la nota e la faccia;
+/// per la settimana e il mese le apre «Mostra le sessioni».
 final class DashboardView: NSView {
     static let size = NSSize(width: 560, height: 660)
     private static let margin: CGFloat = 40
@@ -83,15 +91,18 @@ final class DashboardView: NSView {
     private var streak = 0
     /// La serie è ghiacciata: ieri non si è studiato, studiando oggi continua.
     private var streakFrozen = false
-    /// Le frasi su "quando rendi meglio" (da tutte le sessioni con un voto) e quante sessioni hanno un voto.
+    /// Le frasi su quando rendi meglio, dal periodo che si guarda (per un giorno: la materia andata bene).
     private var insights: [String] = []
-    private var totalRated = 0
+    /// Settimana e mese: un elemento per giorno (della materia scelta, `trendSubject`), le materie tra cui scegliere e il giorno sotto il mouse.
+    private var chartDays: [YearStats.Day] = []
+    private var chartSubjects: [String] = []
+    private var chartHover: Int?
     private var layout = SummaryLayout()
     // La vista «Anno»: i giorni della mappa, i tre numeri, le materie tra cui scegliere e l'andamento per settimana.
     private var yearDays: [YearStats.Day] = []
     private var yearHighlights = YearStats.Highlights()
     private var trendSubjects: [String] = []
-    /// La materia scelta per l'andamento (nil = tutte).
+    /// La materia scelta per l'andamento dell'anno, della settimana o del mese (nil = tutte).
     private var trendSubject: String?
     private var trendWeeks: [StudyBucket] = []
     private var showsTrend = false
@@ -198,12 +209,25 @@ final class DashboardView: NSView {
         let streakResult = StudyStreak.analyze(sessions: log.sessions, now: today, calendar: calendar)
         streak = streakResult.days
         streakFrozen = streakResult.isFrozen
-        insights = StudyStats.insights(sessions: log.sessions, calendar: calendar)
-        totalRated = log.sessions.filter { $0.rating != nil }.count
+        if kind == .day {
+            insights = StudyStats.dayInsight(sessions: summary.sessions, calendar: calendar).map { [$0] } ?? []
+        } else {
+            insights = StudyStats.insights(sessions: summary.sessions, calendar: calendar)
+        }
+        if kind == .week || kind == .month {
+            chartSubjects = YearStats.trendSubjects(of: summary)
+            if let chosen = trendSubject, !chartSubjects.contains(where: { Subject.key($0) == Subject.key(chosen) }) { trendSubject = nil }
+            chartDays = YearStats.days(sessions: log.sessions, period: period, subject: trendSubject, calendar: calendar)
+        } else {
+            chartSubjects = []
+            chartDays = []
+        }
+        chartHover = nil
         nextButton.isEnabled = !period.contains(today) && period.end <= today.addingTimeInterval(86_400 * 366)
         nextButton.alphaValue = period.contains(today) ? 0.25 : 1
         if kind == .year { loadYear() }
         layout = buildLayout()
+        if kind == .day { showsDiary = true }
         if summary.sessions.isEmpty || kind == .year { showsDiary = false }
         relayoutPage()
         scroll.contentView.scroll(to: .zero)
@@ -214,6 +238,7 @@ final class DashboardView: NSView {
 
     func select(_ newKind: PeriodKind) {
         if newKind != kind { trendSubject = nil }
+        if newKind != kind { showsDiary = false }
         kind = newKind
         segmented.selectedSegment = newKind.rawValue
         period = StudyPeriod.containing(now(), kind: newKind, calendar: calendar)
@@ -249,7 +274,7 @@ final class DashboardView: NSView {
         scroll.reflectScrolledClipView(scroll.contentView)
     }
 
-    /// Sistema la pagina: il pulsante sotto il riepilogo, la tendina sotto il pulsante, e l'altezza che scorre.
+    /// Sistema la pagina: il pulsante sotto il riepilogo (non per un giorno), la tendina sotto, e l'altezza che scorre.
     private func relayoutPage() {
         updateSessionsButton()
         diary?.removeFromSuperview()
@@ -258,9 +283,13 @@ final class DashboardView: NSView {
         let visibleHeight = Self.size.height - Self.pageTop - Self.footerHeight
         var end = layout.contentEnd
         if !summary.sessions.isEmpty && kind != .year {
-            let buttonY = layout.contentEnd + 22
-            sessionsButton.frame.origin = NSPoint(x: (width - sessionsButton.frame.width) / 2, y: buttonY)
-            end = buttonY + 28
+            if kind == .day {
+                end = layout.contentEnd + 8
+            } else {
+                let buttonY = layout.contentEnd + 22
+                sessionsButton.frame.origin = NSPoint(x: (width - sessionsButton.frame.width) / 2, y: buttonY)
+                end = buttonY + 28
+            }
             if showsDiary {
                 let view = DiaryView(sessions: summary.sessions.sorted { $0.startTime(in: calendar) < $1.startTime(in: calendar) },
                                      kind: kind, calendar: calendar, width: contentWidth + 24)
@@ -286,7 +315,7 @@ final class DashboardView: NSView {
         sessionsButton.image = NSImage(systemSymbolName: symbol, accessibilityDescription: nil)
         sessionsButton.imagePosition = .imageTrailing
         sessionsButton.contentTintColor = Paper.ink
-        sessionsButton.isHidden = summary.sessions.isEmpty || kind == .year
+        sessionsButton.isHidden = summary.sessions.isEmpty || kind == .year || kind == .day
         // Largo quanto serve, così la freccia sta vicino alla scritta.
         sessionsButton.sizeToFit()
         sessionsButton.frame.size = NSSize(width: sessionsButton.frame.width + 12, height: 28)
@@ -367,8 +396,14 @@ final class DashboardView: NSView {
         if kind == .year { return buildYearLayout(l) }
         var y: CGFloat = 130
         if kind != .day {
+            y += 6
+            l.chartTitleY = y
+            y += 26
+            l.chartChips = trendChips(chartSubjects, y: &y)
             l.chartTop = y
-            y += 56 + 20 + 22
+            y += Self.chartHeight + 24
+            l.chartTipY = y
+            y += 18 + 14
         }
         l.barY = y
         y += 18 + 16
@@ -397,14 +432,9 @@ final class DashboardView: NSView {
             y += 20
         }
 
-        if streak > 0 {
+        if streak > 0 || summary.ratedCount > 0 {
             y += 18
-            l.streakY = y
-            y += 24
-        }
-        if summary.ratedCount > 0 {
-            y += 16
-            l.reflectY = y
+            l.statusY = y
             y += 26
         }
         if !insights.isEmpty {
@@ -455,11 +485,21 @@ final class DashboardView: NSView {
         guard !empty else { return }
         if kind == .year { drawYear(); return }
 
+        if let y = layout.chartTitleY {
+            text("Andamento per giorno", at: NSRect(x: Self.margin, y: y, width: 260, height: 18), font: NSFont.systemFont(ofSize: 13, weight: .medium))
+            text(YearStats.dayTrendCaption(maxSeconds: chartDays.map { $0.seconds }.max() ?? 0),
+                 at: NSRect(x: Self.margin + 200, y: y + 1, width: contentWidth - 200, height: 16),
+                 font: NSFont.systemFont(ofSize: 11.5), color: Paper.inkLight, alignment: .right)
+            drawTrendChips(layout.chartChips)
+        }
         if let top = layout.chartTop { drawMiniChart(top: top) }
+        if let y = layout.chartTipY {
+            text(chartHoverText, at: NSRect(x: Self.margin, y: y, width: contentWidth, height: 17),
+                 font: NSFont.systemFont(ofSize: 12.5), color: chartHover == nil ? Paper.inkLight : Paper.ink, alignment: .center)
+        }
         if let y = layout.barY { drawSubjectBar(y: y) }
         for line in layout.legend { drawLegendLine(line.items, y: line.y) }
-        if let y = layout.streakY { drawStreak(y: y) }
-        if let y = layout.reflectY { drawRatings(y: y) }
+        if let y = layout.statusY { drawStatus(y: y) }
         if let y = layout.insightsY {
             for (i, line) in insights.enumerated() {
                 text(line, at: NSRect(x: Self.margin, y: y + CGFloat(i) * 18, width: contentWidth, height: 16),
@@ -468,36 +508,63 @@ final class DashboardView: NSView {
         }
     }
 
-    /// Le barre sottili, una per giorno: niente numeri, solo la forma della settimana o del mese.
+    private static let chartHeight: CGFloat = 80
+
+    /// Dove stanno le barre dei giorni (settimana e mese).
+    private var chartArea: NSRect {
+        NSRect(x: Self.margin, y: layout.chartTop ?? 0, width: contentWidth, height: Self.chartHeight)
+    }
+
+    /// Una barra per giorno, alta quanto si è studiato; i giorni che devono ancora venire non hanno la barra. Passandoci
+    /// sopra si legge il giorno, cliccandola si apre.
     private func drawMiniChart(top: CGFloat) {
-        let buckets = summary.buckets
-        let maxSeconds = max(buckets.map { $0.seconds }.max() ?? 0, 1)
-        let area = NSRect(x: Self.margin, y: top, width: contentWidth, height: 56)
-        let slot = area.width / CGFloat(max(buckets.count, 1))
+        let area = chartArea
+        let maxSeconds = max(chartDays.map { $0.seconds }.max() ?? 0, 1)
+        let slot = area.width / CGFloat(max(chartDays.count, 1))
         let barWidth = max(min(slot * 0.55, 22), 3)
         let today = calendar.startOfDay(for: now())
-        for (i, bucket) in buckets.enumerated() {
+        Paper.paperEdge.withAlphaComponent(0.6).setFill()
+        NSRect(x: area.minX, y: area.maxY, width: area.width, height: 1).fill()
+        for (i, day) in chartDays.enumerated() {
             let x = area.minX + slot * CGFloat(i) + (slot - barWidth) / 2
-            let height = bucket.seconds == 0 ? 3 : max(CGFloat(bucket.seconds) / CGFloat(maxSeconds) * area.height, 5)
-            let isToday = calendar.startOfDay(for: bucket.start) == today
-            (bucket.seconds == 0 ? Paper.paperEdge.withAlphaComponent(0.35)
-                : isToday ? Paper.accent : Paper.accent.withAlphaComponent(0.55)).setFill()
-            NSBezierPath(roundedRect: NSRect(x: x, y: area.maxY - height, width: barWidth, height: height),
-                         xRadius: min(barWidth / 2, 4), yRadius: min(barWidth / 2, 4)).fill()
+            if day.start <= today {
+                let height = day.seconds == 0 ? 3 : max(CGFloat(day.seconds) / CGFloat(maxSeconds) * area.height, 5)
+                let lit = day.start == today || chartHover == i
+                (day.seconds == 0 ? Paper.paperEdge.withAlphaComponent(chartHover == i ? 0.7 : 0.35)
+                    : trendColor.withAlphaComponent(lit ? 1 : 0.6)).setFill()
+                NSBezierPath(roundedRect: NSRect(x: x, y: area.maxY - height - 1, width: barWidth, height: height),
+                             xRadius: min(barWidth / 2, 4), yRadius: min(barWidth / 2, 4)).fill()
+            }
 
             let label: String?
             switch kind {
-            case .week: label = formatted(bucket.start, "EEE")
+            case .week: label = formatted(day.start, "EEE")
             case .month:
-                let day = calendar.component(.day, from: bucket.start)
-                label = (day == 1 || day % 5 == 0) ? "\(day)" : nil
+                let number = calendar.component(.day, from: day.start)
+                label = (number == 1 || number % 5 == 0) ? "\(number)" : nil
             case .day, .year: label = nil
             }
             if let label {
                 text(label, at: NSRect(x: x - 10, y: area.maxY + 5, width: barWidth + 20, height: 14),
-                     font: NSFont.systemFont(ofSize: 10.5), color: Paper.inkLight, alignment: .center)
+                     font: NSFont.systemFont(ofSize: 10.5), color: day.start <= today ? Paper.inkLight : Paper.inkLight.withAlphaComponent(0.45),
+                     alignment: .center)
             }
         }
+    }
+
+    /// Sopra le barre: il giorno sotto il mouse, o come si usa.
+    private var chartHoverText: String {
+        guard let i = chartHover, chartDays.indices.contains(i) else { return "Clicca un giorno per aprirlo" }
+        return YearStats.dayText(chartDays[i], calendar: calendar)
+    }
+
+    /// Il giorno della settimana o del mese sotto il punto (solo fino a oggi).
+    fileprivate func chartDay(at point: NSPoint) -> Int? {
+        guard layout.chartTop != nil, !chartDays.isEmpty else { return nil }
+        let area = chartArea.insetBy(dx: 0, dy: -8)
+        guard area.contains(point) else { return nil }
+        let index = min(max(Int((point.x - area.minX) / (area.width / CGFloat(chartDays.count))), 0), chartDays.count - 1)
+        return chartDays[index].start <= calendar.startOfDay(for: now()) ? index : nil
     }
 
     /// Una sola barra, a segmenti, con le materie del periodo.
@@ -533,34 +600,37 @@ final class DashboardView: NSView {
         }
     }
 
-    private func drawStreak(y: CGFloat) {
-        let label = (streak == 1 ? "1 giorno di fila" : "\(streak) giorni di fila") + (streakFrozen ? " · ghiacciata: studia oggi" : "")
-        let font = NSFont.systemFont(ofSize: 13, weight: .medium)
-        let textWidth = ceil((label as NSString).size(withAttributes: [.font: font]).width)
-        let x = (Self.size.width - (22 + textWidth)) / 2
-        let iconColor = streakFrozen ? NSColor(calibratedRed: 0.30, green: 0.55, blue: 0.82, alpha: 1) : Paper.accent
-        if let flame = Paper.symbolImage(streakFrozen ? "snowflake" : "flame", size: 15, color: iconColor) {
-            let s = flame.size
-            flame.draw(in: NSRect(x: x, y: y + 12 - s.height / 2, width: s.width, height: s.height), from: .zero,
-                       operation: .sourceOver, fraction: 1, respectFlipped: true, hints: nil)
-        }
-        text(label, at: NSRect(x: x + 22, y: y + 3, width: textWidth + 4, height: 18), font: font, color: Paper.ink)
-    }
-
-    /// Quante volte bene, così così, poca testa nel periodo.
-    private func drawRatings(y: CGFloat) {
+    /// Su una riga: i giorni di fila (con la fiamma, o il fiocco se la serie è ghiacciata) e quante volte bene, così così,
+    /// poca testa nel periodo.
+    private func drawStatus(y: CGFloat) {
         let font = NSFont.systemFont(ofSize: 13)
-        let parts = FocusRating.allCases.map { rating -> (FocusRating, String) in
-            (rating, "\(rating.title) \(summary.ratingCounts[rating] ?? 0)")
+        let streakFont = NSFont.systemFont(ofSize: 13, weight: .medium)
+        let streakLabel = streak == 0 ? nil
+            : (streak == 1 ? "1 giorno di fila" : "\(streak) giorni di fila") + (streakFrozen ? " · ghiacciata: studia oggi" : "")
+        let streakWidth = streakLabel.map { 22 + ceil(($0 as NSString).size(withAttributes: [.font: streakFont]).width) } ?? 0
+        let faces = summary.ratedCount > 0 ? FocusRating.allCases.map { rating -> (FocusRating, String, CGFloat) in
+            let count = "\(summary.ratingCounts[rating] ?? 0)"
+            return (rating, count, 24 + ceil((count as NSString).size(withAttributes: [.font: font]).width))
+        } : []
+        let facesWidth = faces.reduce(0) { $0 + $1.2 } + 12 * CGFloat(max(faces.count - 1, 0))
+        let gap: CGFloat = streakLabel != nil && !faces.isEmpty ? 28 : 0
+        var x = (Self.size.width - (streakWidth + gap + facesWidth)) / 2
+
+        if let label = streakLabel {
+            let iconColor = streakFrozen ? NSColor(calibratedRed: 0.30, green: 0.55, blue: 0.82, alpha: 1) : Paper.accent
+            if let flame = Paper.symbolImage(streakFrozen ? "snowflake" : "flame", size: 15, color: iconColor) {
+                let s = flame.size
+                flame.draw(in: NSRect(x: x, y: y + 11 - s.height / 2, width: s.width, height: s.height), from: .zero,
+                           operation: .sourceOver, fraction: 1, respectFlipped: true, hints: nil)
+            }
+            text(label, at: NSRect(x: x + 22, y: y + 2, width: streakWidth - 18, height: 18), font: streakFont, color: Paper.ink)
+            x += streakWidth + gap
         }
-        let widths = parts.map { ceil(($0.1 as NSString).size(withAttributes: [.font: font]).width) + 28 }
-        let total = widths.reduce(0, +) + 16 * CGFloat(parts.count - 1)
-        var x = (Self.size.width - total) / 2
-        for (i, part) in parts.enumerated() {
-            FaceIcon.draw(part.0, in: NSRect(x: x, y: y, width: 20, height: 20), flipped: true)
-            text(part.1, at: NSRect(x: x + 26, y: y + 1, width: widths[i], height: 18), font: font,
-                 color: (summary.ratingCounts[part.0] ?? 0) > 0 ? Paper.ink : Paper.inkLight)
-            x += widths[i] + 16
+        for (rating, count, width) in faces {
+            FaceIcon.draw(rating, in: NSRect(x: x, y: y + 1, width: 20, height: 20), flipped: true)
+            text(count, at: NSRect(x: x + 24, y: y + 2, width: width - 20, height: 18), font: font,
+                 color: (summary.ratingCounts[rating] ?? 0) > 0 ? Paper.ink : Paper.inkLight)
+            x += width + 12
         }
     }
 
@@ -717,21 +787,7 @@ extension DashboardView {
         if showsTrend {
             year.trendY = y
             y += 26
-            if !trendSubjects.isEmpty {
-                let font = NSFont.systemFont(ofSize: 12)
-                var x = Self.margin
-                for subject in [nil] + trendSubjects.map({ Optional($0) }) {
-                    let title = subject ?? "Tutte"
-                    let width = ceil((title as NSString).size(withAttributes: [.font: font]).width) + 22
-                    if x + width > Self.margin + contentWidth, x > Self.margin {
-                        x = Self.margin
-                        y += 28
-                    }
-                    year.chips.append((subject: subject, title: title, rect: NSRect(x: x, y: y, width: width, height: 22)))
-                    x += width + 6
-                }
-                y += 22 + 12
-            }
+            year.chips = trendChips(trendSubjects, y: &y)
             year.bars = NSRect(x: Self.margin, y: y, width: contentWidth, height: 70)
             year.axisY = year.bars.maxY + 4
             y = year.axisY + 18
@@ -741,6 +797,48 @@ extension DashboardView {
         return l
     }
 
+    /// «Tutte» e le materie, una dopo l'altra (a capo quando non c'è più posto), da `y`; `y` finisce sotto, con un po' di spazio.
+    /// Senza materie (meno di due con un nome) niente.
+    fileprivate func trendChips(_ subjects: [String], y: inout CGFloat) -> [TrendChip] {
+        guard !subjects.isEmpty else { return [] }
+        let font = NSFont.systemFont(ofSize: 12)
+        var chips: [TrendChip] = []
+        var x = Self.margin
+        for subject in [nil] + subjects.map({ Optional($0) }) {
+            let title = subject ?? "Tutte"
+            let width = ceil((title as NSString).size(withAttributes: [.font: font]).width) + 22
+            if x + width > Self.margin + contentWidth, x > Self.margin {
+                x = Self.margin
+                y += 28
+            }
+            chips.append((subject: subject, title: title, rect: NSRect(x: x, y: y, width: width, height: 22)))
+            x += width + 6
+        }
+        y += 22 + 12
+        return chips
+    }
+
+    /// Le materie dell'andamento: quella scelta piena, del suo colore; le altre bianche col bordo.
+    fileprivate func drawTrendChips(_ chips: [TrendChip]) {
+        for chip in chips {
+            let selected = (chip.subject == nil && trendSubject == nil) || (chip.subject.map { Subject.key($0) } == trendSubject.map { Subject.key($0) } && chip.subject != nil)
+            let shape = NSBezierPath(roundedRect: chip.rect, xRadius: 11, yRadius: 11)
+            let fill = chip.subject.map { Paper.color(forSubject: $0) } ?? Paper.accent
+            if selected {
+                fill.setFill()
+                shape.fill()
+            } else {
+                NSColor.white.withAlphaComponent(0.5).setFill()
+                shape.fill()
+                Paper.paperEdge.setStroke()
+                shape.lineWidth = 0.8
+                shape.stroke()
+            }
+            text(chip.title, at: NSRect(x: chip.rect.minX + 4, y: chip.rect.minY + 3, width: chip.rect.width - 8, height: 16),
+                 font: NSFont.systemFont(ofSize: 12), color: selected ? .white : Paper.ink, alignment: .center)
+        }
+    }
+
     private func cellRect(_ index: Int, _ layout: YearLayout) -> NSRect {
         let offset = index + layout.firstRow
         let gap = max(1.5, layout.pitch * 0.2)
@@ -748,7 +846,7 @@ extension DashboardView {
                       width: layout.pitch - gap, height: layout.pitch - gap)
     }
 
-    private var trendColor: NSColor { trendSubject.map { Paper.color(forSubject: $0) } ?? Paper.accent }
+    fileprivate var trendColor: NSColor { trendSubject.map { Paper.color(forSubject: $0) } ?? Paper.accent }
 
     fileprivate func drawYear() {
         guard let yl = layout.year else { return }
@@ -831,23 +929,7 @@ extension DashboardView {
              font: NSFont.systemFont(ofSize: 11.5), color: Paper.inkLight, alignment: .right)
 
         let color = trendColor
-        for chip in yl.chips {
-            let selected = (chip.subject == nil && trendSubject == nil) || (chip.subject.map { Subject.key($0) } == trendSubject.map { Subject.key($0) } && chip.subject != nil)
-            let shape = NSBezierPath(roundedRect: chip.rect, xRadius: 11, yRadius: 11)
-            let fill = chip.subject.map { Paper.color(forSubject: $0) } ?? Paper.accent
-            if selected {
-                fill.setFill()
-                shape.fill()
-            } else {
-                NSColor.white.withAlphaComponent(0.5).setFill()
-                shape.fill()
-                Paper.paperEdge.setStroke()
-                shape.lineWidth = 0.8
-                shape.stroke()
-            }
-            text(chip.title, at: NSRect(x: chip.rect.minX + 4, y: chip.rect.minY + 3, width: chip.rect.width - 8, height: 16),
-                 font: NSFont.systemFont(ofSize: 12), color: selected ? .white : Paper.ink, alignment: .center)
-        }
+        drawTrendChips(yl.chips)
 
         let bars = yl.bars
         let maxSeconds = max(most, 1)
@@ -906,10 +988,19 @@ extension DashboardView {
     }
 
     private func chipIndex(at point: NSPoint) -> Int? {
-        layout.year?.chips.firstIndex { $0.rect.contains(point) }
+        (kind == .year ? layout.year?.chips ?? [] : layout.chartChips).firstIndex { $0.rect.contains(point) }
     }
 
     fileprivate func pageHovered(at point: NSPoint?) {
+        if kind == .week || kind == .month {
+            let hover = point.flatMap { chartDay(at: $0) }
+            if hover != chartHover {
+                chartHover = hover
+                page.needsDisplay = true
+            }
+            (hover != nil || point.flatMap { chipIndex(at: $0) } != nil ? NSCursor.pointingHand : NSCursor.arrow).set()
+            return
+        }
         guard kind == .year else { return }
         let hover = point.flatMap { yearHover(at: $0) }
         let overChip = point.flatMap { chipIndex(at: $0) } != nil
@@ -923,19 +1014,33 @@ extension DashboardView {
     }
 
     fileprivate func pageClicked(at point: NSPoint) {
+        if kind == .week || kind == .month {
+            if let i = chipIndex(at: point) {
+                trendSubject = layout.chartChips[i].subject
+                chartDays = YearStats.days(sessions: log.sessions, period: period, subject: trendSubject, calendar: calendar)
+                page.needsDisplay = true
+            } else if let i = chartDay(at: point) {
+                openDay(chartDays[i].start)
+            }
+            return
+        }
         guard kind == .year, let yl = layout.year else { return }
         if let i = chipIndex(at: point) {
             trendSubject = yl.chips[i].subject
             trendWeeks = YearStats.weeklyTrend(sessions: log.sessions, period: period, subject: trendSubject, through: now(), calendar: calendar)
             page.needsDisplay = true
         } else if case .day(let i)? = yearHover(at: point), yearDays.indices.contains(i) {
-            // Un giorno della mappa si apre in «Oggi», con le sue sessioni.
-            kind = .day
-            segmented.selectedSegment = PeriodKind.day.rawValue
-            trendSubject = nil
-            period = StudyPeriod.containing(yearDays[i].start, kind: .day, calendar: calendar)
-            reload()
+            openDay(yearDays[i].start)
         }
+    }
+
+    /// Un giorno della mappa o delle barre si apre in «Oggi», con le sue sessioni.
+    private func openDay(_ start: Date) {
+        kind = .day
+        segmented.selectedSegment = PeriodKind.day.rawValue
+        trendSubject = nil
+        period = StudyPeriod.containing(start, kind: .day, calendar: calendar)
+        reload()
     }
 }
 

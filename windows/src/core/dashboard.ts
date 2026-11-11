@@ -173,6 +173,11 @@ export function trendCaption(maxSeconds: number): string {
   return `al massimo ${duration(maxSeconds)} in una settimana`;
 }
 
+/** Sopra le barre della settimana e del mese, a destra: «al massimo 2 h 20 in un giorno». */
+export function dayTrendCaption(maxSeconds: number): string {
+  return `al massimo ${duration(maxSeconds)} in un giorno`;
+}
+
 export interface YearTile {
   value: string;
   caption: string;

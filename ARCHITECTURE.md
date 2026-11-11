@@ -505,11 +505,11 @@ code. All UI code runs on the main thread; the only other thread is the audio re
 
 ### 3.16 Statistics window
 
-- **What:** tabs Today / Week / Month; big total, subject bar and legend, streak, ratings counts, insight sentences
-  ("when do you do better"), a collapsible diary of sessions (day strip for Today), edit/delete a session, CSV export,
-  "delete everything".
+- **What:** tabs Today / Week / Month / Year; big total, a per-day trend for Week and Month like the year's (subject chips, one bar per day; hover shows the day, a click opens it), subject bar and legend, streak and
+  rating counts on one line, insight sentences for the period, positive only ("when do you do better"; for a day, `dayInsight`), the diary of sessions
+  (always open for Today, with the day strip; collapsible for Week and Month), edit/delete a session, CSV export, "delete everything".
 - **Entry point:** `MenuController.showStats` → `DashboardController.show(kind:)`.
-- **Execution path:** `DashboardView.reload()` → `StudyStats.summary`, `StudyStats.streak`, `StudyStats.insights`,
+- **Execution path:** `DashboardView.reload()` → `StudyStats.summary`, `StudyStats.streak`, `StudyStats.insights` / `dayInsight` (on the period's sessions), `YearStats.days`,
   `buildLayout()`, `relayoutPage()` (adds `DiaryView` when `showsDiary`). Drawing is split between
   `DashboardView.draw` (title) and `PageView.draw` → `drawSummary`. Row tap → `DashboardView.edit(_:)` (NSAlert with
   subject, "apply to all", note, rating segmented control, focus notes text view) → `SessionLog.renameSubject` or
@@ -1395,10 +1395,10 @@ file/UserDefaults writes, windows, timers, sound, global state.
 
 #### `DashboardWindow.swift` (1,200)
 - **Responsibility:** `DashboardView` (period state, summary drawing, diary toggle, edit/export/delete actions, the "Anno" tab in an extension, §3.24),
-  private `PageView` (also the mouse for the year map), `SummaryLayout`, `YearLayout`, `YearHover`, `LegendItem`, private `DiaryView` (day strip, day headers, session rows,
+  private `PageView` (also the mouse for the week/month bars and the year map), `SummaryLayout`, `YearLayout`, `YearHover`, `LegendItem`, private `DiaryView` (day strip, day headers, session rows,
   hit-testing), `DashboardController` (lazy window).
-- **Key members:** `reload` (skipped by the log observer while the window is closed), `select`, `buildLayout`, `relayoutPage`, `drawSummary`, `drawMiniChart`,
-  `drawSubjectBar`, `drawLegendLine`, `drawStreak`, `drawRatings`, `edit(_:)`, `deleteEverything`, `exportCSV`.
+- **Key members:** `reload` (skipped by the log observer while the window is closed; the insights come from the period's sessions, `StudyStats.dayInsight` for a day), `select`, `buildLayout`, `relayoutPage` (the day's diary is always open, below the summary; week and month keep the "Mostra le sessioni" toggle), `drawSummary`, `drawMiniChart` (the per-day trend: title and `YearStats.dayTrendCaption`, the subject chips shared with the year via `trendChips`/`drawTrendChips`, one bar per day from `YearStats.days(…, subject:)`, none for future days; `chartDay(at:)` + `chartHoverText` for hover, a click opens the day via `openDay`),
+  `drawSubjectBar`, `drawLegendLine`, `drawStatus` (streak and rating faces on one line), `edit(_:)`, `deleteEverything`, `exportCSV`.
 - **Side effects:** modal `NSAlert`/`NSSavePanel`; writes through `SessionLog` / `Profile.reset()`; registers a
   log observer.
 
@@ -1428,7 +1428,7 @@ file/UserDefaults writes, windows, timers, sound, global state.
   save/backup/add/remove/setSubject/setReflection/setNotes/renameSubject/deleteAll/recentSubjects/lastNote,
   `salvage` (element-wise decode), `onProblem` / `report` / `fail` / `recover`, `hasUnsavedChanges`, in-progress file API `beginInProgress/updateInProgressPause/updateInProgressNotes/heartbeat/finishInProgress/
   recoverInterrupted`, observers), `PeriodKind`, `StudyPeriod`, `StudyBucket`, `StudySummary`, `StudyStats`
-  (`summary`, `seconds(onDayOf:)`, `streak`, `insights`, `duration`, `dayLine`, `encouragement`, `weekdayName`),
+  (`summary`, `seconds(onDayOf:)`, `streak`, `insights`, `dayInsight`, `duration`, `dayLine`, `encouragement`, `weekdayName`),
   `SessionCSV` (`header`, `quoted`, `csv`).
 - **Side effects:** file reads/writes under `directory`, backups, `sessioni.corrotto-*` copies, observer callbacks,
   `onProblem` messages; `shared` instance reads the real data directory at first use.
@@ -1759,8 +1759,9 @@ existing users keep everything that existed when they finished the intro.**
   companion (100) comes from the existing "50 more for each" rule in `CompanionRewards.threshold(at:)`; whether 100 is
   the right value for existing users, who therefore find the Gattino locked, is **[unknown]**.
 
-**D34. Insight sentences only with ≥ 8 rated focuses, ≥ 3 per group and ≥ 20 points gap.**
-- Rationale: **[documented]** README and `StudyStats.insights` comment ("meglio tacere che dire una cosa a caso").
+**D34. Insight sentences only with ≥ 8 rated focuses, ≥ 3 per group and ≥ 20 points gap, and only the positive side.**
+- Rationale: **[documented]** README and `StudyStats.insights` comment ("meglio tacere che dire una cosa a caso"). Since November 2026 the "worse"
+  sentences ("Rendi meno nel pomeriggio…", "fai più fatica") are gone: they read as a reproach, against the idea of the game.
 
 **D35. CSV text fields prefixed with `'` when starting with `=`, `+`, `-`, `@`, a tab or a carriage return.**
 - Rationale: **[documented]** `SessionCSV.quoted` comment and README.
@@ -1956,7 +1957,7 @@ code is clear. Items without a mark still describe the current code.
   pick-up drawing/wobble, mouse handling and context-menu handling.
 - `NoiseSynth.render` ≈ 74 lines: one per-sample loop with a `switch` holding three separate filter chains and ~25
   state variables.
-- `StudyStats.insights` ≈ 59 lines with a nested generic `evaluate` closure taking four closures.
+- `StudyStats.insights` ≈ 50 lines with a nested generic `evaluate` closure taking three closures.
 - `DashboardView.edit(_:)` ≈ 69 lines of manual frame layout inside an `NSAlert` accessory view.
 
 ### 7.5 Missing or weak error handling

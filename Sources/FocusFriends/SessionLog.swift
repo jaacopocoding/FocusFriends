@@ -786,8 +786,8 @@ enum StudyStats {
         }
     }
 
-    /// Fino a due frasi sul perché-quando-con-cosa i focus vanno meglio o peggio, con i conteggi, oppure
-    /// niente se i dati sono pochi (meglio tacere che dire una cosa a caso).
+    /// Fino a due frasi su quando o con cosa i focus vanno meglio, con i conteggi, oppure niente se i dati sono
+    /// pochi (meglio tacere che dire una cosa a caso). Solo in positivo: dove va peggio non si dice.
     static func insights(sessions: [StudySession], calendar: Calendar = StudyPeriod.calendar()) -> [String] {
         let rated = sessions.filter { $0.rating != nil }
         guard rated.count >= minimumRatedForInsights else { return [] }
@@ -797,7 +797,7 @@ enum StudyStats {
         var candidates: [Candidate] = []
 
         func evaluate(dimension: Int, key: (StudySession) -> String?, display: (String) -> String,
-                      best: (String, Int, Int) -> String, worst: (String, Int, Int) -> String) {
+                      best: (String, Int, Int) -> String) {
             var groups: [String: (good: Int, total: Int)] = [:]
             for s in rated {
                 guard let k = key(s) else { continue }
@@ -807,14 +807,11 @@ enum StudyStats {
                 groups[k] = g
             }
             let usable = groups.filter { $0.value.total >= minimumPerGroup }
-            // Dal migliore e dal peggiore: ordino anche per nome per avere sempre lo stesso risultato.
+            // Dal migliore: ordino anche per nome per avere sempre lo stesso risultato.
             let scored = usable.map { (key: $0.key, share: Double($0.value.good) / Double($0.value.total), good: $0.value.good, total: $0.value.total) }
                 .sorted { $0.share != $1.share ? $0.share > $1.share : $0.key < $1.key }
             if let top = scored.first, top.share - overall >= minimumGap, scored.count > 1 {
                 candidates.append(Candidate(gap: top.share - overall, text: best(display(top.key), top.good, top.total), dimension: dimension))
-            }
-            if let low = scored.last, overall - low.share >= minimumGap, scored.count > 1 {
-                candidates.append(Candidate(gap: overall - low.share, text: worst(display(low.key), low.good, low.total), dimension: dimension))
             }
         }
 
@@ -822,20 +819,17 @@ enum StudyStats {
         evaluate(dimension: 0,
                  key: { daySlot(hour: calendar.component(.hour, from: $0.startTime(in: calendar))) },
                  display: { $0 },
-                 best: { "Rendi meglio \($0): \($1) focus su \($2) sono andati bene." },
-                 worst: { "Rendi meno \($0): \($1) focus su \($2) sono andati bene." })
+                 best: { "Rendi meglio \($0): \($1) focus su \($2) sono andati bene." })
         // Giorno della settimana
         evaluate(dimension: 1,
                  key: { "\(calendar.component(.weekday, from: $0.startTime(in: calendar)))" },
                  display: { weekdayName(Int($0) ?? 1) },
-                 best: { "Il \($0) rendi meglio: \($1) focus su \($2) sono andati bene." },
-                 worst: { "Il \($0) fai più fatica: \($1) focus su \($2) sono andati bene." })
+                 best: { "Il \($0) rendi meglio: \($1) focus su \($2) sono andati bene." })
         // Materia
         evaluate(dimension: 2,
                  key: { $0.subject.map { Subject.key($0) } },
                  display: { key in rated.first(where: { $0.subject.map { Subject.key($0) } == key })?.subject ?? key },
-                 best: { "Con \($0) vai bene: \($1) focus su \($2) sono andati bene." },
-                 worst: { "Con \($0) fai più fatica: \($1) focus su \($2) sono andati bene." })
+                 best: { "Con \($0) vai bene: \($1) focus su \($2) sono andati bene." })
 
         var result: [String] = []
         var usedDimensions = Set<Int>()
@@ -846,6 +840,22 @@ enum StudyStats {
             if result.count == 2 { break }
         }
         return result
+    }
+
+    /// Per un giorno solo: la materia con più focus andati «bene» («Con Anatomia è andata bene.»), a pari merito quella
+    /// cominciata prima; nil se nessun focus con una materia ha avuto «bene».
+    static func dayInsight(sessions: [StudySession], calendar: Calendar = StudyPeriod.calendar()) -> String? {
+        var good: [String: (count: Int, first: Date, name: String)] = [:]
+        for s in sessions where s.rating == .good {
+            guard let subject = s.subject, subject != Subject.none else { continue }
+            let key = Subject.key(subject), start = s.startTime(in: calendar)
+            var entry = good[key] ?? (0, start, subject)
+            entry.count += 1
+            if start < entry.first { entry.first = start; entry.name = subject }
+            good[key] = entry
+        }
+        guard let best = good.values.max(by: { $0.count != $1.count ? $0.count < $1.count : $0.first > $1.first }) else { return nil }
+        return "Con \(best.name) è andata bene."
     }
 
     /// Il giorno della settimana (1 = domenica, come in Calendar) in italiano.
