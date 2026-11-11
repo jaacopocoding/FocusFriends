@@ -1,12 +1,5 @@
 import AppKit
 
-/// Un'etichetta della legenda delle materie.
-private struct LegendItem {
-    var text: String
-    var color: NSColor
-    var width: CGFloat
-}
-
 /// Una materia da scegliere per l'andamento (nil = tutte), con il suo posto.
 private typealias TrendChip = (subject: String?, title: String, rect: NSRect)
 
@@ -20,9 +13,6 @@ private struct YearLayout {
     var firstRow = 0
     var legendY: CGFloat = 0
     var tilesY: CGFloat = 0
-    /// «Per materia»: il titolo e le righe (una per materia, la più studiata in cima), se nell'anno c'è almeno una materia.
-    var subjectsY: CGFloat?
-    var subjectRowsY: CGFloat = 0
     /// Il titolo dell'andamento (nil se non ce n'è uno da mostrare), le materie tra cui scegliere e le barre.
     var trendY: CGFloat?
     var chips: [TrendChip] = []
@@ -44,8 +34,9 @@ private struct SummaryLayout {
     var chartChips: [TrendChip] = []
     var chartTop: CGFloat?
     var chartTipY: CGFloat?
-    var barY: CGFloat?
-    var legend: [(items: [LegendItem], y: CGFloat)] = []
+    /// «Per materia»: il titolo e le righe (una per materia, la più studiata in cima), se nel periodo c'è almeno una materia.
+    var subjectsY: CGFloat?
+    var subjectRowsY: CGFloat = 0
     /// I giorni di fila e le facce, su una riga.
     var statusY: CGFloat?
     var insightsY: CGFloat?
@@ -383,16 +374,6 @@ final class DashboardView: NSView {
         return Paper.color(forSubject: subject)
     }
 
-    /// Le materie del periodo: fino a sei, il resto in "Altre (n)".
-    private var subjectRows: [(subject: String, seconds: Int)] {
-        var rows = Array(summary.bySubject.prefix(6))
-        if summary.bySubject.count > 6 {
-            let rest = summary.bySubject.dropFirst(6)
-            rows.append((subject: "Altre (\(rest.count))", seconds: rest.reduce(0) { $0 + $1.seconds }))
-        }
-        return rows
-    }
-
     private func buildLayout() -> SummaryLayout {
         var l = SummaryLayout()
         guard summary.totalSeconds > 0 else { return l }
@@ -408,32 +389,8 @@ final class DashboardView: NSView {
             l.chartTipY = y
             y += 18 + 14
         }
-        l.barY = y
-        y += 18 + 16
-
-        // La legenda: i nomi a capo quando non c'è più posto, ogni riga centrata.
-        let font = NSFont.systemFont(ofSize: 12)
-        let items = subjectRows.map { row -> LegendItem in
-            let text = "\(row.subject) \(StudyStats.duration(seconds: row.seconds))"
-            let width = ceil((text as NSString).size(withAttributes: [.font: font]).width) + 14
-            return LegendItem(text: text, color: color(for: row.subject), width: width)
-        }
-        var line: [LegendItem] = []
-        var lineWidth: CGFloat = 0
-        for item in items {
-            if lineWidth + item.width > contentWidth, !line.isEmpty {
-                l.legend.append((items: line, y: y))
-                y += 20
-                line = []
-                lineWidth = 0
-            }
-            line.append(item)
-            lineWidth += item.width + 12
-        }
-        if !line.isEmpty {
-            l.legend.append((items: line, y: y))
-            y += 20
-        }
+        if kind == .day { y += 10 }
+        y = layoutSubjects(&l, from: y) - 4
 
         if streak > 0 || summary.ratedCount > 0 {
             y += 18
@@ -500,8 +457,7 @@ final class DashboardView: NSView {
             text(chartHoverText, at: NSRect(x: Self.margin, y: y, width: contentWidth, height: 17),
                  font: NSFont.systemFont(ofSize: 12.5), color: chartHover == nil ? Paper.inkLight : Paper.ink, alignment: .center)
         }
-        if let y = layout.barY { drawSubjectBar(y: y) }
-        for line in layout.legend { drawLegendLine(line.items, y: line.y) }
+        drawSubjects()
         if let y = layout.statusY { drawStatus(y: y) }
         if let y = layout.insightsY {
             for (i, line) in insights.enumerated() {
@@ -568,39 +524,6 @@ final class DashboardView: NSView {
         guard area.contains(point) else { return nil }
         let index = min(max(Int((point.x - area.minX) / (area.width / CGFloat(chartDays.count))), 0), chartDays.count - 1)
         return chartDays[index].start <= calendar.startOfDay(for: now()) ? index : nil
-    }
-
-    /// Una sola barra, a segmenti, con le materie del periodo.
-    private func drawSubjectBar(y: CGFloat) {
-        let rect = NSRect(x: Self.margin + 20, y: y, width: contentWidth - 40, height: 18)
-        let rows = subjectRows
-        let total = max(rows.reduce(0) { $0 + $1.seconds }, 1)
-        NSGraphicsContext.saveGraphicsState()
-        NSBezierPath(roundedRect: rect, xRadius: 9, yRadius: 9).addClip()
-        Paper.track.setFill()
-        rect.fill()
-        let gap: CGFloat = 2
-        let usable = rect.width - gap * CGFloat(max(rows.count - 1, 0))
-        var x = rect.minX
-        for row in rows {
-            let w = max(usable * CGFloat(row.seconds) / CGFloat(total), 5)
-            color(for: row.subject).setFill()
-            NSRect(x: x, y: rect.minY, width: w, height: rect.height).fill()
-            x += w + gap
-        }
-        NSGraphicsContext.restoreGraphicsState()
-    }
-
-    private func drawLegendLine(_ items: [LegendItem], y: CGFloat) {
-        let total = items.reduce(0) { $0 + $1.width } + 12 * CGFloat(max(items.count - 1, 0))
-        var x = (Self.size.width - total) / 2
-        for item in items {
-            item.color.setFill()
-            NSBezierPath(ovalIn: NSRect(x: x, y: y + 4, width: 9, height: 9)).fill()
-            text(item.text, at: NSRect(x: x + 14, y: y, width: item.width, height: 17),
-                 font: NSFont.systemFont(ofSize: 12), color: Paper.ink)
-            x += item.width + 12
-        }
     }
 
     /// Su una riga: i giorni di fila (con la fiamma, o il fiocco se la serie è ghiacciata) e quante volte bene, così così,
@@ -787,11 +710,7 @@ extension DashboardView {
         year.legendY = year.grid.maxY + 10
         year.tilesY = year.legendY + 36
         var y = year.tilesY + 54 + 28
-        if !summary.bySubject.isEmpty {
-            year.subjectsY = y
-            year.subjectRowsY = y + 26
-            y = year.subjectRowsY + CGFloat(summary.bySubject.count) * Self.subjectRowHeight + 22
-        }
+        y = layoutSubjects(&l, from: y)
         if showsTrend {
             year.trendY = y
             y += 26
@@ -908,15 +827,23 @@ extension DashboardView {
         text("meno", at: NSRect(x: x - 34, y: yl.legendY, width: 30, height: 14), font: small, color: Paper.inkLight, alignment: .right)
 
         drawYearTiles(yl)
-        drawYearSubjects(yl)
+        drawSubjects()
         if showsTrend { drawTrend(yl) }
     }
 
-    private static let subjectRowHeight: CGFloat = 24
+    fileprivate static let subjectRowHeight: CGFloat = 24
 
-    /// Le ore di ogni materia nell'anno: il nome, una barra del suo colore (lunga in proporzione alla più studiata) e il tempo.
-    private func drawYearSubjects(_ yl: YearLayout) {
-        guard let titleY = yl.subjectsY else { return }
+    /// Dove va «Per materia», da `y`; restituisce dove finisce (con lo spazio sotto). Niente se nel periodo non c'è studio.
+    fileprivate func layoutSubjects(_ l: inout SummaryLayout, from y: CGFloat) -> CGFloat {
+        guard !summary.bySubject.isEmpty else { return y }
+        l.subjectsY = y
+        l.subjectRowsY = y + 26
+        return l.subjectRowsY + CGFloat(summary.bySubject.count) * Self.subjectRowHeight + 22
+    }
+
+    /// Le ore di ogni materia del periodo: il nome, una barra del suo colore (lunga in proporzione alla più studiata) e il tempo.
+    fileprivate func drawSubjects() {
+        guard let titleY = layout.subjectsY else { return }
         text("Per materia", at: NSRect(x: Self.margin, y: titleY, width: 260, height: 18), font: NSFont.systemFont(ofSize: 13, weight: .medium))
         let rows = summary.bySubject
         let most = CGFloat(max(rows.first?.seconds ?? 1, 1))
@@ -924,7 +851,7 @@ extension DashboardView {
         let barX = Self.margin + nameWidth + 8, barWidth = contentWidth - nameWidth - timeWidth - 16
         let font = NSFont.systemFont(ofSize: 12.5)
         for (i, row) in rows.enumerated() {
-            let y = yl.subjectRowsY + CGFloat(i) * Self.subjectRowHeight
+            let y = layout.subjectRowsY + CGFloat(i) * Self.subjectRowHeight
             let tint = color(for: row.subject)
             tint.setFill()
             NSBezierPath(ovalIn: NSRect(x: Self.margin, y: y + 5, width: 9, height: 9)).fill()

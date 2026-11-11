@@ -6,9 +6,9 @@ import { subjectColor } from "../../core/colors.ts";
 import { NO_SUBJECT, subjectKey } from "../../core/text.ts";
 import {
   RATING_ORDER, canGoNext, chartLabel, dayText, dayTrendCaption, diaryEntries, focusNotesLine, monthLabel, periodTitle, secondaryLine, sessionHeading, streakLabel,
-  subjectRows, subtitle, trendCaption, weekText, yearTiles,
+  subtitle, trendCaption, weekText, yearTiles,
 } from "../../core/dashboard.ts";
-import type { DiaryEntry, SubjectRow } from "../../core/dashboard.ts";
+import type { DiaryEntry } from "../../core/dashboard.ts";
 import type { Rating, StudySession } from "../../core/log.ts";
 import { analyzeStreak, dayInsight, duration, insights, periodContaining, shiftedPeriod, startTime, summarize } from "../../core/stats.ts";
 import type { Period, PeriodKind, Summary } from "../../core/stats.ts";
@@ -38,7 +38,6 @@ const MUTED = "rgba(102, 77, 51, 0.5)";
 const KIND_LABELS: Array<[PeriodKind, string]> = [["day", "Oggi"], ["week", "Settimana"], ["month", "Mese"], ["year", "Anno"]];
 const DEFAULT_TIP = "Clicca un giorno per aprirlo";
 
-const colorOf = (row: Pick<SubjectRow, "subject" | "muted">): string => (row.muted ? MUTED : subjectColor(row.subject));
 
 // ---- scheletro
 
@@ -106,8 +105,8 @@ function render(resetScroll: boolean): void {
     page.append(...yearView(wall, summary));
   } else if (!empty) {
     if (kind !== "day") page.append(miniChart(summary, wall));
-    const rows = subjectRows(summary);
-    page.append(subjectBar(rows), legend(rows));
+    const bySubject = subjectHours(summary);
+    if (bySubject) page.append(bySubject);
     const rated = summary.ratingCounts.good !== undefined || summary.ratingCounts.soso !== undefined || summary.ratingCounts.poor !== undefined;
     if (streak.days > 0 || rated) {
       page.append(h("div", { class: "status" }, streak.days > 0 ? streakLine(streak.days, streak.isFrozen) : null, rated ? ratings(summary) : null));
@@ -186,26 +185,6 @@ function miniChart(summary: Summary, wall: number): HTMLElement {
     trendChips(names), chart, tip);
 }
 
-/** Una sola barra, a segmenti, con le materie del periodo. */
-function subjectBar(rows: SubjectRow[]): HTMLElement {
-  const bar = h("div", { class: "subject-bar", role: "img", "aria-label": "Materie del periodo" });
-  for (const row of rows) {
-    const part = h("div", { class: "sub-segment" });
-    part.style.flexGrow = String(row.seconds);
-    part.style.background = colorOf(row);
-    bar.append(part);
-  }
-  return bar;
-}
-
-function legend(rows: SubjectRow[]): HTMLElement {
-  return h("div", { class: "legend" }, ...rows.map((row) => {
-    const dot = h("span", { class: "dot" });
-    dot.style.background = colorOf(row);
-    return h("span", { class: "legend-item" }, dot, `${row.subject} ${duration(row.seconds)}`);
-  }));
-}
-
 /** I giorni di fila (la fiamma, o il fiocco se la serie è ghiacciata); sta sulla stessa riga delle facce. */
 function streakLine(days: number, frozen: boolean): HTMLElement {
   const line = h("div", { class: `streak${frozen ? " frozen" : ""}` }, icon(frozen ? "snowflake" : "flame", 15), streakLabel(days, frozen));
@@ -232,8 +211,8 @@ function openDay(day: number): void {
   render(true);
 }
 
-/** «Per materia»: le ore di ogni materia nell'anno, una riga ciascuna (la più studiata in cima), con una barra del suo colore. */
-function yearSubjects(summary: Summary): HTMLElement | null {
+/** «Per materia»: le ore di ogni materia del periodo, una riga ciascuna (la più studiata in cima), con una barra del suo colore. */
+function subjectHours(summary: Summary): HTMLElement | null {
   if (summary.bySubject.length === 0) return null;
   const most = Math.max(summary.bySubject[0]?.seconds ?? 1, 1);
   return h("div", { class: "year-subjects" },
@@ -296,7 +275,7 @@ function yearView(wall: number, summary: Summary): HTMLElement[] {
     h("div", { class: "year-map" }, months, h("div", { class: "year-body" }, weekdays, grid), h("div", { class: "year-legend" }, tip, scale)),
     tiles,
   ];
-  const bySubject = yearSubjects(summary);
+  const bySubject = subjectHours(summary);
   if (bySubject) parts.push(bySubject);
 
   // l'andamento: da quattro settimane con studio in su

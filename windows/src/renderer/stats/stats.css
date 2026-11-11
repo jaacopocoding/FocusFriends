@@ -238,37 +238,6 @@ textarea:focus-visible {
   overflow: visible;
 }
 
-.subject-bar {
-  display: flex;
-  gap: 2px;
-  margin: 22px 20px 0;
-  height: 18px;
-  border-radius: 9px;
-  overflow: hidden;
-  background: var(--track);
-}
-
-.sub-segment {
-  flex: 1 1 0;
-  min-width: 5px;
-}
-
-.legend {
-  margin-top: 12px;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 3px 12px;
-  font-size: 12px;
-}
-
-.legend-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  white-space: nowrap;
-}
-
 .dot {
   display: inline-block;
   width: 9px;
@@ -860,9 +829,9 @@ textarea:focus-visible {
   white-space: nowrap;
 }
 
-/* «Per materia» nella scheda Anno: una riga per materia, con la barra del suo colore e le ore */
+/* «Per materia» in tutte le schede: una riga per materia, con la barra del suo colore e le ore */
 .year-subjects {
-  margin-top: 26px;
+  margin-top: 24px;
 }
 
 .year-subject {

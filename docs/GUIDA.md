@@ -334,7 +334,7 @@ un file di una versione precedente si legge e si riscrive nel nuovo, tenendo int
 il totale di studio in grande, quanti focus (completi e interrotti), per la settimana e il mese **l'andamento per giorno**,
 come quello dell'anno: il massimo in un giorno, le materie da scegliere (*Tutte* e le più studiate del periodo: scelta una,
 le barre sono solo sue, del suo colore) e una barra per giorno (i giorni che devono ancora venire non ce l'hanno: passandoci
-sopra si legge il giorno, «Martedì 10 novembre · 2 h 20 · 3 focus», e cliccandola si apre in *Oggi*), una sola barra a segmenti con le materie e la sua legenda, e su una riga i giorni di fila
+sopra si legge il giorno, «Martedì 10 novembre · 2 h 20 · 3 focus», e cliccandola si apre in *Oggi*), **«Per materia»**, una riga per ogni materia del periodo (dalla più studiata, con una barra del suo colore lunga in proporzione e il tempo, come nell'anno), e su una riga i giorni di fila
 e le facce di come è andata. Sotto, le frasi su quando rendi meglio **in quel periodo**, se ci sono dati sufficienti
 (almeno 8 focus con un voto), e **solo in positivo** («Rendi meglio di mattina: 9 focus su 11 sono andati bene.»): dove
 va peggio non si dice. Per un giorno solo la frase è più semplice, la materia con più «bene» («Con Anatomia è andata bene.»).

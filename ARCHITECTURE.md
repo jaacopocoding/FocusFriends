@@ -506,7 +506,7 @@ code. All UI code runs on the main thread; the only other thread is the audio re
 
 ### 3.16 Statistics window
 
-- **What:** tabs Today / Week / Month / Year; big total, a per-day trend for Week and Month like the year's (subject chips, one bar per day; hover shows the day, a click opens it), subject bar and legend, streak and
+- **What:** tabs Today / Week / Month / Year; big total, a per-day trend for Week and Month like the year's (subject chips, one bar per day; hover shows the day, a click opens it), "Per materia" rows (one per subject, as in the year; `layoutSubjects`/`drawSubjects`) instead of the old subject bar and legend, streak and
   rating counts on one line, insight sentences for the period, positive only ("when do you do better"; for a day, `dayInsight`), the diary of sessions
   (always open for Today, with the day strip; collapsible for Week and Month), edit/delete a session, CSV export, "delete everything".
 - **Entry point:** `MenuController.showStats` → `DashboardController.show(kind:)`.
@@ -1408,7 +1408,7 @@ file/UserDefaults writes, windows, timers, sound, global state.
   private `PageView` (also the mouse for the week/month bars and the year map), `SummaryLayout`, `YearLayout`, `YearHover`, `LegendItem`, private `DiaryView` (day strip, day headers, session rows,
   hit-testing), `DashboardController` (lazy window).
 - **Key members:** `reload` (skipped by the log observer while the window is closed; the insights come from the period's sessions, `StudyStats.dayInsight` for a day), `select`, `buildLayout`, `relayoutPage` (the day's diary is always open, below the summary; week and month keep the "Mostra le sessioni" toggle), `drawSummary`, `drawMiniChart` (the per-day trend: title and `YearStats.dayTrendCaption`, the subject chips shared with the year via `trendChips`/`drawTrendChips`, one bar per day from `YearStats.days(…, subject:)`, none for future days; `chartDay(at:)` + `chartHoverText` for hover, a click opens the day via `openDay`),
-  `drawSubjectBar`, `drawLegendLine`, `drawStatus` (streak and rating faces on one line), `edit(_:)`, `deleteEverything`, `exportCSV`.
+  `layoutSubjects`/`drawSubjects` ("Per materia", in every tab), `drawStatus` (streak and rating faces on one line), `edit(_:)`, `deleteEverything`, `exportCSV`.
 - **Side effects:** modal `NSAlert`/`NSSavePanel`; writes through `SessionLog` / `Profile.reset()`; registers a
   log observer.
 
