@@ -69,6 +69,16 @@ export class Speaker {
     this.dismiss(false);
   }
 
+  /** Dice la frase e la lascia lì finché qualcuno non la toglie (`stop` o `dismissNow`): niente frasi a sorpresa nel frattempo.
+   *  Per il «Cliccami!!!» del giro guidato (`Speaker.hold` sul Mac). */
+  hold(text: string): void {
+    this.say(text);
+    window.clearTimeout(this.hideTimer);
+    this.hideTimer = undefined;
+    window.clearTimeout(this.nextTimer);
+    this.nextTimer = undefined;
+  }
+
   /** Dice la prossima frase del mazzo. */
   async sayRandom(): Promise<void> {
     this.say(await this.host.nextPhrase());

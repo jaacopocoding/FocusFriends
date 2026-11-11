@@ -50,6 +50,7 @@ perché `FF_SELFTEST` è acceso: in uso normale l'app non le legge.
 | `scheda-clic.cjs` | clic e tasti veri sulla scheda: Esc, Frasi, durate, ferma/riprendi, note | |
 | `materia.cjs` | «Cosa studi adesso?»: Esc, Invio, materia recente, senza materia | |
 | `introduzione.cjs` | la scheda di benvenuto: nome e primo compagno | `FF_INTRO=1` |
+| `giro.cjs` | il giro guidato dopo la scheda di benvenuto: «Cliccami!!!», il clic sul compagno, gli otto passi, «Salta» | `FF_INTRO=1` |
 | `riflessione.cjs`, `riflessione-saltata.cjs` | «Com'è andata?»: faccia, nota, Salta | la prima ≈ 75 s |
 | `sblocchi.cjs` | compagni bloccati e sbloccati, nome, titolo della finestra delle statistiche | |
 | `statistiche.cjs` | periodi, l'andamento del mese (sopra, clic, una materia), le sessioni di oggi già aperte, modifica, esporta CSV, elimina, «Cancella tutto» | usa le variabili di prova |

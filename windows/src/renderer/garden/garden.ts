@@ -67,6 +67,16 @@ let panning: { x: number; y: number } | null = null;
 /** Come stava girata l'ultima cosa che si ripete (la staccionata): la prossima parte così. */
 let repeatTurned = false;
 let trayOpen = false;
+
+// La prima volta nel giardino, accanto alla pillola, come si mettono le cose; sparisce per sempre appena si apre la cassetta (come sul Mac).
+const TRAY_HINT = "Trascina le cose da «Da mettere» sull'isola.";
+const TRAY_HINT_KEY = "gardenTrayHintSeen";
+function trayHintSeen(): boolean {
+  try { return localStorage.getItem(TRAY_HINT_KEY) === "1"; } catch { return true; }
+}
+function markTrayHintSeen(): void {
+  try { localStorage.setItem(TRAY_HINT_KEY, "1"); } catch { /* senza memoria il suggerimento torna: va bene */ }
+}
 let message: string | null = null;
 let messageTimer = 0;
 let bubble: { pet: string; text: string } | null = null;
@@ -520,8 +530,9 @@ function renderHud(): void {
     children.push(trayElement);
   } else if (items.length > 0 && !(carry?.moved)) {
     const pill = h("button", { type: "button", class: "chip button tray-pill", title: "Le figurine che hai trovato: trascinale sull'isola" }, icon("inbox", 14), "Da mettere");
-    pill.addEventListener("click", () => { trayOpen = true; redraw(); });
+    pill.addEventListener("click", () => { trayOpen = true; markTrayHintSeen(); redraw(); });
     children.push(pill);
+    if (carry === null && !trayHintSeen()) children.push(h("div", { class: "tray-hint" }, TRAY_HINT));
   }
   if (isCarryingPlaced()) {
     children.push(h("div", { class: `remove-zone${carry && inRemoveZone(carry.pointer) ? " hover" : ""}` }, "Rilascia qui per toglierla"));

@@ -11,6 +11,10 @@ leggere con l'una e con l'altra.
 sentiero di sassi verso una bandierina, e a fine focus mangia la fragola che la aspetta lì. Ha trenta frasi sue («Piano piano si arriva») e si sblocca
 per ultima, a 200 focus pieni.
 
+- **Il giro guidato.** Alla prima apertura, dopo il nome e il compagno, il compagno ti chiama («Cliccami!!!»): cliccandolo si apre la
+  scheda e il giro ne spiega le parti una alla volta, il timer, il giardino, le statistiche, l'album e i compagni da sbloccare, con le
+  immagini di come sono fatti. Si rifà da «Fai il giro» nel menu. E la prima volta che serve il compagno dice quanto manca alla prima
+  figurina e dove trovarla, e il giardino mostra come si mettono le cose.
 - **La sua isola**, la sesta, a destra di quella di Porcellino e sopra quella del Riccio, con la casa dal tetto a guscio, il suo verde oliva e sette
   figurine nuove (il sasso al sole, il cespo di lattuga, l'aiuola di fragole, la bandierina del traguardo, la lanterna di carta, il laghetto, il rifugio
   di paglia). Due angoli nuovi, e il coniglio e la rana vengono anche per la lattuga e il laghetto.

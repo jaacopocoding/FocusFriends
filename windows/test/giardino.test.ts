@@ -7,7 +7,7 @@ import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { Garden, GARDEN_FORMAT_VERSION } from "../src/core/garden.ts";
 import { GARDEN_ITEMS, itemNumber, itemWithId, nameWithArticle, rarityOf, RETIRED_ITEMS } from "../src/core/gardenCatalog.ts";
-import { DropStream, hash, mixedHash } from "../src/core/gardenDrops.ts";
+import { DropStream, giftLine, hash, mixedHash, noneFoundYet, startingDropState } from "../src/core/gardenDrops.ts";
 import { BRIDGES, bridgeId, ISLANDS, pathTiles } from "../src/core/gardenGrid.ts";
 import { GARDEN_INTERACTIONS, interactionImage } from "../src/core/gardenInteractions.ts";
 import type { StudySession } from "../src/core/log.ts";
@@ -113,6 +113,20 @@ describe("Giardino: il file", () => {
     assert.equal(existsSync(join(dir, "giardino.json")), false);
     assert.equal(g.home, null);
     assert.equal(g.foundCount, 3);
+  });
+});
+
+describe("Giardino: le prime volte", () => {
+  it("la prima figurina: quanto manca, e dove trovarla", () => {
+    assert.equal(giftLine({ kind: "progress" }, 35, true), "Mancano 35 minuti di studio alla prima figurina.");
+    assert.equal(giftLine({ kind: "found", drop: { item: "tulipani", rarity: "common" } }, 68, true),
+      "Nuova figurina: Tulipani (n. 4). La trovi nell'album e puoi metterla nel giardino.");
+  });
+  it("all'inizio non si è trovato niente (la dotazione non conta); dopo una figurina sì", () => {
+    const state = startingDropState();
+    assert.ok(noneFoundYet(state));
+    state.found["tulipani"] = 1;
+    assert.ok(!noneFoundYet(state));
   });
 });
 

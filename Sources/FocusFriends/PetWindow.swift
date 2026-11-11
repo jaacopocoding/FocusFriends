@@ -63,6 +63,11 @@ final class PetWindow: NSWindow {
         get { petView.onContextClick }
         set { petView.onContextClick = newValue }
     }
+    /// Il giro guidato: il compagno freme e un clic sinistro chiama questa funzione (nil = torna normale).
+    var onCallClick: (() -> Void)? {
+        get { petView.onCallClick }
+        set { petView.onCallClick = newValue }
+    }
 
     /// Cambia personaggio: la finestra si ridimensiona tenendo fermi i piedi (centro del lato basso).
     func apply(_ newPet: Pet) {
@@ -300,6 +305,22 @@ final class PetView: NSView {
     private var hasPickedPose: Bool { pickedImage != nil }
 
     var onContextClick: (() -> Void)?
+    /// Il giro guidato: finché c'è, il compagno freme ogni tanto e un clic (sinistro) chiama questa funzione invece di sollevarlo.
+    var onCallClick: (() -> Void)? {
+        didSet {
+            callTimer?.invalidate()
+            callTimer = nil
+            if onCallClick != nil {
+                callStart = Date()
+                let timer = Timer(timeInterval: 1.0 / 30, repeats: true) { [weak self] _ in self?.needsDisplay = true }
+                RunLoop.main.add(timer, forMode: .common)
+                callTimer = timer
+            }
+            needsDisplay = true
+        }
+    }
+    private var callTimer: Timer?
+    private var callStart = Date()
     /// Chiamata appena cambia lo stadio o la posa mostrati.
     var onArtChanged: (() -> Void)?
 
@@ -312,10 +333,11 @@ final class PetView: NSView {
     }
 
     /// Chi ha il disegno "sollevato" gestisce il trascinamento da sé (vedi mouseDragged).
-    override var mouseDownCanMoveWindow: Bool { !hasPickedPose }
+    override var mouseDownCanMoveWindow: Bool { !hasPickedPose && onCallClick == nil }
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 
     override func mouseDown(with event: NSEvent) {
+        if let onCallClick { onCallClick(); return }
         guard hasPickedPose else { super.mouseDown(with: event); return }
         dragStart = NSEvent.mouseLocation
     }
@@ -534,6 +556,27 @@ final class PetView: NSView {
         defer { if mirrored { NSGraphicsContext.restoreGraphicsState() } }
 
         let target = imageRect
+
+        // Il giro guidato: fermo per metà del giro, poi qualche saltello che oscilla (come chi vuole farsi notare).
+        var wiggled = false
+        if onCallClick != nil {
+            let cycle = 1.1
+            let phase = Date().timeIntervalSince(callStart).truncatingRemainder(dividingBy: cycle) / cycle
+            if phase > 0.55 {
+                wiggled = true
+                let k = (phase - 0.55) / 0.45
+                let angle = sin(k * 2 * .pi * 2) * 5 * (1 - k * 0.4)
+                let hop = abs(sin(k * 2 * .pi * 1.5)) * 6 * (1 - k)
+                let pivot = NSPoint(x: target.midX, y: target.minY + groundFraction * target.height)
+                let wiggle = NSAffineTransform()
+                wiggle.translateX(by: pivot.x, yBy: pivot.y + CGFloat(hop))
+                wiggle.rotate(byDegrees: CGFloat(mirrored ? -angle : angle))
+                wiggle.translateX(by: -pivot.x, yBy: -pivot.y)
+                NSGraphicsContext.saveGraphicsState()
+                wiggle.concat()
+            }
+        }
+        defer { if wiggled { NSGraphicsContext.restoreGraphicsState() } }
 
         // Ombra centrata sulla linea di terra del disegno.
         let shadowWidth = bounds.width * shadowFraction

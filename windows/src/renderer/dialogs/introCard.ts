@@ -15,7 +15,7 @@ export function openIntroCard(host: ModalHost, options: {
   let selected = options.currentPetId;
   const finish = (name: string | null, petId: string) => (close: () => void): void => { close(); options.onDone(name, petId); };
   host.open({
-    label: "Benvenuto in FocusFriends",
+    label: "Prima di iniziare",
     offsetY: -50,
     onCancel: () => options.onDone(null, options.currentPetId),
     initialFocus: (content) => content.querySelector<HTMLElement>("input"),
@@ -37,12 +37,12 @@ export function openIntroCard(host: ModalHost, options: {
       row.append(...buttons);
 
       const dialog = h("div", { class: "dialog wide" },
-        h("div", { class: "dialog-title" }, "Ciao! Benvenuto in FocusFriends"),
+        h("div", { class: "dialog-title" }, "Ciao! Prima di iniziare"),
         h("div", { class: "dialog-question" }, "Come ti chiami?"),
         input,
         h("div", { class: "dialog-question" }, "Chi ti fa compagnia?"),
         row,
-        h("div", { class: "dialog-hint" }, "Puoi cambiarli quando vuoi dal menu."),
+        h("div", { class: "dialog-hint" }, "Il primo compagno di studio lo scegli tu; gli altri si sbloccano studiando."),
         h("div", { class: "dialog-buttons" },
           button("text-button", "Salta", () => finish(null, options.currentPetId)(close), "Salta"),
           button("pill-action big", "Iniziamo!", start, "Iniziamo!")),

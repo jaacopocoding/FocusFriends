@@ -32,6 +32,9 @@ final class MenuController: NSObject, NSMenuDelegate {
     private let albumItem = NSMenuItem()
     private let nameItem = NSMenuItem()
     private var card: MenuCard!
+    /// Il giro guidato (dopo la scheda della prima apertura, o da «Fai il giro»).
+    private var tour: GuidedTour!
+    private let tourItem = NSMenuItem()
 
     init(window: PetWindow, speaker: Speaker, pomodoro: Pomodoro) {
         self.window = window
@@ -134,6 +137,12 @@ final class MenuController: NSObject, NSMenuDelegate {
         loginItem.image = Self.symbol("power")
         menu.addItem(loginItem)
 
+        tourItem.title = "Fai il giro"
+        tourItem.action = #selector(tourPressed)
+        tourItem.target = self
+        tourItem.image = Self.symbol("questionmark.circle")
+        menu.addItem(tourItem)
+
         let quotes = NSMenuItem(title: "Modifica le frasi…", action: #selector(openQuotesFile), keyEquivalent: "")
         quotes.target = self
         quotes.image = Self.symbol("pencil")
@@ -155,6 +164,7 @@ final class MenuController: NSObject, NSMenuDelegate {
         // Clic sull'icona o tasto destro sul personaggio: la scheda. Tasto destro o ⌥-clic sull'icona: il menu di prima.
         card = MenuCard(state: { [unowned self] in self.cardState() }, live: { [unowned self] in self.cardLiveState() },
                         actions: cardActions())
+        tour = GuidedTour(card: card, petWindow: window, speaker: speaker)
         dashboard.onBack = { [weak self] in self?.returnToMenu() }
         garden.onBack = { [weak self] in self?.returnToMenu() }
         garden.onShowAlbum = { [weak self] in self?.showAlbum() }
@@ -413,6 +423,7 @@ final class MenuController: NSObject, NSMenuDelegate {
         toggleItem.title = window.isVisible ? "Nascondi \(name)" : "Mostra \(name)"
         toggleItem.image = Self.symbol(window.isVisible ? "eye.slash" : "eye")
         speakItem.title = "Fai parlare \(name)"
+        tourItem.isEnabled = pomodoro.phase == nil
         // La scheda in cima segue il personaggio scelto.
         headerView.title = name
         headerView.icon = Self.menuIcon(for: window.pet, height: 80)
@@ -853,6 +864,18 @@ final class MenuController: NSObject, NSMenuDelegate {
         showPetIfHidden()
         speaker.say(pet.greeting)
     }
+
+    /// Il giro guidato: il compagno chiama («Cliccami!!!») e, cliccato, spiega la scheda una parte alla volta. Mai durante un focus o una pausa.
+    func startTour() {
+        guard pomodoro.phase == nil else { return }
+        showPetIfHidden()
+        tour.start()
+    }
+
+    @objc private func tourPressed() { startTour() }
+
+    /// Il giro guidato è in corso (il compagno sta fermo).
+    var isTouring: Bool { tour.isRunning }
 
     /// "Il tuo nome…": cambia il nome con cui si personalizzano i titoli.
     @objc private func editName() {

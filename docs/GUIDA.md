@@ -248,7 +248,7 @@ fatto, **Com'è andata?** con le tre facce per l'ultimo focus, più i collegamen
 ## Il tuo nome e il compagno
 
 La prima volta che si apre l'app (anche per chi la usava già) compare la scheda di introduzione
-(`IntroCard.swift`): **come ti chiami** e **chi ti fa compagnia** (Pianty, Porcellino, Ciccio o il Gattino). Entrambi sono
+(`IntroCard.swift`, «Ciao! Prima di iniziare»): **come ti chiami** e **chi ti fa compagnia** (uno dei sei compagni). Entrambi sono
 facoltativi: *Salta* o Esc lasciano tutto com'è. Il nome personalizza i **titoli**: il giardino diventa
 «Il giardino di Marco» e le statistiche «Le statistiche di Marco» (nelle voci di menu e nei titoli delle finestre).
 Senza nome restano «Il mio giardino» e «Statistiche e riepilogo». Si cambia in ogni momento da *Il tuo nome…* nel
@@ -259,6 +259,22 @@ Il nome sta in `profilo.json` (`{"version": 1, "name": …, "introSeen": …}`),
 cambiando il nome cambia ovunque. Viene pulito (spazi in eccesso, al massimo 24 caratteri, maiuscole come
 scritte), non esce dall'app (non c'è nell'esportazione CSV) e *Cancella tutto…* lo toglie insieme ai dati
 (alla riapertura ricompare la scheda di introduzione).
+
+### Il giro guidato
+
+Subito dopo la scheda di introduzione parte il **giro guidato** (`GuidedTour.swift`). Il compagno sta fermo, freme e dice
+«Cliccami!!!» (il fumetto resta finché non lo clicchi); un clic sinistro su di lui apre la scheda accanto. La scheda si scurisce
+tranne una parte alla volta e un fumetto accanto la spiega, con *Salta*, il passo («3 di 8») e *Avanti*: i minuti del focus, i numeri
+di oggi, il giardino, le statistiche, l'album con la barra della prossima figurina, i compagni da sbloccare, le impostazioni in basso,
+e alla fine di nuovo i minuti, con *Inizia il primo focus* (la scheda resta aperta per scegliere la durata; il compagno dice «Buono
+studio.»). Per il giardino, le statistiche e l'album, sopra il fumetto compare anche l'immagine di com'è fatto (`assets/benvenuto/`).
+Finché il giro va la scheda non risponde ai clic e non si chiude con un clic fuori; *Salta* o Esc lo chiudono («Il giro si può
+rivedere dal menu.»). Si rifà quando si vuole da **Fai il giro** nel menu (mai durante un focus o una pausa). Il giro non scrive niente.
+
+**Le prime volte.** Alla fine di un focus, finché non si è trovata nessuna figurina (a parte quelle dell'inizio), la frase dice
+«Mancano 35 minuti di studio alla prima figurina.»; quando arriva la prima, «Nuova figurina: Lavanda (n. 6). La trovi nell'album e
+puoi metterla nel giardino.». Nel giardino, accanto alla pillola *Da mettere*, un fumetto dice «Trascina le cose da «Da mettere»
+sull'isola.» finché non si apre la cassetta la prima volta (lo ricordano le preferenze dell'app, `gardenTrayHintSeen`).
 
 ## Materia e statistiche
 
@@ -791,6 +807,7 @@ Sources/FocusFriends/
   ToDo.swift            le cose da fare (dafare.json), i gruppi per scadenza e la frase del compagno (solo Foundation, con prove)
   ToDoPage.swift        la pagina «Da fare» della scheda
   IntroCard.swift       la scheda di introduzione: nome e compagno
+  GuidedTour.swift      il giro guidato dopo la scheda di introduzione (e da «Fai il giro»)
   SubjectPrompt.swift   la scheda "Cosa studi adesso?"
   ReflectionCard.swift  la scheda "Com'è andata?" a fine focus
   DashboardWindow.swift la finestra delle statistiche (Oggi / Settimana / Mese)

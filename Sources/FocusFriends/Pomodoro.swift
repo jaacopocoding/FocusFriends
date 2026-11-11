@@ -432,6 +432,7 @@ final class Pomodoro {
             todoID = nil
             // Il regalo del giardino: un focus completato (con almeno 20 minuti) può far trovare una figurina per l'album.
             var gift = GardenGift.notEligible
+            let firstFigurine = GardenDrops.noneFoundYet(Garden.shared.drops)
             if let recorded {
                 let calendar = StudyPeriod.calendar()
                 let streak = StudyStreak.analyze(sessions: log.sessions, now: Date(), calendar: calendar)
@@ -441,7 +442,8 @@ final class Pomodoro {
             begin(.rest, minutes: breakLength)
             isLongBreak = longBreak
             speaker.say(Self.focusFinishedMessage(subject: finishedSubject, studiedMinutes: studied, breakMinutes: breakLength,
-                                                  garden: GardenDrops.line(for: gift, minutesLeft: Garden.shared.minutesToNextGift), longBreak: longBreak))
+                                                  garden: GardenDrops.line(for: gift, minutesLeft: Garden.shared.minutesToNextGift, firstFigurine: firstFigurine),
+                                                  longBreak: longBreak))
             onFocusCompleted?()
             if let recorded { onFocusRecorded?(recorded, finishedTodo) }
             onGift?(gift)

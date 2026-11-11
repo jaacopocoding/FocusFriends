@@ -130,6 +130,7 @@ FocusFriends/
 │   ├── FocusScreenViews.swift    FocusPalette, FocusTomatoView, PostItView, FocusDraw (stickers, holes), CycleDotsView
 │   ├── PaperUI.swift             shared look: Paper colours/fonts, PillButton, TextButton, ChipButton, PaperCardView, KeyablePanel, FaceIcon, RatingButton, BackToMenuButton
 │   ├── IntroCard.swift           first-run card: name + first companion (CompanionButton)
+│   ├── GuidedTour.swift          first-run guided tour of the menu card (the companion calls, the card is shaded but one section)
 │   ├── SubjectPrompt.swift       "What are you studying now?" card shown when a focus starts
 │   ├── ReflectionCard.swift      "How did it go?" card after a completed focus
 │   ├── DashboardWindow.swift     statistics window: DashboardView, DiaryView, DashboardController
@@ -1381,6 +1382,14 @@ file/UserDefaults writes, windows, timers, sound, global state.
 #### `IntroCard.swift` (225)
 - **Responsibility:** `CompanionButton` and `IntroCard` (name field + companion choice + Skip/Start). Auto-layout
   `NSStackView` card inside a `KeyablePanel`, as wide as the buttons need (466 pt with four companions, 572 with five). `ask(currentPet:near:completion:)`; skip/Esc → `(nil, initialPet)`.
+
+#### `GuidedTour.swift` (270)
+- **Responsibility:** the guided tour after the intro (and from "Fai il giro"). `start()` makes the companion hold a "Cliccami!!!"
+  bubble (`Speaker.hold`) and wiggle (`PetWindow.onCallClick`, which also turns its left click into "open the card"); opening the card
+  any way starts the steps. Each step shades the card except one `CardSection` (`MenuCard.setSpotlight`, frames recorded by
+  `MenuCardView.rebuild`), shows `TourTipView` in a non-activating panel on the side away from the companion and, for garden/stats/album,
+  an image panel (`benvenuto_*.png`). `MenuCard.isPinned` keeps the card open meanwhile; `Walker.holdsStill` keeps the companion still.
+  Skip/Esc/last step → `finish`. Writes nothing.
 
 #### `SubjectPrompt.swift` (199)
 - **Responsibility:** the "What are you studying now?" card (`Choice`: `.start(subject)`, `.cancel`, `.back`);

@@ -209,22 +209,31 @@ export function nextGiftLine(minutesLeft: number | null): string {
   return minutesLeft === 0 ? "Prossima figurina: al prossimo focus" : `Prossima figurina: ancora ${minutesWords(minutesLeft)} di studio`;
 }
 
-/** La frase di fine focus sul regalo (vuota se il focus non contava, o se c'è già tutto). */
-export function giftLine(gift: GardenGift, minutesLeft: number | null = null): string {
+/** La frase di fine focus sul regalo (vuota se il focus non contava, o se c'è già tutto). `firstFigurine`: non se n'è ancora trovata nessuna
+ *  (oltre alla dotazione): la frase parla della «prima figurina» e, quando arriva, dice dove trovarla. */
+export function giftLine(gift: GardenGift, minutesLeft: number | null = null, firstFigurine = false): string {
   const next = minutesLeft === null ? "" : minutesLeft === 0 ? "Ne hai già un'altra pronta: arriva al prossimo focus." : `La prossima tra ${minutesWords(minutesLeft)} di studio.`;
   switch (gift.kind) {
     case "notEligible":
     case "complete":
       return "";
     case "progress":
-      return minutesLeft !== null && minutesLeft > 0 ? `Ancora ${minutesWords(minutesLeft)} di studio e trovi una figurina.` : "";
+      if (minutesLeft === null || minutesLeft <= 0) return "";
+      return firstFigurine ? `Mancano ${minutesWords(minutesLeft)} di studio alla prima figurina.` : `Ancora ${minutesWords(minutesLeft)} di studio e trovi una figurina.`;
     case "found": {
       const name = itemWithId(gift.drop.item)?.name ?? gift.drop.item;
       const number = itemNumber(gift.drop.item);
       const tag = number === undefined ? "" : ` (n. ${number})`;
       const sentence = gift.drop.rarity === "legendary" ? `Una figurina leggendaria: ${name}${tag}!`
         : gift.drop.rarity === "rare" ? `Nuova figurina rara: ${name}${tag}!` : `Nuova figurina: ${name}${tag}.`;
+      if (firstFigurine) return `${sentence} La trovi nell'album e puoi metterla nel giardino.`;
       return next === "" ? sentence : sentence + " " + next;
     }
   }
+}
+
+/** Non si è ancora trovata nessuna figurina, a parte quelle che ci sono dall'inizio. */
+export function noneFoundYet(state: GardenDropState, pool: readonly GardenItem[] = GARDEN_ITEMS): boolean {
+  const starters = new Set(pool.filter(isStarter).map((x) => x.id));
+  return Object.keys(state.found).every((id) => starters.has(id));
 }

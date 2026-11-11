@@ -83,6 +83,9 @@ final class Walker {
         timer = nil
     }
 
+    /// Finché dice di sì il personaggio sta fermo dov'è (il giro guidato: la scheda accanto a lui non deve spostarsi).
+    var holdsStill: () -> Bool = { false }
+
     /// A fine focus: se il personaggio mangia (il porcellino), mangia subito la carota cresciuta.
     func eatNow() {
         let pet = petWindow.pet
@@ -109,8 +112,8 @@ final class Walker {
             petWindow.setSleepMarks(false)
             return
         }
-        // Durante un focus il personaggio "cresce" sul posto (Ciccio nel suo nido): niente passi.
-        if petWindow.isShowingFocusGrowth {
+        // Durante un focus il personaggio "cresce" sul posto (Ciccio nel suo nido), e durante il giro guidato aspetta: niente passi.
+        if petWindow.isShowingFocusGrowth || holdsStill() {
             petWindow.setSleepMarks(false)
             delayState(by: dt)
             return

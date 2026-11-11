@@ -119,6 +119,8 @@ export interface FocusFriendsApi {
   onAskName(callback: () => void): void;
   /** La prima volta: la scheda di benvenuto (nome e compagno). */
   onShowIntro(callback: () => void): void;
+  /** «Fai il giro» dal menu: il giro guidato. */
+  onStartTour(callback: () => void): void;
   /** Un clic sull'icona nell'area di notifica: apre o chiude la scheda. */
   onCardToggle(callback: (request: CardOpenRequest) => void): void;
   /** Tornare indietro da un'altra finestra (o da un annullamento): la scheda si riapre dov'era. */
@@ -153,6 +155,7 @@ export const CHANNEL = {
   inputMode: "overlay:input-mode",
   askSubject: "focus:ask-subject",
   showIntro: "intro:show",
+  startTour: "tour:start",
   askName: "name:ask",
   stageMoved: "stage:moved",
   dragging: "stage:dragging",

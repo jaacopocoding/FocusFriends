@@ -42,6 +42,9 @@ const api: FocusFriendsApi = {
   onAskName: (callback) => {
     ipcRenderer.on(CHANNEL.askName, () => callback());
   },
+  onStartTour: (callback) => {
+    ipcRenderer.on(CHANNEL.startTour, () => callback());
+  },
   onShowIntro: (callback) => {
     ipcRenderer.on(CHANNEL.showIntro, () => callback());
   },

@@ -2532,6 +2532,13 @@ check(GardenDrops.line(for: .progress, minutesLeft: 35) == "Ancora 35 minuti di 
 check(GardenDrops.line(for: .found(GardenDrop(item: "tulipani", rarity: .common)), minutesLeft: 68) == "Nuova figurina: Tulipani (n. 4). La prossima tra 68 minuti di studio."
       && GardenDrops.line(for: .found(GardenDrop(item: "tulipani", rarity: .common)), minutesLeft: 0).hasSuffix("Ne hai già un'altra pronta: arriva al prossimo focus.")
       && GardenDrops.line(for: .found(GardenDrop(item: "tulipani", rarity: .common)), minutesLeft: nil) == "Nuova figurina: Tulipani (n. 4).", "e quando esce una figurina dice anche quanto manca alla prossima")
+check(GardenDrops.line(for: .progress, minutesLeft: 35, firstFigurine: true) == "Mancano 35 minuti di studio alla prima figurina."
+      && GardenDrops.line(for: .found(GardenDrop(item: "tulipani", rarity: .common)), minutesLeft: 68, firstFigurine: true)
+         == "Nuova figurina: Tulipani (n. 4). La trovi nell'album e puoi metterla nel giardino.", "le prime volte: la prima figurina")
+var gdNoneYet = GardenDropState.starting()
+check(GardenDrops.noneFoundYet(gdNoneYet), "all'inizio non si è trovato niente (la dotazione non conta)")
+gdNoneYet.found["tulipani"] = 1
+check(!GardenDrops.noneFoundYet(gdNoneYet), "dopo una figurina sì")
 check(GardenDrops.nextGiftLine(minutesLeft: 35) == "Prossima figurina: ancora 35 minuti di studio" && GardenDrops.nextGiftLine(minutesLeft: 1) == "Prossima figurina: ancora 1 minuto di studio"
       && GardenDrops.nextGiftLine(minutesLeft: 0) == "Prossima figurina: al prossimo focus" && GardenDrops.nextGiftLine(minutesLeft: nil).isEmpty, "la riga sotto «Album»")
 // il file: un giardino di prima non ha la riserva (parte da zero), e quella nuova si scrive

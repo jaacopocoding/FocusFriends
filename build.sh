@@ -45,6 +45,10 @@ for f in assets/giardino/*.png; do
     case "$f" in *_original.png) continue ;; esac
     cp "$f" "$APP/Contents/Resources/giardino_$(basename "$f")"
 done
+# Il giro guidato della prima apertura: com'è fatto il giardino, le statistiche e l'album (GuidedTour.swift).
+for f in assets/benvenuto/*.png; do
+    cp "$f" "$APP/Contents/Resources/benvenuto_$(basename "$f")"
+done
 # L'album delle figurine: la copertina del libro (i fogli *_original.png non servono nell'app).
 for f in assets/album/*.png; do
     case "$f" in *_original.png) continue ;; esac

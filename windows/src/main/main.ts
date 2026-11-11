@@ -26,7 +26,7 @@ import type { Stage } from "./stage.ts";
 import { Garden } from "../core/garden.ts";
 import { ISLANDS } from "../core/gardenGrid.ts";
 import { analyzeStreak, startTime } from "../core/stats.ts";
-import { giftLine } from "../core/gardenDrops.ts";
+import { giftLine, noneFoundYet } from "../core/gardenDrops.ts";
 import { focuses } from "../core/rewards.ts";
 import { GARDEN_ITEMS } from "../core/gardenCatalog.ts";
 import type { SessionLog } from "../core/log.ts";
@@ -163,9 +163,10 @@ async function start(): Promise<void> {
   // figurina trovata compare accanto al compagno.
   const gardenLine = (recorded: StudySession, sessionLog: SessionLog): string => {
     const streak = analyzeStreak(sessionLog.sessions, Date.now());
+    const firstFigurine = noneFoundYet(garden.drops);
     const gift = garden.rollGift(recorded, streak.perDay.get(Math.floor(startOfDay(startTime(recorded)) / DAY_MS)) ?? 1);
     if (gift.kind === "found") send(CHANNEL.giftFound, gift.drop);
-    return giftLine(gift, garden.minutesToNextGift);
+    return giftLine(gift, garden.minutesToNextGift, firstFigurine);
   };
   const service: TimerService = startTimer({ directory: data, settings, send, onChange: () => tray?.refresh(), gardenLine });
   // Le frasi che il compagno dice di sua iniziativa, in quest'ordine: il saluto dell'avvio e il riepilogo della settimana (una volta), le scadenze
@@ -245,6 +246,7 @@ async function start(): Promise<void> {
     speak: () => send(CHANNEL.speakNow),
     askFocus: (minutes) => send(CHANNEL.askSubject, minutes),
     askName: () => send(CHANNEL.askName),
+    startTour: () => send(CHANNEL.startTour),
     loginItem: loginItem(app),
     screens: () => stage.displays().map((d, i) => ({ id: d.id, label: `Schermo ${i + 1}${d.primary ? " (principale)" : ""}`, current: d.id === stage.current.id })),
     moveToScreen: (id) => stage.moveTo(id, false),

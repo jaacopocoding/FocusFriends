@@ -16,6 +16,7 @@ import type { FocusFriendsApi, SettingsSnapshot } from "../shared/api.ts";
 import { AmbientPlayer } from "./audio/ambient.ts";
 import { MusicPlayer } from "./audio/music.ts";
 import { MenuCard } from "./card/card.ts";
+import { GuidedTour } from "./tour.ts";
 import { openIntroCard } from "./dialogs/introCard.ts";
 import { ModalHost } from "./dialogs/modal.ts";
 import { openNameDialog } from "./dialogs/nameDialog.ts";
@@ -53,6 +54,7 @@ let walker: Walker;
 let clock: ClockView;
 let prompt: ExtendPrompt;
 let card: MenuCard;
+let tour: GuidedTour;
 let modals: ModalHost;
 let reflection: ReflectionCard;
 let giftCard: GiftCard;
@@ -333,7 +335,8 @@ function tick(): void {
   stepRaise(now);
   applyAction(walker.tick({
     now, pet, visible, movementEnabled: settings.movement,
-    dragging: drag !== null, speaking: speaker.isSpeaking, showingFocusGrowth,
+    // durante il giro guidato sta fermo (come quando lo si tiene): la scheda accanto a lui non deve spostarsi
+    dragging: drag !== null || (tour?.isRunning ?? false), speaking: speaker.isSpeaking, showingFocusGrowth,
     x: view.position.left, width: view.size.width, screenMinX: 0, screenMaxX: scene.width,
   }), pet, now);
   speaker.follow(now);
@@ -414,6 +417,8 @@ function onMouseDown(event: MouseEvent): void {
   if (!view || event.button !== 0 || drag || card.isOpen || modals.isOpen) return;
   const point = localPoint(event);
   if (!visible || !view.hitTest(point.x, point.y)) return;
+  // il giro guidato: il compagno chiama, e un clic su di lui apre la scheda (invece di sollevarlo)
+  if (tour.isCalling) { tour.petClicked(); return; }
   raise = null;
   const { left, top } = view.position;
   drag = {
@@ -518,8 +523,17 @@ function showIntro(): void {
     onDone: (name, petId) => {
       api.cardCommand({ name: "finishIntro", userName: name, petId });
       speaker.reschedule();
+      // poi il giro guidato: il compagno chiama e, cliccato, spiega la scheda
+      window.setTimeout(startTour, 600);
     },
   });
+}
+
+/** Il giro guidato (dopo la prima scheda, o da «Fai il giro»): mai durante un focus o una pausa, né con un'altra finestra aperta. */
+function startTour(): void {
+  if (timerState?.phase || modals.isOpen) return;
+  if (!visible) api.cardCommand({ name: "toggleVisibility" });
+  tour.start();
 }
 
 /** «Il tuo nome…»: dal menu dell'area di notifica. */
@@ -569,8 +583,19 @@ async function start(): Promise<void> {
   card = new MenuCard({
     api, container: stage, timer: () => timerState, scene: sceneSize, urlOf,
     petBox: () => ({ ...view.position, ...view.size }),
-    onOpenChange: (open) => { needs.card = open; syncInput(); if (!open) refreshHover(); },
+    onOpenChange: (open) => {
+      needs.card = open;
+      syncInput();
+      if (!open) refreshHover();
+      if (open) tour.cardOpened(); else tour.cardClosed();
+    },
     askFocus: (minutes, subject, todoId) => { void askFocus(minutes, subject ?? null, todoId ?? null); },
+  });
+  tour = new GuidedTour({
+    container: stage, card, speaker, urlOf, scene: sceneSize,
+    petCanvas: () => (view ? view.canvas : null),
+    petBox: () => ({ ...view.position, ...view.size }),
+    openCard: () => card.toggle({ anchor: null, toggle: false }),
   });
   card.currentPetId = settings.pet;
   await loadPet(settings.pet);
@@ -614,6 +639,7 @@ async function start(): Promise<void> {
   api.onCardToggle((request) => card.toggle(request));
   api.onAskSubject((minutes) => { void askFocus(minutes); });
   api.onShowIntro(showIntro);
+  api.onStartTour(startTour);
   api.onAskName(() => { void askName(); });
   api.onStageMoved(onStageMoved);
   api.onCardReopen(() => card.reopen());
@@ -644,6 +670,8 @@ async function start(): Promise<void> {
       restImage: (() => restImageIndex(view.pet)) as () => number,
       askFocus: ((minutes: number) => { void askFocus(minutes); }) as () => void,
       showIntro: (() => showIntro()) as () => void,
+      startTour: (() => startTour()) as () => void,
+      tour: (() => ({ running: tour.isRunning, calling: tour.isCalling })) as () => unknown,
       stageOrigin: (() => stageOrigin) as () => unknown,
       askName: (() => { void askName(); }) as () => void,
       askReflection: ((session: object) => reflection.ask(session as never)) as () => void,

@@ -132,6 +132,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             MusicPlayer.shared.setFocusActive(active)
         }
         let menu = MenuController(window: window, speaker: speaker, pomodoro: pomodoro)
+        walker.holdsStill = { [weak menu] in menu?.isTouring ?? false }
         self.menu = menu
         // Chi usava già l'app li tiene tutti; per gli altri si guadagnano (silenziosamente: al massimo sono già meritati).
         Profile.shared.keepAllCompanions(Pet.all.map(\.id))
@@ -159,12 +160,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     Garden.shared.adoptHome(pet.id)
                     Garden.shared.settleBridges(open: Set(GardenIslands.all.filter { Profile.shared.isCompanionUnlocked($0) }))
                     Garden.shared.settleRules()
-                    if pet != window.pet {
-                        menu.selectPet(pet)
-                    } else {
-                        speaker.say(pet.greeting)
-                    }
-                    speaker.reschedule()
+                    if pet != window.pet { menu.selectPet(pet) }
+                    // Poi il giro guidato: il compagno chiama e, cliccato, spiega la scheda.
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { menu.startTour() }
                 }
             }
         }

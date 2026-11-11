@@ -902,6 +902,11 @@ final class GardenView: NSView, NSViewToolTipOwner {
 
     private var showsTrayPill: Bool { !trayVisible && !trayItems().isEmpty && !(carry != nil && carryMoved) }
 
+    /// La prima volta nel giardino, accanto alla pillola, come si mettono le cose; sparisce per sempre appena si apre la cassetta.
+    static let trayHintKey = "gardenTrayHintSeen"
+    static let trayHintText = "Trascina le cose da «Da mettere» sull'isola."
+    private var showsTrayHint: Bool { showsTrayPill && carry == nil && !UserDefaults.standard.bool(forKey: Self.trayHintKey) }
+
     private func drawRemoveZone() {
         let rect = removeZoneRect
         let hovering = rect.contains(carryPointer)
@@ -1051,6 +1056,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
         drawHUD()
         drawIslandCaption()
         if trayVisible { drawTray() } else if showsTrayPill { drawTrayPill() }
+        if showsTrayHint { drawTrayHint() }
         drawZoomControls()
         drawCelebration(laid, iso: iso)
         if isCarryingPlaced { drawRemoveZone() }
@@ -2260,6 +2266,32 @@ final class GardenView: NSView, NSViewToolTipOwner {
         text("Da mettere", in: NSRect(x: rect.minX + 34, y: rect.minY + 8, width: rect.width - 42, height: 16), font: smallFont)
     }
 
+    /// Un fumetto a destra della pillola «Da mettere», con la punta verso di lei.
+    private func drawTrayHint() {
+        let pill = trayPillRect
+        let width = ceil((Self.trayHintText as NSString).size(withAttributes: [.font: smallFont]).width) + 26
+        let rect = NSRect(x: pill.maxX + 14, y: pill.minY, width: width, height: pill.height)
+        let shape = NSBezierPath(roundedRect: rect, xRadius: 12, yRadius: 12)
+        let tail = NSBezierPath()
+        tail.move(to: NSPoint(x: rect.minX + 1, y: rect.midY - 6))
+        tail.line(to: NSPoint(x: rect.minX - 8, y: rect.midY))
+        tail.line(to: NSPoint(x: rect.minX + 1, y: rect.midY + 6))
+        tail.close()
+        NSColor(calibratedRed: 1, green: 0.99, blue: 0.97, alpha: 0.97).setFill()
+        shape.fill()
+        Paper.ink.setStroke()
+        shape.lineWidth = 1.5
+        shape.stroke()
+        tail.fill()
+        let sides = NSBezierPath()
+        sides.move(to: NSPoint(x: rect.minX + 1, y: rect.midY - 6))
+        sides.line(to: NSPoint(x: rect.minX - 8, y: rect.midY))
+        sides.line(to: NSPoint(x: rect.minX + 1, y: rect.midY + 6))
+        sides.lineWidth = 1.5
+        sides.stroke()
+        text(Self.trayHintText, in: NSRect(x: rect.minX + 13, y: rect.minY + 8, width: width - 20, height: 16), font: smallFont)
+    }
+
     private func drawTrayCell(_ item: GardenItem, in rect: NSRect) {
         let path = NSBezierPath(roundedRect: rect, xRadius: 10, yRadius: 10)
         Sticker.card.setFill()
@@ -2307,6 +2339,7 @@ final class GardenView: NSView, NSViewToolTipOwner {
         }
         if showsTrayPill && trayPillRect.contains(p) {
             trayOpen = true
+            UserDefaults.standard.set(true, forKey: Self.trayHintKey)
             needsDisplay = true
             return
         }

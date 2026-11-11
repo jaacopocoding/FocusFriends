@@ -32,6 +32,8 @@ export interface TrayDeps {
   moveToScreen(id: number): void;
   /** «Il tuo nome…». */
   askName(): void;
+  /** «Fai il giro»: il giro guidato della prima apertura. */
+  startTour(): void;
   /** «Focus N min»: prima si chiede la materia («Cosa studi adesso?»), poi parte. */
   askFocus(minutes: number): void;
   /** Un clic sull'icona: apre o chiude la scheda sotto (sopra) di lei. */
@@ -192,6 +194,7 @@ export function createTray(deps: TrayDeps): { refresh(): void; popUp(): void; bo
       ...screenMenu(),
       { type: "separator" },
       { label: "Il tuo nome…", click: () => deps.askName() },
+      { label: "Fai il giro", enabled: timer.phase === null, click: () => deps.startTour() },
       { label: "Chiedi com'è andata", type: "checkbox", checked: settings.askHowItWent, click: (item) => { settings.askHowItWent = item.checked; } },
       {
         label: `Pausa lunga dopo ${FOCUSES_PER_CYCLE} focus`, type: "checkbox", checked: settings.longBreakEnabled,

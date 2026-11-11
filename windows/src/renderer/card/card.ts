@@ -82,13 +82,17 @@ export class MenuCard {
   private shown: { phase: PomodoroSnapshot["phase"]; paused: boolean } = { phase: null, paused: false };
   private refreshTimer: number | undefined;
   private closedAt = 0;
+  /** Durante il giro guidato la scheda non si chiude con un clic fuori o perdendo il fuoco (Esc chiama `onPinnedEscape`). */
+  pinned = false;
+  onPinnedEscape: (() => void) | null = null;
   private readonly onKey = (event: KeyboardEvent): void => {
     if (event.key !== "Escape") return;
     event.preventDefault();
+    if (this.pinned) { this.onPinnedEscape?.(); return; }
     // Dentro il modulo «Nuova cosa» / «Modifica» Esc torna alla lista senza salvare.
     if (this.page === "todo" && this.todoForm !== null) this.closeToDoForm(); else this.close();
   };
-  private readonly onBlur = (): void => this.close();
+  private readonly onBlur = (): void => { if (!this.pinned) this.close(); };
 
   constructor(host: CardHost) {
     this.host = host;
@@ -96,6 +100,18 @@ export class MenuCard {
   }
 
   get isOpen(): boolean { return this.root !== null; }
+
+  /** La scheda aperta (per il giro guidato), o null. */
+  get element(): HTMLElement | null { return this.root; }
+
+  /** Dove sta una parte della scheda (gli elementi con `data-tour`), nella pagina; null se non c'è. */
+  sectionRect(section: string): DOMRect | null {
+    const parts = this.root ? [...this.root.querySelectorAll<HTMLElement>(`[data-tour="${section}"]`)] : [];
+    if (parts.length === 0) return null;
+    const rects = parts.map((part) => part.getBoundingClientRect());
+    const left = Math.min(...rects.map((r) => r.left)), top = Math.min(...rects.map((r) => r.top));
+    return new DOMRect(left, top, Math.max(...rects.map((r) => r.right)) - left, Math.max(...rects.map((r) => r.bottom)) - top);
+  }
 
   /** Un clic sull'icona: apre o chiude. Subito dopo una chiusura (il clic che l'ha chiusa) non riapre. */
   toggle(request: CardOpenRequest): void {
@@ -122,8 +138,8 @@ export class MenuCard {
     if (page === "timers") { this.dialKind = "focus"; this.dialMinutes = 50; this.timerMessage = null; }
 
     this.backdrop = h("div", { class: "card-backdrop" });
-    this.backdrop.addEventListener("mousedown", () => this.close());
-    this.backdrop.addEventListener("contextmenu", (event) => { event.preventDefault(); this.close(); });
+    this.backdrop.addEventListener("mousedown", () => { if (!this.pinned) this.close(); });
+    this.backdrop.addEventListener("contextmenu", (event) => { event.preventDefault(); if (!this.pinned) this.close(); });
     this.root = h("div", { class: "card-root", role: "dialog", "aria-label": "FocusFriends" });
     this.host.container.append(this.backdrop, this.root);
     this.host.onOpenChange(true);
@@ -136,6 +152,7 @@ export class MenuCard {
 
   close(): void {
     if (!this.root) return;
+    this.pinned = false;
     this.closedAt = performance.now();
     const root = this.root, backdrop = this.backdrop;
     this.root = null;
@@ -330,16 +347,19 @@ export class MenuCard {
       }
     };
     fill(names.length);
+    companions.dataset["tour"] = "avatars";
     body.append(companions);
     if (companions.firstElementChild && companions.firstElementChild.scrollWidth > companions.clientWidth + 1) fill(Math.ceil(names.length / 2));
     const locked = data.companions.filter((entry) => entry.lock !== null);
     if (locked.length > 0) {
       const next = locked[0]!;
-      body.append(h("div", { class: "lock-hint" }, this.lockHint ?? `${next.name} ${next.lock}`));
+      body.append(h("div", { class: "lock-hint", "data-tour": "avatars" }, this.lockHint ?? `${next.name} ${next.lock}`));
     }
 
     // Focus e pausa, oppure il timer che sta andando.
-    if (timer.phase !== null) body.append(this.running(timer)); else body.append(this.durations(data));
+    const timerBlock = timer.phase !== null ? this.running(timer) : this.durations(data);
+    timerBlock.dataset["tour"] = "durations";
+    body.append(timerBlock);
 
     // Riepilogo di oggi
     const tiles: Array<[string, string]> = [
@@ -347,7 +367,7 @@ export class MenuCard {
       [String(data.todayFocusCount), "focus"],
       [String(data.streak), data.streakFrozen ? "ghiacciata" : data.streak === 1 ? "giorno di fila" : "di fila"],
     ];
-    const today = h("div", { class: "tiles" });
+    const today = h("div", { class: "tiles", "data-tour": "today" });
     for (const [value, caption] of tiles) {
       today.append(button("tile", `${value} ${caption}`, () => this.command({ name: "showStats" }, true),
         h("span", { class: "tile-value" }, value), h("span", { class: "tile-caption" }, caption)));
@@ -355,12 +375,15 @@ export class MenuCard {
     body.append(today);
 
     // Giardino e statistiche
-    body.append(h("div", { class: "pills" },
-      button("pill", "Giardino", () => this.command({ name: "showGarden" }, true), icon("leaf", 14), "Giardino"),
-      button("pill", "Statistiche", () => this.command({ name: "showStats" }, true), icon("chart", 14), "Statistiche")));
+    const gardenPill = button("pill", "Giardino", () => this.command({ name: "showGarden" }, true), icon("leaf", 14), "Giardino");
+    const statsPill = button("pill", "Statistiche", () => this.command({ name: "showStats" }, true), icon("chart", 14), "Statistiche");
+    gardenPill.dataset["tour"] = "garden";
+    statsPill.dataset["tour"] = "stats";
+    body.append(h("div", { class: "pills" }, gardenPill, statsPill));
 
     // Linea e impostazioni rapide
     body.append(h("hr", { class: "rule" }));
+    const settingsFrom = body.childElementCount;
     body.append(this.option("chat", "Frasi", CHATTINESS_TITLES[data.chattiness], null, () => this.command({ name: "cycleChattiness" })));
     const ambientIcon: IconName = data.ambient === "none" ? "mute" : data.ambient;
     body.append(this.option(ambientIcon, "Suono ambiente", AMBIENT_TITLES[data.ambient], null, () => this.command({ name: "cycleAmbient" })));
@@ -374,6 +397,8 @@ export class MenuCard {
       this.todoForm = null;
       this.rebuild(false);
     }));
+    for (const part of [...body.children].slice(settingsFrom)) (part as HTMLElement).dataset["tour"] = "settings";
+    const albumFrom = body.childElementCount;
     if (data.album) {
       const album = data.album;
       body.append(this.option("book", "Album", `${album.found}/${album.total}` + (album.fresh > 0 ? ` · ${album.fresh} ${album.fresh === 1 ? "nuova" : "nuove"}` : ""), null,
@@ -387,6 +412,7 @@ export class MenuCard {
       body.append(button("gift-line", line, () => this.command({ name: "showAlbum" }, true),
         h("span", { class: "gift-line-text" }, line), h("span", { class: "gift-bar" }, fill)));
     }
+    for (const part of [...body.children].slice(albumFrom)) (part as HTMLElement).dataset["tour"] = "album";
     body.append(this.option(data.petVisible ? "eyeOff" : "eye", data.petVisible ? `Nascondi ${pet.name}` : `Mostra ${pet.name}`, null, null,
       () => this.command({ name: "toggleVisibility" }, true)));
 

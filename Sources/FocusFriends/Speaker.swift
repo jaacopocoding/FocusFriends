@@ -72,6 +72,16 @@ final class Speaker {
         dismissBubble(animated: false)
     }
 
+    /// Dice la frase e la lascia lì finché qualcuno non la toglie (`stop` o `dismissNow`): niente frasi a sorpresa nel frattempo.
+    /// Per il «Cliccami!!!» del giro guidato.
+    func hold(_ text: String) {
+        say(text)
+        hideTimer?.invalidate()
+        hideTimer = nil
+        nextTimer?.invalidate()
+        nextTimer = nil
+    }
+
     /// Dice la prossima frase del mazzo.
     func sayRandom() {
         if !queued.isEmpty {

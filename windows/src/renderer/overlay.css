@@ -498,3 +498,110 @@ html, body {
   pointer-events: none;
   z-index: 16;
 }
+
+/* ---- il giro guidato (tour.ts): il compagno che chiama, il velo sulla scheda, il fumetto e l'immagine */
+
+.tour-calling {
+  transform-origin: 50% 96%;
+  animation: tour-wiggle 1.1s ease-in-out infinite;
+}
+
+@keyframes tour-wiggle {
+  0%, 55%, 100% { rotate: 0deg; translate: 0 0; }
+  62% { rotate: -5deg; translate: 0 -6px; }
+  70% { rotate: 5deg; translate: 0 -2px; }
+  78% { rotate: -4deg; translate: 0 -5px; }
+  86% { rotate: 3deg; translate: 0 0; }
+}
+
+.tour-shade {
+  position: absolute;
+  z-index: 11;
+  border-radius: 20px;
+  overflow: hidden;
+  pointer-events: auto;
+}
+
+.tour-spot {
+  position: absolute;
+  border-radius: 12px;
+  box-shadow: 0 0 0 2000px rgba(20, 22, 28, 0.45);
+  outline: 2.5px solid #ffd39a;
+}
+
+.tour-tip {
+  position: absolute;
+  z-index: 12;
+  width: 300px;
+  box-sizing: border-box;
+  padding: 12px 15px 11px;
+  background: #fffdf7;
+  border: 2px solid var(--ink);
+  border-radius: 16px;
+  color: var(--ink);
+  font: 14px/1.42 system-ui, "Segoe UI", sans-serif;
+  pointer-events: auto;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.tour-tip.visible { opacity: 1; }
+
+.tour-tip::after {
+  content: "";
+  position: absolute;
+  top: calc(var(--tail, 24px) - 7px);
+  width: 13px;
+  height: 13px;
+  background: #fffdf7;
+  rotate: 45deg;
+}
+
+.tour-tip.tail-right::after { right: -8.5px; border-right: 2px solid var(--ink); border-top: 2px solid var(--ink); }
+.tour-tip.tail-left::after { left: -8.5px; border-left: 2px solid var(--ink); border-bottom: 2px solid var(--ink); }
+
+.tour-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 11px;
+}
+
+.tour-skip {
+  font: 600 13px system-ui, "Segoe UI", sans-serif;
+  color: var(--ink-light);
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+.tour-count {
+  font-size: 11.5px;
+  color: var(--ink-light);
+}
+
+.tour-next {
+  font: 17px var(--marker);
+  color: white;
+  background: var(--accent);
+  border: 0;
+  border-radius: 17px;
+  height: 34px;
+  padding: 0 18px;
+  cursor: pointer;
+}
+
+.tour-next:hover { filter: brightness(1.05); }
+
+.tour-peek {
+  position: absolute;
+  z-index: 12;
+  border-radius: 14px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+
+.tour-peek.visible { opacity: 1; }

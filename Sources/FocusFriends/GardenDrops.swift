@@ -246,7 +246,9 @@ enum GardenDrops {
 
     /// La frase di fine focus sul regalo (vuota se il focus non contava, o se c'è già tutto). `minutesLeft` sono i minuti che mancano alla figurina dopo: si dicono sempre,
     /// perché la strada fino alla prossima sia in vista.
-    static func line(for gift: GardenGift, minutesLeft: Int? = nil) -> String {
+    /// `firstFigurine`: non se n'è ancora trovata nessuna (oltre a quelle che ci sono dall'inizio): la frase parla della «prima figurina» e,
+    /// quando arriva, dice dove trovarla.
+    static func line(for gift: GardenGift, minutesLeft: Int? = nil, firstFigurine: Bool = false) -> String {
         let next: String
         switch minutesLeft {
         case nil: next = ""
@@ -258,6 +260,7 @@ enum GardenDrops {
             return ""
         case .progress:
             guard let minutesLeft, minutesLeft > 0 else { return "" }
+            if firstFigurine { return "Mancano \(minutesWords(minutesLeft)) di studio alla prima figurina." }
             return "Ancora \(minutesWords(minutesLeft)) di studio e trovi una figurina."
         case .found(let drop):
             let name = GardenCatalog.item(withID: drop.item)?.name ?? drop.item
@@ -268,8 +271,15 @@ enum GardenDrops {
             case .rare: sentence = "Nuova figurina rara: \(name)\(number)!"
             case .common: sentence = "Nuova figurina: \(name)\(number)."
             }
+            if firstFigurine { return sentence + " La trovi nell'album e puoi metterla nel giardino." }
             return next.isEmpty ? sentence : sentence + " " + next
         }
+    }
+
+    /// Non si è ancora trovata nessuna figurina, a parte quelle che ci sono dall'inizio.
+    static func noneFoundYet(_ state: GardenDropState, pool: [GardenItem] = GardenCatalog.items) -> Bool {
+        let starters = Set(pool.filter(\.isStarter).map(\.id))
+        return state.found.keys.allSatisfy { starters.contains($0) }
     }
 }
 

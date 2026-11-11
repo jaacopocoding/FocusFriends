@@ -140,6 +140,42 @@ private final class CardButton: NSButton {
 
 /// La scheda del menu: una carta con il compagno che sbuca dal bordo, i tre focus, il riepilogo di oggi e le
 /// impostazioni più usate. Stesso linguaggio delle altre schede (carta, inchiostro, pennarello).
+/// Le parti della scheda che il giro guidato illumina una alla volta (vedi GuidedTour.swift).
+enum CardSection: CaseIterable {
+    case avatars, durations, today, garden, stats, settings, album
+}
+
+/// Sopra la scheda durante il giro: scurisce tutto tranne una parte, e tiene per sé i clic (la scheda non si usa finché il giro va).
+private final class TourShadeView: NSView {
+    override var isFlipped: Bool { true }
+    var spot: NSRect? { didSet { needsDisplay = true } }
+    /// La forma della scheda (la carta e il compagno che sbuca in cima): il velo resta dentro, fuori è trasparente.
+    var paper: NSBezierPath? { didSet { needsDisplay = true } }
+
+    override func draw(_ dirtyRect: NSRect) {
+        if let paper {
+            NSGraphicsContext.saveGraphicsState()
+            paper.addClip()
+        }
+        defer { if paper != nil { NSGraphicsContext.restoreGraphicsState() } }
+        let shade = NSBezierPath(rect: bounds)
+        if let spot {
+            shade.append(NSBezierPath(roundedRect: spot, xRadius: 12, yRadius: 12).reversed)
+        }
+        NSColor(calibratedRed: 0.08, green: 0.09, blue: 0.11, alpha: 0.45).setFill()
+        shade.fill()
+        if let spot {
+            let ring = NSBezierPath(roundedRect: spot, xRadius: 12, yRadius: 12)
+            ring.lineWidth = 2.5
+            NSColor(calibratedRed: 1, green: 0.83, blue: 0.6, alpha: 1).setStroke()
+            ring.stroke()
+        }
+    }
+
+    override func hitTest(_ point: NSPoint) -> NSView? { frame.contains(point) ? self : nil }
+    override func mouseDown(with event: NSEvent) {}
+}
+
 private final class MenuCardView: NSView {
     static let width: CGFloat = 300
     /// Quanto il compagno esce dal bordo alto della carta.
@@ -155,6 +191,28 @@ private final class MenuCardView: NSView {
     /// Chiude la scheda (se `close`) e poi esegue l'azione.
     private let perform: (_ close: Bool, _ action: () -> Void) -> Void
     var onResize: ((CGFloat) -> Void)?
+    /// Dove stanno le parti della pagina principale (per il giro guidato), in coordinate della vista.
+    private(set) var sections: [CardSection: NSRect] = [:]
+    /// Il velo del giro guidato, se c'è: resta sopra a tutto anche quando la scheda si ricostruisce.
+    private var shade: TourShadeView?
+
+    /// Scurisce la scheda tranne una parte (nil = niente velo, la scheda torna a rispondere ai clic).
+    func setSpotlight(_ section: CardSection?, active: Bool) {
+        guard active else {
+            shade?.removeFromSuperview()
+            shade = nil
+            return
+        }
+        if shade == nil {
+            let view = TourShadeView(frame: bounds)
+            view.autoresizingMask = [.width, .height]
+            addSubview(view)
+            shade = view
+        }
+        shade?.frame = bounds
+        shade?.paper = paperShape
+        shade?.spot = section.flatMap { sections[$0] }?.insetBy(dx: -5, dy: -5)
+    }
 
     private enum Page { case main, timers, focus, rest, todo, avatars }
     private var page: Page = .main
@@ -206,6 +264,16 @@ private final class MenuCardView: NSView {
     required init?(coder: NSCoder) { nil }
 
     // MARK: - Disegno della carta
+
+    /// La carta, e (nella pagina principale) il cerchio del compagno che sbuca dal bordo alto.
+    private var paperShape: NSBezierPath {
+        let top = cardTop
+        let shape = NSBezierPath(roundedRect: NSRect(x: 1, y: top, width: bounds.width - 2, height: bounds.height - top - 1), xRadius: 20, yRadius: 20)
+        if page == .main {
+            shape.append(NSBezierPath(ovalIn: NSRect(x: bounds.width / 2 - Self.avatar / 2, y: 0, width: Self.avatar, height: Self.avatar)))
+        }
+        return shape
+    }
 
     override func draw(_ dirtyRect: NSRect) {
         let top = cardTop
@@ -283,7 +351,17 @@ private final class MenuCardView: NSView {
     /// Ricostruisce tutta la scheda dallo stato attuale (dopo un tocco, o quando cambia fase del timer).
     func rebuild() {
         if let field = noteField { draftNote = field.stringValue }
-        for view in subviews where !(page == .timers && view === dial) && !(page == .todo && view === todoPage) && !(page == .avatars && view === avatarStage) { view.removeFromSuperview() }
+        for view in subviews where !(page == .timers && view === dial) && !(page == .todo && view === todoPage) && !(page == .avatars && view === avatarStage) && view !== shade { view.removeFromSuperview() }
+        sections = [:]
+        defer {
+            // il velo del giro torna in cima, sopra quello che si è appena ricostruito
+            if let shade {
+                shade.removeFromSuperview()
+                shade.frame = bounds
+                shade.paper = paperShape
+                addSubview(shade)
+            }
+        }
         if page != .timers { dial = nil }
         if page != .todo { todoPage = nil }
         if page != .avatars { avatarStage = nil }
@@ -335,15 +413,19 @@ private final class MenuCardView: NSView {
         y += 24
 
         // Gli avatar: una riga che apre la pagina, e quanto manca al prossimo da sbloccare.
+        var top = y
         y = addAvatarRow(s, y: y)
+        sections[.avatars] = NSRect(x: pad, y: top, width: inner, height: y - top)
         y += 14
 
         // Focus e pausa, oppure il timer che sta andando.
+        top = y
         if let phase = s.phase {
             y = addRunning(s, phase: phase, y: y)
         } else {
             y = addDurations(s, y: y)
         }
+        sections[.durations] = NSRect(x: pad, y: top, width: inner, height: y - top)
         y += 14
 
         // Riepilogo di oggi
@@ -368,12 +450,14 @@ private final class MenuCardView: NSView {
                           font: NSFont.systemFont(ofSize: 11), color: Paper.inkLight)
             }
         }
+        sections[.today] = NSRect(x: pad, y: y, width: inner, height: 50)
         y += 50 + 12
 
         // Giardino e statistiche
         let half = (inner - 6) / 2
         for (i, item) in [("Giardino", "leaf", true), ("Statistiche", "chart.bar.xaxis", false)].enumerated() {
             let frame = NSRect(x: pad + CGFloat(i) * (half + 6), y: y, width: half, height: 34)
+            sections[item.2 ? .garden : .stats] = frame
             let action = item.2 ? actions.showGarden : actions.showStats
             add(frame, label: item.0, close: true, action) { rect, pressed, hovered in
                 let shape = NSBezierPath(roundedRect: rect.insetBy(dx: 0.5, dy: 0.5), xRadius: rect.height / 2, yRadius: rect.height / 2)
@@ -397,6 +481,7 @@ private final class MenuCardView: NSView {
         line.layer?.backgroundColor = Paper.paperEdge.withAlphaComponent(0.5).cgColor
         addSubview(line)
         y += 8
+        let settingsTop = y
 
         y = addOption(symbol: "bubble.left", title: "Frasi", value: s.chattiness.title, toggle: nil, y: y, close: false) {
             self.actions.cycleChattiness()
@@ -424,6 +509,8 @@ private final class MenuCardView: NSView {
         y = addOption(symbol: "checklist", title: "Da fare", value: s.todo.openCount > 0 ? "\(s.todo.openCount)" : nil, toggle: nil, y: y, close: false) {
             self.page = .todo
         }
+        sections[.settings] = NSRect(x: pad - 4, y: settingsTop, width: inner + 8, height: y - settingsTop)
+        let albumTop = y
         y = addOption(symbol: "book.closed", title: "Album", value: s.albumTotal > 0
                       ? "\(s.albumFound)/\(s.albumTotal)" + (s.albumNew > 0 ? " · \(s.albumNew) \(s.albumNew == 1 ? "nuova" : "nuove")" : "") : nil,
                       toggle: nil, y: y, close: true) {
@@ -440,6 +527,7 @@ private final class MenuCardView: NSView {
             }
             y += 1 + 28 + 3
         }
+        sections[.album] = NSRect(x: pad - 4, y: albumTop, width: inner + 8, height: y - albumTop)
         y = addOption(symbol: s.isPetVisible ? "eye.slash" : "eye",
                       title: s.isPetVisible ? "Nascondi \(s.pet.name)" : "Mostra \(s.pet.name)",
                       value: nil, toggle: nil, y: y, close: true) {
@@ -1431,6 +1519,30 @@ final class MenuCard: NSObject {
 
     var isShowing: Bool { panel != nil }
 
+    /// Durante il giro guidato la scheda non si chiude con un clic fuori o quando perde la tastiera.
+    var isPinned = false
+    /// Chiamata quando la scheda si chiude (da sola, con Esc o con un clic fuori).
+    var onClose: (() -> Void)?
+    /// Chiamata appena la scheda si apre.
+    var onShow: (() -> Void)?
+
+    /// Il velo del giro guidato sulla scheda aperta: scuro tranne `section` (`active` false = via il velo).
+    func setSpotlight(_ section: CardSection?, active: Bool) {
+        content?.setSpotlight(section, active: active)
+    }
+
+    /// Dove sta una parte della scheda aperta, in coordinate dello schermo.
+    func screenRect(of section: CardSection) -> NSRect? {
+        guard let panel, let view = content, let rect = view.sections[section] else { return nil }
+        return panel.convertToScreen(view.convert(rect, to: nil))
+    }
+
+    /// La cornice della scheda aperta, in coordinate dello schermo.
+    var frame: NSRect? { panel?.frame }
+
+    /// Dà la tastiera alla scheda (alla fine del giro, perché torni a chiudersi con un clic fuori).
+    func makeKey() { panel?.makeKey() }
+
     enum Anchor {
         /// Sotto a questo rettangolo (l'icona nella barra dei menu), in coordinate dello schermo.
         case below(NSRect)
@@ -1523,22 +1635,23 @@ final class MenuCard: NSObject {
         }
         // Si chiude con un clic fuori (anche in altre app) o quando perde la tastiera.
         if let global = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown, .otherMouseDown],
-                                                          handler: { [weak self] _ in self?.close() }) {
+                                                          handler: { [weak self] _ in if self?.isPinned == false { self?.close() } }) {
             monitors.append(global)
         }
         if let local = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown, .otherMouseDown],
                                                         handler: { [weak self] event in
-            if let self, let panel = self.panel, event.window !== panel { self.close() }
+            if let self, !self.isPinned, let panel = self.panel, event.window !== panel { self.close() }
             return event
         }) {
             monitors.append(local)
         }
         resignObserver = NotificationCenter.default.addObserver(forName: NSWindow.didResignKeyNotification, object: panel, queue: .main) {
-            [weak self] _ in self?.close()
+            [weak self] _ in if self?.isPinned == false { self?.close() }
         }
         let timer = Timer(timeInterval: 1, repeats: true) { [weak self] _ in self?.content?.refreshLive() }
         RunLoop.main.add(timer, forMode: .common)
         ticker = timer
+        onShow?()
     }
 
     private static func visibleFrame(containing rect: NSRect) -> NSRect {
@@ -1573,6 +1686,7 @@ final class MenuCard: NSObject {
 
     func close() {
         guard let panel else { return }
+        isPinned = false
         closedAt = Date()
         moveObservers.forEach { NotificationCenter.default.removeObserver($0) }
         moveObservers = []
@@ -1591,6 +1705,7 @@ final class MenuCard: NSObject {
         }, completionHandler: {
             panel.orderOut(nil)
         })
+        onClose?()
     }
 
     /// La scheda disegnata in un'immagine (per le anteprime).

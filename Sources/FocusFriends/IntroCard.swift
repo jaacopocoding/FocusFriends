@@ -74,7 +74,7 @@ final class IntroCard: NSObject {
         card.translatesAutoresizingMaskIntoConstraints = false
         card.appearance = NSAppearance(named: .aqua)
 
-        let title = NSTextField(labelWithString: "Ciao! Benvenuto in FocusFriends")
+        let title = NSTextField(labelWithString: "Ciao! Prima di iniziare")
         title.font = Paper.markerFont(24)
         title.textColor = Paper.ink
 
@@ -110,7 +110,7 @@ final class IntroCard: NSObject {
         row.spacing = 14
         row.alignment = .top
 
-        let hint = NSTextField(labelWithString: "Puoi cambiarli quando vuoi dal menu.")
+        let hint = NSTextField(labelWithString: "Il primo compagno di studio lo scegli tu; gli altri si sbloccano studiando.")
         hint.font = NSFont.systemFont(ofSize: 12)
         hint.textColor = Paper.inkLight
 
