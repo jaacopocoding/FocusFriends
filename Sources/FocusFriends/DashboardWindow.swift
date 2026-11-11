@@ -20,6 +20,9 @@ private struct YearLayout {
     var firstRow = 0
     var legendY: CGFloat = 0
     var tilesY: CGFloat = 0
+    /// «Per materia»: il titolo e le righe (una per materia, la più studiata in cima), se nell'anno c'è almeno una materia.
+    var subjectsY: CGFloat?
+    var subjectRowsY: CGFloat = 0
     /// Il titolo dell'andamento (nil se non ce n'è uno da mostrare), le materie tra cui scegliere e le barre.
     var trendY: CGFloat?
     var chips: [TrendChip] = []
@@ -784,6 +787,11 @@ extension DashboardView {
         year.legendY = year.grid.maxY + 10
         year.tilesY = year.legendY + 36
         var y = year.tilesY + 54 + 28
+        if !summary.bySubject.isEmpty {
+            year.subjectsY = y
+            year.subjectRowsY = y + 26
+            y = year.subjectRowsY + CGFloat(summary.bySubject.count) * Self.subjectRowHeight + 22
+        }
         if showsTrend {
             year.trendY = y
             y += 26
@@ -900,7 +908,36 @@ extension DashboardView {
         text("meno", at: NSRect(x: x - 34, y: yl.legendY, width: 30, height: 14), font: small, color: Paper.inkLight, alignment: .right)
 
         drawYearTiles(yl)
+        drawYearSubjects(yl)
         if showsTrend { drawTrend(yl) }
+    }
+
+    private static let subjectRowHeight: CGFloat = 24
+
+    /// Le ore di ogni materia nell'anno: il nome, una barra del suo colore (lunga in proporzione alla più studiata) e il tempo.
+    private func drawYearSubjects(_ yl: YearLayout) {
+        guard let titleY = yl.subjectsY else { return }
+        text("Per materia", at: NSRect(x: Self.margin, y: titleY, width: 260, height: 18), font: NSFont.systemFont(ofSize: 13, weight: .medium))
+        let rows = summary.bySubject
+        let most = CGFloat(max(rows.first?.seconds ?? 1, 1))
+        let nameWidth: CGFloat = 150, timeWidth: CGFloat = 70
+        let barX = Self.margin + nameWidth + 8, barWidth = contentWidth - nameWidth - timeWidth - 16
+        let font = NSFont.systemFont(ofSize: 12.5)
+        for (i, row) in rows.enumerated() {
+            let y = yl.subjectRowsY + CGFloat(i) * Self.subjectRowHeight
+            let tint = color(for: row.subject)
+            tint.setFill()
+            NSBezierPath(ovalIn: NSRect(x: Self.margin, y: y + 5, width: 9, height: 9)).fill()
+            text(row.subject, at: NSRect(x: Self.margin + 15, y: y + 1, width: nameWidth - 15, height: 17), font: font, color: Paper.ink)
+            let track = NSRect(x: barX, y: y + 5, width: barWidth, height: 9)
+            Paper.track.setFill()
+            NSBezierPath(roundedRect: track, xRadius: 4.5, yRadius: 4.5).fill()
+            tint.setFill()
+            let width = max(barWidth * CGFloat(row.seconds) / most, 9)
+            NSBezierPath(roundedRect: NSRect(x: barX, y: track.minY, width: width, height: track.height), xRadius: 4.5, yRadius: 4.5).fill()
+            text(StudyStats.duration(seconds: row.seconds), at: NSRect(x: Self.margin + contentWidth - timeWidth, y: y + 1, width: timeWidth, height: 17),
+                 font: font, color: Paper.inkLight, alignment: .right)
+        }
     }
 
     private func drawYearTiles(_ yl: YearLayout) {

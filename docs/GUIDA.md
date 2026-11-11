@@ -347,7 +347,7 @@ calcolo. I dati restano sul Mac: nessun invio da nessuna parte.
 **La scheda Anno** (`YearStats.swift`, con prove) mostra l'anno di calendario come una mappa con **un quadratino per giorno** (una colonna per settimana, da lunedì), nel verde:
 più chiaro per i giorni con poco studio, più scuro per quelli con tanto. Le soglie sono fisse: meno di 30 minuti, meno di 90, meno di 3 ore, 3 ore o più (un giorno da due ore ha lo stesso colore in tutti gli anni).
 I giorni che devono ancora arrivare sono tratteggiati, e oggi ha un contorno. Passando sopra un giorno si legge «Venerdì 2 ottobre · 2 h 10 · 3 focus»; **cliccandolo** si apre quel giorno in *Oggi*, con le sue sessioni.
-Sotto la mappa, tre numeri (la serie di giorni di fila più lunga dell'anno, il giorno più forte, il mese migliore) e **l'andamento per settimana**: barre con le ore di ogni settimana,
+Sotto la mappa, tre numeri (la serie di giorni di fila più lunga dell'anno, il giorno più forte, il mese migliore), **le ore di ogni materia** («Per materia»: una riga per materia, dalla più studiata, con una barra del suo colore lunga in proporzione e il tempo, «Anatomia 42 h 30») e **l'andamento per settimana**: barre con le ore di ogni settimana,
 di tutte le materie o di una sola (le materie più studiate dell'anno, scelte con un clic). L'andamento si mostra da quattro settimane con studio in su, e le materie solo se sono almeno due. Si ricava tutto dal registro: nessun dato nuovo.
 
 Le regole di calcolo hanno le loro prove: `./tests/run.sh` (compila `SessionLog.swift` da solo e controlla

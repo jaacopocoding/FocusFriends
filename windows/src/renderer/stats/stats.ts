@@ -3,7 +3,7 @@
 // per la settimana e il mese le apre «Mostra le sessioni».
 
 import { subjectColor } from "../../core/colors.ts";
-import { subjectKey } from "../../core/text.ts";
+import { NO_SUBJECT, subjectKey } from "../../core/text.ts";
 import {
   RATING_ORDER, canGoNext, chartLabel, dayText, dayTrendCaption, diaryEntries, focusNotesLine, monthLabel, periodTitle, secondaryLine, sessionHeading, streakLabel,
   subjectRows, subtitle, trendCaption, weekText, yearTiles,
@@ -103,7 +103,7 @@ function render(resetScroll: boolean): void {
   if (more !== "") page.append(h("div", { class: "secondary" }, more));
 
   if (!empty && kind === "year") {
-    page.append(...yearView(wall));
+    page.append(...yearView(wall, summary));
   } else if (!empty) {
     if (kind !== "day") page.append(miniChart(summary, wall));
     const rows = subjectRows(summary);
@@ -232,7 +232,27 @@ function openDay(day: number): void {
   render(true);
 }
 
-function yearView(wall: number): HTMLElement[] {
+/** «Per materia»: le ore di ogni materia nell'anno, una riga ciascuna (la più studiata in cima), con una barra del suo colore. */
+function yearSubjects(summary: Summary): HTMLElement | null {
+  if (summary.bySubject.length === 0) return null;
+  const most = Math.max(summary.bySubject[0]?.seconds ?? 1, 1);
+  return h("div", { class: "year-subjects" },
+    h("div", { class: "trend-title" }, "Per materia"),
+    ...summary.bySubject.map((row) => {
+      const color = row.subject === NO_SUBJECT ? MUTED : subjectColor(row.subject);
+      const dot = h("span", { class: "dot" });
+      dot.style.background = color;
+      const fill = h("span", { class: "year-subject-fill" });
+      fill.style.background = color;
+      fill.style.width = `max(${(row.seconds / most) * 100}%, 9px)`;
+      return h("div", { class: "year-subject" },
+        h("span", { class: "year-subject-name" }, dot, row.subject),
+        h("span", { class: "year-subject-bar", role: "img", "aria-label": `${row.subject}: ${duration(row.seconds)}` }, fill),
+        h("span", { class: "year-subject-time" }, duration(row.seconds)));
+    }));
+}
+
+function yearView(wall: number, summary: Summary): HTMLElement[] {
   const today = startOfDay(wall);
   const days = yearDays(sessions, period, undefined);
   const columns = columnsOf(period);
@@ -276,6 +296,8 @@ function yearView(wall: number): HTMLElement[] {
     h("div", { class: "year-map" }, months, h("div", { class: "year-body" }, weekdays, grid), h("div", { class: "year-legend" }, tip, scale)),
     tiles,
   ];
+  const bySubject = yearSubjects(summary);
+  if (bySubject) parts.push(bySubject);
 
   // l'andamento: da quattro settimane con studio in su
   const through = wall;

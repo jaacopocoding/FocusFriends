@@ -912,7 +912,8 @@ code. All UI code runs on the main thread; the only other thread is the audio re
 ### 3.24 The "Anno" tab: heat map and weekly trend (`YearStats.swift`, `DashboardWindow.swift`, v0.10.0)
 
 - **What:** a fourth tab in the statistics window (Oggi / Settimana / Mese / **Anno**): the calendar year as a map with one square per day (a column per week from
-  Monday, a row per weekday), three numbers (longest streak of the year, strongest day, best month) and a bar chart of study per week, for all subjects or one. Everything is
+  Monday, a row per weekday), three numbers (longest streak of the year, strongest day, best month), the hours of every subject ("Per materia", `drawYearSubjects`: one row
+  each, most studied first, a bar in its colour relative to the first) and a bar chart of study per week, for all subjects or one. Everything is
   derived from the log: no new data, no new file.
 - **Execution path:** `PeriodKind.year` (raw value 3) in `SessionLog.swift` (`StudyPeriod.containing/shifted` use `Calendar.Component.year`; `StudyStats.summary` gives one bucket per day, 365/366).
   `YearStats` (pure, Foundation only): `level(seconds:)` (0, then < 30 min, < 90 min, < 180 min, else 4: fixed limits, not relative to the user's best days), `days` (one `Day` per day of the year with seconds,

@@ -408,7 +408,7 @@ already said (`lastWeeklyRecap` in `impostazioni.json`, `FORMATI.md` §6). Same 
 ### 4.18 The "Anno" tab: heat map and weekly trend (since 1.2: `core/yearStats.ts`, `core/dashboard.ts`, `renderer/stats/stats.ts`)
 
 A fourth tab in the statistics window (same rules and texts as `YearStats.swift`): the calendar year as a map with one square per day (a column per week from Monday, a row per weekday), three tiles (longest streak
-of the year, strongest day, best month) and a bar chart of study per week, for all subjects or one. Everything is derived from the log in the page; nothing is stored.
+of the year, strongest day, best month), the hours of every subject ("Per materia", `yearSubjects` in `stats.ts`: one row each, most studied first) and a bar chart of study per week, for all subjects or one. Everything is derived from the log in the page; nothing is stored.
 
 - **Logic (`yearStats.ts`):** `PeriodKind` gains `"year"` (`startOfYear` in `time.ts`, `periodContaining`/`shiftedPeriod`, 365/366 daily buckets). `level` (0, then < 30 min, < 90 min, < 180 min, else 4: fixed limits),
   `yearDays` (a session belongs to the day it started), `cellOf`/`columnsOf`/`monthStarts` (53 columns, 54 in a leap year starting on a Sunday), `highlights` (study days, longest streak reached in the year using

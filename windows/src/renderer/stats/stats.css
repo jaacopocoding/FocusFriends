@@ -859,3 +859,53 @@ textarea:focus-visible {
   color: var(--ink-light);
   white-space: nowrap;
 }
+
+/* «Per materia» nella scheda Anno: una riga per materia, con la barra del suo colore e le ore */
+.year-subjects {
+  margin-top: 26px;
+}
+
+.year-subject {
+  display: grid;
+  grid-template-columns: 150px 1fr 70px;
+  align-items: center;
+  gap: 8px;
+  height: 24px;
+  font-size: 12.5px;
+}
+
+.year-subject-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.year-subject-name .dot {
+  flex: none;
+}
+
+.year-subject-bar {
+  height: 9px;
+  border-radius: 4.5px;
+  background: var(--track, rgba(140, 102, 64, 0.15));
+  overflow: hidden;
+}
+
+.year-subject-fill {
+  display: block;
+  height: 100%;
+  border-radius: 4.5px;
+}
+
+.year-subject-time {
+  text-align: right;
+  color: var(--ink-light);
+}
+
+.year-subjects .trend-title {
+  display: block;
+  margin-bottom: 8px;
+}
