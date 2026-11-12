@@ -62,6 +62,29 @@ if (-not $found) {
     $x = Join-Path $env:RUNNER_TEMP "dentro-installer"
     & $sevenZip x $Installer "-o$x" -y | Out-Null
     Get-ChildItem $x -Recurse -Filter "app-*.7z" | ForEach-Object { Write-Host "== $($_.Name)"; & $sevenZip l $_.FullName | Select-String -Pattern "\.exe|\.asar|files|folders" | ForEach-Object { Write-Host "   $_" } }
+    Write-Host "-- spazio libero: $([math]::Round((Get-PSDrive C).Free / 1GB, 1)) GB"
+    $app7z = Get-ChildItem $x -Recurse -Filter "app-*.7z" | Select-Object -First 1
+    $direct = Join-Path $env:RUNNER_TEMP "estratta"
+    & $sevenZip x $app7z.FullName "-o$direct" -y | Out-Null
+    $count = (Get-ChildItem $direct -Recurse -File).Count
+    Write-Host "-- estratta con 7z: $count file; FocusFriends.exe c'è? $(Test-Path (Join-Path $direct 'FocusFriends.exe'))"
+    Get-ChildItem $direct -File | Where-Object { $_.Extension -in ".exe", ".dll" } | ForEach-Object { Write-Host "   $($_.Name) $($_.Length)" }
+    $installed = (Get-ChildItem (Join-Path $env:LOCALAPPDATA "Programs\focusfriends-windows") -Recurse -File -ErrorAction SilentlyContinue).Count
+    Write-Host "-- installati: $installed file su $count"
+    # L'app estratta a mano parte? (copione «pacchetto», dati in una cartella nuova)
+    $o = Join-Path $Out "estratta-pacchetto"; New-Item -ItemType Directory -Path (Join-Path $o "data") | Out-Null
+    Set-Content -Path (Join-Path $o "data\profilo.json") -Value '{"version": 1, "introSeen": true}' -Encoding utf8NoBOM
+    $env:FF_SELFTEST = "1"; $env:FF_DATA_DIR = Join-Path $o "data"; $env:FF_SELFTEST_OUT = $o; $env:FF_SELFTEST_FILE = Join-Path $here "pacchetto.cjs"
+    $proc = Start-Process -FilePath (Join-Path $direct "FocusFriends.exe") -PassThru -RedirectStandardOutput (Join-Path $o "log.txt") -RedirectStandardError (Join-Path $o "errori.txt")
+    if (-not $proc.WaitForExit(60000)) { Write-Host "   l'app estratta non ha finito in 60 s"; $proc | Stop-Process -Force }
+    Remove-Item Env:FF_SELFTEST, Env:FF_DATA_DIR, Env:FF_SELFTEST_OUT, Env:FF_SELFTEST_FILE
+    Write-Host "-- l'app estratta a mano, copione pacchetto (codice $($proc.ExitCode)):"; Get-Content (Join-Path $o "log.txt") | Write-Host
+    # Un secondo tentativo dell'installer, senza finestre
+    Write-Host "-- secondo tentativo con /S:"
+    $t = Measure-Command { Start-Process -FilePath $Installer -ArgumentList "/S" -Wait }
+    Start-Sleep -Seconds 10
+    $installed = (Get-ChildItem (Join-Path $env:LOCALAPPDATA "Programs\focusfriends-windows") -Recurse -File -ErrorAction SilentlyContinue).Count
+    Write-Host "   $([math]::Round($t.TotalSeconds)) s; installati: $installed file; FocusFriends.exe c'è? $(Test-Path (Join-Path $env:LOCALAPPDATA 'Programs\focusfriends-windows\FocusFriends.exe'))"
   } else { Write-Host "   7z non c'è" }
   Write-Host "-- di nuovo, con la finestra (per vedere un messaggio dell'installer):"
   $p = Start-Process -FilePath $Installer -PassThru; Start-Sleep -Seconds 25; Shot (Join-Path $Out "installer-con-finestra.png")
