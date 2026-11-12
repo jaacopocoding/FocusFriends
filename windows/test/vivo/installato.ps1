@@ -32,10 +32,14 @@ $install = Start-Process -FilePath $Installer -ArgumentList "/S" -Wait -PassThru
 Write-Host "codice d'uscita dell'installer: $($install.ExitCode)"
 Start-Sleep -Seconds 3
 Stop-App
-$dir = Join-Path $env:LOCALAPPDATA "Programs\FocusFriends"
-$exe = Join-Path $dir "FocusFriends.exe"
-if (-not (Test-Path $exe)) { Fail "dopo l'installazione non c'è $exe"; exit 1 }
+# Dove l'ha messa l'installer (i documenti dicono %LOCALAPPDATA%\Programs\FocusFriends: si controlla)
+$found = Get-ChildItem -Path (Join-Path $env:LOCALAPPDATA "Programs"), $env:ProgramFiles -Filter "FocusFriends.exe" -Recurse -Depth 2 -ErrorAction SilentlyContinue | Select-Object -First 1
+if (-not $found) { Fail "dopo l'installazione FocusFriends.exe non c'è né in %LOCALAPPDATA%\Programs né in Program Files"; exit 1 }
+$exe = $found.FullName
+$dir = $found.DirectoryName
 Write-Host "installata in $dir"
+if ($dir -ne (Join-Path $env:LOCALAPPDATA "Programs\FocusFriends")) { Write-Host "::warning::la cartella non è quella dei documenti (%LOCALAPPDATA%\Programs\FocusFriends): $dir" }
+Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*" -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -like "FocusFriends*" } | Select-Object DisplayName, DisplayVersion, Publisher, InstallLocation | Format-List | Out-String | Write-Host
 Get-ChildItem $dir | Select-Object Name, Length | Format-Table | Out-String | Write-Host
 $startMenu = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs\FocusFriends.lnk"
 if (Test-Path $startMenu) { Write-Host "voce nel menu Start: c'è" } else { Fail "manca la voce nel menu Start ($startMenu)" }
