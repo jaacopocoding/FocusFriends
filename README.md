@@ -38,7 +38,7 @@ Sei amici, ognuno con il suo carattere e le sue frasi. Il primo lo scegli tu, gl
   <img src="docs/images/menu-schermata.png" width="800" alt="La scheda del menu, aperta accanto al compagno: 30, 50 minuti o una pausa">
 </p>
 
-Attraverso il menu puoi iniziare un pomofocus con un timer che scegli te, oppure puoi accedere alle diverse funzionalità dell'app.
+Attraverso il menu puoi iniziare un pomofocus con un timer che scegli tu, oppure puoi accedere alle diverse funzionalità dell'app.
 
 
 <p align="center">
@@ -48,7 +48,8 @@ Attraverso il menu puoi iniziare un pomofocus con un timer che scegli te, oppure
 Alla prima apertura il compagno ti chiama e ti spiegherà come funziona l'app.
 
 
-**Un giardino da riempire.** 
+**Un giardino da riempire.**
+
 Studiando trovi figurine: le metti sulle tue isole, dove vuoi, quante volte vuoi. E un album da completare.
 
 <table align="center">
@@ -64,7 +65,8 @@ Studiando trovi figurine: le metti sulle tue isole, dove vuoi, quante volte vuoi
 
 
 **Sai dove va il tuo tempo.**
- L'andamento giorno per giorno, le ore di ogni materia, l'anno intero a colpo d'occhio, e una lista di cose da fare con la scadenza.
+
+L'andamento giorno per giorno, le ore di ogni materia, l'anno intero a colpo d'occhio, e una lista di cose da fare con la scadenza.
 
 <table align="center">
   <tr>
