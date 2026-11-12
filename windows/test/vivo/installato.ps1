@@ -48,6 +48,21 @@ if (-not $found) {
   Get-ChildItem C:\Users, $env:ProgramFiles, ${env:ProgramFiles(x86)} -Filter "FocusFriends*.exe" -Recurse -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "   $($_.FullName)" }
   Write-Host "-- registro (Uninstall):"
   Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*", "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*" -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -like "FocusFriends*" } | Format-List | Out-String | Write-Host
+  foreach ($d in Get-ChildItem (Join-Path $env:LOCALAPPDATA "Programs") -Directory -ErrorAction SilentlyContinue) {
+    Write-Host "-- contenuto di $($d.FullName):"
+    Get-ChildItem $d.FullName -Recurse -Depth 1 -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "   $($_.FullName.Substring($d.FullName.Length)) $($_.Length)" }
+  }
+  Write-Host "-- Defender, minacce trovate:"
+  try { Get-MpThreatDetection | Format-List | Out-String | Write-Host } catch { Write-Host "   (non si legge: $_)" }
+  try { Get-MpThreat | Format-List | Out-String | Write-Host } catch { }
+  Write-Host "-- dentro l'installer (7z):"
+  $sevenZip = @("C:\Program Files\7-Zip\7z.exe", "7z") | Where-Object { Get-Command $_ -ErrorAction SilentlyContinue } | Select-Object -First 1
+  if ($sevenZip) {
+    & $sevenZip l $Installer | Write-Host
+    $x = Join-Path $env:RUNNER_TEMP "dentro-installer"
+    & $sevenZip x $Installer "-o$x" -y | Out-Null
+    Get-ChildItem $x -Recurse -Filter "app-*.7z" | ForEach-Object { Write-Host "== $($_.Name)"; & $sevenZip l $_.FullName | Select-String -Pattern "\.exe|\.asar|files|folders" | ForEach-Object { Write-Host "   $_" } }
+  } else { Write-Host "   7z non c'è" }
   Write-Host "-- di nuovo, con la finestra (per vedere un messaggio dell'installer):"
   $p = Start-Process -FilePath $Installer -PassThru; Start-Sleep -Seconds 25; Shot (Join-Path $Out "installer-con-finestra.png")
   Write-Host "   l'installer è ancora aperto? $(-not $p.HasExited)"
