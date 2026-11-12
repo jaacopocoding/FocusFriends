@@ -6,7 +6,7 @@
 
 <p align="center">
   <b>Il compagno che ti accompagna nel focus.</b><br>
-  Un animaletto che vive nel tuo schermo: cammina, dice parole gentili e ti aiuta a tenere traccia del tuo studio sul desktop <br>
+  Un animaletto che vive nel tuo schermo: cammina, dice parole gentili e ti aiuta a tenere traccia del tuo studio sul desktop. <br>
 </p>
 
 <p align="center">
@@ -31,13 +31,6 @@
 
 Sei amici, ognuno con il suo carattere e le sue frasi. Il primo lo scegli tu, gli altri si sbloccano studiando.
 
-<br>
-
-## Ti dice due parole quando serve
-
-Ogni tanto, senza distrarti: un incoraggiamento, un «respira», un «bevi un po' d'acqua». Puoi scrivere le tue.
-
-<br>
 
 ## Il timer, in un tocco
 
@@ -45,31 +38,18 @@ Ogni tanto, senza distrarti: un incoraggiamento, un «respira», un «bevi un po
   <img src="docs/images/menu-schermata.png" width="800" alt="La scheda del menu, aperta accanto al compagno: 30, 50 minuti o una pausa">
 </p>
 
-Scegli i minuti, scrivi cosa studi, premi inizio. Se vuoi, una pausa lunga ogni quattro focus.
+Attraverso il menu puoi iniziare un pomofocus con un timer che scegli te, oppure puoi accedere alle diverse funzionalità dell'app.
 
-<br>
-
-## La prima volta, un giro
 
 <p align="center">
   <img src="docs/images/giro.png" width="800" alt="Il giro guidato: la scheda scurita tranne il pulsante Giardino, con un fumetto che lo spiega e l'immagine del giardino">
 </p>
 
-Alla prima apertura il compagno ti chiama: cliccalo e ti mostra la scheda una parte alla volta, il timer, il giardino, le statistiche, l'album. Si rifà quando vuoi dal menu.
+Alla prima apertura il compagno ti chiama e ti spiegherà come funziona l'app.
 
-<br>
 
----
-
-## E in più
-
-**Mentre studi, cresce anche lui.** Pianty da seme a pianta, l'uovo di Ciccio che si schiude, la carota del Porcellino, la schiena del Riccio che si riempie d'autunno, la Tartaruga che piano piano arriva alla sua bandierina.
-
-<p align="center">
-  <img src="docs/images/crescita.png" width="720" alt="Gli stadi di crescita durante un focus">
-</p>
-
-**Un giardino da riempire.** Studiando trovi figurine: le metti sulle tue isole, dove vuoi, quante volte vuoi. E un album da completare.
+**Un giardino da riempire.** 
+Studiando trovi figurine: le metti sulle tue isole, dove vuoi, quante volte vuoi. E un album da completare.
 
 <table align="center">
   <tr>
@@ -82,7 +62,9 @@ Alla prima apertura il compagno ti chiama: cliccalo e ti mostra la scheda una pa
   </tr>
 </table>
 
-**Sai dove va il tuo tempo.** L'andamento giorno per giorno, le ore di ogni materia, l'anno intero a colpo d'occhio, e una lista di cose da fare con la scadenza.
+
+**Sai dove va il tuo tempo.**
+ L'andamento giorno per giorno, le ore di ogni materia, l'anno intero a colpo d'occhio, e una lista di cose da fare con la scadenza.
 
 <table align="center">
   <tr>
