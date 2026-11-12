@@ -1,5 +1,6 @@
 // Disegna fuori schermo la scheda del menu vera dell'app (MenuCardView) in un PNG, con dati inventati, per le immagini del README.
-// Si lancia da tools/banchi/render-scheda.sh: render <file.png> [riposo|focus] [compagno]
+// Si lancia da tools/banchi/render-scheda.sh: render <file.png> [riposo|focus|giro] [compagno]
+// «giro»: la scheda a riposo con il velo del giro guidato sul giardino, e accanto (giro-fumetto.png) il fumetto di quel passo; in giro.txt la parte illuminata.
 import AppKit
 
 @main
@@ -34,6 +35,25 @@ struct Render {
         view.layoutSubtreeIfNeeded()
         let size = view.frame.size
         view.frame = NSRect(origin: .zero, size: size)
+        let touring = args.count > 2 && args[2] == "giro"
+        if touring, let index = GuidedTour.steps.firstIndex(where: { $0.section == .garden }) {
+            view.layoutSubtreeIfNeeded()
+            view.setSpotlight(.garden, active: true)
+            let step = GuidedTour.steps[index]
+            let tip = TourTipView(text: step.text, count: "\(index + 1) di \(GuidedTour.steps.count)", next: "Avanti")
+            tip.tailOnRight = true
+            tip.tailY = 30
+            tip.layoutSubtreeIfNeeded()
+            tip.frame = NSRect(origin: .zero, size: tip.fittingSize)
+            tip.layoutSubtreeIfNeeded()
+            let folder = (out as NSString).deletingLastPathComponent
+            let tipRep = tip.bitmapImageRepForCachingDisplay(in: tip.bounds)!
+            tip.cacheDisplay(in: tip.bounds, to: tipRep)
+            try! tipRep.representation(using: .png, properties: [:])!.write(to: URL(fileURLWithPath: folder + "/giro-fumetto.png"))
+            let spot = view.sections[.garden] ?? .zero
+            try! "\(spot.minX) \(spot.minY) \(spot.width) \(spot.height)\n".write(toFile: folder + "/giro.txt", atomically: true, encoding: .utf8)
+            print("giro: fumetto", tip.frame.size, "giardino", spot)
+        }
         let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds)!
         view.cacheDisplay(in: view.bounds, to: rep)
         try! rep.representation(using: .png, properties: [:])!.write(to: URL(fileURLWithPath: out))

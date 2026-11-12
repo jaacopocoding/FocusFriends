@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compone le immagini del README fatte con i disegni dei compagni e con i fumetti veri dell'app: docs/images/scrivania.png, compagni.png, frasi.png e crescita.png
+"""Compone le immagini del README fatte con i disegni dei compagni e con i fumetti veri dell'app: docs/images/scrivania.png, menu-schermata.png, giro.png, compagni.png, frasi.png e crescita.png
 
     tools/compone-readme.sh        (disegna prima i fumetti e l'orologio dell'app in build/readme/, poi chiama questo script)
     python3 tools/compone_readme.py   (solo la composizione, se i fumetti in build/readme/ ci sono già)
@@ -37,6 +37,7 @@ PETS = [
     ("Ciccio", "assets/ciccio/frame1.png", 112 / 321, "una cocorita che svolazza"),
     ("Gattino", "assets/gattino/frame1.png", 144 / 360, "un gatto e il suo pesce"),
     ("Riccio", "assets/riccio/frame1.png", 154 / 405, "un riccio e le sue mele"),
+    ("Tartaruga", "assets/tartaruga/frame1.png", 144 / 328, "una tartaruga e la sua fragola"),
 ]
 
 
@@ -280,11 +281,64 @@ def menu_schermata():
     print("menu-schermata.png", scene.size)
 
 
+def giro():
+    """Il giro guidato al passo del giardino, come sullo schermo: la scheda con il velo tranne il giardino (tools/banchi/render-scheda.sh, modo «giro»),
+    il fumetto del giro a sinistra con la punta sul giardino e sopra l'immagine di com'è fatto (assets/benvenuto/giardino.png), come in GuidedTour.show."""
+    from PIL import ImageFilter, ImageOps
+    W, H = 1200, 960
+    ppt = 1.1
+    scene = desk_scene(W, H).convert("RGBA")
+    cat = Image.open("assets/gattino/frame1.png").convert("RGBA")
+    k = (144 / 360) * ppt
+    cat = ImageOps.mirror(cat.resize((round(cat.width * k), round(cat.height * k)), Image.LANCZOS))
+    pet_left, window_bottom = W - 70 - cat.width, 876
+    ground = round(0.0949 * 274 * k)
+    glow = Image.new("RGBA", (cat.width + 160, 120), (0, 0, 0, 0))
+    ImageDraw.Draw(glow).ellipse((80, 34, 80 + cat.width - 30, 62), fill=(60, 40, 40, 70))
+    scene.alpha_composite(glow.filter(ImageFilter.GaussianBlur(5)), (pet_left - 80 + 12, window_bottom - ground - 46))
+    scene.alpha_composite(cat, (pet_left, window_bottom - cat.height))
+    card = Image.open("build/readme/scheda-giro.png").convert("RGBA")
+    card = card.resize((round(card.width * ppt / 2), round(card.height * ppt / 2)), Image.LANCZOS)
+    x, y = pet_left - round(10 * ppt) - card.width, window_bottom - card.height
+    shadow = Image.new("RGBA", scene.size, (0, 0, 0, 0))
+    ImageDraw.Draw(shadow).rounded_rectangle((x, y + 14, x + card.width, y + card.height + 14), 28, fill=(60, 40, 40, 110))
+    scene.alpha_composite(shadow.filter(ImageFilter.GaussianBlur(20)))
+    scene.alpha_composite(card, (x, y))
+    # il fumetto: a sinistra della scheda (4 punti), con la punta a metà del giardino (30 punti sotto il suo bordo alto)
+    spot_y, spot_h = [float(v) for v in open("build/readme/giro.txt").read().split()][1::2]
+    tip = Image.open("build/readme/giro-fumetto.png").convert("RGBA")
+    tip = tip.resize((round(tip.width * ppt / 2), round(tip.height * ppt / 2)), Image.LANCZOS)
+    tip_x = x - round(4 * ppt) - tip.width
+    tip_y = round(y + (spot_y + spot_h / 2 - 30) * ppt)
+    tip_shadow = Image.new("RGBA", scene.size, (0, 0, 0, 0))
+    ImageDraw.Draw(tip_shadow).rounded_rectangle((tip_x + 4, tip_y + 8, tip_x + tip.width - 14, tip_y + tip.height + 6), 18, fill=(40, 30, 20, 70))
+    scene.alpha_composite(tip_shadow.filter(ImageFilter.GaussianBlur(10)))
+    scene.alpha_composite(tip, (tip_x, tip_y))
+    # l'immagine di com'è fatto: sopra il fumetto, larga al massimo 420 punti, angoli tondi e ombra
+    peek = Image.open("assets/benvenuto/giardino.png").convert("RGBA")
+    width = round(min(420 * ppt, tip_x + tip.width - 10 * ppt - 8 * ppt))
+    peek = peek.resize((width, round(width * peek.height / peek.width)), Image.LANCZOS)
+    mask = Image.new("L", peek.size, 0)
+    ImageDraw.Draw(mask).rounded_rectangle((0, 0, peek.width - 1, peek.height - 1), round(14 * ppt), fill=255)
+    peek.putalpha(mask)
+    px = max(tip_x + tip.width - round(10 * ppt) - peek.width, round(8 * ppt))
+    py = tip_y - round(12 * ppt) - peek.height
+    if py < 40:
+        py = tip_y + tip.height + round(12 * ppt)
+    peek_shadow = Image.new("RGBA", scene.size, (0, 0, 0, 0))
+    ImageDraw.Draw(peek_shadow).rounded_rectangle((px, py + 10, px + peek.width, py + peek.height + 10), 18, fill=(40, 30, 20, 90))
+    scene.alpha_composite(peek_shadow.filter(ImageFilter.GaussianBlur(16)))
+    scene.alpha_composite(peek, (px, py))
+    scene.convert("RGB").save("docs/images/giro.png", optimize=True)
+    print("giro.png", scene.size)
+
+
 FRASI = [
     ("Pianty", "assets/pianty/stage5_1.png", 84 / 208, 2),
     ("Porcellino", "assets/porcellino/frame1.png", 118 / 236, 3),
     ("Gattino", "assets/gattino/frame1.png", 144 / 360, 4),
     ("Riccio", "assets/riccio/frame1.png", 154 / 405, 5),
+    ("Tartaruga", "assets/tartaruga/frame1.png", 144 / 328, 6),
 ]
 
 
@@ -316,9 +370,36 @@ def frasi():
     print("frasi.png", sheet.size)
 
 
+def finestra_statistiche(name):
+    """La finestra delle statistiche disegnata da tools/banchi/render-statistiche.sh (build/readme/<name>.png), con gli angoli tondi e l'ombra, su un fondo chiaro."""
+    from PIL import ImageFilter
+    view = Image.open(f"build/readme/{name}.png").convert("RGBA")
+    margin, radius = 88, 40
+    mask = Image.new("L", view.size, 0)
+    ImageDraw.Draw(mask).rounded_rectangle((0, 0, view.width - 1, view.height - 1), radius, fill=255)
+    view.putalpha(mask)
+    sheet = Image.new("RGBA", (view.width + 2 * margin, view.height + 2 * margin), (235, 227, 214, 255))
+    shadow = Image.new("RGBA", sheet.size, (0, 0, 0, 0))
+    ImageDraw.Draw(shadow).rounded_rectangle((margin, margin + 14, margin + view.width, margin + view.height + 14), radius, fill=(70, 50, 30, 80))
+    sheet.alpha_composite(shadow.filter(ImageFilter.GaussianBlur(22)))
+    sheet.alpha_composite(view, (margin, margin))
+    sheet.convert("RGB").save(f"docs/images/{name}.png", optimize=True)
+    print(f"{name}.png", sheet.size)
+
+
+def statistiche():
+    for name in ("statistiche-oggi", "statistiche-settimana", "statistiche-mese", "statistiche-anno"):
+        finestra_statistiche(name)
+
+
 if __name__ == "__main__":
+    import sys
+    if sys.argv[1:] == ["statistiche"]:
+        statistiche()
+        sys.exit()
     scrivania()
     menu_schermata()
+    giro()
     compagni()
     frasi()
     crescita()

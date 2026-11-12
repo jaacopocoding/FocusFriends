@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-  <img src="images/compagni.png" width="720" alt="Pianty, Porcellino, Ciccio e il Gattino">
+  <img src="images/compagni.png" width="720" alt="Pianty, Porcellino, Ciccio, Gattino, Riccio e Tartaruga">
 </p>
 
 ## I compagni
@@ -22,11 +22,13 @@
 - **Porcellino**, una cavia che cammina per lo schermo, mangia la carota, fa i pisolini e saltella, con frasi sue.
 - **Ciccio**, una cocorita che cammina e ogni tanto sbatte le ali, con frasi sue.
 - **Gattino**, un gatto soriano che cammina per lo schermo, mangia un pesce, dorme e ogni tanto si lecca la zampa, con frasi sue.
+- **Riccio**, un riccio tondo che cammina, mangia uno spicchio di mela, dorme e ogni tanto si arrotola a palla, con frasi sue.
+- **Tartaruga**, una tartaruga di terra che cammina piano, mangia una fragola, dorme e ogni tanto si ritira nel guscio, con frasi sue.
 
 ### Si sbloccano studiando
 
 Alla prima apertura scegli il tuo compagno, ed è libero. Gli altri si guadagnano studiando: il **secondo a 20
-focus**, il **terzo a 50** e il **quarto a 100**, dove un «focus» sono 50 minuti di studio (contano
+focus**, il **terzo a 50**, poi uno ogni altri 50 (**100**, **150** e **200** per il sesto), dove un «focus» sono 50 minuti di studio (contano
 tutti i minuti, anche quelli dei focus interrotti, e un timer da 5 minuti non sblocca niente più in fretta). Nella
 scheda del menu c'è una riga **Avatar** che apre una pagina a parte: i compagni stanno in fila sul palco, quello scelto grande al
 centro e i vicini più piccoli ai lati, e si scorre da uno all'altro (trascinando, con due dita sul trackpad, toccando un vicino o
@@ -63,13 +65,13 @@ inganna: così a fine settimana vedi anche *quando* rendi meglio.
   <img src="images/com-e-andata.png" width="420" alt="Com'è andata?">
 </p>
 
-**Statistiche**: un riepilogo calmo (il totale in grande, le materie in una barra, i giorni di fila e «Com'è andata»)
-e, per un giorno, subito sotto le sessioni con la nota e la faccia di ogni focus (per la settimana e il mese le apre «Mostra le sessioni»).
+**Statistiche**: un riepilogo calmo (il totale in grande, l'andamento giorno per giorno, le ore di ogni materia, i giorni di fila e
+«Com'è andata») e, per un giorno, subito sotto le sessioni con la nota e la faccia di ogni focus (per la settimana e il mese le apre «Mostra le sessioni»).
 
 <p align="center">
-  <img src="images/statistiche-settimana.png" width="360" alt="Statistiche della settimana">
+  <img src="images/statistiche-settimana.png" width="360" alt="Statistiche della settimana: l'andamento per giorno e le ore per materia">
   &nbsp;&nbsp;
-  <img src="images/statistiche-sessioni.png" width="360" alt="Le sessioni di un giorno">
+  <img src="images/statistiche-oggi.png" width="360" alt="Statistiche di un giorno, con le sue sessioni">
 </p>
 
 **Il giardino e l'album**: ogni focus completato (almeno 20 minuti di studio) può regalarti una figurina, che appare
@@ -271,6 +273,10 @@ studio.»). Per il giardino, le statistiche e l'album, sopra il fumetto compare 
 Finché il giro va la scheda non risponde ai clic e non si chiude con un clic fuori; *Salta* o Esc lo chiudono («Il giro si può
 rivedere dal menu.»). Si rifà quando si vuole da **Fai il giro** nel menu (mai durante un focus o una pausa). Il giro non scrive niente.
 
+<p align="center">
+  <img src="images/giro.png" width="760" alt="Il giro guidato al passo del giardino: la scheda scurita tranne il pulsante Giardino, il fumetto con «Salta», «3 di 8» e «Avanti», e sopra l'immagine del giardino">
+</p>
+
 **Le prime volte.** Alla fine di un focus, finché non si è trovata nessuna figurina (a parte quelle dell'inizio), la frase dice
 «Mancano 35 minuti di studio alla prima figurina.»; quando arriva la prima, «Nuova figurina: Lavanda (n. 6). La trovi nell'album e
 puoi metterla nel giardino.». Nel giardino, accanto alla pillola *Da mettere*, un fumetto dice «Trascina le cose da «Da mettere»
@@ -350,6 +356,12 @@ I giorni che devono ancora arrivare sono tratteggiati, e oggi ha un contorno. Pa
 Sotto la mappa, tre numeri (la serie di giorni di fila più lunga dell'anno, il giorno più forte, il mese migliore), **le ore di ogni materia** («Per materia»: una riga per materia, dalla più studiata, con una barra del suo colore lunga in proporzione e il tempo, «Anatomia 42 h 30») e **l'andamento per settimana**: barre con le ore di ogni settimana,
 di tutte le materie o di una sola (le materie più studiate dell'anno, scelte con un clic). L'andamento si mostra da quattro settimane con studio in su, e le materie solo se sono almeno due. Si ricava tutto dal registro: nessun dato nuovo.
 
+<p align="center">
+  <img src="images/statistiche-mese.png" width="360" alt="Statistiche del mese: l'andamento per giorno, le ore per materia, i giorni di fila e come è andata">
+  &nbsp;&nbsp;
+  <img src="images/statistiche-anno.png" width="360" alt="Statistiche dell'anno: la mappa dei giorni, tre numeri, le ore per materia e l'andamento per settimana">
+</p>
+
 Le regole di calcolo hanno le loro prove: `./tests/run.sh` (compila `SessionLog.swift` da solo e controlla
 periodi, totali, giorni di fila e serie ghiacciata, regali di fine focus e album, copie nel prato, recupero, file
 rovinato, migrazione, materie unite, copie di sicurezza, fuso orario…).
@@ -422,7 +434,7 @@ subito, ma **al buio, con un lucchetto**, senza nome (solo «???») e con la scr
 il compagno (`GardenWorld` e `GardenIslands`, in `GardenGrid.swift`).
 
 <p align="center">
-  <img src="images/mondo.png" width="760" alt="Il mondo delle isole, unite da ponti, ognuna con la sua casa (nell'immagine sono quattro: il Riccio e la Tartaruga sono arrivati dopo)">
+  <img src="images/mondo.png" width="760" alt="Il mondo delle sei isole, unite da ponti, ognuna con la sua casa">
 </p>
 
 - **Ognuna è diversa.** Ha la sua tinta (verde fresco per Pianty, paglia per Porcellino, verde acqua per Ciccio, blu-lilla
@@ -649,6 +661,10 @@ Pianty si fa annaffiare, si pianta nell'aiuola, prende il sole sulla sdraio e gu
 da `tools/ritagli/cutout_interazioni.py`); chi dorme fa le «z», nel bagnetto ci sono gli schizzi. Dopo un po' ricompare lì accanto. La prima volta che vedi una scena, il giardino la festeggia («Nuova scena nell'album») e la
 scena entra nell'album, nella sezione **Scene**: una pagina per compagno, con le sue quattro scene. Quelle viste sono fotografie con la didascalia; le altre
 sono sagome con il nome della cosa che serve («??? · Panchina»), e toccandole l'album dice cosa fare (metti quella cosa sull'isola del compagno e aspetta).
+
+<p align="center">
+  <img src="images/album-scene.png" width="760" alt="La sezione Scene dell'album: le pagine di Pianty e Porcellino, con le scene viste e le sagome di quelle che mancano">
+</p>
 
 **Ciccio durante un focus** sta fermo e prende il posto del suo nido (`focusGrowthResources` in `Pet.swift`,
 le immagini `garden_ciccio_<1..5>.png`): parte dall'uovo e, con il tempo, passa al guscio

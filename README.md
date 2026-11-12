@@ -27,17 +27,17 @@
 ## Scegli chi ti fa compagnia
 
 <p align="center">
-  <img src="docs/images/compagni.png" width="900" alt="Pianty, Porcellino, Ciccio, Gattino e Riccio">
+  <img src="docs/images/compagni.png" width="900" alt="Pianty, Porcellino, Ciccio, Gattino, Riccio e Tartaruga">
 </p>
 
-Cinque amici, ognuno con il suo carattere e le sue frasi. Il primo lo scegli tu, gli altri si sbloccano studiando.
+Sei amici, ognuno con il suo carattere e le sue frasi. Il primo lo scegli tu, gli altri si sbloccano studiando.
 
 <br>
 
 ## Ti dice due parole quando serve
 
 <p align="center">
-  <img src="docs/images/frasi.png" width="900" alt="Pianty, Porcellino, Gattino e Riccio, ognuno con una frase nel fumetto">
+  <img src="docs/images/frasi.png" width="900" alt="Pianty, Porcellino, Gattino, Riccio e Tartaruga, ognuno con una frase nel fumetto">
 </p>
 
 Ogni tanto, senza distrarti: un incoraggiamento, un «respira», un «bevi un po' d'acqua». Puoi scrivere le tue.
@@ -51,6 +51,16 @@ Ogni tanto, senza distrarti: un incoraggiamento, un «respira», un «bevi un po
 </p>
 
 Scegli i minuti, scrivi cosa studi, premi inizio. Se vuoi, una pausa lunga ogni quattro focus.
+
+<br>
+
+## La prima volta, un giro
+
+<p align="center">
+  <img src="docs/images/giro.png" width="800" alt="Il giro guidato: la scheda scurita tranne il pulsante Giardino, con un fumetto che lo spiega e l'immagine del giardino">
+</p>
+
+Alla prima apertura il compagno ti chiama: cliccalo e ti mostra la scheda una parte alla volta, il timer, il giardino, le statistiche, l'album. Si rifà quando vuoi dal menu.
 
 <br>
 
@@ -72,16 +82,20 @@ Scegli i minuti, scrivi cosa studi, premi inizio. Se vuoi, una pausa lunga ogni 
     <td><img src="docs/images/mondo.png" alt="Le isole, unite da ponti"></td>
   </tr>
   <tr>
-    <td colspan="2" align="center"><img src="docs/images/album.png" width="560" alt="L'album delle figurine, aperto su una doppia pagina"></td>
+    <td><img src="docs/images/album.png" alt="L'album delle figurine, aperto su una doppia pagina"></td>
+    <td><img src="docs/images/album-scene.png" alt="Le scene dei compagni nell'album: quelle viste e le sagome di quelle che mancano"></td>
   </tr>
 </table>
 
-**Sai dove va il tuo tempo.** Statistiche per materia, giorni di fila, e una lista di cose da fare con la scadenza.
+**Sai dove va il tuo tempo.** L'andamento giorno per giorno, le ore di ogni materia, l'anno intero a colpo d'occhio, e una lista di cose da fare con la scadenza.
 
 <table align="center">
   <tr>
-    <td><img src="docs/images/statistiche-settimana.png" alt="Statistiche della settimana"></td>
-    <td><img src="docs/images/da-fare.png" alt="La lista delle cose da fare"></td>
+    <td><img src="docs/images/statistiche-settimana.png" alt="Statistiche della settimana: l'andamento per giorno e le ore per materia"></td>
+    <td><img src="docs/images/statistiche-anno.png" alt="Statistiche dell'anno: un quadratino per giorno, le ore per materia e l'andamento per settimana"></td>
+  </tr>
+  <tr>
+    <td colspan="2" align="center"><img src="docs/images/da-fare.png" width="560" alt="La lista delle cose da fare"></td>
   </tr>
 </table>
 
