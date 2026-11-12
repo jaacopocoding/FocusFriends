@@ -2493,28 +2493,28 @@ for album in 0..<40 {
 }
 check(gdAllNew && gdComplete == 40 && gdRolls == 40 * (GardenCatalog.items.count - 3), "ogni tiro è una cosa che non avevi (mai una seconda copia, mai «niente»): 44 tiri e l'album è completo")
 
-// la riserva di minuti: il primo regalo costa 60 minuti di studio, e 8 in più per ogni cosa trovata oltre alla dotazione
-check(GardenDrops.giftCostSeconds(found: 3, starters: 3) == 60 * 60 && GardenDrops.giftCostSeconds(found: 4, starters: 3) == 68 * 60
-      && GardenDrops.giftCostSeconds(found: 40, starters: 3) == (60 + 8 * 37) * 60 && GardenDrops.giftCostSeconds(found: 1, starters: 3) == 60 * 60
-      && GardenDrops.giftCostSeconds(found: 3) == 60 * 60, "il costo del prossimo regalo")
+// la riserva di minuti: il primo regalo costa 50 minuti di studio (un focus pieno), e 8 in più per ogni cosa trovata oltre alla dotazione
+check(GardenDrops.giftCostSeconds(found: 3, starters: 3) == 50 * 60 && GardenDrops.giftCostSeconds(found: 4, starters: 3) == 58 * 60
+      && GardenDrops.giftCostSeconds(found: 40, starters: 3) == (50 + 8 * 37) * 60 && GardenDrops.giftCostSeconds(found: 1, starters: 3) == 50 * 60
+      && GardenDrops.giftCostSeconds(found: 3) == 50 * 60, "il costo del prossimo regalo")
 var gdBank = GardenDropState.starting()
-check(GardenDrops.minutesToNextGift(state: gdBank, pool: GardenCatalog.items) == 60 && GardenDrops.giftProgress(state: gdBank, pool: GardenCatalog.items) == 0, "all'inizio mancano 60 minuti")
+check(GardenDrops.minutesToNextGift(state: gdBank, pool: GardenCatalog.items) == 50 && GardenDrops.giftProgress(state: gdBank, pool: GardenCatalog.items) == 0, "all'inizio mancano 50 minuti")
 check(GardenDrops.credit(sessionID: "BANCA-1", streakDays: 1, seconds: 25 * 60, state: &gdBank) == nil && gdBank.studyBank == 25 * 60
-      && GardenDrops.minutesToNextGift(state: gdBank, pool: GardenCatalog.items) == 35, "25 minuti: niente regalo, ne mancano 35")
-check(GardenDrops.credit(sessionID: "BANCA-2", streakDays: 1, seconds: 30 * 60, state: &gdBank) == nil && GardenDrops.minutesToNextGift(state: gdBank, pool: GardenCatalog.items) == 5
-      && abs((GardenDrops.giftProgress(state: gdBank, pool: GardenCatalog.items) ?? 0) - 55.0 / 60) < 1e-9, "55 minuti: ne mancano 5")
+      && GardenDrops.minutesToNextGift(state: gdBank, pool: GardenCatalog.items) == 25, "25 minuti: niente regalo, ne mancano 25")
+check(GardenDrops.credit(sessionID: "BANCA-2", streakDays: 1, seconds: 20 * 60, state: &gdBank) == nil && GardenDrops.minutesToNextGift(state: gdBank, pool: GardenCatalog.items) == 5
+      && abs((GardenDrops.giftProgress(state: gdBank, pool: GardenCatalog.items) ?? 0) - 45.0 / 50) < 1e-9, "45 minuti: ne mancano 5")
 let gdBankDrop = GardenDrops.credit(sessionID: "BANCA-3", streakDays: 1, seconds: 25 * 60, state: &gdBank)
-check(gdBankDrop != nil && gdBank.found.count == 4 && gdBank.studyBank == 20 * 60 && GardenDrops.minutesToNextGift(state: gdBank, pool: GardenCatalog.items) == 48,
-      "80 minuti: il regalo esce e costa 60, ne restano 20 da parte; il prossimo costa 68, ne mancano 48")
+check(gdBankDrop != nil && gdBank.found.count == 4 && gdBank.studyBank == 20 * 60 && GardenDrops.minutesToNextGift(state: gdBank, pool: GardenCatalog.items) == 38,
+      "70 minuti: il regalo esce e costa 50, ne restano 20 da parte; il prossimo costa 58, ne mancano 38")
 // il tiro è sempre lo stesso per lo stesso focus, la riserva è una somma
 var gdBankTwin = GardenDropState.starting()
 _ = GardenDrops.credit(sessionID: "BANCA-1", streakDays: 1, seconds: 25 * 60, state: &gdBankTwin)
-_ = GardenDrops.credit(sessionID: "BANCA-2", streakDays: 1, seconds: 30 * 60, state: &gdBankTwin)
+_ = GardenDrops.credit(sessionID: "BANCA-2", streakDays: 1, seconds: 20 * 60, state: &gdBankTwin)
 check(GardenDrops.credit(sessionID: "BANCA-3", streakDays: 1, seconds: 25 * 60, state: &gdBankTwin) == gdBankDrop && gdBankTwin == gdBank, "stessi focus, stesso regalo e stessa riserva")
 // un focus lungo non dà due regali insieme: il resto aspetta
 var gdBig = GardenDropState.starting()
 gdBig.studyBank = 400 * 60
-check(GardenDrops.credit(sessionID: "BANCA-4", streakDays: 1, seconds: 30 * 60, state: &gdBig) != nil && gdBig.found.count == 4 && gdBig.studyBank == (430 - 60) * 60
+check(GardenDrops.credit(sessionID: "BANCA-4", streakDays: 1, seconds: 30 * 60, state: &gdBig) != nil && gdBig.found.count == 4 && gdBig.studyBank == (430 - 50) * 60
       && GardenDrops.credit(sessionID: "BANCA-5", streakDays: 1, seconds: 30 * 60, state: &gdBig) != nil && gdBig.found.count == 5, "se ne sono maturati di più, ne arriva uno per focus")
 // niente da trovare: la riserva cresce lo stesso, e aspetta un compagno nuovo
 var gdWait = GardenDropState.starting()
@@ -2524,7 +2524,7 @@ check(GardenDrops.credit(sessionID: "BANCA-6", streakDays: 1, seconds: 50 * 60, 
       && GardenDrops.minutesToNextGift(state: gdWait, pool: gdWaitPool) == nil && GardenDrops.giftProgress(state: gdWait, pool: gdWaitPool) == nil,
       "con tutto trovato la riserva cresce e non c'è un «mancano»")
 check(GardenDrops.credit(sessionID: "BANCA-7", streakDays: 1, seconds: 50 * 60, state: &gdWait, pool: GardenCatalog.items) == nil
-      && GardenDrops.minutesToNextGift(state: gdWait, pool: GardenCatalog.items) == (60 + 8 * 22) - 100 && gdWait.found.count == 25,
+      && GardenDrops.minutesToNextGift(state: gdWait, pool: GardenCatalog.items) == (50 + 8 * 22) - 100 && gdWait.found.count == 25,
       "un compagno nuovo porta altre cose: ora mancano i minuti che restano")
 // con la modalità di prova ogni minuto vale un'ora
 var gdQuick = GardenDropState.starting()
@@ -3040,16 +3040,16 @@ check(complete.rollGift(for: completeSession, streakDays: 1) == .complete && com
 // i minuti, nel giardino vero: due focus da 30 minuti fanno la prima figurina, e il file si ricorda la riserva
 let bankDir = tempDirectory()
 let bankGarden = Garden(directory: bankDir)
-check(bankGarden.minutesToNextGift == 60 && bankGarden.nextGiftProgress == 0, "giardino nuovo: mancano 60 minuti")
-check(bankGarden.rollGift(for: gardenSession(30), streakDays: 1) == .progress && bankGarden.minutesToNextGift == 30 && bankGarden.allPlacements.count == 3, "un focus da 30 minuti: se ne vanno da parte, niente di nuovo sull'isola")
-check(Garden(directory: bankDir).minutesToNextGift == 30, "e alla riapertura la riserva c'è")
+check(bankGarden.minutesToNextGift == 50 && bankGarden.nextGiftProgress == 0, "giardino nuovo: mancano 50 minuti")
+check(bankGarden.rollGift(for: gardenSession(30), streakDays: 1) == .progress && bankGarden.minutesToNextGift == 20 && bankGarden.allPlacements.count == 3, "un focus da 30 minuti: se ne vanno da parte, niente di nuovo sull'isola")
+check(Garden(directory: bankDir).minutesToNextGift == 20, "e alla riapertura la riserva c'è")
 if case .found(let drop) = bankGarden.rollGift(for: gardenSession(30), streakDays: 1) {
-    check(bankGarden.has(drop.item) && bankGarden.allPlacements.count == 4 && bankGarden.minutesToNextGift == 68 && bankGarden.unseen.contains(drop.item), "il secondo, a 60 minuti: la figurina esce, va nel prato, e la prossima costa 68")
+    check(bankGarden.has(drop.item) && bankGarden.allPlacements.count == 4 && bankGarden.minutesToNextGift == 48 && bankGarden.unseen.contains(drop.item), "il secondo, a 60 minuti: la figurina esce, va nel prato; la prossima costa 58 e ne restano 10 da parte")
 } else {
-    check(false, "a 60 minuti di studio esce la prima figurina")
+    check(false, "a 60 minuti di studio (ne bastano 50) esce la prima figurina")
 }
-check(bankGarden.rollGift(for: gardenSession(20), streakDays: 1) == .progress && bankGarden.minutesToNextGift == 48, "20 minuti sono il minimo che conta")
-check(bankGarden.rollGift(for: gardenSession(19), streakDays: 1) == .notEligible && bankGarden.rollGift(for: gardenSession(50, completed: false), streakDays: 1) == .notEligible && bankGarden.minutesToNextGift == 48,
+check(bankGarden.rollGift(for: gardenSession(20), streakDays: 1) == .progress && bankGarden.minutesToNextGift == 28, "20 minuti sono il minimo che conta")
+check(bankGarden.rollGift(for: gardenSession(19), streakDays: 1) == .notEligible && bankGarden.rollGift(for: gardenSession(50, completed: false), streakDays: 1) == .notEligible && bankGarden.minutesToNextGift == 28,
       "un focus interrotto o sotto i 20 minuti non conta e non toglie niente")
 // conta solo quello che c'è nelle isole aperte
 var openDrops = GardenDropState.starting()

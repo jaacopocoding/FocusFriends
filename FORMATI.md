@@ -335,8 +335,8 @@ Versione 3 (Mac 0.10.0): il giardino non ha più punti né negozio né prato lib
   l'identificativo, sulle tessere libere in ordine di riga e colonna **dell'isola dove va**: quella del suo animale se l'oggetto è di un animale, altrimenti quella di casa).
 - **I regali si guadagnano con i minuti di studio** (`GardenDrops.credit`, `Garden.rollGift`). Ogni focus che conta (`completed` e almeno 20 minuti, cioè 1200 secondi; uno solo per `lastRolled`) aggiunge i suoi
   `seconds` a `drops.studyBank`. Poi, se nell'elenco c'è ancora qualcosa da trovare e `studyBank` ≥ il costo, esce **un** regalo (il tiro descritto sopra, con l'identificativo del focus) e `studyBank` scende del costo.
-  Il costo del prossimo regalo, in secondi, è `(60 + 8 × max(F − S, 0)) × 60`, con `F` gli oggetti trovati (le chiavi di `drops.found`) e `S` quelli a prezzo 0 del catalogo (3): il primo costa 60 minuti, il secondo 68,
-  l'ultimo (il trentasettesimo) 348. Se sono maturati più regali (si aspettava un compagno nuovo) ne esce uno per focus e il resto di `studyBank` resta; se non c'è niente da trovare `studyBank` cresce lo stesso (a fine focus
+  Il costo del prossimo regalo, in secondi, è `(50 + 8 × max(F − S, 0)) × 60`, con `F` gli oggetti trovati (le chiavi di `drops.found`) e `S` quelli a prezzo 0 del catalogo (3): il primo costa 50 minuti (un focus pieno), il secondo 58,
+  l'ultimo (il trentasettesimo) 346. Se sono maturati più regali (si aspettava un compagno nuovo) ne esce uno per focus e il resto di `studyBank` resta; se non c'è niente da trovare `studyBank` cresce lo stesso (a fine focus
   l'app non dice niente: `GardenGift.complete`). **Non esce mai «niente»**: un focus che conta senza regalo è `GardenGift.progress`, e l'app dice quanti minuti mancano
   (`ceil((costo − studyBank) / 60)`, 0 = già maturato). Gli ospiti, i regali dei punti convertiti e il regalo di benvenuto non passano dalla riserva. Con la chiave nascosta `quickGifts` ogni secondo conta 60.
   `GardenDrops.simulate` rifà tutto sul registro intero, ed è quello che deve dare lo stesso risultato su Mac e Windows.

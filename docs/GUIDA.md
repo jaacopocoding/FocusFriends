@@ -277,7 +277,7 @@ rivedere dal menu.»). Si rifà quando si vuole da **Fai il giro** nel menu (mai
 </p>
 
 **Le prime volte.** Alla fine di un focus, finché non si è trovata nessuna figurina (a parte quelle dell'inizio), la frase dice
-«Mancano 35 minuti di studio alla prima figurina.»; quando arriva la prima, «Nuova figurina: Lavanda (n. 6). La trovi nell'album e
+«Mancano 20 minuti di studio alla prima figurina.»; quando arriva la prima, «Nuova figurina: Lavanda (n. 6). La trovi nell'album e
 puoi metterla nel giardino.». Nel giardino, accanto alla pillola *Da mettere*, un fumetto dice «Trascina le cose da «Da mettere»
 sull'isola.» finché non si apre la cassetta la prima volta (lo ricordano le preferenze dell'app, `gardenTrayHintSeen`).
 
@@ -380,9 +380,9 @@ Ogni focus **completato** con almeno **20 minuti** di studio (`GardenDrops.minim
 **ogni tanto** quei minuti bastano per una figurina, che compare accanto al personaggio per qualche secondo (`GiftCard.swift`).
 Un focus interrotto o più corto non dà e non toglie niente. Le regole, tutte in `GardenDrops.swift` (solo Foundation, con prove):
 
-- **Si guadagna studiando, non a sorte**: la prima figurina arriva dopo **60 minuti** di studio (dei focus che contano), e
-  ognuna costa **8 minuti in più** per ogni cosa che hai già trovato oltre alle tre di partenza (la seconda 68, la decima
-  124, l'ultima 348). Non esce mai «niente figurina»: a fine focus il personaggio dice quanto manca («Ancora 35 minuti di
+- **Si guadagna studiando, non a sorte**: la prima figurina arriva dopo **50 minuti** di studio (dei focus che contano: il primo focus pieno), e
+  ognuna costa **8 minuti in più** per ogni cosa che hai già trovato oltre alle tre di partenza (la seconda 58, la decima
+  122, l'ultima 346). Non esce mai «niente figurina»: a fine focus il personaggio dice quanto manca («Ancora 35 minuti di
   studio e trovi una figurina»), sotto la riga **Album** del menu c'è la stessa riga con una barra, e nel giardino una
   pastiglia «ancora 35 min» che si riempie piano. Un focus lungo non dà due figurine insieme: se ne sono maturate di più
   ne arriva una per focus.

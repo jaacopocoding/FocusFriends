@@ -474,44 +474,47 @@
         "annaffiatoio",
         "Comune"
       ],
-      null,
+      [
+        "tunnel",
+        "Comune"
+      ],
       [
         "tulipani",
         "Comune"
       ],
-      [
-        "papaveri",
-        "Comune"
-      ],
+      null,
       [
         "lattuga",
         "Comune"
       ],
-      null,
+      [
+        "candela-cesto",
+        "Comune"
+      ],
       [
         "funghi",
         "Comune"
       ],
+      null,
+      [
+        "altalena-uccelli",
+        "Comune"
+      ],
+      null,
+      [
+        "mucchio-foglie",
+        "Comune"
+      ],
+      null,
       [
         "lavanda",
         "Comune"
       ],
       null,
       [
-        "hotel-insetti",
+        "picnic",
         "Raro"
-      ],
-      null,
-      [
-        "altalena",
-        "Leggendario"
-      ],
-      null,
-      [
-        "tunnel",
-        "Comune"
-      ],
-      null
+      ]
     ],
     "fraseGiorno" : null,
     "frasi" : [

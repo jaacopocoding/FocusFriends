@@ -28,7 +28,7 @@ export type GardenGift =
 // ---- i numeri
 
 export const DROP_MINIMUM_SECONDS = 20 * 60;
-export const FIRST_GIFT_MINUTES = 60;
+export const FIRST_GIFT_MINUTES = 50;
 export const GIFT_MINUTES_STEP = 8;
 export const BASE_RARE = 0.22;
 export const BASE_LEGENDARY = 0.03;

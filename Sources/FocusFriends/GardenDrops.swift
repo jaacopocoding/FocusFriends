@@ -70,8 +70,8 @@ enum GardenDrops {
 
     /// Quanto studio serve perché un focus conti per i regali (in secondi). Un focus interrotto non conta.
     static let minimumSeconds = 20 * 60
-    /// Il primo regalo costa 60 minuti di studio (dei focus che contano), e ogni regalo costa 8 minuti in più per ogni cosa che hai già trovato oltre alla dotazione.
-    static let firstGiftMinutes = 60
+    /// Il primo regalo costa 50 minuti di studio (un focus pieno) (dei focus che contano), e ogni regalo costa 8 minuti in più per ogni cosa che hai già trovato oltre alla dotazione.
+    static let firstGiftMinutes = 50
     static let giftMinutesStep = 8
     /// Le probabilità di partenza (il resto è comune).
     static let baseRare = 0.22

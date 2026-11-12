@@ -14,7 +14,8 @@ per ultima, a 200 focus pieni.
 - **Il giro guidato.** Alla prima apertura, dopo il nome e il compagno, il compagno ti chiama («Cliccami!!!»): cliccandolo si apre la
   scheda e il giro ne spiega le parti una alla volta, il timer, il giardino, le statistiche, l'album e i compagni da sbloccare, con le
   immagini di come sono fatti. Si rifà da «Fai il giro» nel menu. E la prima volta che serve il compagno dice quanto manca alla prima
-  figurina e dove trovarla, e il giardino mostra come si mettono le cose.
+  figurina e dove trovarla, e il giardino mostra come si mettono le cose. La prima figurina arriva con il primo focus pieno: 50 minuti di studio
+  invece di 60 (le altre come prima, 8 minuti in più ognuna).
 - **La sua isola**, la sesta, a destra di quella di Porcellino e sopra quella del Riccio, con la casa dal tetto a guscio, il suo verde oliva e sette
   figurine nuove (il sasso al sole, il cespo di lattuga, l'aiuola di fragole, la bandierina del traguardo, la lanterna di carta, il laghetto, il rifugio
   di paglia). Due angoli nuovi, e il coniglio e la rana vengono anche per la lattuga e il laghetto.

@@ -906,7 +906,7 @@
           "grandezza" : 8
         }
       },
-      "mancano" : 140,
+      "mancano" : 130,
       "nuove" : [
         "altalena-uccelli",
         "annaffiatoio",
@@ -1049,13 +1049,26 @@
   "statistiche" : {
     "csv" : "inizio,inizio_locale,minuti,minuti_previsti,completa,materia,personaggio,com_e_andata,nota,note_del_focus\n2026-10-01T07:00:00Z,2026-10-01T09:00,50,50,si,\"Anatomia\",pianty,good,\"cap. 1\",\"\"\n2026-10-01T09:00:00Z,2026-10-01T11:00,25,50,no,\"Anatomia\",pianty,,\"\",\"\"\n2026-10-02T07:30:00Z,2026-10-02T09:30,50,50,si,\"Fisiologia\",porcellino,soso,\"cap. 4\",\"\"\n2026-10-02T13:00:00Z,2026-10-02T15:00,50,50,si,\"Anatomia\",porcellino,good,\"\",\"\"\n2026-10-03T08:00:00Z,2026-10-03T10:00,30,30,si,\"Chimica\",ciccio,good,\"\",\"\"\n2026-10-04T06:30:00Z,2026-10-04T08:30,50,50,si,\"Chimica\",ciccio,poor,\"stanco\",\"rivedere l'esercizio 4 | chiedere al prof\"\n2026-10-06T07:00:00Z,2026-10-06T09:00,50,50,si,\"Fisica\",gattino,good,\"\",\"\"\n2026-10-06T14:00:00Z,2026-10-06T16:00,45,45,no,\"Fisica\",gattino,,\"\",\"\"\n2026-10-07T08:00:00Z,2026-10-07T10:00,50,50,si,\"Fisica\",gattino,soso,\"\",\"\"\n2026-10-10T07:00:00Z,2026-10-10T09:00,50,50,si,\"\",pianty,,\"\",\"\"\n2026-10-11T07:00:00Z,2026-10-11T09:00,50,50,si,\"Anatomia\",pianty,good,\"\",\"\"\n2026-10-12T12:00:00Z,2026-10-12T14:00,25,25,si,\"Fisiologia\",porcellino,good,\"esercizi\",\"\"\n2026-10-13T07:00:00Z,2026-10-13T09:00,50,50,si,\"Anatomia\",pianty,good,\"\",\"\"\n2026-10-13T09:00:00Z,2026-10-13T11:00,10,25,no,\"Anatomia\",pianty,,\"\",\"\"\n2026-10-14T07:00:00Z,2026-10-14T09:00,50,50,si,\"Chimica\",ciccio,good,\"\",\"\"\n",
     "figurine" : [
+      [
+        "annaffiatoio",
+        "Comune"
+      ],
+      null,
+      [
+        "lavanda",
+        "Comune"
+      ],
+      [
+        "lattuga",
+        "Comune"
+      ],
       null,
       [
         "tulipani",
         "Comune"
       ],
       [
-        "papaveri",
+        "altalena-uccelli",
         "Comune"
       ],
       null,
@@ -1064,21 +1077,11 @@
         "Comune"
       ],
       null,
-      [
-        "tunnel",
-        "Comune"
-      ],
-      [
-        "hotel-insetti",
-        "Raro"
-      ],
-      null,
       null,
       [
-        "lavanda",
+        "felci",
         "Comune"
-      ],
-      null
+      ]
     ],
     "fraseGiorno" : "Con Anatomia è andata bene.",
     "frasi" : [

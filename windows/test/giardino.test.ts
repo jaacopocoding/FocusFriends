@@ -138,7 +138,7 @@ describe("Giardino: i regali", () => {
     assert.equal(g.rollGift(focus(3, 1800), 1).kind, "progress");
     assert.equal(g.rollGift(focus(3, 1800), 1).kind, "notEligible");
     assert.equal(g.drops.studyBank, 1800);
-    assert.equal(g.minutesToNextGift, 30);
+    assert.equal(g.minutesToNextGift, 20);
   });
   it("con `quickGifts` un focus da un minuto conta e ogni minuto vale un'ora", () => {
     const g = new Garden(tempDirectory(), { quickGifts: () => true });
