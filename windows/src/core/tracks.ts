@@ -16,14 +16,17 @@ export function isAudio(path: string): boolean {
   return AUDIO_EXTENSIONS.has(extension(name)) && !name.startsWith(".");
 }
 
-/** Un ordine casuale; il primo brano non è mai quello appena suonato (se ce n'è più di uno). */
-export function shuffled(tracks: readonly string[], avoidingFirst: string | null, random: () => number = Math.random): string[] {
+/** Un ordine casuale; il primo brano non è nessuno di `avoidingFirst` (l'ultimo ascoltato e quello con cui era partito il focus prima),
+ *  finché ce n'è un altro. */
+export function shuffled(tracks: readonly string[], avoidingFirst: string | null | readonly string[], random: () => number = Math.random): string[] {
   const result = [...tracks];
   for (let i = result.length - 1; i > 0; i -= 1) {
     const j = Math.floor(random() * (i + 1));
     [result[i], result[j]] = [result[j]!, result[i]!];
   }
-  if (result.length > 1 && avoidingFirst !== null && result[0] === avoidingFirst) [result[0], result[1]] = [result[1]!, result[0]!];
+  const avoid = avoidingFirst === null ? [] : typeof avoidingFirst === "string" ? [avoidingFirst] : avoidingFirst;
+  const fresh = result.findIndex((track) => !avoid.includes(track));
+  if (fresh > 0) [result[0], result[fresh]] = [result[fresh]!, result[0]!];
   return result;
 }
 

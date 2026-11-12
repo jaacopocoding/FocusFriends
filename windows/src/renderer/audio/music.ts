@@ -12,6 +12,21 @@ export interface MusicOptions {
   volume: number;
 }
 
+/** L'ultimo brano ascoltato e quello con cui è partito l'ultimo focus, per titolo: si ricordano anche dopo una riapertura (come sul Mac),
+ *  così il focus dopo non comincia con lo stesso brano. */
+const RECENT_KEY = "musicRecent";
+function loadRecent(): { last: string | null; opener: string | null } {
+  try {
+    const value = JSON.parse(localStorage.getItem(RECENT_KEY) ?? "{}") as { last?: unknown; opener?: unknown };
+    return { last: typeof value.last === "string" ? value.last : null, opener: typeof value.opener === "string" ? value.opener : null };
+  } catch {
+    return { last: null, opener: null };
+  }
+}
+function saveRecent(recent: { last: string | null; opener: string | null }): void {
+  try { localStorage.setItem(RECENT_KEY, JSON.stringify(recent)); } catch { /* senza memoria si ricomincia da un brano a caso: va bene */ }
+}
+
 export class MusicPlayer {
   private readonly api: FocusFriendsApi;
   private audio: HTMLAudioElement | null = null;
@@ -122,8 +137,10 @@ export class MusicPlayer {
     const list = this.list;
     if (generation !== this.generation || !list) return;
     const titles = new Map(list.tracks.map((track) => [String(track.id), track.title]));
+    const recent = loadRecent();
+    const avoid = list.tracks.filter((track) => track.title === recent.last || track.title === recent.opener).map((track) => String(track.id));
     for (let attempts = 0; attempts <= list.tracks.length; attempts += 1) {
-      const id = this.queue.next(list.tracks.map((track) => String(track.id)));
+      const id = this.queue.next(list.tracks.map((track) => String(track.id)), avoid);
       if (id === null) break;
       const audio = new Audio(`ff://app/music/${list.version}/${id}`);
       audio.volume = fadeIn ? 0 : this.volume;
@@ -135,6 +152,7 @@ export class MusicPlayer {
       if (generation !== this.generation) { audio.pause(); return; }
       this.audio = audio;
       this.currentTitle = titles.get(id) ?? null;
+      saveRecent({ last: this.currentTitle, opener: fadeIn ? this.currentTitle : recent.opener });
       if (fadeIn) this.fade(this.volume, FADE_SECONDS);
       audio.addEventListener("ended", () => {
         if (this.audio !== audio) return;

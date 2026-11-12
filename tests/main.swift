@@ -500,10 +500,15 @@ struct FixedRandom: RandomNumberGenerator { var s: UInt64 = 7; mutating func nex
 var fixed = FixedRandom()
 let three = [URL(fileURLWithPath: "/a.mp3"), URL(fileURLWithPath: "/b.mp3"), URL(fileURLWithPath: "/c.mp3")]
 for last in three {
-    let order = MusicLibrary.shuffled(three, avoidingFirst: last, using: &fixed)
+    let order = MusicLibrary.shuffled(three, avoidingFirst: [last], using: &fixed)
     check(order.count == 3 && Set(order) == Set(three) && order[0] != last, "il primo brano non è quello appena suonato")
 }
-check(MusicLibrary.shuffled([three[0]], avoidingFirst: three[0], using: &fixed) == [three[0]], "con un solo brano suona quello")
+for _ in 0..<30 {
+    let order = MusicLibrary.shuffled(three, avoidingFirst: [three[0], three[2]], using: &fixed)
+    check(order[0] == three[1] && Set(order) == Set(three), "né l'ultimo ascoltato né quello che aveva aperto il focus prima")
+}
+check(MusicLibrary.shuffled([three[0], three[1]], avoidingFirst: three.prefix(2).map { $0 }, using: &fixed).count == 2, "se li evita tutti, suona lo stesso")
+check(MusicLibrary.shuffled([three[0]], avoidingFirst: [three[0]], using: &fixed) == [three[0]], "con un solo brano suona quello")
 check(MusicLibrary.title(of: URL(fileURLWithPath: "/m/music_01_dreamy_night-owl.m4a")) == "dreamy night owl", "titolo leggibile dal nome del file")
 check(MusicLibrary.title(of: URL(fileURLWithPath: "/m/2. Rain Walk.mp3")) == "Rain Walk", "toglie il numero d'ordine")
 let musicDefaults = UserDefaults(suiteName: "ff-music-test-\(UUID().uuidString)")!

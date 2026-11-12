@@ -712,15 +712,16 @@ ricorda alla riapertura, e la scelta del suono e del volume sta in `AmbientSound
 ## Musica
 
 La **musica** del focus, facoltativa, funziona come il suono ambiente: parte con il focus (con una dissolvenza di 2
-secondi), si ferma a fine focus e in pausa è silenzio, in ordine casuale e senza ripetere subito lo stesso brano.
+secondi), si ferma a fine focus e in pausa è silenzio, in ordine casuale e senza ripetere subito lo stesso brano. Il primo brano di un focus non è né l'ultimo ascoltato né quello con cui era partito il focus prima, anche dopo una riapertura dell'app (lo ricordano le preferenze, per nome di file; su Windows la pagina, per titolo).
 Si sceglie dalla scheda del menu (riga *Musica*, con il suo cursore del volume) o dal menu classico (*Musica ▸*):
 
 - **La mia cartella**: l'app suona i file audio (mp3, m4a, aac, wav, aiff, flac) di una cartella che scegli tu, anche
   nelle sottocartelle. Non viene copiato né inviato niente: i file restano dove sono. La prima volta chiede la
   cartella; si cambia da *Musica ▸ Scegli la cartella…*.
-- **Brani inclusi**: cinque brani strumentali e calmi (*Boredom*, *Love*, *Night Driving*, *Old Age*, *Opinions*) di
-  **HoliznaCC0**, pubblicati in pubblico dominio con la licenza **CC0**. Autore, fonti e licenza sono nel file
-  [`CREDITS.md`](../CREDITS.md). Lo zip dell'app passa da circa 8 a circa 21 MB.
+- **Brani inclusi**: undici brani strumentali e calmi (*Autumn*, *Boredom*, *City In The Rearview*, *Dream Pop*,
+  *Families*, *Lost In Your Eyes*, *Love*, *Night Driving*, *Old Age*, *Opinions*, *You Loved Me Once*), circa 36 minuti,
+  di **HoliznaCC0**, pubblicati in pubblico dominio con la licenza **CC0**. Autore, fonti e licenza sono nel file
+  [`CREDITS.md`](../CREDITS.md). Insieme pesano circa 32 MB.
 
 Il volume di partenza è basso (30%). **Un solo sottofondo alla volta**: accendendo la musica si spegne il suono
 ambiente (pioggia, vento…) e viceversa. Il codice è in `MusicPlayer.swift` (riproduzione) e `MusicLibrary.swift` (quali file e in che ordine, con le prove).

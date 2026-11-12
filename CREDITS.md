@@ -13,10 +13,17 @@ e ridistribuire senza condizioni e senza obbligo di citare l'autore. Li citiamo 
 | Night Driving | Relaxing Instrumentals | <https://opengameart.org/node/161811> |
 | Old Age | Chill Beats | <https://opengameart.org/content/chill-beats-collection> |
 | Opinions | Chill Beats | <https://opengameart.org/content/chill-beats-collection> |
+| Lost In Your Eyes | Relaxing Instrumentals | <https://opengameart.org/node/161811> |
+| You Loved Me Once | Relaxing Instrumentals | <https://opengameart.org/node/161811> |
+| City In The Rearview | Chill Beats | <https://opengameart.org/content/chill-beats-collection> |
+| Families | Chill Beats | <https://opengameart.org/content/chill-beats-collection> |
+| Dream Pop | Chill Beats | <https://opengameart.org/content/chill-beats-collection> |
+| Autumn | Chill Beats | <https://opengameart.org/content/chill-beats-collection> |
 
 - L'artista: <https://holiznacc0.bandcamp.com>. Sulla sua pagina scrive di dedicare tutto il suo archivio al
   pubblico dominio con CC0, senza obbligo di credito.
-- I file originali (MP3) sono stati **convertiti in AAC (m4a, 128 kbps)** per l'app, senza altre modifiche.
+- I file originali (MP3) sono stati **convertiti in AAC (m4a, 128 kbps)** per l'app. L'unica altra modifica è il volume
+  di *You Loved Me Once* (−4 dB) e di *City In The Rearview* (−2 dB), abbassato perché suonino forti come gli altri.
 - Se ti piace, puoi sostenere l'artista dalla sua pagina Bandcamp.
 
 ## Disegni

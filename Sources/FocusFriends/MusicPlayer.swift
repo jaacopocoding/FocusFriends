@@ -8,7 +8,16 @@ final class MusicPlayer: NSObject, AVAudioPlayerDelegate {
 
     private var player: AVAudioPlayer?
     private var queue: [URL] = []
-    private var lastPlayed: URL?
+    /// L'ultimo brano ascoltato e quello con cui è partito l'ultimo focus, per nome di file: si ricordano anche dopo una riapertura,
+    /// così il focus dopo non comincia con lo stesso brano.
+    private var lastPlayed: String? {
+        get { UserDefaults.standard.string(forKey: "musicLastTrack") }
+        set { UserDefaults.standard.set(newValue, forKey: "musicLastTrack") }
+    }
+    private var lastOpener: String? {
+        get { UserDefaults.standard.string(forKey: "musicLastOpener") }
+        set { UserDefaults.standard.set(newValue, forKey: "musicLastOpener") }
+    }
     private var stopTimer: Timer?
     private var previewTimer: Timer?
 
@@ -164,7 +173,9 @@ final class MusicPlayer: NSObject, AVAudioPlayerDelegate {
     private func playNext(fadeIn: Bool) {
         if queue.isEmpty {
             var rng = SystemRandomNumberGenerator()
-            queue = MusicLibrary.shuffled(currentTracks(), avoidingFirst: lastPlayed, using: &rng)
+            let tracks = currentTracks()
+            let recent = [lastPlayed, lastOpener].compactMap { $0 }
+            queue = MusicLibrary.shuffled(tracks, avoidingFirst: tracks.filter { recent.contains($0.lastPathComponent) }, using: &rng)
         }
         // Salta i file che non si riescono a leggere; se nessuno si legge, si ferma.
         while let url = queue.first {
@@ -175,7 +186,8 @@ final class MusicPlayer: NSObject, AVAudioPlayerDelegate {
             guard candidate.play() else { continue }
             if fadeIn { candidate.setVolume(Float(volume), fadeDuration: Self.fade) }
             player = candidate
-            lastPlayed = url
+            lastPlayed = url.lastPathComponent
+            if fadeIn { lastOpener = url.lastPathComponent }
             currentTitle = MusicLibrary.title(of: url)
             return
         }

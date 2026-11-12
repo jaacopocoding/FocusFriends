@@ -42,6 +42,10 @@ describe("Musica", () => {
         assert.ok(order.length === 3 && new Set(order).size === 3 && order[0] !== last);
       }
     }
+    for (let seed = 1; seed <= 30; seed += 1) {
+      assert.equal(shuffled(three, ["/a.mp3", "/c.mp3"], sequence(seed))[0], "/b.mp3", "né l'ultimo ascoltato né quello che aveva aperto il focus prima");
+    }
+    assert.equal(shuffled(["/a.mp3", "/b.mp3"], ["/a.mp3", "/b.mp3"]).length, 2, "se li evita tutti, suona lo stesso");
     assert.deepEqual(shuffled(["/a.mp3"], "/a.mp3"), ["/a.mp3"], "con un solo brano suona quello");
     assert.deepEqual(shuffled([], null), []);
   });

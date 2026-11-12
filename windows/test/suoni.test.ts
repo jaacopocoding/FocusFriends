@@ -43,6 +43,11 @@ describe("Musica", () => {
       previous = heard.at(-1)!;
     }
   });
+  it("il primo brano non è uno di quelli ricordati da prima", () => {
+    for (let round = 0; round < 30; round += 1) {
+      assert.equal(new MusicQueue().next(["a", "b", "c"], ["a", "c"]), "b");
+    }
+  });
   it("senza brani non esce niente; reset ricomincia", () => {
     const queue = new MusicQueue();
     assert.equal(queue.next([]), null);

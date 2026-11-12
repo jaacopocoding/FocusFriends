@@ -459,7 +459,9 @@ code. All UI code runs on the main thread; the only other thread is the audio re
 - **Execution path (ambient):** `apply(previewing:quick:)` → `startEngine()` (`configureIfNeeded` attaches an
   `AVAudioSourceNode` with a render block calling `NoiseSynth.render`) → sets `synth.kind`, `fadeSeconds`, `targetGain`;
   off → `targetGain = 0` and, after the fade, `engine.pause()`. **Execution path (music):** `apply` →
-  `playNext(fadeIn:)` builds a shuffled queue via `MusicLibrary.shuffled(...avoidingFirst:)`, creates an
+  `playNext(fadeIn:)` builds a shuffled queue via `MusicLibrary.shuffled(...avoidingFirst:)` (the first track is neither the last one heard
+  nor the one that opened the previous focus, both kept by file name in UserDefaults `musicLastTrack`/`musicLastOpener`, so a relaunch does not
+  start with the same track), creates an
   `AVAudioPlayer` per track (skipping unreadable files), fades in/out with `setVolume(_:fadeDuration:)`;
   `audioPlayerDidFinishPlaying` chains the next track while focus/preview is active.
   Exclusivity: `AmbientPlayer.setSound` turns music off, `MusicPlayer.setSource` turns ambient off,

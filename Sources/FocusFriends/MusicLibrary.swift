@@ -41,11 +41,12 @@ enum MusicLibrary {
         return false
     }
 
-    /// Un ordine casuale; il primo brano non è mai quello appena suonato (se ce n'è più di uno).
-    static func shuffled<G: RandomNumberGenerator>(_ tracks: [URL], avoidingFirst last: URL?, using generator: inout G) -> [URL] {
+    /// Un ordine casuale; il primo brano non è nessuno di `avoid` (l'ultimo ascoltato e quello con cui era partito il focus prima),
+    /// finché ce n'è un altro.
+    static func shuffled<G: RandomNumberGenerator>(_ tracks: [URL], avoidingFirst avoid: [URL], using generator: inout G) -> [URL] {
         var result = tracks.shuffled(using: &generator)
-        if result.count > 1, let last, result[0] == last {
-            result.swapAt(0, 1)
+        if let fresh = result.firstIndex(where: { !avoid.contains($0) }), fresh > 0 {
+            result.swapAt(0, fresh)
         }
         return result
     }

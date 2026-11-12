@@ -11,12 +11,15 @@ import { tempDirectory } from "./util.ts";
 const assets = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "assets");
 
 describe("Elenco dei brani", () => {
-  it("quelli inclusi: i cinque dell'app, in ordine di nome, con un titolo leggibile", () => {
+  it("quelli inclusi: gli undici dell'app, in ordine di nome, con un titolo leggibile", () => {
     const service = createMusicService({ assets, folder: () => null });
     const list = service.list("bundled");
-    assert.deepEqual(list.tracks.map((t) => t.title), ["boredom", "love", "night driving", "old age", "opinions"]);
-    assert.deepEqual(list.tracks.map((t) => t.id), [0, 1, 2, 3, 4]);
-    assert.ok(service.file(list.version, 3)?.endsWith("old-age.m4a"));
+    assert.deepEqual(list.tracks.map((t) => t.title), [
+      "autumn", "boredom", "city in the rearview", "dream pop", "families", "lost in your eyes",
+      "love", "night driving", "old age", "opinions", "you loved me once",
+    ]);
+    assert.deepEqual(list.tracks.map((t) => t.id), [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    assert.ok(service.file(list.version, 8)?.endsWith("old-age.m4a"));
   });
 
   it("un elenco nuovo invalida i numeri di quello vecchio", () => {

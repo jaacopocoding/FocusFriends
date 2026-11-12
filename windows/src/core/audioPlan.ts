@@ -55,9 +55,10 @@ export class MusicQueue {
     this.random = random;
   }
 
-  /** Il prossimo brano (null se non ce ne sono). `tracks` è l'elenco di adesso: a coda vuota si rimescola. */
-  next(tracks: readonly string[]): string | null {
-    if (this.queue.length === 0) this.queue = shuffled(tracks, this.last, this.random);
+  /** Il prossimo brano (null se non ce ne sono). `tracks` è l'elenco di adesso: a coda vuota si rimescola, e il primo non è l'ultimo
+   *  suonato né uno di `avoid` (quelli ricordati da una volta prima: l'ultimo ascoltato e quello che aveva aperto il focus). */
+  next(tracks: readonly string[], avoid: readonly string[] = []): string | null {
+    if (this.queue.length === 0) this.queue = shuffled(tracks, this.last === null ? avoid : [this.last, ...avoid], this.random);
     const track = this.queue.shift() ?? null;
     if (track !== null) this.last = track;
     return track;

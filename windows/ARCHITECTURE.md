@@ -302,7 +302,7 @@ Phrases that must not cover another one (unlock announcements, milestones, the w
 ### 4.11 Sounds (`renderer/audio/*`, `core/audioPlan.ts`, `core/noise.ts`, `main/music.ts`)
 
 - **Decisions are pure** (`audioPlan.ts`): when a background must be heard (only during an *active* focus — not paused, not rest — or during a preview), the gain, the fade (2 s, 0.25 s for quick volume changes),
-  previews (3 s for noise, 5 s for music), and the shuffled music queue that never restarts with the track just played. `rules.ts` has the volume steps (10/25/40/60 %) and the one-background-at-a-time choice.
+  previews (3 s for noise, 5 s for music), and the shuffled music queue that never restarts with the track just played, nor with one of those remembered from before (`next(tracks, avoid)`: the renderer keeps the last heard and the last opener by title in `localStorage`, `musicRecent`, like the Mac's UserDefaults). `rules.ts` has the volume steps (10/25/40/60 %) and the one-background-at-a-time choice.
 - **Noise:** `NoiseSynth` (rain, brown, wind) is a step-by-step port of the Mac class (same numbers and random generator, 44,100 Hz). It runs in an **AudioWorklet** (`noise-worklet.js`); `AmbientPlayer`
   creates the `AudioContext` at 44,100 Hz, loads the worklet through the protocol, posts `{kind, gain, fadeSeconds}` messages, **suspends the context 2.3 s after the sound is turned off** (the 2 s fade plus 0.3 s) so no CPU is used for a sound that
   is not playing, and resumes it when needed. If the engine does not start, the companion says so. A `statechange` to `suspended` while sound should be playing triggers `recover()`.
