@@ -5,9 +5,8 @@
 <h1 align="center">FocusFriends</h1>
 
 <p align="center">
-  <b>Il compagno che ti accompagna mentre studi.</b><br>
-  Un piccolo amico che vive sul tuo schermo: cammina sul desktop, ti tiene il tempo del focus<br>
-  e ti dice le parole giuste per continuare.
+  <b>Il compagno che ti accompagna nel focus.</b><br>
+  Un animaletto che vive nel tuo schermo: cammina, dice parole gentili e ti aiuta a tenere traccia del tuo studio sul desktop <br>
 </p>
 
 <p align="center">
@@ -35,10 +34,6 @@ Sei amici, ognuno con il suo carattere e le sue frasi. Il primo lo scegli tu, gl
 <br>
 
 ## Ti dice due parole quando serve
-
-<p align="center">
-  <img src="docs/images/frasi.png" width="900" alt="Pianty, Porcellino, Gattino, Riccio e Tartaruga, ognuno con una frase nel fumetto">
-</p>
 
 Ogni tanto, senza distrarti: un incoraggiamento, un «respira», un «bevi un po' d'acqua». Puoi scrivere le tue.
 

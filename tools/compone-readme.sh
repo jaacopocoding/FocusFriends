@@ -1,5 +1,5 @@
 #!/bin/bash
-# Rifà le immagini del README fatte con i disegni dei compagni: docs/images/scrivania.png, compagni.png, frasi.png e crescita.png.
+# Rifà le immagini del README fatte con i disegni dei compagni: docs/images/scrivania.png, menu-schermata.png, giro.png, compagni.png e crescita.png.
 # Prima disegna fuori schermo i fumetti e l'orologio veri dell'app (BubbleView, TimerView), poi li compone con i disegni (tools/compone_readme.py).
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -18,13 +18,8 @@ cat > "$B/B.app/Contents/Info.plist" <<'PLIST'
 PLIST
 bash tools/banchi/render-scheda.sh
 swiftc -O -parse-as-library -o "$B/B.app/Contents/MacOS/render" Sources/FocusFriends/SpeechBubble.swift Sources/FocusFriends/TimerBubble.swift tools/banchi/render-fumetti/main.swift
-# 1: sulla scrivania (Gattino); 2-6: nella riga delle frasi (Pianty, Porcellino, Gattino, Riccio, Tartaruga)
+# il fumetto sulla scrivania (Gattino)
 "$B/B.app/Contents/MacOS/render" build/readme \
     "Stai andando bene. Davvero." \
-    "Un passo alla volta: anch'io ho cominciato da un seme." \
-    "Un passo alla volta: io arrivo ovunque trotterellando." \
-    "Un respiro profondo, le spalle giù, e si riparte." \
-    "Quando è troppo, ci si arrotola un attimo. Poi si riparte." \
-    "Piano piano si arriva. Io lo so bene." \
     --tempi 24:10 24:09 24:08 24:07 24:06 24:05 24:04 24:03 24:02
 python3 tools/compone_readme.py

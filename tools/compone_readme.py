@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compone le immagini del README fatte con i disegni dei compagni e con i fumetti veri dell'app: docs/images/scrivania.png, menu-schermata.png, giro.png, compagni.png, frasi.png e crescita.png
+"""Compone le immagini del README fatte con i disegni dei compagni e con i fumetti veri dell'app: docs/images/scrivania.png, menu-schermata.png, giro.png, compagni.png e crescita.png
 
     tools/compone-readme.sh        (disegna prima i fumetti e l'orologio dell'app in build/readme/, poi chiama questo script)
     python3 tools/compone_readme.py   (solo la composizione, se i fumetti in build/readme/ ci sono già)
@@ -333,43 +333,6 @@ def giro():
     print("giro.png", scene.size)
 
 
-FRASI = [
-    ("Pianty", "assets/pianty/stage5_1.png", 84 / 208, 2),
-    ("Porcellino", "assets/porcellino/frame1.png", 118 / 236, 3),
-    ("Gattino", "assets/gattino/frame1.png", 144 / 360, 4),
-    ("Riccio", "assets/riccio/frame1.png", 154 / 405, 5),
-    ("Tartaruga", "assets/tartaruga/frame1.png", 144 / 328, 6),
-]
-
-
-def frasi():
-    zoom = 2.0
-    cell, height = 380, 640
-    base = height - 110
-    sheet = Image.new("RGB", (cell * len(FRASI), height), CREAM)
-    draw = ImageDraw.Draw(sheet)
-    for index, (name, path, scale, bubble_number) in enumerate(FRASI):
-        art = trimmed(path)
-        k = scale * zoom
-        art = art.resize((round(art.width * k), round(art.height * k)), Image.LANCZOS)
-        cx = index * cell + cell // 2
-        shadow = Image.new("RGBA", (min(art.width + 24, cell - 40), 24), (0, 0, 0, 0))
-        ImageDraw.Draw(shadow).ellipse((0, 0, shadow.width, shadow.height), fill=(90, 60, 30, 46))
-        sheet.paste(shadow, (cx - shadow.width // 2, base - 11), shadow)
-        sheet.paste(art, (cx - art.width // 2, base - art.height), art)
-        bubble = fumetto(bubble_number)
-        bk = 0.52
-        bubble = bubble.resize((round(bubble.width * bk), round(bubble.height * bk)), Image.LANCZOS)
-        head_x = cx + art.width // 4
-        top = base - art.height - bubble.height + 10
-        left = head_x - round(bubble.width * 0.825)
-        left = min(max(left, index * cell + 12), (index + 1) * cell - 12 - bubble.width)       # il fumetto resta nella sua colonna
-        sheet.paste(bubble, (left, max(top, 10)), bubble)
-        centered(draw, name, cx, base + 32, font(MARKER, 30), INK)
-    sheet.save("docs/images/frasi.png", optimize=True)
-    print("frasi.png", sheet.size)
-
-
 def finestra_statistiche(name):
     """La finestra delle statistiche disegnata da tools/banchi/render-statistiche.sh (build/readme/<name>.png), con gli angoli tondi e l'ombra, su un fondo chiaro."""
     from PIL import ImageFilter
@@ -401,5 +364,4 @@ if __name__ == "__main__":
     menu_schermata()
     giro()
     compagni()
-    frasi()
     crescita()
