@@ -45,40 +45,50 @@ Attraverso il menu puoi iniziare un pomofocus con un timer che scegli tu, oppure
   <img src="docs/images/giro.png" width="800" alt="Il giro guidato: la scheda scurita tranne il pulsante Giardino, con un fumetto che lo spiega e l'immagine del giardino">
 </p>
 
-Alla prima apertura il compagno ti chiama e ti spiegherà come funziona l'app.
 
+**Giardino da decorare.**
 
-**Un giardino da riempire.**
-
-Studiando trovi figurine: le metti sulle tue isole, dove vuoi, quante volte vuoi. E un album da completare.
+Studiando trovi figurine: le metti sulle isole dei tuoi compagni, dove vuoi, quante volte vuoi.
 
 <table align="center">
   <tr>
     <td><img src="docs/images/giardino.png" alt="Un'isola con la sua casa, i ponti e le cose trovate"></td>
     <td><img src="docs/images/mondo.png" alt="Le isole, unite da ponti"></td>
   </tr>
+</table>
+
+**Album da riempire.**
+
+Ogni figurina trovata finisce nell'album, e ogni volta che un compagno usa una cosa del giardino la sua scena entra fra le «Scene».
+
+<table align="center">
   <tr>
     <td><img src="docs/images/album.png" alt="L'album delle figurine, aperto su una doppia pagina"></td>
     <td><img src="docs/images/album-scene.png" alt="Le scene dei compagni nell'album: quelle viste e le sagome di quelle che mancano"></td>
   </tr>
 </table>
 
-
 **Sai dove va il tuo tempo.**
 
-L'andamento giorno per giorno, le ore di ogni materia, l'anno intero a colpo d'occhio, e una lista di cose da fare con la scadenza.
+L'andamento giorno per giorno, le ore di ogni materia, l'anno intero a colpo d'occhio.
 
 <table align="center">
   <tr>
     <td><img src="docs/images/statistiche-settimana.png" alt="Statistiche della settimana: l'andamento per giorno e le ore per materia"></td>
     <td><img src="docs/images/statistiche-anno.png" alt="Statistiche dell'anno: un quadratino per giorno, le ore per materia e l'andamento per settimana"></td>
   </tr>
-  <tr>
-    <td colspan="2" align="center"><img src="docs/images/da-fare.png" width="560" alt="La lista delle cose da fare"></td>
-  </tr>
 </table>
 
+**Lista di cose da fare.**
+
+Scrivi cosa devi studiare, con la scadenza e la materia, e fai partire un focus direttamente da lì.
+
+<p align="center">
+  <img src="docs/images/da-fare.png" width="560" alt="La lista delle cose da fare">
+</p>
+
 <br>
+
 
 ## Scarica
 
