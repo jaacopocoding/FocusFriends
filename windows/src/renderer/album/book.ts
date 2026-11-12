@@ -32,7 +32,6 @@ export type Mode = "cover" | "opening" | "open";
 export interface Rect { x: number; y: number; w: number; h: number }
 
 const INK = "rgb(41, 26, 15)", INK_LIGHT = "rgb(102, 77, 51)";
-const GOLD_INK = "rgb(230, 186, 87)";
 const LEATHER_DARK = [74, 41, 20] as const;
 const PAPER_LIGHT = "rgb(255, 249, 227)";
 const UI = 'system-ui, "Segoe UI", sans-serif';
@@ -168,18 +167,47 @@ function drawCover(ctx: CanvasRenderingContext2D, data: AlbumData, state: BookSt
     ctx.fill();
   }
   ctx.drawImage(image, r.x, r.y, r.w, r.h);
-  // il titolo sulla targa (che nell'immagine è vuota), e il resto sulla pelle
-  const cx = r.x + r.w * 0.547;
+  // il titolo sulla targa e il conto sulla fascia di pergamena (nell'immagine sono vuote), come nella copertina disegnata da Gemini
+  const plateX = r.x + r.w * 0.533, bandX = r.x + r.w * 0.551;
   const ink = [77, 46, 23] as const;
-  text(ctx, "L'album", { x: cx - 140, y: r.y + r.h * 0.19 - 18, w: 280, h: 80 }, `58px ${TITLE}`, rgba(ink, 1));
-  text(ctx, data.owner === null ? "delle figurine" : `di ${data.owner}`, { x: cx - 140, y: r.y + r.h * 0.285 - 4, w: 280, h: 42 }, `29px ${TITLE}`, rgba(ink, 0.8));
+  text(ctx, "L'album", { x: plateX - 140, y: r.y + r.h * 0.19 - 18, w: 280, h: 80 }, `58px ${TITLE}`, rgba(ink, 1));
+  text(ctx, data.owner === null ? "delle figurine" : `di ${data.owner}`, { x: plateX - 140, y: r.y + r.h * 0.285 - 4, w: 280, h: 42 }, `29px ${TITLE}`, rgba(ink, 0.8));
   text(ctx, `${data.has.length} su ${SPREADS.flatMap((s) => [...s.left.items, ...(s.right?.items ?? [])]).length} figurine`,
-    { x: cx - 140, y: r.y + r.h * 0.45, w: 280, h: 22 }, `600 15px ${UI}`, GOLD_INK);
+    { x: bandX - 150, y: r.y + r.h * 0.741 - 12, w: 300, h: 24 }, `600 17px ${UI}`, rgba(ink, 1));
   if (data.unseen.length > 0) {
     text(ctx, data.unseen.length === 1 ? "C'è una figurina nuova!" : `Ci sono ${data.unseen.length} figurine nuove!`,
-      { x: cx - 140, y: r.y + r.h * 0.515, w: 280, h: 22 }, `600 14px ${UI}`, "rgb(255, 237, 191)");
+      { x: bandX - 150, y: r.y + r.h * 0.8, w: 300, h: 22 }, `600 14px ${UI}`, "rgb(255, 237, 191)");
   }
-  text(ctx, "Tocca per aprirlo", { x: cx - 150, y: r.y + r.h * 0.74, w: 300, h: 18 }, `500 12.5px ${UI}`, "rgba(230, 186, 87, 0.85)");
+  // sotto il libro, con due frecce a mano (non fa parte della copertina che si apre)
+  if (!state.capturing) drawOpenHint(ctx, r.x + r.w * 0.52, r.y + r.h + 14, rgba(LEATHER_DARK, 1));
+}
+
+/** «Tocca per aprirlo», sotto il libro chiuso, con un ghirigoro a sinistra e una freccia che sale verso il libro a destra (AlbumView.drawOpenHint). */
+function drawOpenHint(ctx: CanvasRenderingContext2D, cx: number, y: number, ink: string): void {
+  const font = `500 15px ${UI}`;
+  const label = "Tocca per aprirlo";
+  ctx.font = font;
+  const width = Math.ceil(ctx.measureText(label).width);
+  text(ctx, label, { x: cx - width / 2 - 4, y, w: width + 8, h: 20 }, font, ink);
+  const left = cx - width / 2 - 14, right = cx + width / 2 + 12, mid = y + 10;
+  ctx.save();
+  ctx.strokeStyle = ink;
+  ctx.globalAlpha = 0.85;
+  ctx.lineWidth = 1.4;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.beginPath();
+  for (const dy of [-4, 4]) {
+    ctx.moveTo(left - 26, mid + dy);
+    ctx.bezierCurveTo(left - 18, mid + dy - 5, left - 8, mid + dy + 5, left, mid + dy);
+  }
+  ctx.moveTo(right, mid + 4);
+  ctx.bezierCurveTo(right + 20, mid + 4, right + 32, mid - 6, right + 34, mid - 20);
+  ctx.moveTo(right + 27, mid - 15);
+  ctx.lineTo(right + 34, mid - 20);
+  ctx.lineTo(right + 36, mid - 11);
+  ctx.stroke();
+  ctx.restore();
 }
 
 function placing(item: GardenItem, data: AlbumData): StickerLook["placing"] {

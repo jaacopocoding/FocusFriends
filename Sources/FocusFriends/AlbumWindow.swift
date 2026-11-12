@@ -325,22 +325,52 @@ final class AlbumView: NSView {
             NSBezierPath(roundedRect: Self.closedShadow(for: rect), xRadius: 12, yRadius: 12).fill()
         }
         image.draw(in: rect, from: .zero, operation: .sourceOver, fraction: 1, respectFlipped: true, hints: [.interpolation: NSImageInterpolation.high])
-        // il titolo sulla targa (che nell'immagine è vuota), e il resto sulla pelle
-        let centerX = rect.minX + rect.width * 0.547
+        // il titolo sulla targa e il conto sulla fascia di pergamena (nell'immagine sono vuote), come nella copertina disegnata da Gemini
+        let plateX = rect.minX + rect.width * 0.533, bandX = rect.minX + rect.width * 0.551
         let ink = NSColor(calibratedRed: 0.30, green: 0.18, blue: 0.09, alpha: 1)
-        text("L'album", in: NSRect(x: centerX - 140, y: rect.minY + rect.height * 0.19 - 18, width: 280, height: 80), font: Paper.albumFont(58), color: ink)
+        text("L'album", in: NSRect(x: plateX - 140, y: rect.minY + rect.height * 0.19 - 18, width: 280, height: 80), font: Paper.albumFont(58), color: ink)
         let owner = profile.name.map { "di \($0)" } ?? "delle figurine"
-        text(owner, in: NSRect(x: centerX - 140, y: rect.minY + rect.height * 0.285 - 4, width: 280, height: 42), font: Paper.albumFont(29), color: ink.withAlphaComponent(0.8))
+        text(owner, in: NSRect(x: plateX - 140, y: rect.minY + rect.height * 0.285 - 4, width: 280, height: 42), font: Paper.albumFont(29), color: ink.withAlphaComponent(0.8))
         let count = "\(garden.foundCount) su \(GardenCatalog.items.count) figurine"
-        text(count, in: NSRect(x: centerX - 140, y: rect.minY + rect.height * 0.45, width: 280, height: 22),
-             font: NSFont.systemFont(ofSize: 15, weight: .semibold), color: Self.goldInk)
+        text(count, in: NSRect(x: bandX - 150, y: rect.minY + rect.height * 0.741 - 12, width: 300, height: 24),
+             font: NSFont.systemFont(ofSize: 17, weight: .semibold), color: ink)
         if !garden.unseen.isEmpty {
             let news = garden.unseen.count == 1 ? "C'è una figurina nuova!" : "Ci sono \(garden.unseen.count) figurine nuove!"
-            text(news, in: NSRect(x: centerX - 140, y: rect.minY + rect.height * 0.515, width: 280, height: 22),
+            text(news, in: NSRect(x: bandX - 150, y: rect.minY + rect.height * 0.80, width: 300, height: 22),
                  font: NSFont.systemFont(ofSize: 14, weight: .semibold), color: NSColor(calibratedRed: 1, green: 0.93, blue: 0.75, alpha: 1))
         }
-        text("Tocca per aprirlo", in: NSRect(x: centerX - 150, y: rect.minY + rect.height * 0.74, width: 300, height: 18),
-             font: NSFont.systemFont(ofSize: 12.5, weight: .medium), color: Self.goldInk.withAlphaComponent(0.85))
+        // sotto il libro, con due frecce a mano (non fa parte della copertina che si apre)
+        if !capturing { drawOpenHint(centerX: rect.minX + rect.width * 0.52, y: rect.maxY + 14, ink: deskInk) }
+    }
+
+    /// «Tocca per aprirlo», sotto il libro chiuso, con un ghirigoro a sinistra e una freccia che sale verso il libro a destra.
+    private func drawOpenHint(centerX: CGFloat, y: CGFloat, ink: NSColor) {
+        let font = NSFont.systemFont(ofSize: 15, weight: .medium)
+        let label = "Tocca per aprirlo"
+        let width = ceil((label as NSString).size(withAttributes: [.font: font]).width)
+        text(label, in: NSRect(x: centerX - width / 2 - 4, y: y, width: width + 8, height: 20), font: font, color: ink)
+        ink.withAlphaComponent(0.85).setStroke()
+        let left = centerX - width / 2 - 14, right = centerX + width / 2 + 12, mid = y + 10
+        // a sinistra: due tratti ondulati, come segni di movimento
+        for dy: CGFloat in [-4, 4] {
+            let wave = NSBezierPath()
+            wave.move(to: NSPoint(x: left - 26, y: mid + dy))
+            wave.curve(to: NSPoint(x: left, y: mid + dy), controlPoint1: NSPoint(x: left - 18, y: mid + dy - 5), controlPoint2: NSPoint(x: left - 8, y: mid + dy + 5))
+            wave.lineWidth = 1.4
+            wave.lineCapStyle = .round
+            wave.stroke()
+        }
+        // a destra: una freccia che sale verso il libro
+        let arrow = NSBezierPath()
+        arrow.move(to: NSPoint(x: right, y: mid + 4))
+        arrow.curve(to: NSPoint(x: right + 34, y: mid - 20), controlPoint1: NSPoint(x: right + 20, y: mid + 4), controlPoint2: NSPoint(x: right + 32, y: mid - 6))
+        arrow.move(to: NSPoint(x: right + 27, y: mid - 15))
+        arrow.line(to: NSPoint(x: right + 34, y: mid - 20))
+        arrow.line(to: NSPoint(x: right + 36, y: mid - 11))
+        arrow.lineWidth = 1.4
+        arrow.lineCapStyle = .round
+        arrow.lineJoinStyle = .round
+        arrow.stroke()
     }
 
     private func drawHandMadeCover() {

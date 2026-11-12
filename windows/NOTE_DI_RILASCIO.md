@@ -31,6 +31,7 @@ per ultima, a 200 focus pieni.
   di quello che va bene; per un giorno solo dicono quale materia è andata bene. Ogni periodo mostra le ore di ogni materia, una riga ciascuna con la sua barra.
 - **Più musica**: i brani inclusi passano da cinque a undici, sempre di HoliznaCC0 in pubblico dominio, e ogni focus parte da un brano diverso,
   né l'ultimo ascoltato né quello del focus prima, anche dopo aver riaperto l'app.
+- **La copertina dell'album** è nuova: la bussola fra gli allori, il tuo nome sulla targa e il conto delle figurine su una fascia di pergamena.
 - **Le frasi**: trentasei riscritte, più semplici e meno ripetute fra un compagno e l'altro.
 - **Gli avatar** nel cerchio si vedono per intero, non più solo la testa da vicino, e la scheda di benvenuto si allarga per i sei compagni.
 
