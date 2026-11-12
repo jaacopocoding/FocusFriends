@@ -65,8 +65,7 @@ inganna: così a fine settimana vedi anche *quando* rendi meglio.
   <img src="images/com-e-andata.png" width="420" alt="Com'è andata?">
 </p>
 
-**Statistiche**: un riepilogo calmo (il totale in grande, l'andamento giorno per giorno, le ore di ogni materia, i giorni di fila e
-«Com'è andata») e, per un giorno, subito sotto le sessioni con la nota e la faccia di ogni focus (per la settimana e il mese le apre «Mostra le sessioni»).
+**Statistiche**: un riepilogo calmo (il totale in grande, l'andamento giorno per giorno, le ore di ogni materia e i giorni di fila) e, per un giorno, subito sotto le sessioni con la nota e la faccia di ogni focus (per la settimana e il mese le apre «Mostra le sessioni»).
 
 <p align="center">
   <img src="images/statistiche-settimana.png" width="360" alt="Statistiche della settimana: l'andamento per giorno e le ore per materia">
@@ -323,9 +322,9 @@ Il personaggio risponde al voto (con «Poca testa» dice che capita, non fa i co
 
 Voto e nota stanno nella sessione (`rating`: `good`, `soso`, `poor`; `note`) e si cambiano toccando la sessione
 nelle statistiche. All'avvio di un focus la scheda della materia ricorda l'ultima nota («L'ultima volta su
-Anatomia: nervi cranici»). In *Statistiche* c'è la sezione **Com'è andata**: quante volte bene / così così /
-poca testa nel periodo e, quando ci sono almeno 8 focus valutati, fino a due frasi su **quando** (fascia della
-giornata, giorno della settimana) o **con cosa** (materia) i focus vanno meglio o peggio, sempre con i
+Anatomia: nervi cranici»). Le *Statistiche* non mostrano i conti delle facce: ogni sessione ha la sua faccia nell'elenco e,
+quando ci sono almeno 8 focus valutati, ci sono fino a due frasi su **quando** (fascia della
+giornata, giorno della settimana) o **con cosa** (materia) i focus vanno meglio, sempre con i
 conteggi («di mattina: 7 focus su 9 sono andati bene»). Un gruppo deve avere almeno 3 focus e distare almeno 20
 punti percentuali dalla media: altrimenti non dice niente, meglio che dire una cosa a caso (`StudyStats.insights`).
 Il CSV ha tre colonne in più (`com_e_andata`, `nota`, `note_del_focus`) e i campi di testo che iniziano con `= + - @`, un tab o un ritorno a capo hanno un
@@ -340,8 +339,7 @@ un file di una versione precedente si legge e si riscrive nel nuovo, tenendo int
 il totale di studio in grande, quanti focus (completi e interrotti), per la settimana e il mese **l'andamento per giorno**,
 come quello dell'anno: il massimo in un giorno, le materie da scegliere (*Tutte* e le più studiate del periodo: scelta una,
 le barre sono solo sue, del suo colore) e una barra per giorno (i giorni che devono ancora venire non ce l'hanno: passandoci
-sopra si legge il giorno, «Martedì 10 novembre · 2 h 20 · 3 focus», e cliccandola si apre in *Oggi*), **«Per materia»**, una riga per ogni materia del periodo (dalla più studiata, con una barra del suo colore lunga in proporzione e il tempo, come nell'anno), e su una riga i giorni di fila
-e le facce di come è andata. Sotto, le frasi su quando rendi meglio **in quel periodo**, se ci sono dati sufficienti
+sopra si legge il giorno, «Martedì 10 novembre · 2 h 20 · 3 focus», e cliccandola si apre in *Oggi*), **«Per materia»**, una riga per ogni materia del periodo (dalla più studiata, con una barra del suo colore lunga in proporzione e il tempo, come nell'anno), e i giorni di fila. Sotto, le frasi su quando rendi meglio **in quel periodo**, se ci sono dati sufficienti
 (almeno 8 focus con un voto), e **solo in positivo** («Rendi meglio di mattina: 9 focus su 11 sono andati bene.»): dove
 va peggio non si dice. Per un giorno solo la frase è più semplice, la materia con più «bene» («Con Anatomia è andata bene.»).
 Per un giorno, sotto il riepilogo ci sono **subito le sessioni**: una striscia con un blocco colorato per ogni focus sulle

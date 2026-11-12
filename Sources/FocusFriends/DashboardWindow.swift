@@ -37,7 +37,7 @@ private struct SummaryLayout {
     /// «Per materia»: il titolo e le righe (una per materia, la più studiata in cima), se nel periodo c'è almeno una materia.
     var subjectsY: CGFloat?
     var subjectRowsY: CGFloat = 0
-    /// I giorni di fila e le facce, su una riga.
+    /// I giorni di fila, su una riga.
     var statusY: CGFloat?
     var insightsY: CGFloat?
     /// Dove finisce il riepilogo (in coordinate della pagina): sotto ci sono le sessioni (o, per settimana e mese, il pulsante della tendina).
@@ -66,8 +66,8 @@ private final class PageView: NSView {
     override func mouseDown(with event: NSEvent) { owner?.pageClicked(at: convert(event.locationInWindow, from: nil)) }
 }
 
-/// La finestra delle statistiche. Il riepilogo è calmo: un grande numero, una barra con le materie, i giorni di
-/// fila e come è andata. Per un giorno sotto ci sono subito le sessioni, una per una, con la nota e la faccia;
+/// La finestra delle statistiche. Il riepilogo è calmo: un grande numero, l'andamento, le ore di ogni materia e i giorni di
+/// fila (senza i conti delle facce). Per un giorno sotto ci sono subito le sessioni, una per una, con la nota e la faccia;
 /// per la settimana e il mese le apre «Mostra le sessioni».
 final class DashboardView: NSView {
     static let size = NSSize(width: 560, height: 660)
@@ -392,7 +392,7 @@ final class DashboardView: NSView {
         if kind == .day { y += 10 }
         y = layoutSubjects(&l, from: y) - 4
 
-        if streak > 0 || summary.ratedCount > 0 {
+        if streak > 0 {
             y += 18
             l.statusY = y
             y += 26
@@ -529,19 +529,11 @@ final class DashboardView: NSView {
     /// Su una riga: i giorni di fila (con la fiamma, o il fiocco se la serie è ghiacciata) e quante volte bene, così così,
     /// poca testa nel periodo.
     private func drawStatus(y: CGFloat) {
-        let font = NSFont.systemFont(ofSize: 13)
         let streakFont = NSFont.systemFont(ofSize: 13, weight: .medium)
         let streakLabel = streak == 0 ? nil
             : (streak == 1 ? "1 giorno di fila" : "\(streak) giorni di fila") + (streakFrozen ? " · ghiacciata: studia oggi" : "")
         let streakWidth = streakLabel.map { 22 + ceil(($0 as NSString).size(withAttributes: [.font: streakFont]).width) } ?? 0
-        let faces = summary.ratedCount > 0 ? FocusRating.allCases.map { rating -> (FocusRating, String, CGFloat) in
-            let count = "\(summary.ratingCounts[rating] ?? 0)"
-            return (rating, count, 24 + ceil((count as NSString).size(withAttributes: [.font: font]).width))
-        } : []
-        let facesWidth = faces.reduce(0) { $0 + $1.2 } + 12 * CGFloat(max(faces.count - 1, 0))
-        let gap: CGFloat = streakLabel != nil && !faces.isEmpty ? 28 : 0
-        var x = (Self.size.width - (streakWidth + gap + facesWidth)) / 2
-
+        let x = (Self.size.width - streakWidth) / 2
         if let label = streakLabel {
             let iconColor = streakFrozen ? NSColor(calibratedRed: 0.30, green: 0.55, blue: 0.82, alpha: 1) : Paper.accent
             if let flame = Paper.symbolImage(streakFrozen ? "snowflake" : "flame", size: 15, color: iconColor) {
@@ -550,13 +542,6 @@ final class DashboardView: NSView {
                            operation: .sourceOver, fraction: 1, respectFlipped: true, hints: nil)
             }
             text(label, at: NSRect(x: x + 22, y: y + 2, width: streakWidth - 18, height: 18), font: streakFont, color: Paper.ink)
-            x += streakWidth + gap
-        }
-        for (rating, count, width) in faces {
-            FaceIcon.draw(rating, in: NSRect(x: x, y: y + 1, width: 20, height: 20), flipped: true)
-            text(count, at: NSRect(x: x + 24, y: y + 2, width: width - 20, height: 18), font: font,
-                 color: (summary.ratingCounts[rating] ?? 0) > 0 ? Paper.ink : Paper.inkLight)
-            x += width + 12
         }
     }
 

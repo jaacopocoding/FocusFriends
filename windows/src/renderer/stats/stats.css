@@ -271,23 +271,6 @@ textarea:focus-visible {
   color: rgb(77, 140, 209);
 }
 
-.ratings {
-  display: flex;
-  justify-content: center;
-  gap: 12px;
-  font-size: 13px;
-}
-
-.rating {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.rating.zero {
-  color: var(--ink-light);
-}
-
 .insights {
   margin-top: 8px;
   text-align: center;

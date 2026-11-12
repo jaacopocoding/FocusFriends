@@ -1,5 +1,5 @@
-// La finestra delle statistiche (DashboardView in DashboardWindow.swift). Il riepilogo è calmo: un grande numero, una barra con le
-// materie, i giorni di fila e come è andata. Per un giorno sotto ci sono subito le sessioni, una per una, con la nota e la faccia;
+// La finestra delle statistiche (DashboardView in DashboardWindow.swift). Il riepilogo è calmo: un grande numero, l'andamento, le ore
+// di ogni materia e i giorni di fila (senza i conti delle facce). Per un giorno sotto ci sono subito le sessioni, una per una, con la nota e la faccia;
 // per la settimana e il mese le apre «Mostra le sessioni».
 
 import { subjectColor } from "../../core/colors.ts";
@@ -107,10 +107,7 @@ function render(resetScroll: boolean): void {
     if (kind !== "day") page.append(miniChart(summary, wall));
     const bySubject = subjectHours(summary);
     if (bySubject) page.append(bySubject);
-    const rated = summary.ratingCounts.good !== undefined || summary.ratingCounts.soso !== undefined || summary.ratingCounts.poor !== undefined;
-    if (streak.days > 0 || rated) {
-      page.append(h("div", { class: "status" }, streak.days > 0 ? streakLine(streak.days, streak.isFrozen) : null, rated ? ratings(summary) : null));
-    }
+    if (streak.days > 0) page.append(h("div", { class: "status" }, streakLine(streak.days, streak.isFrozen)));
     // i consigli dal periodo che si guarda, solo in positivo; per un giorno, la materia andata bene
     const lines = kind === "day" ? [dayInsight(summary.sessions, undefined)].filter((line): line is string => line !== null) : insights(summary.sessions, undefined);
     if (lines.length > 0) page.append(h("div", { class: "insights" }, ...lines.map((line) => h("div", {}, line))));
@@ -189,15 +186,6 @@ function miniChart(summary: Summary, wall: number): HTMLElement {
 function streakLine(days: number, frozen: boolean): HTMLElement {
   const line = h("div", { class: `streak${frozen ? " frozen" : ""}` }, icon(frozen ? "snowflake" : "flame", 15), streakLabel(days, frozen));
   return line;
-}
-
-/** Quante volte bene, così così, poca testa nel periodo: la faccia e il numero. */
-function ratings(summary: Summary): HTMLElement {
-  return h("div", { class: "ratings" }, ...RATING_ORDER.map((rating) => {
-    const count = summary.ratingCounts[rating] ?? 0;
-    const item = h("span", { class: `rating${count > 0 ? "" : " zero"}`, "aria-label": `${RATING_TITLE[rating]} ${count}` }, faceIcon(rating, 20), String(count));
-    return item;
-  }));
 }
 
 // ---- la scheda «Anno»: la mappa, le tre caselle e l'andamento per settimana
