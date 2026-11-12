@@ -1,11 +1,11 @@
-## FocusFriends per Windows 1.4.0
+## FocusFriends per Windows 2.0.0
 
 Il compagno che ti fa compagnia mentre studi, adesso anche su Windows 10 e 11 (Intel/AMD e ARM): un personaggio che cammina sul desktop,
 un timer Pomofocus con la sua schermata del focus, i suoni di sottofondo, le statistiche e i compagni da sbloccare studiando.
 Stessi dati, stesse regole e stesso aspetto dell'[app per Mac](https://github.com/jaacopocoding/FocusFriends#readme): i file di studio si possono
 leggere con l'una e con l'altra.
 
-### Novità della 1.4
+### Novità della 2.0
 
 **La Tartaruga**, la sesta compagna: cammina, mangia una fragola, dorme e ogni tanto si ritira nel guscio. **Durante un focus** avanza piano lungo un
 sentiero di sassi verso una bandierina, e a fine focus mangia la fragola che la aspetta lì. Ha trenta frasi sue («Piano piano si arriva») e si sblocca
@@ -15,7 +15,7 @@ per ultima, a 200 focus pieni.
   scheda e il giro ne spiega le parti una alla volta, il timer, il giardino, le statistiche, l'album e i compagni da sbloccare, con le
   immagini di come sono fatti. Si rifà da «Fai il giro» nel menu. E la prima volta che serve il compagno dice quanto manca alla prima
   figurina e dove trovarla, e il giardino mostra come si mettono le cose. La prima figurina arriva con il primo focus pieno: 50 minuti di studio
-  invece di 60 (le altre come prima, 8 minuti in più ognuna).
+  invece di 60 (le altre come prima, 8 minuti in più ognuna), e la figurina di fine focus compare accanto al compagno senza coprire «Com'è andata?».
 - **La sua isola**, la sesta, a destra di quella di Porcellino e sopra quella del Riccio, con la casa dal tetto a guscio, il suo verde oliva e sette
   figurine nuove (il sasso al sole, il cespo di lattuga, l'aiuola di fragole, la bandierina del traguardo, la lanterna di carta, il laghetto, il rifugio
   di paglia). Due angoli nuovi, e il coniglio e la rana vengono anche per la lattuga e il laghetto.
@@ -29,11 +29,13 @@ per ultima, a 200 focus pieni.
 - **Le statistiche**: in «Oggi» le sessioni si vedono subito, senza aprire niente. Nella settimana e nel mese c'è l'andamento per giorno, come quello dell'anno: scegli una materia
   e vedi solo i suoi giorni; passando sopra un giorno leggi quanto hai studiato, e cliccandolo lo apri. I consigli su quando rendi meglio parlano del periodo che guardi e solo
   di quello che va bene; per un giorno solo dicono quale materia è andata bene. Ogni periodo mostra le ore di ogni materia, una riga ciascuna con la sua barra.
+  Il riepilogo in alto è più pulito: i giorni di fila, senza il conto delle facce.
 - **Più musica**: i brani inclusi passano da cinque a undici, sempre di HoliznaCC0 in pubblico dominio, e ogni focus parte da un brano diverso,
   né l'ultimo ascoltato né quello del focus prima, anche dopo aver riaperto l'app.
 - **La copertina dell'album** è nuova: la bussola fra gli allori, il tuo nome sulla targa e il conto delle figurine su una fascia di pergamena.
 - **Le frasi**: trentasei riscritte, più semplici e meno ripetute fra un compagno e l'altro.
-- **Gli avatar** nel cerchio si vedono per intero, non più solo la testa da vicino, e la scheda di benvenuto si allarga per i sei compagni.
+- **Gli avatar** nel cerchio sono meno ingranditi: la testa intera, con un po' del compagno attorno (per Pianty la rosetta con il viso, per la Tartaruga anche il guscio),
+  e la scheda di benvenuto si allarga per i sei compagni.
 
 Il giardino resta nello stesso file e nello stesso formato: le scene viste si aggiungono in `giardino.json` (`scenes`). Si installa sopra la 1.3 e
 non si perde niente.

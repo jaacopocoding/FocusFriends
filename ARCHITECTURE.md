@@ -61,7 +61,7 @@ Single user per Mac, no accounts, no network: all data is stored locally under
 | Third-party dependencies | None (no Package.swift, no CocoaPods/Carthage, no vendored code) | repository tree |
 | Build system | A shell script calling `swiftc -O` once per architecture, then `lipo` | `build.sh` |
 | Target | macOS 13.0 or later; universal binary (arm64 + x86_64) | `build.sh` (`-target "$arch-apple-macos13.0"`, `LSMinimumSystemVersion`) |
-| App version | `0.11.0` (build `14`), bundle id `com.jacopo.focusfriends` | `build.sh` (generated `Info.plist`) |
+| App version | `2.0.0` (build `15`), bundle id `com.jacopo.focusfriends` | `build.sh` (generated `Info.plist`) |
 | App type | Menu-bar "agent": `LSUIElement = true`, activation policy `.accessory` | `build.sh`, `AppDelegate.applicationDidFinishLaunching` |
 | Signing | Ad-hoc (`codesign --force --sign -`; `build.sh` stops with exit 1 if signing fails); not notarised, no hardened runtime or sandbox | `build.sh`, `README.md` "Scaricare e usare" |
 | Asset tooling | Python 3 scripts using Pillow and NumPy (not run at build time) | `tools/*.py` |

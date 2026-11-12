@@ -89,7 +89,7 @@ costruiscono quando sblocchi i compagni. I compagni sbloccati camminano sulla lo
 
 ## Scaricare e usare
 
-1. Scarica `FocusFriends-0.11.0-macOS.zip` dalla pagina delle [Releases](https://github.com/jaacopocoding/FocusFriends/releases) e decomprimilo.
+1. Scarica `FocusFriends-2.0.0-macOS.zip` dalla pagina delle [Releases](https://github.com/jaacopocoding/FocusFriends/releases) e decomprimilo.
 2. Trascina **FocusFriends** in *Applicazioni* e aprilo (macOS 13 o successivo, Apple Silicon e Intel).
 3. L'app non è firmata con un account sviluppatore Apple, quindi la prima volta macOS potrebbe rifiutarla.
    Fai clic destro sull'app → **Apri** → **Apri**, oppure da Terminale:
