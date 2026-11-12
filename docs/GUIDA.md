@@ -377,7 +377,7 @@ l'album sono due finestre diverse: il libro serve a collezionare e a guardare, l
 ### I regali di fine focus
 
 Ogni focus **completato** con almeno **20 minuti** di studio (`GardenDrops.minimumSeconds`) mette da parte i suoi minuti, e
-**ogni tanto** quei minuti bastano per una figurina, che compare accanto al personaggio per qualche secondo (`GiftCard.swift`).
+**ogni tanto** quei minuti bastano per una figurina, che compare accanto al personaggio per qualche secondo (`GiftCard.swift`), dal lato dove non c'è la scheda «Com'è andata?» (o sopra di lui, se di fianco non c'è posto: `GiftPlacement`, in `BubblePlacement.swift`).
 Un focus interrotto o più corto non dà e non toglie niente. Le regole, tutte in `GardenDrops.swift` (solo Foundation, con prove):
 
 - **Si guadagna studiando, non a sorte**: la prima figurina arriva dopo **50 minuti** di studio (dei focus che contano: il primo focus pieno), e

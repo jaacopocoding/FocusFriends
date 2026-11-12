@@ -5,8 +5,9 @@ import { itemNumber, itemWithId, rarityOf } from "../core/gardenCatalog.ts";
 import type { GardenDrop } from "../core/gardenDrops.ts";
 import { drawSticker, rarityColor } from "./garden/sticker.ts";
 import { sprite } from "./garden/sprites.ts";
+import { GIFT_HEIGHT as HEIGHT, GIFT_WIDTH as WIDTH, giftPosition } from "../core/giftPlacement.ts";
 
-const WIDTH = 112, HEIGHT = 138, DURATION = 6.5;
+const DURATION = 6.5;
 
 export interface GiftCardHost {
   container: HTMLElement;
@@ -14,6 +15,8 @@ export interface GiftCardHost {
   /** Dove stanno i piedi del compagno (in punti della pagina). */
   feetY(): number;
   scene(): { width: number; height: number };
+  /** Quello che la figurina non deve coprire (la scheda «Com'è andata?», che compare insieme a lei), se c'è. */
+  avoid?(): { left: number; top: number; width: number; height: number } | null;
 }
 
 export class GiftCard {
@@ -91,14 +94,7 @@ export class GiftCard {
     this.canvas = null;
   }
 
-  /** Di fianco al compagno, dal lato con più spazio, con il fondo all'altezza dei suoi piedi. */
   private position(): { left: number; top: number } {
-    const pet = this.host.petBox(), scene = this.host.scene();
-    const onRight = pet.left + pet.width / 2 < scene.width / 2;
-    let left = onRight ? pet.left + pet.width + 4 : pet.left - WIDTH - 4;
-    left = Math.min(Math.max(left, 6), scene.width - WIDTH - 6);
-    let top = this.host.feetY() - 6 - HEIGHT;
-    top = Math.min(Math.max(top, 6), scene.height - HEIGHT - 6);
-    return { left, top };
+    return giftPosition(this.host.petBox(), this.host.feetY(), this.host.scene(), this.host.avoid?.() ?? null);
   }
 }

@@ -433,7 +433,7 @@ of the year, strongest day, best month), the hours of every subject ("Per materi
   island is adopted, bridges between open islands are settled and island rules applied. The rules (catalogue, drops, grid, paths, terrain, world, sky, corners, companions'
   poses, visitors) are pure modules shared with the pages and checked against the Mac (`test/contratto.test.ts`, `attesi/_giardino.json`).
 - **Gifts.** `gardenLine` in `main/main.ts` computes the streak for the day of the focus, calls `Garden.rollGift`, sends `garden:gift-found` to the overlay when a figurine
-  is found (`renderer/giftCard.ts`: a canvas next to the companion, 6.5 s, drawn with `renderer/garden/sticker.ts`) and returns `giftLine`. The card shows «Giardino», the
+  is found (`renderer/giftCard.ts`: a canvas next to the companion, on the side away from the «Com'è andata?» card or above the companion when neither side is free, `core/giftPlacement.ts`, tested like the Mac's `GiftPlacement`; 6.5 s, drawn with `renderer/garden/sticker.ts`) and returns `giftLine`. The card shows «Giardino», the
   «Album» row and the next-gift line with a bar (`CardData.album`). Hidden switches in `impostazioni.json`: `quickGifts`, `gardenHour`, `gardenSeason`, `albumSpread`.
 - **Garden window.** A normal window (1000 × 600 scene units, scaled down on small screens), `backgroundThrottling: false` (covered by the transparent overlay it was
   considered hidden and stopped drawing; it only draws when something changes anyway). The main process sends a snapshot (`shared/gardenApi.ts`: islands with

@@ -96,3 +96,28 @@ enum BubblePlacement {
         return order.min(by: { $0.penalty < $1.penalty })!.result
     }
 }
+
+/// Dove compare la figurina di fine focus (GiftCard.swift): di fianco al compagno, dal lato con più spazio, con il fondo all'altezza dei suoi piedi.
+/// Se lì c'è la scheda «Com'è andata?» (che compare insieme), dall'altro lato; se anche lì non c'è posto, sopra il compagno. Coordinate dello schermo
+/// (l'origine in basso). Uguale a `core/giftPlacement.ts`.
+enum GiftPlacement {
+    static let size = CGSize(width: 112, height: 138)
+
+    static func origin(pet: CGRect, feetY: CGFloat, screen: CGRect, avoid: CGRect?) -> CGPoint {
+        let size = Self.size
+        let y = min(max(feetY + 6, screen.minY + 6), screen.maxY - size.height - 6)
+        func beside(right: Bool) -> CGPoint {
+            let x = right ? pet.maxX + 4 : pet.minX - size.width - 4
+            return CGPoint(x: min(max(x, screen.minX + 6), screen.maxX - size.width - 6), y: y)
+        }
+        func free(_ p: CGPoint) -> Bool {
+            let rect = CGRect(origin: p, size: size)
+            return !rect.intersects(pet.insetBy(dx: 8, dy: 8)) && !(avoid.map { rect.intersects($0) } ?? false)
+        }
+        let preferRight = pet.midX < screen.midX
+        for right in [preferRight, !preferRight] where free(beside(right: right)) { return beside(right: right) }
+        guard avoid != nil else { return beside(right: preferRight) }
+        let x = min(max(pet.midX - size.width / 2, screen.minX + 6), screen.maxX - size.width - 6)
+        return CGPoint(x: x, y: min(pet.maxY + 4, screen.maxY - size.height - 6))
+    }
+}

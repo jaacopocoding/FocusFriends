@@ -3,7 +3,7 @@ import AppKit
 /// La figurina trovata a fine focus: compare accanto al compagno, si gira e resta qualche secondo (con la luce che passa se è rara o
 /// leggendaria). Non cattura i clic. Il fumetto della frase di fine focus non ci va sopra (vedi `Speaker.obstacles`).
 final class GiftCard {
-    static let size = NSSize(width: 112, height: 138)
+    static let size = GiftPlacement.size
     private static let duration: TimeInterval = 6.5
 
     private var window: OverlayWindow?
@@ -14,6 +14,8 @@ final class GiftCard {
 
     /// Dove sta sullo schermo, se c'è.
     var frame: NSRect? { window?.frame }
+    /// Quello che la figurina non deve coprire (la scheda «Com'è andata?», che compare insieme a lei), se c'è.
+    var avoid: (() -> NSRect?)?
 
     func show(drop: GardenDrop, near pet: PetWindow) {
         hide()
@@ -64,16 +66,11 @@ final class GiftCard {
         if abs(target.x - window.frame.minX) > 0.25 || abs(target.y - window.frame.minY) > 0.25 { window.setFrameOrigin(target) }
     }
 
-    /// Di fianco al compagno, dal lato con più spazio, con il fondo all'altezza dei suoi piedi.
+    /// Di fianco al compagno, dal lato con più spazio, con il fondo all'altezza dei suoi piedi. Se lì c'è la scheda «Com'è andata?», dall'altro
+    /// lato; se anche lì non c'è posto, sopra il compagno.
     private func origin(for pet: PetWindow) -> NSPoint {
-        let size = Self.size
         let screen = (pet.screen ?? NSScreen.main)?.visibleFrame ?? .zero
-        let onRight = pet.frame.midX < screen.midX
-        var x = onRight ? pet.frame.maxX + 4 : pet.frame.minX - size.width - 4
-        x = min(max(x, screen.minX + 6), screen.maxX - size.width - 6)
-        var y = pet.feetY + 6
-        y = min(max(y, screen.minY + 6), screen.maxY - size.height - 6)
-        return NSPoint(x: x, y: y)
+        return GiftPlacement.origin(pet: pet.frame, feetY: pet.feetY, screen: screen, avoid: avoid?())
     }
 }
 

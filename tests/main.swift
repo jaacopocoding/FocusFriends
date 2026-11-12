@@ -3106,5 +3106,20 @@ check(Garden(directory: sceneDirectory).scenes == ["gattino-amaca", "riccio-tron
 sceneGarden.reset()
 check(sceneGarden.scenes.isEmpty, "«Cancella tutto» toglie anche le scene")
 
+// MARK: - La figurina di fine focus non copre «Com'è andata?» (GiftPlacement)
+section("Figurina accanto al compagno")
+do {
+    let screen = CGRect(x: 0, y: 0, width: 1440, height: 900)
+    let right = CGRect(x: 1200, y: 40, width: 144, height: 110)        // il compagno a destra, vicino al bordo
+    check(GiftPlacement.origin(pet: right, feetY: 50, screen: screen, avoid: nil) == CGPoint(x: 1084, y: 56), "senza scheda: dal lato con più spazio, all'altezza dei piedi")
+    let card = CGRect(x: 868, y: 40, width: 320, height: 200)          // «Com'è andata?» alla sua sinistra
+    check(GiftPlacement.origin(pet: right, feetY: 50, screen: screen, avoid: card) == CGPoint(x: 1216, y: 154), "la scheda a sinistra e a destra non c'è posto: sopra il compagno")
+    let left = CGRect(x: 200, y: 40, width: 144, height: 110)          // il compagno a sinistra: la scheda gli va a destra
+    let cardRight = CGRect(x: 356, y: 40, width: 320, height: 200)
+    check(GiftPlacement.origin(pet: left, feetY: 50, screen: screen, avoid: cardRight) == CGPoint(x: 84, y: 56), "la scheda a destra: la figurina va a sinistra")
+    check(GiftPlacement.origin(pet: left, feetY: 50, screen: screen, avoid: nil) == CGPoint(x: 348, y: 56), "senza scheda: a destra, come prima")
+}
+
 print("\n\(checks) controlli, \(failures) falliti")
 exit(failures == 0 ? 0 : 1)
+

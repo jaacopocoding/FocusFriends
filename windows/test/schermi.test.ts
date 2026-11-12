@@ -1,9 +1,10 @@
-// Più schermi e posizione della scheda rispetto all'icona (core/displays.ts), con schermi inventati.
+// Più schermi e posizione della scheda rispetto all'icona (core/displays.ts), con schermi inventati; e dove compare la figurina di fine focus (core/giftPlacement.ts).
 
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { cardPlacement, currentOrPrimary, describeDisplay, displayAt, displayToFollow, relativeTo, taskbarSide } from "../src/core/displays.ts";
 import type { DisplayInfo } from "../src/core/displays.ts";
+import { giftPosition } from "../src/core/giftPlacement.ts";
 
 // Due schermi affiancati: il principale 1920×1080 con la barra in basso (40), il secondo 2560×1440 a destra, più in alto.
 const primary: DisplayInfo = { id: 1, primary: true, bounds: { x: 0, y: 0, width: 1920, height: 1080 }, workArea: { x: 0, y: 0, width: 1920, height: 1040 } };
@@ -83,5 +84,21 @@ describe("Barra delle applicazioni e riga del registro", () => {
       describeDisplay({ ...second, scaleFactor: 1.25 }),
       "schermo 2: 2560x1440 a 125% in (1920,-360), area di lavoro 2560x1400, barra in basso (40)",
     );
+  });
+});
+
+describe("La figurina di fine focus non copre «Com'è andata?»", () => {
+  const scene = { width: 1440, height: 900 };
+  const right = { left: 1200, top: 750, width: 144, height: 110 };
+  it("senza scheda: dal lato con più spazio, all'altezza dei piedi", () => {
+    assert.deepEqual(giftPosition(right, 850, scene, null), { left: 1084, top: 706 });
+  });
+  it("la scheda a sinistra e a destra non c'è posto: sopra il compagno", () => {
+    assert.deepEqual(giftPosition(right, 850, scene, { left: 868, top: 660, width: 320, height: 200 }), { left: 1216, top: 608 });
+  });
+  it("il compagno a sinistra con la scheda a destra: la figurina va a sinistra; senza scheda a destra, come prima", () => {
+    const left = { left: 200, top: 750, width: 144, height: 110 };
+    assert.deepEqual(giftPosition(left, 850, scene, { left: 356, top: 660, width: 320, height: 200 }), { left: 84, top: 706 });
+    assert.deepEqual(giftPosition(left, 850, scene, null), { left: 348, top: 706 });
   });
 });

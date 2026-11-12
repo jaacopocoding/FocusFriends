@@ -578,7 +578,7 @@ async function start(): Promise<void> {
     },
   });
   // la figurina trovata a fine focus, accanto al compagno
-  giftCard = new GiftCard({ container: stage, petBox: () => ({ ...view.position, ...view.size }), feetY, scene: sceneSize });
+  giftCard = new GiftCard({ container: stage, petBox: () => ({ ...view.position, ...view.size }), feetY, scene: sceneSize, avoid: () => reflection.frame });
   api.onGiftFound((drop) => { if (visible) void giftCard.show(drop); });
   card = new MenuCard({
     api, container: stage, timer: () => timerState, scene: sceneSize, urlOf,

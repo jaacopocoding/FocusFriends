@@ -49,6 +49,8 @@ export class ReflectionCard {
   }
 
   get isShowing(): boolean { return this.element !== null; }
+  /** Dove sta adesso, se c'è (la figurina di fine focus non ci va sopra). */
+  get frame(): { left: number; top: number; width: number; height: number } | null { return this.element !== null ? { ...this.box } : null; }
 
   contains(x: number, y: number): boolean {
     return this.element !== null && x >= this.box.left && x < this.box.left + this.box.width && y >= this.box.top && y < this.box.top + this.box.height;

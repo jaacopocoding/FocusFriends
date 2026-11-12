@@ -105,6 +105,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // A fine focus: "com'è andata?" (se non l'hai spenta dal menu) e, se il focus era partito da una voce di «Da fare» ancora da fare,
         // «Hai finito «…»?» (anche con «com'è andata» spento). Sparisce da sola quando il timer riparte o si ferma.
         // La figurina trovata a fine focus compare accanto al compagno.
+        giftCard.avoid = { [weak self] in self?.reflectionCard.visibleFrame }
         pomodoro.onGift = { [weak self, weak window] gift in
             guard case .found(let drop) = gift, let window else { return }
             self?.giftCard.show(drop: drop, near: window)
