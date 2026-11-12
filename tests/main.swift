@@ -2454,8 +2454,8 @@ check([gdOne.next(), gdOne.next(), gdOne.next()].map { ($0 * 1e12).rounded() / 1
 var gdSeeded = GardenDrops.Stream(seed: GardenDrops.hash("A1B2C3D4-0000-4000-8000-000000000001"))
 check([gdSeeded.next(), gdSeeded.next()].map { ($0 * 1e12).rounded() / 1e12 } == [0.404550580308, 0.712755646091], "…e dal seme di una sessione")
 
-func gdSession(_ minutes: Int, completed: Bool = true, day: Int = 5) -> StudySession {
-    StudySession(start: date(2026, 10, day, 9), localStart: StudySession.localString(for: date(2026, 10, day, 9), calendar: cal),
+func gdSession(_ minutes: Int, completed: Bool = true, day: Int = 5, hour: Int = 9) -> StudySession {
+    StudySession(start: date(2026, 10, day, hour), localStart: StudySession.localString(for: date(2026, 10, day, hour), calendar: cal),
                  seconds: minutes * 60, plannedMinutes: minutes, completed: completed, subject: nil)
 }
 check(!GardenDrops.isEligible(gdSession(19)) && GardenDrops.isEligible(gdSession(20)) && !GardenDrops.isEligible(gdSession(50, completed: false)),
@@ -2585,12 +2585,13 @@ var gdTiny = GardenDropState()
 check(GardenDrops.roll(sessionID: "44444444-0000-4000-8000-000000000000", streakDays: 1, seconds: 1800, state: &gdTiny, pool: [GardenCatalog.item(withID: "tulipani")!])?.item == "tulipani", "con un solo oggetto possibile esce quello (si scende o si sale di rarità)")
 check(GardenDrops.roll(sessionID: "55555555-0000-4000-8000-000000000000", streakDays: 1, seconds: 1800, state: &gdTiny, pool: []) == nil, "senza oggetti non esce niente")
 
-// il registro intero: salta gli interrotti e i focus corti, e dà lo stesso risultato ogni volta
-let gdLog = [gdSession(25, day: 1), gdSession(50, day: 1), gdSession(15, day: 2), gdSession(50, completed: false, day: 2), gdSession(30, day: 3), gdSession(30, day: 4)]
+// il registro intero: salta gli interrotti e i focus corti, e dà lo stesso risultato ogni volta (i due focus del primo giorno a ore diverse,
+// così l'ordine è sempre quello: prima i 25 minuti, poi i 50)
+let gdLog = [gdSession(25, day: 1), gdSession(50, day: 1, hour: 10), gdSession(15, day: 2), gdSession(50, completed: false, day: 2), gdSession(30, day: 3), gdSession(30, day: 4)]
 let gdRun1 = GardenDrops.simulate(sessions: gdLog, now: date(2026, 10, 6, 12), calendar: cal)
 let gdRun2 = GardenDrops.simulate(sessions: gdLog, now: date(2026, 10, 6, 12), calendar: cal)
 check(gdRun1.count == 4 && gdRun1.map { $0.drop } == gdRun2.map { $0.drop } && gdRun1.map { $0.drop != nil } == [false, true, false, true],
-      "il registro: quattro focus validi su sei, sempre gli stessi regali; arrivano ai 60 minuti (al secondo focus) e ai 68 dopo (al quarto)")
+      "il registro: quattro focus validi su sei, sempre gli stessi regali; arrivano passati i 50 minuti (al secondo focus) e poi al quarto")
 
 section("Giardino: le cose degli animali sulle loro isole")
 UserDefaults.standard.removeObject(forKey: Profile.developerKey)

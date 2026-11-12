@@ -31,7 +31,12 @@
       "greeting" : "Ciao! Sono Pianty. Cresciamo insieme, con calma.",
       "groundFraction" : 0.017600000000000001,
       "growsWithTimer" : true,
-      "iconCrop" : null,
+      "iconCrop" : {
+        "height" : 0.52000000000000002,
+        "width" : 0.87,
+        "x" : 0.080000000000000002,
+        "y" : 0.48999999999999999
+      },
       "iconFocus" : 0.5,
       "iconImage" : "pianty/stage5_1.png",
       "id" : "pianty",
@@ -559,7 +564,7 @@
         "height" : 0.54400000000000004,
         "width" : 0.35099999999999998,
         "x" : 0.61699999999999999,
-        "y" : 0.183
+        "y" : 0.27300000000000002
       },
       "iconFocus" : 0.57999999999999996,
       "iconImage" : "riccio/frame1.png",
@@ -700,12 +705,12 @@
       "groundFraction" : 0.1268,
       "growsWithTimer" : false,
       "iconCrop" : {
-        "height" : 0.40000000000000002,
-        "width" : 0.28499999999999998,
-        "x" : 0.64000000000000001,
-        "y" : 0.42999999999999999
+        "height" : 0.64000000000000001,
+        "width" : 0.45000000000000001,
+        "x" : 0.45000000000000001,
+        "y" : 0.28000000000000003
       },
-      "iconFocus" : 0.76000000000000001,
+      "iconFocus" : 0.55000000000000004,
       "iconImage" : "tartaruga/frame1.png",
       "id" : "tartaruga",
       "images" : [

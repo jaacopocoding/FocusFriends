@@ -100,7 +100,7 @@ struct Pet: Equatable {
         greeting: "Ciao! Sono Pianty. Cresciamo insieme, con calma.",
         shadowWidthFraction: 0.6,
         groundFraction: 0.0176,
-        iconCrop: nil,
+        iconCrop: NSRect(x: 0.08, y: 0.49, width: 0.87, height: 0.52),   // la rosetta in cima, con il viso (senza il vaso)
         walks: true,
         walkFrames: [1, 2, 3, 4, 5, 6],
         stepInterval: 1.0 / 15,     // 6 fotogrammi in 0,4 s: il piede appoggiato non scivola a 42 pt/s
@@ -210,7 +210,7 @@ struct Pet: Equatable {
         greeting: "Ciao! Sono il riccio. Facciamo due passi?",
         shadowWidthFraction: 0.62,
         groundFraction: 0.0989,
-        iconCrop: NSRect(x: 0.617, y: 0.183, width: 0.351, height: 0.544),   // la testa, con le orecchie e un po' di aculei
+        iconCrop: NSRect(x: 0.617, y: 0.273, width: 0.351, height: 0.544),   // la testa, con le orecchie e gli aculei fino in cima
         iconFocus: 0.58,
         walks: true,
         walkFrames: [1, 2, 3, 4, 5, 6],   // il ciclo dei passi
@@ -243,8 +243,8 @@ struct Pet: Equatable {
         greeting: "Ciao! Sono la tartaruga. Andiamo piano piano?",
         shadowWidthFraction: 0.6,
         groundFraction: 0.1268,
-        iconCrop: NSRect(x: 0.640, y: 0.430, width: 0.285, height: 0.400),   // la testa, con un po' d'aria davanti al muso
-        iconFocus: 0.76,
+        iconCrop: NSRect(x: 0.45, y: 0.28, width: 0.45, height: 0.64),   // la testa e il guscio dietro, con un po' d'aria intorno
+        iconFocus: 0.55,
         walks: true,
         walkFrames: [1, 2, 3, 4, 5, 6],   // il ciclo dei passi
         stepInterval: 0.15,
