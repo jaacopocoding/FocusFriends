@@ -1,0 +1,53 @@
+# Prova l'installer vero di una release (anche in bozza) su macchine Windows di GitHub, x64 e ARM: lo installa, apre l'app come una
+# persona (con una schermata del desktop), le fa girare i copioni dal vivo e la disinstalla (windows/test/vivo/installato.ps1).
+# Si lancia a mano (Actions → «Prova dell'installer» → Run workflow) o con: gh workflow run prova-installer.yml -f tag=windows-v2.0.0
+name: Prova dell'installer
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Il tag della release da provare (anche in bozza)"
+        required: true
+        default: windows-v2.0.0
+
+permissions:
+  contents: write   # per leggere anche le release in bozza (non scrive niente)
+
+jobs:
+  prova:
+    name: Installer ${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            runner: windows-latest
+          - arch: arm64
+            runner: windows-11-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: windows/test/vivo
+      - name: Scarica l'installer e controlla lo SHA-256
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download "${{ inputs.tag }}" --repo "${{ github.repository }}" --dir scaricati --pattern "*-${{ matrix.arch }}-Setup.exe" --pattern SHA256SUMS.txt
+          $file = Get-ChildItem scaricati -Filter "*-Setup.exe" | Select-Object -First 1
+          $hash = (Get-FileHash $file.FullName -Algorithm SHA256).Hash.ToLower()
+          $expected = (Select-String -Path scaricati/SHA256SUMS.txt -Pattern ([regex]::Escape($file.Name))).Line.Split(" ")[0]
+          Write-Host "$($file.Name): $hash (atteso $expected)"
+          if ($hash -ne $expected) { Write-Host "::error::lo SHA-256 non corrisponde"; exit 1 }
+          "INSTALLER=$($file.FullName)" | Out-File -Append $env:GITHUB_ENV
+      - name: Installa, apri, prova, disinstalla
+        shell: pwsh
+        run: pwsh windows/test/vivo/installato.ps1 -Installer "$env:INSTALLER" -Out "$env:RUNNER_TEMP/risultati"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: risultati-${{ matrix.arch }}
+          path: ${{ runner.temp }}/risultati
