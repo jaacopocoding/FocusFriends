@@ -21,7 +21,7 @@ La prima versione ufficiale: sei compagni, sei isole, l'album delle figurine e u
 **Se aggiorni dalla 0.11.0**
 - Il giardino resta nello stesso file e nello stesso formato; le scene viste si aggiungono in `giardino.json` (`scenes`). **Non si perde niente.**
 - Le sessioni, le impostazioni e la lista Da fare non cambiano.
-- Lo zip passa da 53 a [DA MISURARE] MB (la Tartaruga, le scene e i brani nuovi).
+- Lo zip passa da 53 a 79 MB (la Tartaruga, le scene e i brani nuovi).
 
 Per macOS 13 o successivo (Apple Silicon e Intel).
 
@@ -33,4 +33,4 @@ Per macOS 13 o successivo (Apple Silicon e Intel).
 Tutto resta sul tuo Mac: nessuna rete, nessun invio.
 
 SHA-256 di `FocusFriends-2.0.0-macOS.zip`:
-`[DA CALCOLARE QUANDO SI FA LO ZIP]`
+`46a09008bdb8af4403173d422339990bed32e38def36e8055511b6e8f19158f2`
