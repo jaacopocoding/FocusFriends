@@ -33,8 +33,26 @@ Write-Host "codice d'uscita dell'installer: $($install.ExitCode)"
 Start-Sleep -Seconds 3
 Stop-App
 # Dove l'ha messa l'installer (i documenti dicono %LOCALAPPDATA%\Programs\FocusFriends: si controlla)
-$found = Get-ChildItem -Path (Join-Path $env:LOCALAPPDATA "Programs"), $env:ProgramFiles -Filter "FocusFriends.exe" -Recurse -Depth 2 -ErrorAction SilentlyContinue | Select-Object -First 1
-if (-not $found) { Fail "dopo l'installazione FocusFriends.exe non c'è né in %LOCALAPPDATA%\Programs né in Program Files"; exit 1 }
+# (l'installer può finire il lavoro in un processo figlio: si aspetta fino a due minuti)
+$found = $null
+for ($i = 0; $i -lt 24 -and -not $found; $i++) {
+  $found = Get-ChildItem -Path (Join-Path $env:LOCALAPPDATA "Programs"), $env:ProgramFiles -Filter "FocusFriends.exe" -Recurse -Depth 2 -ErrorAction SilentlyContinue | Select-Object -First 1
+  if (-not $found) { Start-Sleep -Seconds 5 }
+}
+if (-not $found) {
+  Fail "dopo l'installazione FocusFriends.exe non c'è né in %LOCALAPPDATA%\Programs né in Program Files"
+  Write-Host "-- %LOCALAPPDATA%\Programs:"; Get-ChildItem (Join-Path $env:LOCALAPPDATA "Programs") -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "   $($_.Name)" }
+  Write-Host "-- processi:"; Get-Process | Where-Object { $_.Name -match "Focus|Setup|nsis|Un_" } | ForEach-Object { Write-Host "   $($_.Name) $($_.Id)" }
+  Write-Host "-- architettura: $env:PROCESSOR_ARCHITECTURE; $([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)"
+  Write-Host "-- FocusFriends.exe in C:\Users e Program Files:"
+  Get-ChildItem C:\Users, $env:ProgramFiles, ${env:ProgramFiles(x86)} -Filter "FocusFriends*.exe" -Recurse -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "   $($_.FullName)" }
+  Write-Host "-- registro (Uninstall):"
+  Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*", "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*" -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -like "FocusFriends*" } | Format-List | Out-String | Write-Host
+  Write-Host "-- di nuovo, con la finestra (per vedere un messaggio dell'installer):"
+  $p = Start-Process -FilePath $Installer -PassThru; Start-Sleep -Seconds 25; Shot (Join-Path $Out "installer-con-finestra.png")
+  Write-Host "   l'installer è ancora aperto? $(-not $p.HasExited)"
+  exit 1
+}
 $exe = $found.FullName
 $dir = $found.DirectoryName
 Write-Host "installata in $dir"
