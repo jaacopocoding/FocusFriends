@@ -39,6 +39,8 @@ clic nelle zone trasparenti (Electron lo ha pronto, Tauri no) si è passati a El
 
 ### Dove va ogni file del Mac
 
+(La mappa del piano, scritta prima di cominciare: i nomi veri dei file sono poi venuti diversi, per esempio `core/log.ts`, `core/pets.ts` e `renderer/` al posto di `ui/`. La struttura vera è in `ARCHITECTURE.md` §2.)
+
 | Mac | Windows |
 |---|---|
 | `SessionLog.swift` (registro, soggetti, note, statistiche, serie, CSV) | `core/sessionLog.ts`, `core/stats.ts` |
