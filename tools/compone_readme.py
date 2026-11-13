@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compone le immagini del README fatte con i disegni dei compagni e con i fumetti veri dell'app: docs/images/scrivania.png, menu-schermata.png, giro.png, compagni.png e crescita.png
+"""Compone le immagini del README fatte con i disegni dei compagni e con i fumetti veri dell'app: docs/images/scrivania.gif (in scrivania_readme.py), menu-schermata.png, giro.png, compagni.png e crescita.png
 
     tools/compone-readme.sh        (disegna prima i fumetti e l'orologio dell'app in build/readme/, poi chiama questo script)
     python3 tools/compone_readme.py   (solo la composizione, se i fumetti in build/readme/ ci sono già)
@@ -197,60 +197,9 @@ def desk_scene(W, H, icon_active=False):
 
 
 def scrivania():
-    """Il compagno sulla scrivania, che cammina: una GIF con il Gattino, il fumetto e l'orologio veri dell'app. Mentre parla sta fermo (come nell'app)."""
-    from PIL import ImageFilter
-    W, H = 1100, 720
-    ppt = 1.25                                           # pixel per punto: un compagno è largo circa 144 punti (la scrivania è più grande di così: lui non deve dare nell'occhio)
-    scene = desk_scene(W, H)
-    walk = [Image.open(f"assets/gattino/frame{n}.png").convert("RGBA") for n in range(2, 8)]
-    still = Image.open("assets/gattino/frame1.png").convert("RGBA")
-    k = (144 / 360) * ppt
-    def scaled(im):
-        return im.resize((round(im.width * k), round(im.height * k)), Image.LANCZOS)
-    walk = [scaled(f) for f in walk]
-    still = scaled(still)
-    ground = round(0.0949 * 274 * (144 / 360) * ppt)    # quanto sta sotto i piedi, nell'immagine
-    bubble = fumetto(1)
-    bubble = bubble.resize((round(bubble.width * ppt / 3), round(bubble.height * ppt / 3)), Image.LANCZOS)
-    clocks = [Image.open(f"build/readme/timer_24{10 - n:02d}.png").convert("RGBA") for n in range(0, 9)]   # 24:10 … 24:02
-    clocks = [c.resize((round(c.width * ppt / 3), round(c.height * ppt / 3)), Image.LANCZOS) for c in clocks]
-    feet = 548
-    speed = 42 * ppt                                     # punti al secondo, com'è nell'app
-    fps, total = 10, 9.0
-    frames, x = [], 400.0
-    for n in range(int(total * fps)):
-        t = n / fps
-        speaking = 3.0 <= t < 7.0
-        if not speaking and n > 0:
-            x += speed / fps
-        sprite = still if speaking else walk[int(t / 0.15) % len(walk)]
-        frame = scene.copy().convert("RGBA")
-        left = round(x - sprite.width / 2)
-        top = feet + ground - sprite.height
-        shadow = Image.new("RGBA", (sprite.width + 160, 120), (0, 0, 0, 0))
-        ImageDraw.Draw(shadow).ellipse((80, 34, 80 + sprite.width - 30, 62), fill=(60, 40, 40, 70))
-        shadow = shadow.filter(ImageFilter.GaussianBlur(5))
-        frame.alpha_composite(shadow, (left - 80 + 12, feet - 46))
-        frame.alpha_composite(sprite, (left, top))
-        clock = clocks[min(int(t), len(clocks) - 1)]
-        frame.alpha_composite(clock, (round(x - clock.width / 2), feet + ground - 10))
-        if speaking:
-            alpha = min((t - 3.0) / 0.3, (7.0 - t) / 0.3, 1.0)
-            if alpha > 0:
-                b = bubble.copy()
-                b.putalpha(b.getchannel("A").point(lambda v: int(v * alpha)))
-                head_x = left + round(sprite.width * 0.74)
-                frame.alpha_composite(b, (head_x - round(b.width * 0.825), top + 40 - b.height))
-        frames.append(frame.convert("RGB"))
-    # una sola tavolozza per tutti i fotogrammi (altrimenti i colori ballano)
-    montage = Image.new("RGB", (W, H * 3))
-    for i, index in enumerate((5, 45, 80)):
-        montage.paste(frames[index], (0, i * H))
-    palette = montage.quantize(256, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE)
-    quantized = [f.quantize(palette=palette, dither=Image.Dither.FLOYDSTEINBERG) for f in frames]
-    quantized[0].save("docs/images/scrivania.gif", save_all=True, append_images=quantized[1:], duration=round(1000 / fps), loop=0, optimize=False, disposal=1)
-    frames[45].save("docs/images/scrivania.png", optimize=True)
-    print("scrivania.gif", W, H, len(frames), "fotogrammi")
+    """Il compagno sulla scrivania, che cammina, parla, e l'orologio a tendina che si chiude e si riapre al passaggio del cursore: tools/scrivania_readme.py."""
+    import scrivania_readme
+    scrivania_readme.scrivania()
 
 
 def menu_schermata():
@@ -359,6 +308,9 @@ if __name__ == "__main__":
     import sys
     if sys.argv[1:] == ["statistiche"]:
         statistiche()
+        sys.exit()
+    if sys.argv[1:] == ["scrivania"]:
+        scrivania()
         sys.exit()
     scrivania()
     menu_schermata()

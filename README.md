@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/images/scrivania.gif" width="900" alt="Il Gattino che cammina sul desktop mentre studi, con il timer del focus, e si ferma a dirti una frase">
+  <img src="docs/images/scrivania.gif" width="900" alt="Il Gattino che cammina sul desktop mentre studi e si ferma a dirti una frase; l'orologio del focus si chiude a tendina e si riapre quando ci passi sopra con il mouse">
 </p>
 
 <br>

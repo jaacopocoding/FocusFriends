@@ -21,5 +21,5 @@ swiftc -O -parse-as-library -o "$B/B.app/Contents/MacOS/render" Sources/FocusFri
 # il fumetto sulla scrivania (Gattino)
 "$B/B.app/Contents/MacOS/render" build/readme \
     "Stai andando bene. Davvero." \
-    --tempi 24:10 24:09 24:08 24:07 24:06 24:05 24:04 24:03 24:02
+    --tempi 24:10 24:09 24:08 24:07 24:06 24:05 24:04 24:03 24:02 24:01 24:00 23:59 23:58
 python3 tools/compone_readme.py
