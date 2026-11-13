@@ -2,7 +2,8 @@
 
 > Purpose: a factual description of how the code in this repository works, written so that another reader (human or AI)
 > can judge whether the code is acceptable as written or needs revision for inefficiency.
-> Snapshot described: release `v0.10.0` (the to-do list, see the update of 21 October below; 0.9.0 was its first form); before it, this document described
+> Snapshot described: release `v2.0.0` (see the update of 13 November below; the number jumps from 0.11.0 to 2.0.0 to match the Windows version); before it `v0.11.0` (the garden rewritten as islands, at `a53a5f1`) and
+> `v0.10.0` (the to-do list, see the update of 21 October below; 0.9.0 was its first form); before them, this document described
 > `v0.8.0`, prepared after commit `4bf4576` (the release before that is `v0.7.0`). The document was first written against `2043b39`; it was then updated for the fixes made after
 > `docs/archivio/ARCHITECTURE_REVIEW.md` (that review is kept in the archive folder and its §7 says what was changed), the
 > developer-mode flag, the fourth companion and the garden rewrite (points, shop, free placement).
@@ -27,6 +28,15 @@
 > counts in this document (files, lines, checks) were updated for it. In `v0.9.1` the way to add an item changed (a "+" opening a "Nuova cosa"
 > page) and items can be edited by tapping them (§3.22). The Windows version has it too since its 1.1 (`windows-v1.1.0`),
 > with the same file format; the contract between the two is checked both ways (`tests/fixtures/dafare*`).
+>
+> **Update, 13 November 2026 (`v2.0.0`).** Since `v0.11.0` the Swift sources changed for: the sixth companion, the **Tartaruga**, and her island (§3.3, §3.17;
+> she unlocks last, at 200 full focuses, §3.18); the **guided tour** after the welcome card and the "first times" (`GuidedTour.swift`); **companions
+> using things** and the album's **«Scene»** tab (`GardenInteractions.swift`, §3.17, §3.26); the **hare** replacing the tortoise guest; the first figurine
+> after 50 minutes instead of 60, and the end-of-focus figurine placed clear of «Com'è andata?»; the statistics reworked (today's sessions shown at
+> once, a per-day trend in week and month, the hours of every subject, advice only in positive, the summary without faces; §3.16, §3.24); eleven bundled
+> tracks with a different opener at each focus (§3.13); 36 phrases rewritten; the album's new cover; smaller avatar crops (`Pet.iconCrop`); and image
+> and icon caches that make the garden lighter to draw (§3.17). The sections were updated with each change; the test counts were refreshed for this
+> snapshot, while the per-file line counts of §4 may lag behind. The Windows version, `2.0.0` as well, has the same features.
 
 ---
 
@@ -65,7 +75,7 @@ Single user per Mac, no accounts, no network: all data is stored locally under
 | App type | Menu-bar "agent": `LSUIElement = true`, activation policy `.accessory` | `build.sh`, `AppDelegate.applicationDidFinishLaunching` |
 | Signing | Ad-hoc (`codesign --force --sign -`; `build.sh` stops with exit 1 if signing fails); not notarised, no hardened runtime or sandbox | `build.sh`, `README.md` "Scaricare e usare" |
 | Asset tooling | Python 3 scripts using Pillow and NumPy (not run at build time) | `tools/*.py` |
-| Tests | One hand-written Swift executable (`tests/main.swift`, 50 sections, 1013 checks) that compiles twenty Foundation-only source files; no XCTest | `tests/run.sh` |
+| Tests | One hand-written Swift executable (`tests/main.swift`, 52 sections, 1072 checks) that compiles twenty Foundation-only source files; no XCTest | `tests/run.sh` |
 | License | MIT (`LICENSE`); bundled music is CC0 (`CREDITS.md`) | `LICENSE`, `CREDITS.md` |
 | Swift toolchain version / Python version | Not pinned anywhere in the repository | **[unknown]** |
 
@@ -160,7 +170,7 @@ FocusFriends/
 │   ├── MusicLibrary.swift        MusicSource, MusicLibrary (file discovery, shuffle, titles), MusicSettings  (Foundation only)
 │   └── MusicPlayer.swift         AVAudioPlayer-based music playback with queue and fades
 ├── tests/
-│   ├── main.swift                hand-rolled test executable (check()/section()), 50 sections, 1013 checks
+│   ├── main.swift                hand-rolled test executable (check()/section()), 52 sections, 1072 checks
 │   ├── run.sh                    compiles 20 source files + tests/main.swift into build/tests/stats and runs it
 │   ├── genera-attesi.sh          builds and runs tests/genera-attesi/main.swift: for every folder in tests/fixtures/ writes what this app derives from it (the expected results the Windows port is compared with)
 │   ├── simula-regali.sh          simulates the end-of-focus drops over 30/60/90 days of studying (how long an album takes; used to tune GardenDrops)
@@ -829,7 +839,7 @@ code. All UI code runs on the main thread; the only other thread is the audio re
     music (`music_*`), garden/growth art, Pianty stage frames → write `Info.plist` via heredoc →
     `codesign --force --sign -` (a failure prints an error and exits 1) → print the path.
   - `tests/run.sh`: `swiftc -O -o build/tests/stats` on twenty source files + `tests/main.swift` →
-    `build/tests/stats` (prints `• <section>` lines and `N controlli, M falliti`, exit code 0/1; 1013 checks now).
+    `build/tests/stats` (prints `• <section>` lines and `N controlli, M falliti`, exit code 0/1; 1072 checks now).
   - Tools: described in §5.9; they read `assets/**/*_original.png` / sheets and write processed PNGs or the icon.
 
 ### 3.22 To-do list ("Da fare")
@@ -1538,7 +1548,7 @@ file/UserDefaults writes, windows, timers, sound, global state.
 ### 5.9 Tests, build and tools
 
 #### `tests/main.swift` (2,891) and `tests/run.sh` (7)
-- A single executable: `check(_:_:line:)`, `section(_:)`, 50 sections (1013 checks) covering subjects, log persistence,
+- A single executable: `check(_:_:line:)`, `section(_:)`, 52 sections (1072 checks) covering subjects, log persistence,
   in-progress recovery, periods, summaries, streaks, texts, garden rules, format versions/migration, subject merging, backups and
   delete-all, time zones, profile, ratings/notes/insights/CSV, timer dial math, seasons, ambient settings, music
   library/settings, focus notes, paused-time recovery, companion rewards (including the developer flag), break cycle,
@@ -2031,7 +2041,7 @@ code is clear. Items without a mark still describe the current code.
 
 ### 7.8 Test coverage as it exists
 
-- Covered (50 sections, 1013 checks in `tests/main.swift`): everything in the Foundation-only files listed in §4.1,
+- Covered (52 sections, 1072 checks in `tests/main.swift`): everything in the Foundation-only files listed in §4.1,
   including the new damaged-data cases and the developer flag.
 - Not covered by any automated test in the repository: `Pomodoro` (timer, pause, grace, the sleep-gap rule, cycle
   wiring), `Speaker` (including when a to-do reminder replaces a phrase), `Walker`, `PetWindow`/`PetView`, `MenuController`,

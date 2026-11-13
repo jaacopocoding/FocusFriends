@@ -144,6 +144,26 @@ un'ora). Toglierlo alla fine.
 
 Mandami: una schermata del giardino e una dell'album, e la memoria e il processore (come in **I**) con il giardino aperto, fermo, mentre ci si sposta e mentre il compagno cammina.
 
+
+## L. Le novità della 2.0
+
+Le prove sull'app installata le fa già una macchina di GitHub (`prova-installer.yml`: installazione, avvio, 22 copioni, disinstallazione, su x64 e ARM);
+qui c'è quello che serve una persona davanti a un computer vero per vederlo. Un profilo nuovo si ha togliendo `profilo.json` con l'app chiusa (si perde solo il nome
+e il compagno scelto; le sessioni restano).
+
+| Passo | Deve succedere |
+|---|---|
+| Primo avvio con un profilo nuovo, la scheda di benvenuto aperta | **Nessun pulsante** di FocusFriends nella barra delle applicazioni né in Alt+Tab (sulla 2.0 era comparso: corretto prima dell'uscita) |
+| Nome e compagno, poi «Iniziamo!» | Il compagno chiama «Cliccami!!!» e freme; un clic sinistro apre la scheda e parte il giro, otto passi con il velo e le immagini; Esc o «Salta» lo chiudono |
+| Menu dell'area di notifica → «Fai il giro» | Il giro riparte |
+| Su un PC **ARM** (o una macchina virtuale Windows 11 ARM), installare `…-arm64-Setup.exe` | L'app si installa e parte (la 1.3.0 per ARM probabilmente no: il suo installer saltava i programmi) |
+| Con `"developerMode": true`, scegliere la Tartaruga e fare un focus da 1 minuto con `quickGifts` | Durante il focus la Tartaruga avanza sul sentiero di sassi verso la bandierina; a fine focus mangia la fragola |
+| Giardino aperto qualche minuto, con delle cose sulle isole | Ogni tanto un compagno va a una sua cosa e la usa (l'amaca, il tunnel, il sasso al sole…), poi torna a camminare; la prima volta il giardino festeggia la scena |
+| Album → linguetta «Scene» | Le scene viste, con la didascalia; quelle che mancano sono sagome, e toccandole l'album dice quale cosa serve |
+| Statistiche → Settimana e Mese | L'andamento per giorno; passando sopra un giorno si legge il tempo, cliccandolo si apre; scegliendo una materia restano solo i suoi giorni |
+
+Mandami: una schermata della barra delle applicazioni con la scheda di benvenuto aperta, una del giro e una dell'album sulle scene.
+
 ---
 
 **Quando tutto questo è passato**, la prima uscita per Windows è pronta: versione 1.0, senza giardino. (Il punto **K** è per la 1.3, con il giardino.)

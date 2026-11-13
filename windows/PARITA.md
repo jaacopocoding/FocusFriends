@@ -1,16 +1,20 @@
 # Parità con l'app per Mac
 
 Funzione per funzione: cosa fa l'app per Mac (`README.md` «Cosa fa» e `ARCHITECTURE.md` §3), cosa fa la versione per Windows,
-e **come è stato verificato**. Il giardino c'è dalla 1.3 (vedi §11 e `PIANO_WINDOWS.md`, G0–G8).
+e **come è stato verificato**. Il giardino c'è dalla 1.3 (vedi §11 e `PIANO_WINDOWS.md`, G0–G8); la 2.0 aggiunge la Tartaruga, il giro guidato, i compagni che usano le cose, le scene nell'album e le statistiche rifatte.
 
 **Prova su Windows (18 ottobre 2026):** una prova sommaria su un computer Windows vero con l'installer della CI: l'app si installa, parte e «funziona bene»,
 circa 200 MB e 0 % di processore. **Le sigle W qui sotto non sono state spuntate una per una**: restano da fare con `PROVE_SU_WINDOWS.md`.
+
+**Prova dell'app installata (13 novembre 2026, 2.0.0):** gli installer veri della bozza, installati senza finestre su due macchine Windows di GitHub (x64 e ARM,
+`prova-installer.yml`): l'app si installa in `%LOCALAPPDATA%\Programs\focusfriends-windows` con la voce nel menu Start, parte, una seconda copia non si apre,
+22 copioni dal vivo girano sull'app installata, la disinstallazione la toglie e lascia i dati. Sono macchine senza una persona davanti: non sostituiscono le prove W.
 
 **Come leggere la colonna «Verifica»**
 
 | Sigla | Significato |
 |---|---|
-| **P** | Prova automatica (`npm test`, 283 prove): la logica dà gli stessi risultati. Le prove «di contratto» confrontano con i risultati dell'app per Mac sugli stessi file. |
+| **P** | Prova automatica (`npm test`, 376 prove): la logica dà gli stessi risultati. Le prove «di contratto» confrontano con i risultati dell'app per Mac sugli stessi file. |
 | **S** | Prova dal vivo sul Mac con l'app vera di Electron: eventi del mouse e tastiera simulati, schermate e misure (`FF_SELFTEST`). I copioni sono in `test/vivo/`. |
 | **W** | **Solo su Windows**: non si può provare dal Mac. Il passo da fare è in `PROVE_SU_WINDOWS.md`. |
 | **C** | Scritto nel codice, **senza una prova dedicata**: l'ho letto, non l'ho visto funzionare. |
@@ -29,7 +33,7 @@ circa 200 MB e 0 % di processore. **Le sigle W qui sotto non sono state spuntate
 | Fumetto sempre sopra il disegno, di lato se manca posto | Uguale (stessa geometria) | P S |
 | Nascondi / Mostra; fine di un focus lo rimette | Nel menu dell'area di notifica e nella scheda; a fine focus ricompare | S (nascondi e mostra); C (la ricomparsa a fine focus) |
 | Cambio compagno (solo gli sbloccati) | Scheda e menu; i bloccati non si scelgono | P S |
-| Nessuna icona nel Dock | Nessun pulsante nella barra delle applicazioni né in Alt+Tab (`skipTaskbar`, finestra non attivabile) | C; **W** |
+| Nessuna icona nel Dock | Nessun pulsante nella barra delle applicazioni né in Alt+Tab (`skipTaskbar`, finestra non attivabile). **Corretto nella 2.0:** cambiare «focusable» (per esempio con la scheda di benvenuto aperta) ridava il pulsante; ora si toglie di nuovo | Schermata dell'app installata su x64 (GitHub): nessun pulsante, con la scheda di benvenuto aperta; Alt+Tab: **W** |
 | Più schermi: sul principale; lo si trascina dove si vuole | Una finestra che si sposta con il compagno da uno schermo all'altro (o dal menu «Schermo»); se lo schermo sparisce torna sul principale | P (geometria); S (due schermi finti); trascinamento vero e scala diversa tra due monitor: **W** |
 
 ## 2. Camminata, mangiare, dormire
@@ -95,7 +99,7 @@ circa 200 MB e 0 % di processore. **Le sigle W qui sotto non sono state spuntate
 | Pioggia, vento, rumore marrone sintetizzati, a 44 100 Hz | Lo stesso algoritmo (`NoiseSynth` portato) in un `AudioWorklet` | P (confronto con le misure del Mac: pioggia e marrone all'1 %, vento al 3 %) S |
 | Dissolvenze di 2 s, anteprima di 3 s (musica 5 s), volumi 10/25/40/60 % | Uguale | P S |
 | Solo durante un focus attivo, un sottofondo alla volta | Uguale | P S |
-| Musica: 5 brani inclusi o una cartella (anche sottocartelle), coda mischiata | Uguale. I cinque brani inclusi sono `.m4a`; i formati riconosciuti nelle cartelle sono quelli del Mac (mp3, m4a, aac, wav, aif, aiff, flac, caf) | S; **che gli m4a si sentano, e se `aif`, `aiff` e `caf` suonano** (un brano che non si legge viene saltato): W |
+| Musica: 11 brani inclusi o una cartella (anche sottocartelle), coda mischiata; ogni focus parte da un brano diverso dall'ultimo ascoltato e da quello del focus prima, anche dopo aver riaperto l'app | Uguale (i brani ricordati in `localStorage`, `musicRecent`, invece che in `UserDefaults`). Gli undici brani inclusi sono `.m4a`; i formati riconosciuti nelle cartelle sono quelli del Mac (mp3, m4a, aac, wav, aif, aiff, flac, caf) | S; **che gli m4a si sentano, e se `aif`, `aiff` e `caf` suonano** (un brano che non si legge viene saltato): W |
 | Se l'audio non parte lo dice il compagno | Uguale | S |
 | — | **Nuovo:** dopo uno sleep, o se il sistema ferma l'audio (cuffie scollegate), il suono e la musica ripartono da soli se dovevano esserci | S (sleep simulato) |
 
@@ -107,7 +111,7 @@ circa 200 MB e 0 % di processore. **Le sigle W qui sotto non sono state spuntate
 | I file scritti da una app li legge l'altra | Provato nei due versi: Swift legge i file di Swift (contratto), **e Swift legge quelli scritti dal codice per Windows** (con migrazione, voti, note, accenti, emoji, virgolette, focus in corso fermo e profilo) | P (`ritorno.test.ts`, solo su un Mac) |
 | Giorno «sull'orologio» (`localStart`): non cambia con il fuso o l'ora legale | Uguale. **Corretto in M11:** il fuso del computer ora si rilegge se cambia mentre l'app è aperta (prima restava quello di quando era partita) | P (`fusi.test.ts`: cambio d'ora a ottobre e marzo, Sydney, Lord Howe, fusi a mezz'ora) |
 | Statistiche Oggi / Settimana / Mese **/ Anno** (dalla 1.2: la mappa con un quadratino per giorno, le tre caselle e l'andamento per settimana, di tutte le materie o di una), frecce, andamento per giorno con le materie da scegliere, barre che si leggono e si aprono (settimana e mese), serie con giorno di ghiaccio, frasi «quando rendi meglio» del periodo (solo in positivo), diario (aperto da subito per un giorno), modifica e elimina, CSV, «Cancella tutto…» | Uguale (finestra vera, 560 × 660, creata alla richiesta e distrutta alla chiusura) | P (stessi testi e numeri; per l'anno anche su un anno e mezzo di studio inventato, sulle griglie di 41 anni e sui 9 esempi) S (`test/vivo/anno.cjs`); i dialoghi di sistema (salvataggio del CSV, conferma): **W** |
-| Sblocco dei compagni a 20/50/100 focus pieni; chi usava già l'app li ha tutti; `developerMode` | Uguale (`developerMode` in `impostazioni.json` invece di `defaults write`) | P S |
+| Sblocco dei compagni a 20/50/100/150/200 focus pieni (la Tartaruga, ultima, a 200); chi usava già l'app li ha tutti; `developerMode` | Uguale (`developerMode` in `impostazioni.json` invece di `defaults write`) | P S |
 | Primo avvio: nome e compagno; il nome nei titoli; «Il tuo nome…» | Uguale | S |
 | Preferenze in `UserDefaults` | `impostazioni.json` (valori sbagliati = predefiniti) | ≠ P |
 | Migrazione dalla vecchia app «Bonsy» | Non serve: Windows parte da zero | ≠ |
@@ -150,7 +154,12 @@ circa 200 MB e 0 % di processore. **Le sigle W qui sotto non sono state spuntate
 | La cerimonia d'arrivo di un compagno: la telecamera, i ponti pezzo per pezzo, il regalo di benvenuto con le stelline | Uguale; con «Riduci movimento» di Windows tutto insieme | S (`test/vivo/giardino-mondo.cjs`) |
 | Le isole chiuse: il lucchetto, «???», «si sblocca a N focus», la riga al tocco; i nomi rimpicciolendo | Uguale | S |
 | Le chiavi nascoste `gardenHour`, `gardenSeason`, `quickGifts`, `replayBridges`, `replayWelcome` | Le prime tre in `impostazioni.json`; le ultime due no | ≠ (servono solo a provare) |
-| L'album: la copertina, l'apertura, le pagine che girano, le figurine con le sagome, il sigillo, le linguette, la riga al tocco | Uguale (canvas e fogli in 3D), con lo stesso carattere dei titoli (Amatic SC) | S (`test/vivo/album.cjs`) e confronto con il Mac (`../tools/render-album.sh`) |
+| La Tartaruga (dalla 2.0): la sesta compagna, con le sue pose (cammina, mangia la fragola, dorme, si ritira nel guscio), trenta frasi, il sentiero di sassi verso la bandierina durante un focus; la sesta isola con la casa dal tetto a guscio, sette figurine e due angoli | Uguale (`data/pets.json` generato da `Pet.swift`; le isole e il catalogo nel contratto) | P (contratto: sei isole, 54 oggetti) S (`test/vivo/giardino-tartaruga.cjs`) |
+| I compagni usano le cose (dalla 2.0): dopo una passeggiata il compagno va a una sua cosa e la usa, ventiquattro scene disegnate, poi torna a camminare | Uguale (`core/gardenInteractions.ts` come `GardenInteractions.swift`) | P (contratto: le scelte delle scene) S (`test/vivo/giardino-interazioni.cjs`) |
+| Le scene nell'album (dalla 2.0): la prima volta che si vede una scena il giardino la festeggia e la scena entra nella linguetta «Scene»; quelle che mancano sono sagome con la cosa che serve | Uguale (`scenes` in `giardino.json`) | P S (`test/vivo/album-scene.cjs`) |
+| La lepre (dalla 2.0) al posto dell'ospite tartaruga, con un regalo nuovo se la tartaruga aveva già salutato | Uguale (`core/gardenVisitors.ts`) | P (il contratto confronta gli ospiti con il Mac) |
+| La prima figurina con il primo focus pieno, 50 minuti invece di 60 (dalla 2.0); la figurina di fine focus accanto al compagno, dalla parte libera da «Com'è andata?» | Uguale (`core/giftPlacement.ts` come `GiftPlacement`) | P S |
+| L'album: la copertina (dalla 2.0 la bussola fra gli allori, il nome sulla targa, il conto su una fascia di pergamena, i titoli scritti a mano), l'apertura, le pagine che girano, le figurine con le sagome, il sigillo, le linguette, la riga al tocco | Uguale (canvas e fogli in 3D), con lo stesso carattere dei titoli (Amatic SC) | S (`test/vivo/album.cjs`) e confronto con il Mac (`../tools/render-album.sh`) |
 | La vita sull'isola: i compagni che camminano e fanno le pose negli angoli, «Hai sbloccato» con le stelline quando si forma un angolo, gli ospiti (la stellina sopra, il saluto, il regalo la prima volta, il diario), il vento sulle piante, l'acqua, il fumo del camino, petali, foglie e neve, le lucciole, le luci della sera | Uguale; la pagina ridisegna a 30 fotogrammi al secondo quando qualcosa si muove, 15 altrimenti; con «Riduci movimento» niente vento, particelle e lucciole | S (`test/vivo/giardino-vita.cjs`: il compagno, l'ospite e il saluto, la sera, la notte d'estate, l'inverno); il processore su una macchina vera: **W** |
 
 ## 10. Differenze volute o limiti di Windows (da decidere dopo la prova su una macchina vera)

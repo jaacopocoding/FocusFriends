@@ -541,7 +541,24 @@ circa 5.250 righe: `GardenWindow` 3.441, `AlbumWindow` 1.204, `Sticker` e `GiftC
       quando qualcosa si muove, 15 altrimenti). Il saluto all'ospite passa dal processo principale (`greetGuest` → `Garden.welcomeGuest`), gli angoli nuovi arrivano
       con la fotografia (`newCorners`). Provata dal vivo con `test/vivo/giardino-vita.cjs`.
 
-Il Riccio è già in `windows/` (dal commit `5387d2e`) ma non è mai uscito su Windows: si può pubblicare da solo, prima del giardino, se si vuole.
+Il Riccio, già in `windows/` dal commit `5387d2e`, è uscito con la 1.3.0.
+
+## Terza uscita: la 2.0 (insieme al Mac)
+
+**Preparata il 13 novembre 2026** come `2.0.0` (`windows/package.json`): il numero salta da 1.3 a 2.0 per essere lo stesso del Mac (che passa dalla 0.11.0 alla 2.0.0);
+da qui le due app escono insieme e con lo stesso numero. Ogni novità è stata fatta sui due lati nello stesso commit, con la parte comune nel contratto:
+
+- la **Tartaruga**, sesta compagna, con la sua isola (`1e01fcf`); la **lepre** al posto dell'ospite tartaruga e la linguetta **«Scene»** dell'album (`4a2ac76`);
+- i **compagni che usano le cose** del giardino, ventiquattro scene (`cac6a22`, `core/gardenInteractions.ts`);
+- il **giro guidato** della prima apertura e le prime volte (`2204961`, `renderer/tour.ts`); la **prima figurina** a 50 minuti (`d36dab9`); la figurina di fine focus che non copre «Com'è andata?» (`bb69c1a`, `core/giftPlacement.ts`);
+- le **statistiche**: le sessioni di oggi subito, l'andamento per giorno, le ore di ogni materia, i consigli solo in positivo, il riepilogo senza le facce (`c1972b8`, `d74d4d7`, `6d58737`, `35d34e9`);
+- la **musica**: undici brani e un inizio diverso a ogni focus (`5423a1c`); 36 **frasi** riscritte (`5d847b3`); la **copertina** nuova dell'album (`66e3c8b`); gli **avatar** (`7bc8390`, `e5e5c0b`).
+
+**Provata sull'app installata** con il flusso nuovo `prova-installer.yml` (macchine di GitHub x64 e ARM: installazione, avvio con una schermata, 22 copioni dal vivo, disinstallazione).
+Ha trovato due guasti, corretti prima dell'uscita (`f5da9ab`): l'**installer ARM** saltava tutti gli `.exe` e `.dll` (il filtro ARM64 di 7-Zip, che l'estrattore dentro
+l'installer non conosce: ora `ELECTRON_BUILDER_7Z_FILTER=BCJ`; la 1.3.0 per ARM ha probabilmente lo stesso guasto), e il **pulsante nella barra delle applicazioni**
+che ricompariva con la scheda di benvenuto aperta. Rifatta la bozza `windows-v2.0.0` (tag su `f5da9ab`), riprovati gli installer della bozza: SHA-256 uguali, tutto passato.
+Installer: x64 175 MB, ARM64 178 MB (la 1.3.0: 158 e 152). 376 prove della logica. Da provare a mano: il punto **L** di `PROVE_SU_WINDOWS.md`.
 
 ## Cose che possono andare storte (e come si scoprono presto)
 

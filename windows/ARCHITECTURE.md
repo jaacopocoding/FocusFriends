@@ -3,15 +3,15 @@
 > Purpose: a factual description of how the Windows version works, written so that another reader (human or AI) can judge
 > whether the code is acceptable as written or needs revision. It is the counterpart of `../ARCHITECTURE.md`, which describes
 > the Mac app; features are numbered and named alike where they correspond, and `PARITA.md` compares them one by one.
-> Snapshot described: version `1.3.0` (the garden and the album, §4.19), released as `windows-v1.3.0` at `43c281b` on 2 November 2026 (`1.2.0` is released as `windows-v1.2.0` at `7d691bb`; `1.1.1` is released as `windows-v1.1.1` at `e989d20`, `1.1.0` as `windows-v1.1.0` at `4b84a72`; the first release, `windows-v1.0.0`, is at `75d07e9`; 1.0.1, at `74bda89`,
+> Snapshot described: version `2.0.0` (the Tartaruga and her island, the guided tour, companions using things, the album's «Scene», the reworked statistics; tagged `windows-v2.0.0` at `f5da9ab` on 13 November 2026, draft not yet published; the number jumps from 1.3 to 2.0 to match the Mac). `1.3.0` (the garden and the album, §4.19) is released as `windows-v1.3.0` at `43c281b` on 2 November 2026 (`1.2.0` is released as `windows-v1.2.0` at `7d691bb`; `1.1.1` is released as `windows-v1.1.1` at `e989d20`, `1.1.0` as `windows-v1.1.0` at `4b84a72`; the first release, `windows-v1.0.0`, is at `75d07e9`; 1.0.1, at `74bda89`,
 > adds the lock-down of the windows, the gating of the test-only environment variables and the live-run scripts in `test/vivo/`, see §10;
-> 1.1.0 adds the to-do list, §4.16; 1.1.1 changes how items are added and lets them be edited; 1.2.0 asks "Hai finito?" at the end of a focus started from an item, and adds the context phrases, §4.17). 1.3.0 adds the garden and the album, with the life on the island, §4.19.
+> 1.1.0 adds the to-do list, §4.16; 1.1.1 changes how items are added and lets them be edited; 1.2.0 asks "Hai finito?" at the end of a focus started from an item, and adds the context phrases, §4.17). 1.3.0 adds the garden and the album, with the life on the island, §4.19. 2.0.0 adds the sixth companion and island, the guided tour (§4.10), the scenes (§4.19), the per-day trend and the subject hours in the statistics (§4.13, §4.18), eleven tracks, the first figurine after 50 minutes, and fixes the taskbar button (§4.3) and the arm64 installer (§6).
 > Everything here was read from the files in the repository; statements that could not be fully verified are marked
 > **[uncertain]**. Rationales are labelled **[documented]** (comes from code comments, `PIANO_WINDOWS.md`, `FORMATI.md` or git
 > history) or **[inferred]** (deduced from the code).
 > UI strings and code comments are in Italian (as on the Mac); identifiers are English. UI strings quoted here are glossed.
 > **What was and was not exercised on a real Windows machine:** the code runs on macOS during development (Electron is
-> cross-platform); the Windows CI job runs the type check, the logic tests (366 now) and the build on a Windows runner, and the author
+> cross-platform); the Windows CI job runs the type check, the logic tests (376 now) and the build on a Windows runner, and the author
 > installed the released installer on a Windows computer for a brief check (see `PARITA.md`, "Prova su Windows"). The parts that
 > only exist on Windows (real click-through, task-bar sides, scale factors, two monitors, sleep, fullscreen apps, virtual
 > desktops) are listed in `PROVE_SU_WINDOWS.md` and have **not** been verified one by one.
@@ -22,7 +22,7 @@
 
 ### 1.1 What the app does
 
-Same product as the Mac app: a desktop companion (one of five characters) that walks on the desktop, speaks, and keeps a
+Same product as the Mac app: a desktop companion (one of six characters) that walks on the desktop, speaks, and keeps a
 Pomodoro-style timer ("Pomofocus") with a notebook-like card, background sounds, statistics, companion unlocking and (since 1.1) a to-do
 list with optional due days. Study
 sessions are stored in the same JSON files as on the Mac (`../FORMATI.md`). Since 1.3 the garden: figurines found at the end of focuses, placed on six
@@ -49,7 +49,7 @@ HTTP client in the code **[inferred]**).
 cd windows
 npm install          # Electron, TypeScript, esbuild, electron-builder (devDependencies)
 npm run check        # tsc --noEmit
-npm test             # 366 tests, no dependencies needed
+npm test             # 376 tests, no dependencies needed
 npm start            # builds dist/ and opens the companion (on macOS: data in a test folder)
 npm run pacchetto    # build + stage resources + electron-builder --win → release/*.exe
 ```
@@ -65,7 +65,7 @@ uses (`build/assets`, 114 files) plus `resources/` (`build/resources`) for the i
 windows/
 ├── package.json, tsconfig.json, electron-builder.yml
 ├── README.md · ARCHITECTURE.md (this file) · PARITA.md · PROVE_SU_WINDOWS.md · RILASCIO.md · NOTE_DI_RILASCIO.md
-├── data/pets.json                  the four companions' data, GENERATED from Pet.swift by ../tools/genera-pets.sh (so Mac and Windows cannot differ)
+├── data/pets.json                  the six companions' data, GENERATED from Pet.swift by ../tools/genera-pets.sh (so Mac and Windows cannot differ)
 ├── resources/                      fine-focus.wav (the end-of-focus chime, generated from scratch), fonts/ (Chewy + licence)
 ├── installer/icon.png              the installer and program icon
 ├── src/
@@ -217,7 +217,7 @@ On the first `renderer:ready`, if `profile.introSeen` is false the main process 
 
 `needs = {card, modal, keyboard}` in the page (`syncInput()`): while the card or a dialog is open the window is interactive and focusable (it receives every
 click, so a click outside closes the card); while a text field of the reflection card is being used only the keyboard is requested. The main process
-applies `setFocusable(keyboard)` and, on a change, `focus()` or `blur()` — so the window never takes focus from the user's other application unless a field
+applies `setFocusable(keyboard)` and, on a change, `setSkipTaskbar(true)` again (on Windows changing *focusable* brings the taskbar button back; seen on the installed 2.0.0 with the welcome card open) and `focus()` or `blur()` — so the window never takes focus from the user's other application unless a field
 needs typing. (How focus returns to the other application on Windows is one of the unverified points.)
 
 ### 4.4 Several displays and the work area (`main/stage.ts`, `core/displays.ts`)
@@ -243,7 +243,7 @@ needs typing. (How focus returns to the other application on Windows is one of t
   (the page triggers it on `focusCompleted`). The loop in `overlay.ts` is a self-rescheduling `setTimeout` whose delay comes from `walker.intervalMs(...)`.
 - **Drag:** `mousedown` on a pixel starts a drag; after 3 px (`PICK_DISTANCE`) pets with a "picked" drawing switch to it, keeping the cursor on its grab point; the others follow the pointer
   by offset. On release the box returns to its normal size with the feet where the pet is.
-- **Growth during a focus:** pets with growth images (Ciccio, Porcellino) show them in place of the walking art and stand still (the box widens around the feet if the image is wider);
+- **Growth during a focus:** pets with growth images (Porcellino, Ciccio and Riccio with five, the Tartaruga with three: the stepping stones towards the flag) show them in place of the walking art and stand still (the box widens around the feet if the image is wider);
   Pianty (`growsWithTimer`) changes stage with progress; after a "+5" the progress stays at 1 so the plant does not shrink.
 - **Room for the clock:** if there is no room under the feet (task bar), `ensureRoomBelowPet()` raises the companion with an eased 220 ms tween and `restorePetHeight()` lowers it afterwards.
 
@@ -335,7 +335,7 @@ fields), and "Cancella tutto…" (confirmation; removes sessions, in-progress fi
 
 ### 4.14 Companion unlocking (`core/rewards.ts`, `core/unlocks.ts`, `main/card.ts`)
 
-The first companion is free; the others unlock at 20, 50 and 100 "full focuses" (50 minutes of study each, interrupted minutes included). After every recorded focus `evaluateCompanionRewards(true)` unlocks what was earned and the companion says so
+The first companion is free; the others unlock at 20, 50, 100, 150 and 200 "full focuses" (`THRESHOLDS` then 50 more each; the Tartaruga, last in the default order, at 200) (50 minutes of study each, interrupted minutes included). After every recorded focus `evaluateCompanionRewards(true)` unlocks what was earned and the companion says so
 9 seconds after the end-of-focus phrase (`sayWhenQuiet`, so it waits if a milestone is being said); at start the same runs silently. Locked companions cannot be chosen from the card or the menu.
 
 ### 4.15 System integration
@@ -489,7 +489,7 @@ metrics at those moments; `FF_SELFTEST_FILE=<script.cjs>` runs a script that rec
 **Live runs (`test/vivo/`, since 1.0.1).** The scenario scripts used during development are in the repository, with a runner: `test/vivo/esegui.sh <script> [seconds]` builds,
 creates a **new** results folder with its own data folder inside it (it never uses real data and never deletes anything: if the folder exists it stops), writes
 `impostazioni.json` / `profilo.json`, opens the real Electron app with `FF_SELFTEST` and `FF_SELFTEST_FILE`, kills it after a time limit (macOS has no `timeout`),
-prints the app's output and shrinks the screenshots. `misure.sh` measures memory and CPU at rest. 29 scenarios cover the timer, the card, the dialogs, sounds, statistics, saving, the to-do list,
+prints the app's output and shrinks the screenshots. `installato.ps1` runs 22 of them against the **installed** app (from the real installer, on GitHub's x64 and ARM runners, `prova-installer.yml`), after a normal launch with a desktop screenshot and before the silent uninstall. `misure.sh` measures memory and CPU at rest. 39 scenarios cover the timer, the card, the dialogs, sounds, statistics, saving, the to-do list,
 displays, sleep and the packaged app; they **print what they observe** and take screenshots, for a person to judge: they are not assertions. `test/vivo/README.md` lists what each one checks and what it needs.
 
 ---
@@ -498,16 +498,16 @@ displays, sleep and the packaged app; they **print what they observe** and take 
 
 - **Build** (`tools/build.mjs`): six esbuild runs (main, preload, overlay page, stats preload, stats page, noise worklet); the two HTML files are copied; the CSS is concatenated (`overlay.css + card.css` and `card.css + stats.css`), so the card styles exist in both pages.
 - **Installer** (`electron-builder.yml`): files = `dist/**` + `package.json` (no source maps); `extraResources` puts `build/assets` and `build/resources` next to the asar; per-user NSIS (`%LOCALAPPDATA%\Programs\focusfriends-windows`, from the package name), Start-menu shortcut only, **does not delete the data on uninstall**,
-  one installer per architecture (`FocusFriends-Windows-<version>-<x64|arm64>-Setup.exe`, ≈ 127 / 121 MB). The Electron and Chromium licence texts are included by the packager. The installer is **not code-signed** (SmartScreen warning; options in `RILASCIO.md`).
+  one installer per architecture (`FocusFriends-Windows-<version>-<x64|arm64>-Setup.exe`, ≈ 175 / 178 MB in 2.0.0, about 450 MB once installed; 1.3.0 was 158 / 152 MB). The Electron and Chromium licence texts are included by the packager. The installer is **not code-signed** (SmartScreen warning; options in `RILASCIO.md`).
 - **CI** (`../.github/workflows/windows.yml`): on a Windows runner `npm ci` → `npm run check` → `npm test` → `npm run build` for every change under `windows/**`, `assets/**`, `tests/fixtures/**`, `FORMATI.md`; on a `windows-v*` tag (or by hand) it also builds the x64 and arm64 installers in parallel, writes a `.sha256` for each and, **only for a tag**, creates a **draft** release
   with the notes of `NOTE_DI_RILASCIO.md` and `SHA256SUMS.txt`. The arm64 installer is built with `ELECTRON_BUILDER_7Z_FILTER=BCJ`: with 7-Zip's default ARM64 filter the nsis7z extractor inside the installer silently skipped every `.exe`/`.dll`. `prova-installer.yml` (by hand) installs a release's installers, or a build's (`run`), on Windows x64 and ARM runners and runs `test/vivo/installato.ps1` against the installed app. `mac.yml` has a job that runs the same logic tests on macOS, which is where the Swift side of the contract runs.
-- **Release procedure:** `RILASCIO.md` (version in `package.json`, tag `windows-v<version>`, review and publish the draft). `windows-v1.0.0` was published as a normal release **without** being marked "Latest" (that stays on the Mac's `v0.8.0`).
+- **Release procedure:** `RILASCIO.md` (version in `package.json`, tag `windows-v<version>`, review and publish the draft). `windows-v1.0.0` was published as a normal release **without** being marked "Latest" (that stays on the Mac's `v0.8.0`); so were the following ones. From 2.0.0 the two apps share the version number and are published together, Windows first, so that the Mac's release stays "Latest". Before publishing, `prova-installer.yml` tries the draft's installers on x64 and ARM.
 
 ---
 
 ## 7. Tests (`test/`, `npm test`)
 
-366 tests in 29 files, no framework, no dependencies. They run unchanged in the main process's code paths because the logic is pure.
+376 tests in 29 files, no framework, no dependencies. They run unchanged in the main process's code paths because the logic is pure.
 
 | File(s) | What they cover |
 |---|---|
