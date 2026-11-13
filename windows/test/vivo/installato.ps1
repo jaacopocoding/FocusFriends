@@ -85,6 +85,16 @@ if (-not $found) {
     Start-Sleep -Seconds 10
     $installed = (Get-ChildItem (Join-Path $env:LOCALAPPDATA "Programs\focusfriends-windows") -Recurse -File -ErrorAction SilentlyContinue).Count
     Write-Host "   $([math]::Round($t.TotalSeconds)) s; installati: $installed file; FocusFriends.exe c'è? $(Test-Path (Join-Path $env:LOCALAPPDATA 'Programs\focusfriends-windows\FocusFriends.exe'))"
+    # Per confronto, l'installer dell'altro tipo di computer sulla stessa macchina (su ARM l'x64 gira emulato)
+    if ($env:INSTALLER_ALTRO -and (Test-Path $env:INSTALLER_ALTRO)) {
+      Write-Host "-- per confronto, l'altro installer: $(Split-Path $env:INSTALLER_ALTRO -Leaf)"
+      $un = Join-Path $env:LOCALAPPDATA "Programs\focusfriends-windows\Uninstall FocusFriends.exe"
+      if (Test-Path $un) { Start-Process -FilePath $un -ArgumentList "/S" -Wait; Start-Sleep -Seconds 8 }
+      Start-Process -FilePath $env:INSTALLER_ALTRO -ArgumentList "/S" -Wait; Start-Sleep -Seconds 10; Stop-App
+      $installed = (Get-ChildItem (Join-Path $env:LOCALAPPDATA "Programs\focusfriends-windows") -Recurse -File -ErrorAction SilentlyContinue).Count
+      Write-Host "   installati: $installed file; FocusFriends.exe c'è? $(Test-Path (Join-Path $env:LOCALAPPDATA 'Programs\focusfriends-windows\FocusFriends.exe'))"
+      Get-ChildItem (Join-Path $env:LOCALAPPDATA "Programs\focusfriends-windows") -File | Where-Object { $_.Extension -in ".exe", ".dll" } | ForEach-Object { Write-Host "   $($_.Name)" }
+    }
   } else { Write-Host "   7z non c'è" }
   Write-Host "-- di nuovo, con la finestra (per vedere un messaggio dell'installer):"
   $p = Start-Process -FilePath $Installer -PassThru; Start-Sleep -Seconds 25; Shot (Join-Path $Out "installer-con-finestra.png")
@@ -138,12 +148,12 @@ $scripts = @(
   @{ name = "statistiche"; seconds = 110 },
   @{ name = "anno"; seconds = 90 },
   @{ name = "dafare"; seconds = 90 },
-  @{ name = "sblocchi"; seconds = 60 },
+  @{ name = "sblocchi"; seconds = 60; profile = '{"version":1,"introSeen":true,"firstCompanion":"pianty","unlocked":["pianty"]}' },
   @{ name = "audio"; seconds = 90 },
   @{ name = "sicurezza"; seconds = 40 },
   @{ name = "chiusura"; seconds = 100 },
   @{ name = "giardino"; seconds = 130; profile = $all },
-  @{ name = "giardino-tartaruga"; seconds = 100; profile = $all },
+  @{ name = "giardino-tartaruga"; seconds = 100; profile = $all.Replace('"firstCompanion":"gattino"', '"firstCompanion":"tartaruga"') },
   @{ name = "giardino-interazioni"; seconds = 200; profile = '{"version":1,"introSeen":true,"firstCompanion":"gattino","unlocked":["gattino"]}' },
   @{ name = "album"; seconds = 90; profile = '{"version":1,"introSeen":true,"name":"Prova","firstCompanion":"gattino","unlocked":["gattino","pianty","porcellino"]}' },
   @{ name = "album-scene"; seconds = 90; profile = '{"version":1,"introSeen":true,"firstCompanion":"gattino","unlocked":["pianty","porcellino","ciccio","gattino"]}' }
