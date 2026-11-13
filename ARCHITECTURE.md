@@ -203,7 +203,7 @@ FocusFriends/
 │   │   └── cutout_interazioni.py the «animal + thing» scenes (2×2 Gemini sheets on magenta) → assets/interazioni/<pet>-<item>.png, and where the thing sits in each scene (GardenInteractions)
 │   ├── banchi/                   benches that draw the real Mac views off screen from a data folder, for comparisons and screenshots: render-giardino.sh, render-album.sh, render-scheda.sh (each with its main.swift), render-fumetti/ (used by compone-readme.sh)
 │   ├── genera-pets.sh, genera-pets/   windows/data/pets.json from Pet.swift
-│   ├── compone-readme.sh, compone_readme.py   the README pictures from the app's drawings and its real bubbles; scrivania_readme.py draws the desk GIF (drawn at 2×: the companion walks, speaks, the clock rolls up like `TimerView.reveal` and unrolls when the cursor rests on the companion, closing 1 s after it leaves, as in `Pomodoro.evaluateVisibility`)
+│   ├── compone-readme.sh, compone_readme.py   the README pictures from the app's drawings and its real bubbles; scrivania_readme.py draws the desk shared by the three desk pictures (the GIF, `menu-schermata.png`, `giro.png`) and the GIF itself (drawn at 2×: the companion walks, speaks, the clock rolls up like `TimerView.reveal` and unrolls when the cursor rests on the companion, closing 1 s after it leaves, as in `Pomodoro.evaluateVisibility`)
 │   └── make_icon.py               builds AppIcon.png/.icns and docs/images/logo.png from assets/logo_original.png
 ├── assets/                       source and processed artwork, phrase files, music (see build.sh for what is bundled)
 │   ├── AppIcon.icns / AppIcon.png, logo_original.png, bubble.png / bubble_original.png

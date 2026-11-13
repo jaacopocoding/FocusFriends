@@ -215,27 +215,35 @@ def dock(img):
         icon(img, x0 + 14 + k * (size + gap), y0 + 8, size)
 
 
-def desk():
-    """La scrivania senza il compagno: la dispensa a destra, gli appunti a sinistra, la barra dei menu e il Dock."""
-    img = wallpaper()
-    d = window(img, (600, 62, 1056, 336), "Dispensa di fisiologia")
-    text(d, (628, 120), "Il potenziale d'azione", face(NY, 21, 600), (50, 40, 40))
-    body_lines(d, 628, 156, ["Quando lo stimolo supera la soglia, i canali", "del sodio si aprono e la membrana si",
-                             "depolarizza: il segnale corre lungo l'assone."], size=13.5)
-    neuron(d, 690, 284, 14)
-    text(d, (880, 300), "fig. 3.2", face(SF, 11.5, 400), (150, 140, 136))
-    d = window(img, (44, 84, 600, 404), "Anatomia · appunti")
-    text(d, (78, 144), "Il sistema nervoso", face(NY, 30, 650), (38, 32, 32))
-    body_lines(d, 78, 196, ["Il sistema nervoso centrale comprende l'encefalo", "e il midollo spinale. Riceve le informazioni dai",
-                            "nervi e prepara le risposte. Le cellule principali", "sono i neuroni: ognuno ha un corpo, i dendriti",
-                            "che ricevono i segnali e un assone."])
-    d.rounded_rectangle((s(78), s(360), s(176), s(382)), s(11), fill=(255, 233, 196))
-    text(d, (90, 363), "da ripassare", face(SF, 12.5, 600), (176, 104, 36))
-    d.rounded_rectangle((s(184), s(360), s(258), s(382)), s(11), fill=(220, 236, 226))
-    text(d, (196, 363), "esame", face(SF, 12.5, 600), (60, 130, 90))
-    menubar(img)
-    dock(img)
-    return img
+def desk(size=(1100, 720)):
+    """La scrivania senza il compagno, al doppio della grandezza: la dispensa a destra, gli appunti a sinistra, la barra dei menu e il Dock.
+    È la stessa per tutte le immagini del README (la GIF qui sotto, e la scheda e il giro in compone_readme.py, che sono più grandi:
+    le finestre restano al centro, le colline e il Dock si allargano)."""
+    global W, H
+    saved, (W, H) = (W, H), size
+    try:
+        dx = (W - 1100) / 2
+        img = wallpaper()
+        d = window(img, (600 + dx, 62, 1056 + dx, 336), "Dispensa di fisiologia")
+        text(d, (628 + dx, 120), "Il potenziale d'azione", face(NY, 21, 600), (50, 40, 40))
+        body_lines(d, 628 + dx, 156, ["Quando lo stimolo supera la soglia, i canali", "del sodio si aprono e la membrana si",
+                                      "depolarizza: il segnale corre lungo l'assone."], size=13.5)
+        neuron(d, 690 + dx, 284, 14)
+        text(d, (880 + dx, 300), "fig. 3.2", face(SF, 11.5, 400), (150, 140, 136))
+        d = window(img, (44 + dx, 84, 600 + dx, 404), "Anatomia · appunti")
+        text(d, (78 + dx, 144), "Il sistema nervoso", face(NY, 30, 650), (38, 32, 32))
+        body_lines(d, 78 + dx, 196, ["Il sistema nervoso centrale comprende l'encefalo", "e il midollo spinale. Riceve le informazioni dai",
+                                     "nervi e prepara le risposte. Le cellule principali", "sono i neuroni: ognuno ha un corpo, i dendriti",
+                                     "che ricevono i segnali e un assone."])
+        d.rounded_rectangle((s(78 + dx), s(360), s(176 + dx), s(382)), s(11), fill=(255, 233, 196))
+        text(d, (90 + dx, 363), "da ripassare", face(SF, 12.5, 600), (176, 104, 36))
+        d.rounded_rectangle((s(184 + dx), s(360), s(258 + dx), s(382)), s(11), fill=(220, 236, 226))
+        text(d, (196 + dx, 363), "esame", face(SF, 12.5, 600), (60, 130, 90))
+        menubar(img)
+        dock(img)
+        return img
+    finally:
+        W, H = saved
 
 
 # ---------------------------------------------------------------------------------------------------------------------------------------------------

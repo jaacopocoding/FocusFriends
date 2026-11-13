@@ -106,94 +106,10 @@ def crescita():
 # Il compagno sullo schermo: una scrivania con gli appunti, e lui che cammina, con il fumetto e l'orologio veri dell'app (disegnati da tools/banchi/render-fumetti).
 
 
-def fumetto(n):
-    return Image.open(f"build/readme/bubble{n}.png").convert("RGBA")
-
-
-def gradient(size, top, bottom):
-    from PIL import ImageFilter
-    width, height = size
-    image = Image.new("RGB", size)
-    px = image.load()
-    for y in range(height):
-        t = y / (height - 1)
-        row = tuple(round(top[i] + (bottom[i] - top[i]) * t) for i in range(3))
-        for x in range(width):
-            px[x, y] = row
-    return image
-
-
-import math
-
-
-def wallpaper(W, H):
-    """Uno sfondo morbido, di colline: i colori dell'app, senza niente che distragga."""
-    from PIL import ImageFilter
-    image = gradient((W, H), (255, 240, 220), (253, 216, 190))
-    draw = ImageDraw.Draw(image)
-    layers = [(0.58, (206, 218, 200), 0.0085, 0.9, 20), (0.68, (166, 204, 176), 0.0068, 2.1, 26), (0.80, (126, 182, 148), 0.0052, 3.3, 30)]
-    for base, color, frequency, phase, amplitude in layers:
-        points = [(0, H)]
-        for x in range(0, W + 8, 8):
-            points.append((x, H * base + amplitude * math.sin(x * frequency + phase) + amplitude * 0.4 * math.sin(x * frequency * 2.1 + phase * 1.7)))
-        points.append((W, H))
-        draw.polygon(points, fill=color)
-    return image.filter(ImageFilter.GaussianBlur(1.2))
-
-
-def window(image, box, title, shadow=True):
-    from PIL import ImageFilter
-    x0, y0, x1, y1 = box
-    if shadow:
-        layer = Image.new("RGBA", image.size, (0, 0, 0, 0))
-        ImageDraw.Draw(layer).rounded_rectangle((x0, y0 + 12, x1, y1 + 12), 20, fill=(70, 50, 60, 90))
-        layer = layer.filter(ImageFilter.GaussianBlur(20))
-        image.paste(layer, (0, 0), layer)
-    draw = ImageDraw.Draw(image, "RGBA")
-    draw.rounded_rectangle(box, 20, fill=(253, 253, 252), outline=(222, 218, 214), width=2)
-    draw.rounded_rectangle((x0, y0, x1, y0 + 50), 20, fill=(240, 237, 234))
-    draw.rectangle((x0, y0 + 30, x1, y0 + 50), fill=(240, 237, 234))
-    for k, color in enumerate([(255, 96, 92), (255, 189, 68), (0, 202, 78)]):
-        draw.ellipse((x0 + 22 + k * 28, y0 + 16, x0 + 38 + k * 28, y0 + 32), fill=color)
-    centered(draw, title, (x0 + x1) // 2, y0 + 12, font(TEXT, 20), (120, 112, 108))
-    return draw
-
-
-def desk_scene(W, H, icon_active=False):
-    """La scrivania, senza il compagno: gli appunti davanti, una dispensa dietro, la barra dei menu e il Dock."""
-    from PIL import ImageFilter
-    image = wallpaper(W, H)
-    # la dispensa, dietro
-    back = window(image, (560, 54, 1050, 330), "Dispensa di fisiologia", shadow=True)
-    for k in range(6):
-        back.rounded_rectangle((600, 124 + k * 28, 600 + 380 - (k % 3) * 70, 135 + k * 28), 6, fill=(226, 222, 218))
-    back.rounded_rectangle((600, 290, 760, 314), 8, fill=(232, 226, 214))
-    # gli appunti, davanti
-    front = window(image, (50, 78, 640, 400), "Anatomia · appunti")
-    front.text((88, 124), "Il sistema nervoso", font=ImageFont.truetype("/System/Library/Fonts/SFNS.ttf", 38), fill=(45, 40, 40))
-    lines = ["Il sistema nervoso centrale comprende l'encefalo", "e il midollo spinale. Riceve le informazioni dai", "nervi e prepara le risposte.",
-             "Le cellule principali sono i neuroni: ognuno ha un", "corpo, i dendriti che ricevono i segnali e un assone."]
-    for k, line in enumerate(lines):
-        front.text((88, 186 + k * 31), line, font=font(TEXT, 21), fill=(100, 92, 90))
-    front.rounded_rectangle((88, 350, 238, 376), 10, fill=(255, 235, 200))
-    front.text((100, 353), "da ripassare", font=font(TEXT, 18), fill=(176, 108, 40))
-    # la barra dei menu, con l'icona dell'app
-    draw = ImageDraw.Draw(image, "RGBA")
-    draw.rectangle((0, 0, W, 30), fill=(255, 255, 255, 170))
-    if icon_active:
-        draw.rounded_rectangle((W - 174, 3, W - 142, 27), 6, fill=(60, 60, 70, 70))
-    logo = Image.open("docs/images/logo.png").convert("RGBA").resize((20, 20), Image.LANCZOS)
-    image.paste(logo, (W - 168, 5), logo)
-    draw.text((W - 132, 6), "lun 16:40", font=font(TEXT, 16), fill=(50, 44, 44, 235))
-    draw.text((22, 6), "Appunti", font=font(TEXT, 16), fill=(50, 44, 44, 235))
-    # il Dock
-    dock_w = 520
-    draw.rounded_rectangle(((W - dock_w) // 2, H - 66, (W + dock_w) // 2, H - 14), 22, fill=(255, 255, 255, 150), outline=(255, 255, 255, 200), width=2)
-    colors = [(255, 140, 90), (96, 170, 240), (110, 200, 130), (245, 200, 80), (200, 130, 220), (240, 110, 130), (120, 120, 140)]
-    for k, color in enumerate(colors):
-        cx = (W - dock_w) // 2 + 46 + k * 71
-        draw.rounded_rectangle((cx - 22, H - 58, cx + 22, H - 22), 11, fill=color + (255,))
-    return image
+def desk_scene(W, H):
+    """La scrivania senza il compagno (la stessa della GIF: tools/scrivania_readme.py), alla grandezza di questa immagine."""
+    import scrivania_readme
+    return scrivania_readme.desk((W, H)).resize((W, H), Image.LANCZOS)
 
 
 def scrivania():
