@@ -5,7 +5,7 @@
 `npm run pacchetto` (dentro `windows/`) compila, prepara le risorse (`build/assets`: solo le immagini, le frasi e i brani che l'app usa) e
 fa l'installer con electron-builder (`electron-builder.yml`): un file `FocusFriends-Windows-<versione>-<x64|arm64>-Setup.exe` per ogni tipo di
 computer, in `windows/release/`. È un installer **per l'utente** (NSIS, una sola finestra, nessun permesso di amministratore): mette l'app in
-`%LOCALAPPDATA%\Programs\FocusFriends`, crea la voce nel menu Start e la apre. Toglierla (da *App installate*) **non cancella i dati di studio**,
+`%LOCALAPPDATA%\Programs\focusfriends-windows`, crea la voce nel menu Start e la apre. Toglierla (da *App installate*) **non cancella i dati di studio**,
 che stanno in `%APPDATA%\FocusFriends` e sono dell'utente.
 
 Su un Mac si può provare tutto il pacchetto con `npx electron-builder --win nsis --x64 -c.win.signAndEditExecutable=false` (scarica da solo gli
@@ -21,7 +21,12 @@ note (`windows/NOTE_DI_RILASCIO.md`: il testo della release, scritto per chi sca
 1. `git tag windows-v<versione> && git push origin windows-v<versione>` (per esempio `windows-v1.0.1`; il tag lo metti tu: senza tag non si pubblica niente).
 2. Il flusso «Windows» (`.github/workflows/windows.yml`) controlla i tipi, lancia le prove, compila e fa i due installer su una macchina Windows di
    GitHub, calcola lo **SHA-256** di ognuno e crea una **bozza** di release con gli installer e `SHA256SUMS.txt`.
-3. La bozza ha già le note (`NOTE_DI_RILASCIO.md`): rileggile, e pubblica. Chi scarica può controllare il file da PowerShell:
+3. Prima di pubblicare, prova gli installer veri su Windows x64 e ARM con il flusso «Prova dell'installer»
+   (`gh workflow run prova-installer.yml -f tag=windows-v<versione>`): li installa, apre l'app, fa girare le prove dal vivo
+   (`test/vivo/installato.ps1`) e la disinstalla. Per provarli prima del tag: lancia «Windows» a mano e passa il numero della compilazione con `-f run=<numero>`.
+   L'installer ARM si fa con il filtro 7-Zip `BCJ` (`ELECTRON_BUILDER_7Z_FILTER`): con quello per ARM64, che l'estrattore dell'installer non conosce,
+   l'installer saltava tutti gli `.exe` e `.dll` e l'app non c'era.
+4. La bozza ha già le note (`NOTE_DI_RILASCIO.md`): rileggile, e pubblica. Chi scarica può controllare il file da PowerShell:
 
    ```powershell
    Get-FileHash .\FocusFriends-Windows-<versione>-x64-Setup.exe -Algorithm SHA256

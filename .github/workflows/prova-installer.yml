@@ -1,6 +1,7 @@
 # Prova l'installer vero di una release (anche in bozza) su macchine Windows di GitHub, x64 e ARM: lo installa, apre l'app come una
 # persona (con una schermata del desktop), le fa girare i copioni dal vivo e la disinstalla (windows/test/vivo/installato.ps1).
 # Si lancia a mano (Actions → «Prova dell'installer» → Run workflow) o con: gh workflow run prova-installer.yml -f tag=windows-v2.0.0
+# Con «run» (il numero di una compilazione di windows.yml lanciata a mano) prova invece gli installer di quella compilazione, prima del tag.
 name: Prova dell'installer
 
 on:
@@ -10,9 +11,14 @@ on:
         description: "Il tag della release da provare (anche in bozza)"
         required: true
         default: windows-v2.0.0
+      run:
+        description: "Oppure: il numero di una compilazione di «Windows» da cui prendere gli installer (vuoto = la release)"
+        required: false
+        default: ""
 
 permissions:
   contents: write   # per leggere anche le release in bozza (non scrive niente)
+  actions: read     # per gli installer di una compilazione
 
 jobs:
   prova:
@@ -36,7 +42,13 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release download "${{ inputs.tag }}" --repo "${{ github.repository }}" --dir scaricati --pattern "*-Setup.exe" --pattern SHA256SUMS.txt
+          if ("${{ inputs.run }}") {
+            gh run download "${{ inputs.run }}" --repo "${{ github.repository }}" --dir scaricati --pattern "installer-*"
+            Get-ChildItem scaricati -Recurse -File | Move-Item -Destination scaricati
+            Get-ChildItem scaricati -Filter *.sha256 | ForEach-Object { Get-Content $_.FullName } | Out-File scaricati/SHA256SUMS.txt
+          } else {
+            gh release download "${{ inputs.tag }}" --repo "${{ github.repository }}" --dir scaricati --pattern "*-Setup.exe" --pattern SHA256SUMS.txt
+          }
           $file = Get-ChildItem scaricati -Filter "*-${{ matrix.arch }}-Setup.exe" | Select-Object -First 1
           $other = Get-ChildItem scaricati -Filter "*-Setup.exe" | Where-Object { $_.Name -ne $file.Name } | Select-Object -First 1
           "INSTALLER_ALTRO=$($other.FullName)" | Out-File -Append $env:GITHUB_ENV

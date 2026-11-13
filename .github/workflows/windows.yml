@@ -54,7 +54,11 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm run risorse
+      # Per ARM: il 7-Zip recente comprime i programmi ARM64 con un filtro che l'estrattore dentro l'installer (nsis7z) non conosce, e
+      # l'installer saltava in silenzio tutti gli .exe e .dll. Con il filtro BCJ, che conosce, li estrae (visto con prova-installer.yml).
       - run: npx electron-builder --win nsis --${{ matrix.arch }} --publish never
+        env:
+          ELECTRON_BUILDER_7Z_FILTER: ${{ matrix.arch == 'arm64' && 'BCJ' || '' }}
       - name: SHA-256
         shell: bash
         run: |

@@ -272,6 +272,9 @@ async function start(): Promise<void> {
     win.setIgnoreMouseEvents(!interactive, { forward: true });
     if (keyboard !== hadKeyboard) {
       win.setFocusable(keyboard);
+      // Su Windows cambiare «focusable» ridà alla finestra il pulsante nella barra delle applicazioni (visto sull'app installata,
+      // con la scheda di benvenuto aperta): si toglie di nuovo.
+      win.setSkipTaskbar(true);
       if (keyboard) win.focus(); else win.blur();
     }
     if (interactive !== wasInteractive) interactions.push(interactive ? "clic-acceso" : "clic-spento");
