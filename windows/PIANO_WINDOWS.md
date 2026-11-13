@@ -561,6 +561,8 @@ Ha trovato due guasti, corretti prima dell'uscita (`f5da9ab`): l'**installer ARM
 l'installer non conosce: ora `ELECTRON_BUILDER_7Z_FILTER=BCJ`; la 1.3.0 per ARM ha probabilmente lo stesso guasto), e il **pulsante nella barra delle applicazioni**
 che ricompariva con la scheda di benvenuto aperta. Rifatta la bozza `windows-v2.0.0` (tag su `f5da9ab`), riprovati gli installer della bozza: SHA-256 uguali, tutto passato.
 Installer: x64 175 MB, ARM64 178 MB (la 1.3.0: 158 e 152). 376 prove della logica. Da provare a mano: il punto **L** di `PROVE_SU_WINDOWS.md`.
+**Pubblicata il 13 novembre 2026** come [`windows-v2.0.0`](https://github.com/jaacopocoding/FocusFriends/releases/tag/windows-v2.0.0) (non firmata, non «Latest»), e subito dopo
+la [`v2.0.0`](https://github.com/jaacopocoding/FocusFriends/releases/tag/v2.0.0) per Mac, che è la «Latest». I file pubblicati hanno gli SHA-256 dei file provati.
 
 ## Cose che possono andare storte (e come si scoprono presto)
 

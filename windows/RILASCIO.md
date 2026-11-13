@@ -26,7 +26,9 @@ note (`windows/NOTE_DI_RILASCIO.md`: il testo della release, scritto per chi sca
    (`test/vivo/installato.ps1`) e la disinstalla. Per provarli prima del tag: lancia «Windows» a mano e passa il numero della compilazione con `-f run=<numero>`.
    L'installer ARM si fa con il filtro 7-Zip `BCJ` (`ELECTRON_BUILDER_7Z_FILTER`): con quello per ARM64, che l'estrattore dell'installer non conosce,
    l'installer saltava tutti gli `.exe` e `.dll` e l'app non c'era.
-4. La bozza ha già le note (`NOTE_DI_RILASCIO.md`): rileggile, e pubblica. Chi scarica può controllare il file da PowerShell:
+4. La bozza ha già le note (`NOTE_DI_RILASCIO.md`): rileggile, e pubblica.
+5. Dopo la pubblicazione: nel `README.md` della cartella principale i link diretti di «Scarica» hanno la versione nel nome (tag e file): vanno cambiati
+   (e con loro le dimensioni). Poi lo «Stato» di `windows/README.md`. Chi scarica può controllare il file da PowerShell:
 
    ```powershell
    Get-FileHash .\FocusFriends-Windows-<versione>-x64-Setup.exe -Algorithm SHA256
