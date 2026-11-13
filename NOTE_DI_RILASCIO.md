@@ -33,4 +33,4 @@ Per macOS 13 o successivo (Apple Silicon e Intel).
 Tutto resta sul tuo Mac: nessuna rete, nessun invio.
 
 SHA-256 di `FocusFriends-2.0.0-macOS.zip`:
-`46a09008bdb8af4403173d422339990bed32e38def36e8055511b6e8f19158f2`
+`bc0d9b26429cb90caf578fe396447b521e861717ee007aa51ead2756eb3a2774`

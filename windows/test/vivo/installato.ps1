@@ -32,7 +32,7 @@ $install = Start-Process -FilePath $Installer -ArgumentList "/S" -Wait -PassThru
 Write-Host "codice d'uscita dell'installer: $($install.ExitCode)"
 Start-Sleep -Seconds 3
 Stop-App
-# Dove l'ha messa l'installer (i documenti dicono %LOCALAPPDATA%\Programs\FocusFriends: si controlla)
+# Dove l'ha messa l'installer (i documenti dicono %LOCALAPPDATA%\Programs\focusfriends-windows: si controlla)
 # (l'installer può finire il lavoro in un processo figlio: si aspetta fino a due minuti)
 $found = $null
 for ($i = 0; $i -lt 24 -and -not $found; $i++) {
@@ -41,70 +41,19 @@ for ($i = 0; $i -lt 24 -and -not $found; $i++) {
 }
 if (-not $found) {
   Fail "dopo l'installazione FocusFriends.exe non c'è né in %LOCALAPPDATA%\Programs né in Program Files"
-  Write-Host "-- %LOCALAPPDATA%\Programs:"; Get-ChildItem (Join-Path $env:LOCALAPPDATA "Programs") -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "   $($_.Name)" }
-  Write-Host "-- processi:"; Get-Process | Where-Object { $_.Name -match "Focus|Setup|nsis|Un_" } | ForEach-Object { Write-Host "   $($_.Name) $($_.Id)" }
-  Write-Host "-- architettura: $env:PROCESSOR_ARCHITECTURE; $([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture)"
-  Write-Host "-- FocusFriends.exe in C:\Users e Program Files:"
-  Get-ChildItem C:\Users, $env:ProgramFiles, ${env:ProgramFiles(x86)} -Filter "FocusFriends*.exe" -Recurse -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "   $($_.FullName)" }
-  Write-Host "-- registro (Uninstall):"
-  Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*", "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*" -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -like "FocusFriends*" } | Format-List | Out-String | Write-Host
+  # Per capire cosa è successo: cosa c'è nelle cartelle dei programmi e la voce di registro dell'installer
   foreach ($d in Get-ChildItem (Join-Path $env:LOCALAPPDATA "Programs") -Directory -ErrorAction SilentlyContinue) {
     Write-Host "-- contenuto di $($d.FullName):"
-    Get-ChildItem $d.FullName -Recurse -Depth 1 -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "   $($_.FullName.Substring($d.FullName.Length)) $($_.Length)" }
+    Get-ChildItem $d.FullName -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "   $($_.Name) $($_.Length)" }
   }
-  Write-Host "-- Defender, minacce trovate:"
-  try { Get-MpThreatDetection | Format-List | Out-String | Write-Host } catch { Write-Host "   (non si legge: $_)" }
-  try { Get-MpThreat | Format-List | Out-String | Write-Host } catch { }
-  Write-Host "-- dentro l'installer (7z):"
-  $sevenZip = @("C:\Program Files\7-Zip\7z.exe", "7z") | Where-Object { Get-Command $_ -ErrorAction SilentlyContinue } | Select-Object -First 1
-  if ($sevenZip) {
-    & $sevenZip l $Installer | Write-Host
-    $x = Join-Path $env:RUNNER_TEMP "dentro-installer"
-    & $sevenZip x $Installer "-o$x" -y | Out-Null
-    Get-ChildItem $x -Recurse -Filter "app-*.7z" | ForEach-Object { Write-Host "== $($_.Name)"; & $sevenZip l $_.FullName | Select-String -Pattern "\.exe|\.asar|files|folders" | ForEach-Object { Write-Host "   $_" } }
-    Write-Host "-- spazio libero: $([math]::Round((Get-PSDrive C).Free / 1GB, 1)) GB"
-    $app7z = Get-ChildItem $x -Recurse -Filter "app-*.7z" | Select-Object -First 1
-    $direct = Join-Path $env:RUNNER_TEMP "estratta"
-    & $sevenZip x $app7z.FullName "-o$direct" -y | Out-Null
-    $count = (Get-ChildItem $direct -Recurse -File).Count
-    Write-Host "-- estratta con 7z: $count file; FocusFriends.exe c'è? $(Test-Path (Join-Path $direct 'FocusFriends.exe'))"
-    Get-ChildItem $direct -File | Where-Object { $_.Extension -in ".exe", ".dll" } | ForEach-Object { Write-Host "   $($_.Name) $($_.Length)" }
-    $installed = (Get-ChildItem (Join-Path $env:LOCALAPPDATA "Programs\focusfriends-windows") -Recurse -File -ErrorAction SilentlyContinue).Count
-    Write-Host "-- installati: $installed file su $count"
-    # L'app estratta a mano parte? (copione «pacchetto», dati in una cartella nuova)
-    $o = Join-Path $Out "estratta-pacchetto"; New-Item -ItemType Directory -Path (Join-Path $o "data") | Out-Null
-    Set-Content -Path (Join-Path $o "data\profilo.json") -Value '{"version": 1, "introSeen": true}' -Encoding utf8NoBOM
-    $env:FF_SELFTEST = "1"; $env:FF_DATA_DIR = Join-Path $o "data"; $env:FF_SELFTEST_OUT = $o; $env:FF_SELFTEST_FILE = Join-Path $here "pacchetto.cjs"
-    $proc = Start-Process -FilePath (Join-Path $direct "FocusFriends.exe") -PassThru -RedirectStandardOutput (Join-Path $o "log.txt") -RedirectStandardError (Join-Path $o "errori.txt")
-    if (-not $proc.WaitForExit(60000)) { Write-Host "   l'app estratta non ha finito in 60 s"; $proc | Stop-Process -Force }
-    Remove-Item Env:FF_SELFTEST, Env:FF_DATA_DIR, Env:FF_SELFTEST_OUT, Env:FF_SELFTEST_FILE
-    Write-Host "-- l'app estratta a mano, copione pacchetto (codice $($proc.ExitCode)):"; Get-Content (Join-Path $o "log.txt") | Write-Host
-    # Un secondo tentativo dell'installer, senza finestre
-    Write-Host "-- secondo tentativo con /S:"
-    $t = Measure-Command { Start-Process -FilePath $Installer -ArgumentList "/S" -Wait }
-    Start-Sleep -Seconds 10
-    $installed = (Get-ChildItem (Join-Path $env:LOCALAPPDATA "Programs\focusfriends-windows") -Recurse -File -ErrorAction SilentlyContinue).Count
-    Write-Host "   $([math]::Round($t.TotalSeconds)) s; installati: $installed file; FocusFriends.exe c'è? $(Test-Path (Join-Path $env:LOCALAPPDATA 'Programs\focusfriends-windows\FocusFriends.exe'))"
-    # Per confronto, l'installer dell'altro tipo di computer sulla stessa macchina (su ARM l'x64 gira emulato)
-    if ($env:INSTALLER_ALTRO -and (Test-Path $env:INSTALLER_ALTRO)) {
-      Write-Host "-- per confronto, l'altro installer: $(Split-Path $env:INSTALLER_ALTRO -Leaf)"
-      $un = Join-Path $env:LOCALAPPDATA "Programs\focusfriends-windows\Uninstall FocusFriends.exe"
-      if (Test-Path $un) { Start-Process -FilePath $un -ArgumentList "/S" -Wait; Start-Sleep -Seconds 8 }
-      Start-Process -FilePath $env:INSTALLER_ALTRO -ArgumentList "/S" -Wait; Start-Sleep -Seconds 10; Stop-App
-      $installed = (Get-ChildItem (Join-Path $env:LOCALAPPDATA "Programs\focusfriends-windows") -Recurse -File -ErrorAction SilentlyContinue).Count
-      Write-Host "   installati: $installed file; FocusFriends.exe c'è? $(Test-Path (Join-Path $env:LOCALAPPDATA 'Programs\focusfriends-windows\FocusFriends.exe'))"
-      Get-ChildItem (Join-Path $env:LOCALAPPDATA "Programs\focusfriends-windows") -File | Where-Object { $_.Extension -in ".exe", ".dll" } | ForEach-Object { Write-Host "   $($_.Name)" }
-    }
-  } else { Write-Host "   7z non c'è" }
-  Write-Host "-- di nuovo, con la finestra (per vedere un messaggio dell'installer):"
-  $p = Start-Process -FilePath $Installer -PassThru; Start-Sleep -Seconds 25; Shot (Join-Path $Out "installer-con-finestra.png")
-  Write-Host "   l'installer è ancora aperto? $(-not $p.HasExited)"
+  Write-Host "-- registro (Uninstall):"
+  Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*", "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*" -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -like "FocusFriends*" } | Format-List | Out-String | Write-Host
   exit 1
 }
 $exe = $found.FullName
 $dir = $found.DirectoryName
 Write-Host "installata in $dir"
-if ($dir -ne (Join-Path $env:LOCALAPPDATA "Programs\FocusFriends")) { Write-Host "::warning::la cartella non è quella dei documenti (%LOCALAPPDATA%\Programs\FocusFriends): $dir" }
+if ($dir -ne (Join-Path $env:LOCALAPPDATA "Programs\focusfriends-windows")) { Write-Host "::warning::la cartella non è quella dei documenti (%LOCALAPPDATA%\Programs\focusfriends-windows): $dir" }
 Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*" -ErrorAction SilentlyContinue | Where-Object { $_.DisplayName -like "FocusFriends*" } | Select-Object DisplayName, DisplayVersion, Publisher, InstallLocation | Format-List | Out-String | Write-Host
 Get-ChildItem $dir | Select-Object Name, Length | Format-Table | Out-String | Write-Host
 $startMenu = Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs\FocusFriends.lnk"

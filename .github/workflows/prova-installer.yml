@@ -50,8 +50,6 @@ jobs:
             gh release download "${{ inputs.tag }}" --repo "${{ github.repository }}" --dir scaricati --pattern "*-Setup.exe" --pattern SHA256SUMS.txt
           }
           $file = Get-ChildItem scaricati -Filter "*-${{ matrix.arch }}-Setup.exe" | Select-Object -First 1
-          $other = Get-ChildItem scaricati -Filter "*-Setup.exe" | Where-Object { $_.Name -ne $file.Name } | Select-Object -First 1
-          "INSTALLER_ALTRO=$($other.FullName)" | Out-File -Append $env:GITHUB_ENV
           $hash = (Get-FileHash $file.FullName -Algorithm SHA256).Hash.ToLower()
           $expected = (Select-String -Path scaricati/SHA256SUMS.txt -Pattern ([regex]::Escape($file.Name))).Line.Split(" ")[0]
           Write-Host "$($file.Name): $hash (atteso $expected)"
