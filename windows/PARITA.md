@@ -1,7 +1,7 @@
 # Parità con l'app per Mac
 
 Funzione per funzione: cosa fa l'app per Mac (`README.md` «Cosa fa» e `ARCHITECTURE.md` §3), cosa fa la versione per Windows,
-e **come è stato verificato**. Il giardino c'è dalla 1.3 (vedi §11 e `PIANO_WINDOWS.md`, G0–G8); la 2.0 aggiunge la Tartaruga, il giro guidato, i compagni che usano le cose, le scene nell'album e le statistiche rifatte.
+e **come è stato verificato**. Il giardino c'è dalla 1.3 (vedi §11 e `PIANO_WINDOWS.md`, G0–G8); la 2.0 aggiunge la Tartaruga, il giro guidato, i compagni che usano le cose, le scene nell'album e le statistiche rifatte; la 2.0.1 la pagina «Avatar» della scheda.
 
 **Prova su Windows (18 ottobre 2026):** una prova sommaria su un computer Windows vero con l'installer della CI: l'app si installa, parte e «funziona bene»,
 circa 200 MB e 0 % di processore. **Le sigle W qui sotto non sono state spuntate una per una**: restano da fare con `PROVE_SU_WINDOWS.md`.
@@ -14,7 +14,7 @@ circa 200 MB e 0 % di processore. **Le sigle W qui sotto non sono state spuntate
 
 | Sigla | Significato |
 |---|---|
-| **P** | Prova automatica (`npm test`, 376 prove): la logica dà gli stessi risultati. Le prove «di contratto» confrontano con i risultati dell'app per Mac sugli stessi file. |
+| **P** | Prova automatica (`npm test`, 379 prove): la logica dà gli stessi risultati. Le prove «di contratto» confrontano con i risultati dell'app per Mac sugli stessi file. |
 | **S** | Prova dal vivo sul Mac con l'app vera di Electron: eventi del mouse e tastiera simulati, schermate e misure (`FF_SELFTEST`). I copioni sono in `test/vivo/`. |
 | **W** | **Solo su Windows**: non si può provare dal Mac. Il passo da fare è in `PROVE_SU_WINDOWS.md`. |
 | **C** | Scritto nel codice, **senza una prova dedicata**: l'ho letto, non l'ho visto funzionare. |
@@ -32,7 +32,7 @@ circa 200 MB e 0 % di processore. **Le sigle W qui sotto non sono state spuntate
 | Su tutti gli Spaces | Windows non permette a una finestra di stare su tutti i desktop virtuali senza codice nativo: resta sul desktop in cui è nata | ≠ **W** (vedi §10) |
 | Fumetto sempre sopra il disegno, di lato se manca posto | Uguale (stessa geometria) | P S |
 | Nascondi / Mostra; fine di un focus lo rimette | Nel menu dell'area di notifica e nella scheda; a fine focus ricompare | S (nascondi e mostra); C (la ricomparsa a fine focus) |
-| Cambio compagno (solo gli sbloccati) | Scheda e menu; i bloccati non si scelgono | P S |
+| Cambio compagno (solo gli sbloccati) | Pagina «Avatar» della scheda («Studia con …») e menu; i bloccati non si scelgono | P S |
 | Nessuna icona nel Dock | Nessun pulsante nella barra delle applicazioni né in Alt+Tab (`skipTaskbar`, finestra non attivabile). **Corretto nella 2.0:** cambiare «focusable» (per esempio con la scheda di benvenuto aperta) ridava il pulsante; ora si toglie di nuovo | Schermata dell'app installata su x64 (GitHub): nessun pulsante, con la scheda di benvenuto aperta; Alt+Tab: **W** |
 | Più schermi: sul principale; lo si trascina dove si vuole | Una finestra che si sposta con il compagno da uno schermo all'altro (o dal menu «Schermo»); se lo schermo sparisce torna sul principale | P (geometria); S (due schermi finti); trascinamento vero e scala diversa tra due monitor: **W** |
 
@@ -83,11 +83,12 @@ circa 200 MB e 0 % di processore. **Le sigle W qui sotto non sono state spuntate
 | Icona nella barra dei menu; clic = scheda, tasto destro / ⌥-clic = menu classico | Icona nell'area di notifica; clic = scheda, tasto destro = menu completo. **Su Windows 11 l'icona nuova finisce nel menu «^» finché non la si trascina fuori**: il tasto destro sul compagno funziona comunque | W |
 | Tasto destro o ctrl-clic sul compagno = scheda di fianco a lui, lo segue, passa dall'altro lato ai bordi | Tasto destro (non c'è il ctrl-clic su Windows); lo segue e passa dall'altro lato | S |
 | Esc o un clic fuori la chiudono | Uguale | S |
-| Pagina principale: compagni con lucchetti, durate 30/50/pausa, «Altri timer…», riquadri di oggi, impostazioni rapide, «Esci» | Uguale; dalla 1.3 con «Giardino», la riga «Album» e quella della prossima figurina | S |
+| Pagina principale: la riga «Avatar» (le teste di chi c'è, «2 con te · 4 da sbloccare») con sotto quanto manca al prossimo e la barra, durate 30/50/pausa, «Altri timer…», riquadri di oggi, impostazioni rapide, «Esci» | Uguale; dalla 1.3 con «Giardino», la riga «Album» e quella della prossima figurina. **Fino alla 2.0.0 c'era ancora la fila dei nomi con i lucchetti** (il Mac l'aveva sostituita il 29 ottobre): la riga «Avatar» c'è dalla 2.0.1 | P S (`test/vivo/avatar.cjs`) |
+| **Pagina «Avatar»**: i compagni in fila sul palco, quello al centro grande e i vicini più piccoli; si scorre trascinando, con due dita, toccando un vicino, con le frecce o con i puntini. Chi non è sbloccato è una sagoma nera sfocata, «???», «L'isola è ancora chiusa», «ancora N focus pieni (circa N h)», la barra e la promessa della sua isola; chi c'è: «✓ con te» o «Studia con …» | Uguale, su un `<canvas>` (`renderer/card/avatarStage.ts`: la sagoma con il filtro `brightness(0) blur()`); anche con le frecce della tastiera. Il nome di chi è bloccato non arriva nemmeno alla pagina (`CardData.avatars`) | P S (`test/vivo/avatar.cjs`: frecce, trascinamento simulato nella pagina, «Studia con»); il trascinamento con un mouse e un touchpad veri: **W** |
 | «Gira il timer»: quadrante a pomodoro 5–120 / 1–30, rotella, fino a 6 timer salvati per tipo | Uguale (anche con le frecce) | P S |
 | Pagina del focus e della pausa (verde), facce per l'ultimo focus | Uguale | S |
 | **Da fare** (dalla 1.1): riga nella scheda; lista divisa in scadute, oggi, prossime, senza data, con il «+» in alto; pagina «Nuova cosa» (nome, scadenza, materia) e «Modifica» toccando il testo di una voce (dalla 1.1.1); ▶ «Inizia un focus» (dalla 1.1.1 porta al quadrante «Gira il timer» per scegliere i minuti, e parte con la materia della voce; senza materia si chiede «Cosa studi adesso?») e × sotto il mouse; voci fatte ripiegate, tolte dopo 7 giorni | Uguale. Il calendario di «Scegli…» è disegnato nella scheda (quello di sistema si apre in una finestra a parte, che in una finestra trasparente e senza fuoco non è affidabile) | P (contratto su 4 cartelle di esempio, nei due versi) S (`test/vivo/dafare.cjs`) |
-| Menu classico: Nascondi/Mostra, Fai parlare, Pomofocus, Statistiche, Il tuo nome, Chiedi com'è andata, Pausa lunga, Frequenza, Personaggio, Movimento, Avvia al login, Modifica le frasi, Esci | Tutte le voci, più **Schermo** (con più schermi) e i sottomenu di suono e musica | C (l'elenco); **W** (come si apre) |
+| Menu classico: Nascondi/Mostra, Fai parlare, Pomofocus, Statistiche, Il tuo nome, Chiedi com'è andata, Pausa lunga, Frequenza, Personaggio (chi è bloccato: «??? · si sblocca a 20 focus: ne hai 12»), Movimento, Avvia al login, Modifica le frasi, Esci | Tutte le voci, più **Schermo** (con più schermi) e i sottomenu di suono e musica; «???» al posto del nome di chi è bloccato dalla 2.0.1 | C (l'elenco); **W** (come si apre) |
 | Tutto leggibile ai lettori di schermo | Pulsanti veri con etichette; tastiera completa | C; con un lettore vero (Narrator): **W** |
 | Icona del compagno (la testa) | Stessa testa, 32 px | C; **W** |
 | Aspetto «carta»; carattere Marker Felt (Wide) | Stesso disegno in SVG; **Chewy al posto di Marker Felt** (il più vicino tra 44 caratteri liberi, misurato contro l'originale), icone Lucide al posto di SF Symbols | ≠ voluta: le lettere non sono identiche |

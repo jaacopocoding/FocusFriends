@@ -5,6 +5,17 @@ un timer Pomofocus con la sua schermata del focus, i suoni di sottofondo, le sta
 Stessi dati, stesse regole e stesso aspetto dell'[app per Mac](https://github.com/jaacopocoding/FocusFriends#readme): i file di studio si possono
 leggere con l'una e con l'altra.
 
+### Novità della 2.0.1 (non ancora pubblicata)
+
+- **La pagina «Avatar»**, come sul Mac. Nella scheda, al posto della fila dei nomi con i lucchetti, c'è una riga «Avatar» con le teste dei compagni
+  che hai e il conto («2 con te · 4 da sbloccare»), e sotto quanto manca al prossimo, con la sua barra. Toccandola si apre una pagina a parte: i compagni
+  stanno in fila su un palco, quello scelto grande al centro e i vicini più piccoli ai lati, e si scorre trascinando, con due dita sul touchpad, toccando
+  un vicino, con le frecce o con i puntini. Chi non hai ancora è una **sagoma nera sfocata, senza nome** («???»), con quanto manca («ancora 18 focus
+  pieni, circa 15 h») e la promessa della sua isola; chi hai lo scegli con «Studia con …».
+- Il nome di un compagno bloccato non si legge più nemmeno nel menu dell'area di notifica: «??? · si sblocca a 20 focus».
+
+Niente cambia nei dati.
+
 ### Novità della 2.0
 
 **La Tartaruga**, la sesta compagna: cammina, mangia una fragola, dorme e ogni tanto si ritira nel guscio. **Durante un focus** avanza piano lungo un

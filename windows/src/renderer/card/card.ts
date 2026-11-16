@@ -3,13 +3,14 @@
 // riceve i clic (un clic fuori la chiude) e la tastiera (Esc la chiude).
 
 import { nextGiftLine } from "../../core/gardenDrops.ts";
-import type { CardData } from "../../core/card.ts";
+import type { AvatarCardEntry, CardData } from "../../core/card.ts";
 import { subjectColor } from "../../core/colors.ts";
 import { cardPlacement } from "../../core/displays.ts";
 import type { Rating } from "../../core/log.ts";
 import { PETS, petInfo } from "../../core/pets.ts";
 import type { PetData } from "../../core/pets.ts";
 import type { PomodoroSnapshot } from "../../core/pomodoro.ts";
+import { avatarCountLine, avatarProgress, hoursText, HIDDEN_NAME, nextAvatar, nextAvatarLine, remainingText } from "../../core/rewards.ts";
 import {
   ALLOWED_TIMERS, AMBIENT_TITLES, BACKGROUND_CHOICES, BACKGROUND_TITLES, CHATTINESS_TITLES, FOCUSES_PER_CYCLE,
 } from "../../core/rules.ts";
@@ -20,12 +21,13 @@ import { addDays, cleanToDoText, daysBetween, dueLabel, GROUP_TITLES, isValidDay
 import type { ToDoItem } from "../../core/todo.ts";
 import type { CardAnchor, CardCommand, CardOpenRequest, FocusFriendsApi } from "../../shared/api.ts";
 import { avatarCircle } from "../avatar.ts";
+import { AvatarStage } from "./avatarStage.ts";
 import { button, h, icon } from "./dom.ts";
 import type { IconName } from "./icons.generated.ts";
 import { ACCENT, REST_GREEN, RATING_TITLE, createDial, createPostIt, createTomato, cycleDots, faceIcon, sticker } from "./widgets.ts";
 import type { Dial, Tomato } from "./widgets.ts";
 
-type Page = "main" | "timers" | "focus" | "rest" | "todo";
+type Page = "main" | "timers" | "focus" | "rest" | "todo" | "avatars";
 
 const CARD_WIDTH = 300;
 /** Quanto il compagno esce dal bordo alto della carta (nella scheda e nel quadrante). */
@@ -63,7 +65,9 @@ export class MenuCard {
   private dialKind: TimerKind = "focus";
   private dialMinutes = 50;
   private timerMessage: string | null = null;
-  private lockHint: string | null = null;
+  /** La pagina «Avatar»: il compagno al centro del palco (null = quello che c'è adesso) e il palco, che resta quando la pagina si ricostruisce. */
+  private avatarIndex: number | null = null;
+  private avatarStage: AvatarStage | null = null;
   private draftNote = "";
   // La pagina «Da fare»: quello che si sta scrivendo e le scelte fatte, che restano mentre la scheda si ricostruisce.
   /** La cosa da fare per cui si sceglie quanto dura il focus (si arriva dal ▶ di «Da fare»): il quadrante la mostra e «Avvia» parte per lei. */
@@ -91,6 +95,12 @@ export class MenuCard {
     if (this.pinned) { this.onPinnedEscape?.(); return; }
     // Dentro il modulo «Nuova cosa» / «Modifica» Esc torna alla lista senza salvare.
     if (this.page === "todo" && this.todoForm !== null) this.closeToDoForm(); else this.close();
+  };
+  /** Nella pagina «Avatar» le frecce della tastiera scorrono la fila. */
+  private readonly onArrow = (event: KeyboardEvent): void => {
+    if (this.page !== "avatars" || !this.avatarStage || (event.key !== "ArrowLeft" && event.key !== "ArrowRight")) return;
+    event.preventDefault();
+    this.avatarStage.go(this.avatarStage.index + (event.key === "ArrowRight" ? 1 : -1));
   };
   private readonly onBlur = (): void => { if (!this.pinned) this.close(); };
 
@@ -144,6 +154,7 @@ export class MenuCard {
     this.host.container.append(this.backdrop, this.root);
     this.host.onOpenChange(true);
     window.addEventListener("keydown", this.onKey, true);
+    window.addEventListener("keydown", this.onArrow);
     window.addEventListener("blur", this.onBlur);
     this.shown = { phase: timer?.phase ?? null, paused: timer?.isPaused ?? false };
     this.rebuild(true);
@@ -160,7 +171,9 @@ export class MenuCard {
     this.dial = null;
     this.tomato = null;
     this.clock = null;
+    this.avatarStage = null;
     window.removeEventListener("keydown", this.onKey, true);
+    window.removeEventListener("keydown", this.onArrow);
     window.removeEventListener("blur", this.onBlur);
     window.clearTimeout(this.refreshTimer);
     backdrop?.remove();
@@ -259,6 +272,7 @@ export class MenuCard {
 
     root.replaceChildren();
     if (this.page !== "timers") this.todoFocus = null;
+    if (this.page !== "avatars") this.avatarStage = null;
     this.dial = null; this.tomato = null; this.clock = null;
     root.classList.toggle("notebook", this.page === "focus" || this.page === "rest");
     const state = timer ?? emptyTimer();
@@ -270,6 +284,7 @@ export class MenuCard {
       case "focus": this.buildFocus(body, data, state); break;
       case "rest": this.buildRest(body, data, state); break;
       case "todo": this.buildToDo(root, body, data); break;
+      case "avatars": this.buildAvatars(root, body, data); break;
     }
     root.scrollTop = scroll;
     const list = root.querySelector<HTMLElement>(".todo-list");
@@ -324,37 +339,8 @@ export class MenuCard {
       h("div", { class: "status" }, this.statusText(data, timer, pet)),
     );
 
-    // I compagni: i nomi, quello scelto sottolineato. Una riga sola se ci stanno tutti; altrimenti due, con lo stesso numero di nomi.
-    const names = data.companions.map((entry) => {
-      const selected = entry.id === pet.id;
-      const label = entry.lock !== null ? `${entry.name}, bloccato: ${entry.lock}` : `Compagno: ${entry.name}`;
-      return button(`companion${selected ? " selected" : ""}${entry.lock !== null ? " locked" : ""}`, label, () => {
-        if (entry.lock !== null) { this.lockHint = `${entry.name} ${entry.lock}`; this.rebuild(false); return; }
-        this.lockHint = null;
-        this.command({ name: "selectPet", id: entry.id });
-      }, entry.lock !== null ? icon("lock", 10) : null, entry.name);
-    });
-    const companions = h("div", { class: "companions" });
-    const fill = (perLine: number): void => {
-      companions.replaceChildren();
-      for (let start = 0; start < names.length; start += perLine) {
-        const row = h("div", { class: "companion-row" });
-        names.slice(start, start + perLine).forEach((name, i) => {
-          if (i > 0) row.append(h("span", { class: "sep", "aria-hidden": "true" }, "·"));
-          row.append(name);
-        });
-        companions.append(row);
-      }
-    };
-    fill(names.length);
-    companions.dataset["tour"] = "avatars";
-    body.append(companions);
-    if (companions.firstElementChild && companions.firstElementChild.scrollWidth > companions.clientWidth + 1) fill(Math.ceil(names.length / 2));
-    const locked = data.companions.filter((entry) => entry.lock !== null);
-    if (locked.length > 0) {
-      const next = locked[0]!;
-      body.append(h("div", { class: "lock-hint", "data-tour": "avatars" }, this.lockHint ?? `${next.name} ${next.lock}`));
-    }
+    // Gli avatar: una riga che apre la pagina, e quanto manca al prossimo da sbloccare.
+    this.avatarRow(body, data, pet);
 
     // Focus e pausa, oppure il timer che sta andando.
     const timerBlock = timer.phase !== null ? this.running(timer) : this.durations(data);
@@ -467,6 +453,116 @@ export class MenuCard {
       h("div", { class: "running-text" }, h("div", { class: "running-title" }, title), this.clock),
       button("pill-button primary", "Ferma il timer", () => this.command({ name: "stopTimer" }), "Ferma"),
     );
+  }
+
+  // ---- gli avatar (la riga della scheda e la pagina «Avatar», come in MenuCard.swift)
+
+  /** Una barra di avanzamento: la pista e la parte fatta (mai più stretta di un pallino). */
+  private bar(fraction: number, className: string): HTMLElement {
+    const fill = h("span", { class: "avatar-bar-fill" });
+    fill.style.width = `max(${Math.round(Math.min(Math.max(fraction, 0), 1) * 1000) / 10}%, var(--bar-height))`;
+    return h("span", { class: `avatar-bar ${className}` }, fill);
+  }
+
+  /** Apre la pagina «Avatar» sul compagno di adesso. */
+  private openAvatars(): void {
+    this.avatarIndex = null;
+    this.page = "avatars";
+    this.rebuild(false);
+  }
+
+  /** La riga «Avatar»: le teste dei compagni che ci sono, e un tocco apre la pagina per sceglierli. Sotto, quanto manca al prossimo da sbloccare
+   *  (senza dire chi è). Con più avatar e più isole la riga resta la stessa: cambia solo il conto. */
+  private avatarRow(body: HTMLElement, data: CardData, pet: PetData): void {
+    const unlocked = data.avatars.filter((entry) => entry.unlocked);
+    const subtitle = avatarCountLine(unlocked.length, data.avatars.length - unlocked.length);
+    const others = unlocked.filter((entry) => entry.id !== pet.id).map((entry) => petInfo(entry.id));
+    const heads = h("span", { class: "avatar-heads" });
+    for (const head of [pet, ...others].slice(0, 3)) heads.append(avatarCircle(head, 30, (path) => this.host.urlOf(path), "avatar-head"));
+    const row = button("avatar-row", `Avatar: ${subtitle}`, () => this.openAvatars(),
+      heads,
+      h("span", { class: "avatar-row-text" }, h("span", { class: "avatar-row-title" }, "Avatar"), h("span", { class: "avatar-row-subtitle" }, subtitle)),
+      icon("forward", 14));
+    row.dataset["tour"] = "avatars";
+    body.append(row);
+    const next = nextAvatar(data.avatars);
+    if (next) {
+      const line = nextAvatarLine(next.need, data.focusesDone);
+      const progress = button("avatar-next", line, () => this.openAvatars(),
+        h("span", { class: "avatar-next-text" }, line), this.bar(avatarProgress(next.need, data.focusesDone), "small"));
+      progress.dataset["tour"] = "avatars";
+      body.append(progress);
+    }
+  }
+
+  /** La pagina «Avatar»: i compagni in fila sul palco, quello scelto grande al centro; si scorre da uno all'altro. Chi non c'è ancora è una
+   *  sagoma nera sfocata, senza nome. */
+  private buildAvatars(root: HTMLElement, body: HTMLElement, data: CardData): void {
+    const entries = data.avatars;
+    if (entries.length === 0) { this.page = "main"; this.rebuild(false); return; }
+    root.prepend(h("div", { class: "avatar-spacer" }));
+    body.append(h("div", { class: "page-header" },
+      button("back", "Torna alla scheda", () => { this.page = "main"; this.rebuild(false); }, icon("back", 18)),
+      h("div", { class: "page-title" }, "Avatar"),
+      h("div", { class: "avatar-total" }, `${entries.filter((entry) => entry.unlocked).length} su ${entries.length}`),
+    ));
+
+    // Il palco: ricorda dov'era quando la pagina si ricostruisce
+    const found = entries.findIndex((entry) => entry.id === this.petId());
+    const current = Math.min(Math.max(this.avatarIndex ?? (found < 0 ? 0 : found), 0), entries.length - 1);
+    this.avatarIndex = current;
+    if (!this.avatarStage) {
+      const stage = new AvatarStage((path) => this.host.urlOf(path), CARD_WIDTH - 32, 204);
+      stage.onChange = (index) => { this.avatarIndex = index; this.rebuild(false); };
+      this.avatarStage = stage;
+    }
+    this.avatarStage.configure(entries.map((entry) => ({ pet: petInfo(entry.id), unlocked: entry.unlocked })), current);
+    body.append(this.avatarStage.element);
+
+    // Il nome (se c'è) e l'isola
+    const entry = entries[current]!;
+    const pet = petInfo(entry.id);
+    body.append(
+      h("div", { class: "avatar-name" }, entry.unlocked ? pet.name : HIDDEN_NAME),
+      h("div", { class: "avatar-island" }, entry.unlocked ? `Isola di ${pet.name}` : "L'isola è ancora chiusa"),
+    );
+
+    // Le frecce e i puntini (se sono troppi, il conto)
+    const go = (index: number): void => { this.avatarStage?.go(index); };
+    const arrow = (iconName: IconName, target: number, label: string, side: string): HTMLElement =>
+      button(`avatar-arrow ${side}`, label, () => go(target), icon(iconName, 14));
+    const nav = h("div", { class: "avatar-nav" },
+      current > 0 ? arrow("back", current - 1, "Compagno precedente", "left") : h("span", { class: "avatar-arrow-space" }));
+    const dotsRoom = CARD_WIDTH - 32 - 2 * (12 + 30 + 8);
+    if (entries.length * 14 + 10 <= dotsRoom) {
+      const dots = h("div", { class: "avatar-dots" });
+      entries.forEach((_, i) => dots.append(button(`avatar-dot${i === current ? " on" : ""}`, `Compagno ${i + 1} di ${entries.length}`, () => go(i), h("span", { class: "dot" }))));
+      nav.append(dots);
+    } else {
+      nav.append(h("div", { class: "avatar-count" }, `${current + 1} / ${entries.length}`));
+    }
+    nav.append(current < entries.length - 1 ? arrow("forward", current + 1, "Compagno successivo", "right") : h("span", { class: "avatar-arrow-space" }));
+    body.append(nav);
+
+    body.append(this.avatarInfo(entry, pet, data));
+  }
+
+  /** Sotto il palco: per chi c'è, «con te» o il pulsante per studiare con lui; per chi non c'è ancora, quanto manca (e mai chi è). */
+  private avatarInfo(entry: AvatarCardEntry, pet: PetData, data: CardData): HTMLElement {
+    if (entry.unlocked) {
+      if (pet.id === this.petId()) return h("div", { class: "avatar-info" }, h("div", { class: "avatar-with-you" }, "✓ con te"));
+      return h("div", { class: "avatar-info" },
+        button("avatar-choose", `Studia con ${pet.name}`, () => this.command({ name: "selectPet", id: pet.id }), `Studia con ${pet.name}`));
+    }
+    const have = Math.min(data.focusesDone, entry.need);
+    return h("div", { class: "avatar-info locked" },
+      h("div", { class: "avatar-remaining" },
+        h("span", {}, `${remainingText(entry.need, data.focusesDone)} (${hoursText(entry.need, data.focusesDone)})`),
+        h("span", {}, `${have} / ${entry.need}`)),
+      this.bar(avatarProgress(entry.need, data.focusesDone), "large"),
+      h("div", { class: "avatar-promise" }, entry.islandThings > 0
+        ? `Con un nuovo compagno si apre la sua isola, con ${entry.islandThings} cose nuove da trovare.`
+        : "Con un nuovo compagno si apre la sua isola."));
   }
 
   // ---- la pagina «Da fare» (ToDoPage.swift)

@@ -11,7 +11,7 @@
 > history) or **[inferred]** (deduced from the code).
 > UI strings and code comments are in Italian (as on the Mac); identifiers are English. UI strings quoted here are glossed.
 > **What was and was not exercised on a real Windows machine:** the code runs on macOS during development (Electron is
-> cross-platform); the Windows CI job runs the type check, the logic tests (376 now) and the build on a Windows runner, and the author
+> cross-platform); the Windows CI job runs the type check, the logic tests (379 now) and the build on a Windows runner, and the author
 > installed the released installer on a Windows computer for a brief check (see `PARITA.md`, "Prova su Windows"). The parts that
 > only exist on Windows (real click-through, task-bar sides, scale factors, two monitors, sleep, fullscreen apps, virtual
 > desktops) are listed in `PROVE_SU_WINDOWS.md` and have **not** been verified one by one.
@@ -49,7 +49,7 @@ HTTP client in the code **[inferred]**).
 cd windows
 npm install          # Electron, TypeScript, esbuild, electron-builder (devDependencies)
 npm run check        # tsc --noEmit
-npm test             # 376 tests, no dependencies needed
+npm test             # 379 tests, no dependencies needed
 npm start            # builds dist/ and opens the companion (on macOS: data in a test folder)
 npm run pacchetto    # build + stage resources + electron-builder --win → release/*.exe
 ```
@@ -75,15 +75,15 @@ windows/
 │   ├── shared/     (2 files)       the typed contract between main and pages (`api.ts`, `statsApi.ts`)
 │   └── renderer/                   the overlay page (companion, bubble, clock, card, dialogs, sounds) and the statistics page
 ├── test/           (32 files)      29 test files + 3 helpers (`util.ts`, `atteso.ts`, `giardino.ts`); see §7
-│   └── vivo/       (32 files)      scripts for live runs of the real app (`esegui.sh`, `misure.sh`, 29 scenarios and a README); see §5.3
+│   └── vivo/       (44 files)      scripts for live runs of the real app (`esegui.sh`, `misure.sh`, 40 scenarios and a README); see §5.3
 └── tools/                          build.mjs, genera-icone.mjs, prepara-risorse.mjs
 ```
 
 | Area | Files (lines) |
 |---|---|
-| `core/` | `log.ts` (637), `pomodoro.ts` (464), `todoList.ts` (229), `todo.ts` (178), `stats.ts` (289), `walker.ts` (275), `profile.ts` (221), `remarks.ts` (204), `yearStats.ts` (158), `settings.ts` (163), `rules.ts` (155), `time.ts` (151), `dashboard.ts` (191), `noise.ts` (146), `card.ts` (144), `pets.ts` (112), `phrases.ts` (92), `phraseChooser.ts` (69), `text.ts` (84), `displays.ts` (86), `audioPlan.ts` (72), `diagnostics.ts` (69), `points.ts` (57), `urls.ts` (21), `environment.ts` (20), `music.ts` (55), `files.ts` (53), `tracks.ts` (40), `rewards.ts` (40), `unlocks.ts` (33), `reflection.ts` (30), `csv.ts` (27), `colors.ts` (22) |
+| `core/` | `log.ts` (637), `pomodoro.ts` (464), `todoList.ts` (229), `todo.ts` (178), `stats.ts` (289), `walker.ts` (275), `profile.ts` (221), `remarks.ts` (204), `yearStats.ts` (158), `settings.ts` (163), `rules.ts` (155), `time.ts` (151), `dashboard.ts` (191), `noise.ts` (146), `card.ts` (170), `pets.ts` (112), `phrases.ts` (92), `phraseChooser.ts` (69), `text.ts` (84), `displays.ts` (86), `audioPlan.ts` (72), `diagnostics.ts` (69), `points.ts` (57), `urls.ts` (21), `environment.ts` (20), `music.ts` (55), `files.ts` (53), `tracks.ts` (40), `rewards.ts` (95), `unlocks.ts` (33), `reflection.ts` (30), `csv.ts` (27), `colors.ts` (22) |
 | `main/` | `main.ts` (355), `card.ts` (233), `tray.ts` (229), `statsWindow.ts` (147), `protocol.ts` (69), `music.ts` (69), `stage.ts` (77), `timer.ts` (79), `remarks.ts` (113), `overlay.ts` (46), `security.ts` (39), `paths.ts` (33), `login.ts` (18) |
-| `renderer/` | `overlay.ts` (664, the page controller), `card/card.ts` (858), `dialogs/reflectionCard.ts` (145), `petView.ts` (380), `stats/stats.ts` (397), `clockView.ts` (255), `card/widgets.ts` (236), `audio/music.ts` (160), `audio/ambient.ts` (159), `speaker.ts` (168), `dialogs/*` (5 files, ≈ 300), `extendPrompt.ts` (71), `card/dom.ts` (60), `bubble.ts` (51), `audio/noiseWorklet.ts` (40), `avatar.ts` (26), `fonts.ts` (14), CSS and HTML |
+| `renderer/` | `overlay.ts` (664, the page controller), `card/card.ts` (1015), `card/avatarStage.ts` (291), `dialogs/reflectionCard.ts` (145), `petView.ts` (380), `stats/stats.ts` (397), `clockView.ts` (255), `card/widgets.ts` (236), `audio/music.ts` (160), `audio/ambient.ts` (159), `speaker.ts` (168), `dialogs/*` (5 files, ≈ 300), `extendPrompt.ts` (71), `card/dom.ts` (60), `bubble.ts` (51), `audio/noiseWorklet.ts` (40), `avatar.ts` (26), `fonts.ts` (14), CSS and HTML |
 
 Notes:
 
@@ -281,15 +281,20 @@ Phrases that must not cover another one (unlock announcements, milestones, the w
 ### 4.9 The card and the tray menu (`renderer/card/*`, `core/card.ts`, `main/card.ts`, `main/tray.ts`)
 
 - **Data flow:** `CardService.data()` (main) builds a `CardData` with the pure function `buildCardData` from the engine snapshot, the sessions, the profile and the settings: today's minutes, focus
-  count, streak, companions with locks, saved timers, quick settings, recent subjects, last note, and the to-do data (`todoData`: sections for today, done items, open count, today). The page asks `card:data` when opening and after each command (a 40 ms debounce, `scheduleRefresh`).
-- **Pages:** `main` (companions, 30/50/break, "Altri timer…", today tiles, quick settings), `timers` (the tomato-shaped dial, 5–120 min focus / 1–30 rest, saved timers up to 6 per kind), `focus`
+  count, streak, the avatars in unlock order (`avatars`: id, threshold, unlocked, the name — `???` while locked, so a locked name never reaches the page —, the lock text for the tray, how many things its island has) and `focusesDone`, saved timers, quick settings, recent subjects, last note, and the to-do data (`todoData`: sections for today, done items, open count, today). The page asks `card:data` when opening and after each command (a 40 ms debounce, `scheduleRefresh`).
+- **Pages:** `main` (the "Avatar" row with the heads of the unlocked companions, the count and, below, the distance to the next one with its bar; 30/50/break, "Altri timer…", today tiles, quick settings), `timers` (the tomato-shaped dial, 5–120 min focus / 1–30 rest, saved timers up to 6 per kind), `focus`
   (notebook page with subject, time range, cycle dots, tomato with progress arc, "+5", Ferma/Riprendi, "Termina e salva", background sound chips and volume, notes post-it, discard), `rest` (green variant)
-  and `todo` (§4.16), opened from the "Da fare" row of the main page.
+  `todo` (§4.16), opened from the "Da fare" row of the main page, and `avatars` (since 2.0.1, like `buildAvatars` on the Mac), opened from the "Avatar" row: a header with
+  "N su M", the stage, the name (`???` while locked) and the island line, arrows and dots ("i / n" when they do not fit), and below either "✓ con te", "Studia con …" (`selectPet`) or, for a
+  locked one, "ancora N focus pieni (circa N h)", "have / need", the bar and the promise of its island. The stage (`card/avatarStage.ts`, `AvatarStage`) is a `<canvas>` kept alive across
+  rebuilds (like the Mac's `AvatarStageView`): full figures trimmed from the still drawing, locked ones as a black blurred silhouette (`filter: brightness(0) blur(σ)`, σ = 6.5% of the longer
+  side), drawn far-to-near with a shadow; it scrolls by dragging (pointer events), horizontal wheel or two-finger swipe, a tap on a neighbour, the arrows/dots and the keyboard arrows, easing
+  22% of the way per 1/60 s (none with reduced motion). Note: `#stage canvas` in `overlay.css` is absolute and click-through for the pet; the stage overrides both.
   `onTimerState` updates only the clock text and tomato each second and **rebuilds** only when the phase, the pause state or the last session changes.
 - **Position:** `reposition()` places it beside the companion (it follows it, flipping side at the edges) or, when opened from the tray, next to the icon (`cardPlacement`, any task-bar side); a transparent backdrop catches
   outside clicks (left or right) and `Esc` closes it.
 - **Tray menu** (`tray.ts`, rebuilt each time it opens): Fai parlare, Pomofocus (timers, custom timers, pause/extend/discard during a focus, stop), statistics, ambient sound, music (including "Scegli la cartella…"),
-  phrase frequency, character, movement, "Schermo" (only with several displays), name, "Chiedi com'è andata", long break, "Avvia al login" (enabled only in the installed app), "Modifica le frasi…", hide/show, quit.
+  phrase frequency, character, movement, "Schermo" (only with several displays), name, "Chiedi com'è andata", long break, "Avvia al login" (enabled only in the installed app), "Modifica le frasi…", hide/show, quit. In "Personaggio" a locked companion reads "??? · si sblocca a N focus: ne hai M" (disabled).
   A click on the tray icon toggles the card, a right click pops the menu. The tooltip shows the remaining time during a timer.
 - **Dialogs run in the main process** for system things: folder picker, save-CSV dialog, confirmation of "discard focus" and "delete all" (`dialog.showMessageBox`).
 
@@ -337,6 +342,8 @@ fields), and "Cancella tutto…" (confirmation; removes sessions, in-progress fi
 
 The first companion is free; the others unlock at 20, 50, 100, 150 and 200 "full focuses" (`THRESHOLDS` then 50 more each; the Tartaruga, last in the default order, at 200) (50 minutes of study each, interrupted minutes included). After every recorded focus `evaluateCompanionRewards(true)` unlocks what was earned and the companion says so
 9 seconds after the end-of-focus phrase (`sayWhenQuiet`, so it waits if a milestone is being said); at start the same runs silently. Locked companions cannot be chosen from the card or the menu.
+The "Avatar" row and page use the same order (`avatarEntries`, `nextAvatar`) and texts (`remainingText`, `hoursText`, `avatarProgress`, `nextAvatarLine`, `avatarCountLine`, `HIDDEN_NAME`) as
+`AvatarRoster` on the Mac, in `rewards.ts`; none of them names a locked companion.
 
 ### 4.15 System integration
 
@@ -489,7 +496,7 @@ metrics at those moments; `FF_SELFTEST_FILE=<script.cjs>` runs a script that rec
 **Live runs (`test/vivo/`, since 1.0.1).** The scenario scripts used during development are in the repository, with a runner: `test/vivo/esegui.sh <script> [seconds]` builds,
 creates a **new** results folder with its own data folder inside it (it never uses real data and never deletes anything: if the folder exists it stops), writes
 `impostazioni.json` / `profilo.json`, opens the real Electron app with `FF_SELFTEST` and `FF_SELFTEST_FILE`, kills it after a time limit (macOS has no `timeout`),
-prints the app's output and shrinks the screenshots. `installato.ps1` runs 22 of them against the **installed** app (from the real installer, on GitHub's x64 and ARM runners, `prova-installer.yml`), after a normal launch with a desktop screenshot and before the silent uninstall. `misure.sh` measures memory and CPU at rest. 39 scenarios cover the timer, the card, the dialogs, sounds, statistics, saving, the to-do list,
+prints the app's output and shrinks the screenshots. `installato.ps1` runs 22 of them against the **installed** app (from the real installer, on GitHub's x64 and ARM runners, `prova-installer.yml`), after a normal launch with a desktop screenshot and before the silent uninstall. `misure.sh` measures memory and CPU at rest. 40 scenarios cover the timer, the card (including the "Avatar" page, `avatar.cjs`), the dialogs, sounds, statistics, saving, the to-do list,
 displays, sleep and the packaged app; they **print what they observe** and take screenshots, for a person to judge: they are not assertions. `test/vivo/README.md` lists what each one checks and what it needs.
 
 ---
@@ -507,7 +514,7 @@ displays, sleep and the packaged app; they **print what they observe** and take 
 
 ## 7. Tests (`test/`, `npm test`)
 
-376 tests in 29 files, no framework, no dependencies. They run unchanged in the main process's code paths because the logic is pure.
+379 tests in 29 files, no framework, no dependencies. They run unchanged in the main process's code paths because the logic is pure.
 
 | File(s) | What they cover |
 |---|---|

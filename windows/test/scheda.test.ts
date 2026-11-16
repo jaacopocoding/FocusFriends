@@ -5,6 +5,9 @@ import assert from "node:assert/strict";
 import { buildCardData, companionLocks, musicLabel } from "../src/core/card.ts";
 import type { CardInput } from "../src/core/card.ts";
 import { Profile } from "../src/core/profile.ts";
+import {
+  avatarCountLine, avatarEntries, avatarProgress, hoursText, HIDDEN_NAME, nextAvatar, nextAvatarLine, remainingText,
+} from "../src/core/rewards.ts";
 import { ambientOfChoice, backgroundCurrent, nearestStep, nextAmbient, BACKGROUND_CHOICES, BACKGROUND_TITLES } from "../src/core/rules.ts";
 import { date, session, tempDirectory, ZONE } from "./util.ts";
 
@@ -50,7 +53,10 @@ describe("Scheda: i dati", () => {
   it("senza sessioni: oggi è vuoto", () => {
     const data = buildCardData(input());
     assert.deepEqual([data.todaySeconds, data.todayFocusCount, data.streak, data.streakFrozen, data.userName, data.background], [0, 0, 0, false, null, "none"]);
-    assert.deepEqual(data.companions.map((c) => [c.id, c.lock]), [["pianty", null], ["porcellino", null], ["ciccio", null], ["gattino", null], ["riccio", null], ["tartaruga", null]]);
+    assert.deepEqual(data.avatars.map((c) => [c.id, c.lock, c.unlocked]), [
+      ["pianty", null, true], ["porcellino", null, true], ["ciccio", null, true], ["gattino", null, true], ["riccio", null, true], ["tartaruga", null, true],
+    ]);
+    assert.equal(data.focusesDone, 0);
   });
 
   it("oggi: minuti, focus e serie (con un giorno di ghiaccio)", () => {
@@ -80,8 +86,8 @@ describe("Scheda: i dati", () => {
     const locks = companionLocks(profile, twelve, ids);
     assert.equal(locks.get("porcellino"), "si sblocca a 20 focus: ne hai 12");
     const data = buildCardData(input({ profile, sessions: twelve }));
-    assert.equal(data.companions.find((c) => c.id === "ciccio")?.lock, "si sblocca a 50 focus: ne hai 12");
-    assert.equal(data.companions.find((c) => c.id === "pianty")?.lock, null);
+    assert.equal(data.avatars.find((c) => c.id === "ciccio")?.lock, "si sblocca a 50 focus: ne hai 12");
+    assert.equal(data.avatars.find((c) => c.id === "pianty")?.lock, null);
     assert.deepEqual([...companionLocks(new Profile(tempDirectory()), [], ids)], [], "chi non ha scelto non ha niente di bloccato");
   });
 
@@ -113,5 +119,39 @@ describe("Scheda: i dati", () => {
        buildCardData(input({ sessions: [withRating, without], lastSessionId: without.id })).lastRating,
        buildCardData(input({ sessions: [withRating, without], lastSessionId: "inesistente" })).hasLastSession],
       ["good", null, false]);
+  });
+});
+
+describe("Avatar (la riga e la pagina della scheda)", () => {
+  const pets = ["pianty", "porcellino", "ciccio"];
+
+  it("gli avatar nell'ordine di sblocco, con quanto serve e chi c'è già; il prossimo è il primo bloccato", () => {
+    const roster = avatarEntries("ciccio", pets, (id) => id === "ciccio" || id === "pianty");
+    assert.deepEqual(roster.map((e) => [e.id, e.need, e.unlocked]), [["ciccio", 0, true], ["pianty", 20, true], ["porcellino", 50, false]]);
+    assert.equal(nextAvatar(roster)?.id, "porcellino");
+    assert.equal(nextAvatar(roster.map((e) => ({ ...e, unlocked: true }))), null);
+  });
+
+  it("i testi: quanto manca (mai zero), le ore, la strada fatta, le righe della scheda", () => {
+    assert.deepEqual([remainingText(50, 32), remainingText(50, 49), remainingText(50, 80)], ["ancora 18 focus pieni", "ancora 1 focus pieno", "ancora 1 focus pieno"]);
+    assert.deepEqual([hoursText(50, 32), hoursText(50, 49)], ["circa 15 h", "circa 1 h"]);
+    assert.deepEqual([avatarProgress(50, 32), avatarProgress(50, 90), avatarProgress(0, 0)], [0.64, 1, 1]);
+    assert.equal(nextAvatarLine(20, 12), "Prossimo compagno: ancora 8 focus pieni");
+    assert.deepEqual([avatarCountLine(2, 2), avatarCountLine(4, 0)], ["2 con te · 2 da sbloccare", "4 con te"]);
+  });
+
+  it("chi non c'è ancora non ha nome: né nei testi né nei dati della scheda", () => {
+    const texts = [nextAvatarLine(20, 12), remainingText(50, 32), hoursText(50, 32), avatarCountLine(2, 2)];
+    assert.equal(HIDDEN_NAME, "???");
+    assert.ok(!texts.some((t) => ["Pianty", "Porcellino", "Ciccio", "Gattino"].some((name) => t.includes(name))));
+    const profile = new Profile(tempDirectory());
+    profile.chooseFirstCompanion("gattino");
+    const twelve = [session({ start: date(2026, 10, 1, 9), seconds: 12 * 3000 + 100 })];
+    const data = buildCardData(input({ profile, sessions: twelve }));
+    assert.equal(data.avatars[0]?.id, "gattino", "prima quello scelto");
+    assert.deepEqual(data.avatars.map((e) => e.name), ["Gattino", "???", "???", "???", "???", "???"]);
+    assert.equal(data.avatars[1]?.need, 20);
+    assert.equal(data.focusesDone, 12);
+    assert.ok(data.avatars.every((e) => e.islandThings > 0), "ogni isola ha le sue cose da trovare");
   });
 });

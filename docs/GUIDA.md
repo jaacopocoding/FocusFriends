@@ -103,8 +103,8 @@ costruiscono quando sblocchi i compagni. I compagni sbloccati camminano sulla lo
 
 **Windows.** C'è anche una versione per Windows 10 e 11 (Electron, nella cartella [`windows/`](../windows/)): dalla pagina delle Releases scarica
 `FocusFriends-Windows-<versione>-x64-Setup.exe` (o `…-arm64-Setup.exe` per i computer ARM) e lancialo; non è firmato, quindi la prima volta
-Windows può mostrare «Windows ha protetto il PC» (*Ulteriori informazioni* → *Esegui comunque*). Ha tutto tranne il giardino, che arriva con la
-prossima uscita. I dati (uguali per i due sistemi, vedi [`FORMATI.md`](../FORMATI.md)) stanno in `%APPDATA%\FocusFriends`. Il piano e lo stato sono in
+Windows può mostrare «Windows ha protetto il PC» (*Ulteriori informazioni* → *Esegui comunque*). Ha le stesse cose di questa app, giardino e
+album compresi (dalla 1.3) e la pagina «Avatar» (dalla 2.0.1); le poche differenze sono in `PARITA.md`. I dati (uguali per i due sistemi, vedi [`FORMATI.md`](../FORMATI.md)) stanno in `%APPDATA%\FocusFriends`. Il piano e lo stato sono in
 [`windows/PIANO_WINDOWS.md`](../windows/PIANO_WINDOWS.md), il confronto con questa app in [`windows/PARITA.md`](../windows/PARITA.md).
 
 Non ha icona nel Dock: la trovi nella barra dei menu e con il tasto destro sul personaggio. I dati (sessioni,

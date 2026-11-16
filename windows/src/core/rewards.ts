@@ -38,3 +38,58 @@ export function need(id: string, first: string | null, all: readonly string[]): 
   const position = order(first, all).indexOf(id);
   return position < 0 ? 0 : threshold(position);
 }
+
+// ---- La pagina «Avatar» della scheda (AvatarRoster in CompanionRewards.swift): i compagni nell'ordine in cui si sbloccano e i testi che
+// dicono quanto manca. Chi non è ancora sbloccato resta senza nome (si vede solo una sagoma sfocata), quindi questi testi non lo nominano mai.
+
+export interface AvatarEntry {
+  readonly id: string;
+  /** Quanti focus pieni servono per sbloccarlo (0 = fin dall'inizio). */
+  readonly need: number;
+  readonly unlocked: boolean;
+}
+
+/** Al posto del nome di un compagno che non c'è ancora. */
+export const HIDDEN_NAME = "???";
+
+/** Gli avatar nell'ordine di sblocco; `isUnlocked` dice se uno c'è già (il profilo: conta anche la modalità sviluppatore). */
+export function avatarEntries(first: string | null, all: readonly string[], isUnlocked: (id: string) => boolean): AvatarEntry[] {
+  return order(first, all).map((id) => ({ id, need: need(id, first, all), unlocked: isUnlocked(id) }));
+}
+
+/** Il prossimo da sbloccare: il primo bloccato nell'ordine (è anche quello che chiede meno focus). */
+export function nextAvatar<T extends AvatarEntry>(entries: readonly T[]): T | null {
+  return entries.find((entry) => !entry.unlocked) ?? null;
+}
+
+/** Quanti focus pieni mancano (almeno uno: se sono già abbastanza, si sblocca al prossimo controllo). */
+export function remainingFocuses(required: number, have: number): number {
+  return Math.max(required - have, 1);
+}
+
+/** «ancora 18 focus pieni», «ancora 1 focus pieno». */
+export function remainingText(required: number, have: number): string {
+  const rest = remainingFocuses(required, have);
+  return rest === 1 ? "ancora 1 focus pieno" : `ancora ${rest} focus pieni`;
+}
+
+/** «circa 15 h»: lo studio che manca, in ore (almeno una). */
+export function hoursText(required: number, have: number): string {
+  const minutes = remainingFocuses(required, have) * MINUTES_PER_FOCUS;
+  return `circa ${Math.max(Math.round(minutes / 60), 1)} h`;
+}
+
+/** Quanta strada è fatta, da 0 a 1. */
+export function avatarProgress(required: number, have: number): number {
+  return required > 0 ? Math.min(Math.max(have / required, 0), 1) : 1;
+}
+
+/** Sotto la riga «Avatar» della scheda: «Prossimo compagno: ancora 18 focus pieni». */
+export function nextAvatarLine(required: number, have: number): string {
+  return `Prossimo compagno: ${remainingText(required, have)}`;
+}
+
+/** «2 con te · 2 da sbloccare». */
+export function avatarCountLine(unlocked: number, locked: number): string {
+  return locked > 0 ? `${unlocked} con te · ${locked} da sbloccare` : `${unlocked} con te`;
+}

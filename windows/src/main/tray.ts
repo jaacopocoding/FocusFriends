@@ -6,6 +6,7 @@ import type { MenuItemConstructorOptions, NativeImage, Rectangle } from "electro
 import { copyFileSync, existsSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { PETS, petInfo } from "../core/pets.ts";
+import { HIDDEN_NAME } from "../core/rewards.ts";
 import type { PetData } from "../core/pets.ts";
 import { phrasesFileName } from "../core/phrases.ts";
 import type { Profile } from "../core/profile.ts";
@@ -137,6 +138,7 @@ export function createTray(deps: TrayDeps): { refresh(): void; popUp(): void; bo
     const pet = petInfo(settings.pet);
     const timer = deps.timer().snapshot();
     const visible = deps.isVisible();
+    const locks = new Map(card.data().avatars.map((entry) => [entry.id, entry.lock]));
     return Menu.buildFromTemplate([
       { label: `Fai parlare ${pet.name}`, click: () => deps.speak() },
       { type: "separator" },
@@ -175,10 +177,12 @@ export function createTray(deps: TrayDeps): { refresh(): void; popUp(): void; bo
       },
       {
         label: `Personaggio · ${pet.name}`,
+        // chi è bloccato non ha ancora un nome: «??? · si sblocca a 20 focus: ne hai 12» (come sul Mac)
         submenu: PETS.map((p): MenuItemConstructorOptions => {
           const unlocked = profile.isCompanionUnlocked(p.id);
+          const lock = unlocked ? null : locks.get(p.id) ?? null;
           return {
-            label: p.name, type: "radio", checked: p.id === pet.id, enabled: unlocked,
+            label: unlocked ? p.name : `${HIDDEN_NAME}${lock !== null ? ` · ${lock}` : ""}`, type: "radio", checked: p.id === pet.id, enabled: unlocked,
             click: () => card.command({ name: "selectPet", id: p.id }),
           };
         }),

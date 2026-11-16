@@ -150,70 +150,240 @@
   color: var(--ink-light);
 }
 
-.companions {
+/* ---- la riga «Avatar» (MenuCard.swift, addAvatarRow): le teste di chi c'è, il conto, e quanto manca al prossimo */
+
+.avatar-row {
   margin-top: 8px;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 4px;
+  height: 46px;
+  box-sizing: border-box;
+  padding: 0 12px 0 10px;
+  border: 1px solid var(--edge);
+  border-radius: 14px;
+  background: rgb(255, 250, 240);
+  color: var(--ink-light);
 }
 
-.companion-row {
+.avatar-row:hover { background: rgba(217, 120, 56, 0.1); }
+.avatar-row:active { background: rgba(217, 120, 56, 0.2); }
+
+.avatar-heads {
   display: flex;
-  justify-content: center;
-  align-items: center;
-  flex-wrap: nowrap;
-  white-space: nowrap;
-  max-width: 100%;
+  flex: none;
 }
 
-.companions .sep {
-  width: 20px;
-  text-align: center;
-  color: var(--ink-light);
+/* le teste si sovrappongono: la prima sta sopra */
+.avatar-head {
+  display: block;
+  box-sizing: border-box;
+  flex: none;
+  border-radius: 50%;
+  border: 1.5px solid var(--edge);
+  background-color: var(--paper-light);
+  background-repeat: no-repeat;
 }
 
-.companion {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  height: 20px;
-  padding: 0 4px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--ink-light);
+.avatar-head + .avatar-head { margin-left: -9px; }
+.avatar-head:nth-child(1) { z-index: 3; }
+.avatar-head:nth-child(2) { z-index: 2; }
+.avatar-head:nth-child(3) { z-index: 1; }
+.avatar-heads .avatar-head { position: relative; }
+
+.avatar-row-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  margin-left: 10px;
+  text-align: left;
 }
 
-.companion:hover,
-.companion.selected {
-  color: var(--ink);
+.avatar-row-title { font-size: 13px; font-weight: 500; line-height: 17px; color: var(--ink); }
+.avatar-row-subtitle { font-size: 11px; line-height: 14px; color: var(--ink-light); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.avatar-next {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 5px;
+  margin: 5px -4px 0;
+  padding: 2px 6px 4px;
+  border-radius: 8px;
+  text-align: left;
 }
 
-.companion.selected::after {
-  content: "";
-  position: absolute;
-  left: 4px;
-  right: 4px;
-  bottom: 0;
-  height: 2.5px;
-  border-radius: 1.2px;
+.avatar-next:hover { background: rgba(41, 26, 15, 0.06); }
+.avatar-next-text { font-size: 11px; line-height: 14px; color: var(--ink-light); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.avatar-next:hover .avatar-next-text { color: var(--ink); }
+
+.avatar-bar {
+  --bar-height: 5px;
+  display: block;
+  height: var(--bar-height);
+  border-radius: calc(var(--bar-height) / 2);
+  background: var(--track);
+  overflow: hidden;
+}
+
+.avatar-bar.large { --bar-height: 6px; margin-top: 8px; }
+
+.avatar-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
   background: var(--accent);
 }
 
-.companion.locked {
-  color: rgba(102, 77, 51, 0.6);
+/* ---- la pagina «Avatar»: il palco, il nome, le frecce e i puntini, e sotto chi c'è o quanto manca */
+
+.page-avatars {
+  padding: 14px 16px 16px;
 }
 
-.companion.locked:hover {
-  color: rgba(102, 77, 51, 0.9);
-}
-
-.lock-hint {
-  margin-top: 4px;
-  text-align: center;
+.avatar-total {
+  margin-left: auto;
   font-size: 11px;
-  line-height: 15px;
+  color: var(--ink-light);
+}
+
+/* `#stage canvas` (overlay.css) mette ogni tela del desktop in posizione assoluta e senza clic: questa sta nella scheda, al suo posto, e si trascina */
+#stage .avatar-stage {
+  position: static;
+  pointer-events: auto;
+  will-change: auto;
+  display: block;
+  margin-top: 12px;
+  touch-action: pan-y;
+  cursor: grab;
+}
+
+#stage .avatar-stage:active { cursor: grabbing; }
+
+.avatar-name {
+  margin-top: 8px;
+  font: 24px/30px var(--marker);
+  text-align: center;
+}
+
+.avatar-island {
+  margin-top: 1px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--ink-light);
+  text-align: center;
+}
+
+.avatar-nav {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 30px;
+  padding: 0 12px;
+}
+
+.avatar-arrow,
+.avatar-arrow-space {
+  flex: none;
+  width: 30px;
+  height: 30px;
+}
+
+.card-root .avatar-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: 1px solid var(--edge);
+  background: rgb(255, 250, 240);
+  color: var(--ink);
+}
+
+.card-root .avatar-arrow:hover { background: rgba(217, 120, 56, 0.12); }
+.card-root .avatar-arrow:active { background: rgba(217, 120, 56, 0.25); }
+
+.avatar-dots {
+  display: flex;
+  align-items: center;
+}
+
+.avatar-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 22px;
+}
+
+.avatar-dot.on { width: 24px; }
+
+.avatar-dot .dot {
+  display: block;
+  width: 8px;
+  height: 8px;
+  border-radius: 4px;
+  background: rgb(217, 201, 173);
+}
+
+.avatar-dot:hover .dot { background: rgb(191, 173, 140); }
+.avatar-dot.on .dot { width: 18px; background: var(--accent); }
+
+.avatar-count {
+  font-size: 12px;
+  color: var(--ink-light);
+}
+
+.avatar-info {
+  margin-top: 12px;
+  box-sizing: border-box;
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--edge);
+  border-radius: 14px;
+  background: rgb(255, 250, 240);
+}
+
+.avatar-info.locked {
+  display: block;
+  padding: 9px 12px 10px;
+}
+
+.avatar-with-you {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--accent-pressed);
+}
+
+.card-root .avatar-choose {
+  height: 30px;
+  padding: 0 20px;
+  border-radius: 15px;
+  background: var(--accent);
+  color: white;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.card-root .avatar-choose:hover { background: rgba(217, 120, 56, 0.92); }
+.card-root .avatar-choose:active { background: var(--accent-pressed); }
+
+.avatar-remaining {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  line-height: 14px;
+  color: var(--ink-light);
+}
+
+.avatar-promise {
+  margin-top: 8px;
+  font-size: 12px;
+  line-height: 16px;
   color: var(--ink-light);
 }
 

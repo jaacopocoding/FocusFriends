@@ -1,10 +1,12 @@
 // Quello che la scheda mostra oltre al timer (che arriva a parte, ogni secondo): il compagno, le statistiche di oggi, i timer
-// salvati, le impostazioni rapide, i compagni bloccati. Si ricava dai dati con una funzione pura, così si prova da sola
+// salvati, le impostazioni rapide, gli avatar (chi c'è e chi è ancora da sbloccare). Si ricava dai dati con una funzione pura, così si prova da sola
 // (MenuCardState in MenuCard.swift e cardState() in MenuController.swift).
 
 import type { Rating, StudySession } from "./log.ts";
 import { PETS, petInfo } from "./pets.ts";
-import { need, focuses } from "./rewards.ts";
+import { GARDEN_ITEMS } from "./gardenCatalog.ts";
+import { avatarEntries, need, focuses, HIDDEN_NAME } from "./rewards.ts";
+import type { AvatarEntry } from "./rewards.ts";
 import { analyzeStreak, periodContaining, summarize } from "./stats.ts";
 import { backgroundCurrent } from "./rules.ts";
 import type { AmbientSound, BackgroundChoice, Chattiness, MusicSource } from "./rules.ts";
@@ -12,16 +14,21 @@ import { wallOf } from "./time.ts";
 import { doneItems, openItems, sections, todayOf } from "./todo.ts";
 import type { ToDoItem, ToDoSection } from "./todo.ts";
 
-export interface CompanionEntry {
-  id: string;
+/** Un avatar della riga e della pagina «Avatar», nell'ordine in cui si sbloccano. */
+export interface AvatarCardEntry extends AvatarEntry {
+  /** Il nome; per chi non c'è ancora «???»: il nome non si sa finché non lo sblocchi. */
   name: string;
-  /** Se è bloccato, cosa manca: «si sblocca a 20 focus: ne hai 12». */
+  /** Se è bloccato, cosa manca (per il menu dell'area di notifica): «si sblocca a 20 focus: ne hai 12». */
   lock: string | null;
+  /** Quante cose ha la sua isola (la promessa sotto la sagoma di chi non c'è ancora). */
+  islandThings: number;
 }
 
 export interface CardData {
   userName: string | null;
-  companions: CompanionEntry[];
+  /** Gli avatar nell'ordine di sblocco (AvatarRoster sul Mac), e quanti focus pieni di studio ci sono in tutto. */
+  avatars: AvatarCardEntry[];
+  focusesDone: number;
   petVisible: boolean;
   todaySeconds: number;
   todayFocusCount: number;
@@ -124,11 +131,18 @@ export function buildCardData(input: CardInput): CardData {
   const summary = summarize(input.sessions, periodContaining(today, "day"), input.zone);
   const streak = analyzeStreak(input.sessions, input.now, input.zone);
   const background = backgroundCurrent(input.ambient, input.music);
-  const locks = companionLocks(input.profile, input.sessions, PETS.map((p) => p.id));
+  const ids = PETS.map((p) => p.id);
+  const locks = companionLocks(input.profile, input.sessions, ids);
   const last = input.lastSessionId === null ? undefined : input.sessions.find((s) => s.id === input.lastSessionId);
   return {
     userName: input.profile.name,
-    companions: PETS.map((pet) => ({ id: pet.id, name: petInfo(pet.id).name, lock: locks.get(pet.id) ?? null })),
+    avatars: avatarEntries(input.profile.firstCompanion, ids, (id) => input.profile.isCompanionUnlocked(id)).map((entry) => ({
+      ...entry,
+      name: entry.unlocked ? petInfo(entry.id).name : HIDDEN_NAME,
+      lock: entry.unlocked ? null : locks.get(entry.id) ?? null,
+      islandThings: GARDEN_ITEMS.filter((item) => item.island === entry.id).length,
+    })),
+    focusesDone: focuses(input.sessions.reduce((total, s) => total + s.seconds, 0)),
     petVisible: input.petVisible,
     todaySeconds: summary.totalSeconds,
     todayFocusCount: summary.focusCount,
