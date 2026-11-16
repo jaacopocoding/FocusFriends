@@ -32,8 +32,8 @@ export interface TourHost {
   container: HTMLElement;
   card: MenuCard;
   speaker: Speaker;
-  /** Il disegno del compagno (freme mentre chiama). */
-  petCanvas(): HTMLCanvasElement | null;
+  /** Il compagno saltella mentre chiama (`PetView.setCalling`). */
+  setPetCalling(on: boolean): void;
   petBox(): { left: number; top: number; width: number; height: number };
   scene(): { width: number; height: number };
   urlOf(path: string): string;
@@ -64,7 +64,7 @@ export class GuidedTour {
     this.host.card.close();
     this.host.speaker.stop();
     this.host.speaker.hold(TOUR_CALL);
-    this.host.petCanvas()?.classList.add("tour-calling");
+    this.host.setPetCalling(true);
   }
 
   /** Un clic sul compagno mentre chiama. */
@@ -77,7 +77,7 @@ export class GuidedTour {
   cardOpened(): void {
     if (this.state !== "calling") return;
     this.state = "steps";
-    this.host.petCanvas()?.classList.remove("tour-calling");
+    this.host.setPetCalling(false);
     this.host.speaker.dismissNow();
     const card = this.host.card;
     card.pinned = true;
@@ -168,7 +168,7 @@ export class GuidedTour {
   private finish(started: boolean, cardClosed = false): void {
     if (this.state === "off") return;
     this.state = "off";
-    this.host.petCanvas()?.classList.remove("tour-calling");
+    this.host.setPetCalling(false);
     this.shade?.remove();
     this.tip?.remove();
     this.peek?.remove();

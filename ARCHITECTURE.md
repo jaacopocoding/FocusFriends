@@ -1398,7 +1398,9 @@ file/UserDefaults writes, windows, timers, sound, global state.
 
 #### `GuidedTour.swift` (270)
 - **Responsibility:** the guided tour after the intro (and from "Fai il giro"). `start()` makes the companion hold a "Cliccami!!!"
-  bubble (`Speaker.hold`) and wiggle (`PetWindow.onCallClick`, which also turns its left click into "open the card"); opening the card
+  bubble (`Speaker.hold`) and hop (`PetWindow.onCallClick`, which also turns its left click into "open the card"; `CallHop` in
+  `PetWindow.swift` gives the pose: still for half of a 1.8 s cycle, then a squash, an 18-point hop, a landing squash and a 7-point hop, the shadow
+  staying on the ground; the window grows by `callRoom` above and on the sides meanwhile, with the drawing, bubble and clock kept in place); opening the card
   any way starts the steps. Each step shades the card except one `CardSection` (`MenuCard.setSpotlight`, frames recorded by
   `MenuCardView.rebuild`), shows `TourTipView` in a non-activating panel on the side away from the companion and, for garden/stats/album,
   an image panel (`benvenuto_*.png`). `MenuCard.isPinned` keeps the card open meanwhile; `Walker.holdsStill` keeps the companion still.

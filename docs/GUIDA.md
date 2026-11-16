@@ -263,8 +263,8 @@ scritte), non esce dall'app (non c'è nell'esportazione CSV) e *Cancella tutto�
 
 ### Il giro guidato
 
-Subito dopo la scheda di introduzione parte il **giro guidato** (`GuidedTour.swift`). Il compagno sta fermo, freme e dice
-«Cliccami!!!» (il fumetto resta finché non lo clicchi); un clic sinistro su di lui apre la scheda accanto. La scheda si scurisce
+Subito dopo la scheda di introduzione parte il **giro guidato** (`GuidedTour.swift`). Il compagno sta fermo, ogni tanto fa due saltelli
+(si carica, salta, atterra e rimbalza: `CallHop`) e dice «Cliccami!!!» (il fumetto resta finché non lo clicchi); un clic sinistro su di lui apre la scheda accanto. La scheda si scurisce
 tranne una parte alla volta e un fumetto accanto la spiega, con *Salta*, il passo («3 di 8») e *Avanti*: i minuti del focus, i numeri
 di oggi, il giardino, le statistiche, l'album con la barra della prossima figurina, i compagni da sbloccare, le impostazioni in basso,
 e alla fine di nuovo i minuti, con *Inizia il primo focus* (la scheda resta aperta per scegliere la durata; il compagno dice «Buono

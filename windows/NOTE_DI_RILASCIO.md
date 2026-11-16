@@ -13,6 +13,8 @@ leggere con l'una e con l'altra.
   un vicino, con le frecce o con i puntini. Chi non hai ancora è una **sagoma nera sfocata, senza nome** («???»), con quanto manca («ancora 18 focus
   pieni, circa 15 h») e la promessa della sua isola; chi hai lo scegli con «Studia con …».
 - Il nome di un compagno bloccato non si legge più nemmeno nel menu dell'area di notifica: «??? · si sblocca a 20 focus».
+- **«Cliccami!!!»**: all'inizio del giro guidato il compagno non trema più. Ogni tanto si carica, fa un salto, atterra e fa un saltino più piccolo,
+  con l'ombra che resta a terra (con «Riduci movimento» sta fermo).
 
 Niente cambia nei dati.
 

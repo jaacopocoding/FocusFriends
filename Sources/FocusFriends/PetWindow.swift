@@ -63,10 +63,25 @@ final class PetWindow: NSWindow {
         get { petView.onContextClick }
         set { petView.onContextClick = newValue }
     }
-    /// Il giro guidato: il compagno freme e un clic sinistro chiama questa funzione (nil = torna normale).
+    /// Il giro guidato: il compagno saltella (`CallHop`) e un clic sinistro chiama questa funzione (nil = torna normale).
+    /// Mentre saltella la finestra è un po' più grande, in alto e ai lati, così il salto non esce dal bordo; il disegno, il fumetto e
+    /// l'orologio restano dov'erano (durante il giro il compagno sta fermo: `Walker.holdsStill`).
     var onCallClick: (() -> Void)? {
         get { petView.onCallClick }
-        set { petView.onCallClick = newValue }
+        set {
+            petView.onCallClick = newValue
+            let hops = newValue != nil && !isPicked && !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+            let room = hops ? petView.callRoom(for: NSSize(width: frame.width - 2 * petView.room.x, height: frame.height - petView.room.top))
+                            : (x: CGFloat(0), top: CGFloat(0))
+            guard room != petView.room else { return }
+            let old = petView.room
+            let base = NSRect(x: frame.minX + old.x, y: frame.minY, width: frame.width - 2 * old.x, height: frame.height - old.top)
+            let children = (childWindows ?? []).map { ($0, $0.frame.origin) }
+            petView.room = room
+            petView.hops = hops
+            setFrame(NSRect(x: base.minX - room.x, y: base.minY, width: base.width + 2 * room.x, height: base.height + room.top), display: true)
+            for (child, origin) in children { child.setFrameOrigin(origin) }
+        }
     }
 
     /// Cambia personaggio: la finestra si ridimensiona tenendo fermi i piedi (centro del lato basso).
@@ -256,7 +271,7 @@ final class PetView: NSView {
         let scale = main.width / reference.size.width
         let size = NSSize(width: image.size.width * scale, height: image.size.height * scale)
         let groundY = main.minY + groundFraction * main.height
-        return NSRect(x: bounds.midX - size.width / 2, y: groundY - growthFeetFraction * size.height, width: size.width, height: size.height)
+        return NSRect(x: box.midX - size.width / 2, y: groundY - growthFeetFraction * size.height, width: size.width, height: size.height)
     }
     private var shadowFraction: CGFloat = 0.65
     private var groundFraction: CGFloat = 0
@@ -305,7 +320,7 @@ final class PetView: NSView {
     private var hasPickedPose: Bool { pickedImage != nil }
 
     var onContextClick: (() -> Void)?
-    /// Il giro guidato: finché c'è, il compagno freme ogni tanto e un clic (sinistro) chiama questa funzione invece di sollevarlo.
+    /// Il giro guidato: finché c'è, il compagno saltella ogni tanto (`CallHop`) e un clic (sinistro) chiama questa funzione invece di sollevarlo.
     var onCallClick: (() -> Void)? {
         didSet {
             callTimer?.invalidate()
@@ -321,6 +336,13 @@ final class PetView: NSView {
     }
     private var callTimer: Timer?
     private var callStart = Date()
+    /// Lo spazio in più attorno al disegno mentre saltella (ai lati e in alto), e se saltella davvero (non con «Riduci movimento»).
+    var room: (x: CGFloat, top: CGFloat) = (0, 0) { didSet { needsDisplay = true } }
+    var hops = false
+    /// Quanto spazio serve per il salto (18 punti) e per l'allungamento, per un compagno grande `size`.
+    func callRoom(for size: NSSize) -> (x: CGFloat, top: CGFloat) { (ceil(size.width * 0.06), ceil(24 + size.height * 0.08)) }
+    /// Lo spazio del compagno dentro la vista (tutta la vista, tranne mentre saltella).
+    private var box: NSRect { NSRect(x: room.x, y: 0, width: bounds.width - 2 * room.x, height: bounds.height - room.top) }
     /// Chiamata appena cambia lo stadio o la posa mostrati.
     var onArtChanged: (() -> Void)?
 
@@ -507,8 +529,8 @@ final class PetView: NSView {
 
     /// Adatta l'immagine allo spazio mantenendo le proporzioni, appoggiata in basso.
     private var imageRect: NSRect {
-        guard let image = images.first else { return bounds }
-        let available = NSRect(x: 0, y: 3, width: bounds.width, height: bounds.height - 3)
+        guard let image = images.first else { return box }
+        let available = NSRect(x: box.minX, y: 3, width: box.width, height: box.height - 3)
         let scale = min(available.width / image.size.width, available.height / image.size.height)
         let size = NSSize(width: image.size.width * scale, height: image.size.height * scale)
         return NSRect(x: available.midX - size.width / 2, y: available.minY, width: size.width, height: size.height)
@@ -517,7 +539,7 @@ final class PetView: NSView {
     /// Tre lettere "z" che salgono una dopo l'altra sopra la testa e svaniscono.
     private func drawSleepMarks() {
         let t = Date().timeIntervalSince(sleepStart)
-        let headX = bounds.width * (mirrored ? 0.2 : 0.8)       // la testa sta a destra (a sinistra se specchiato)
+        let headX = box.minX + box.width * (mirrored ? 0.2 : 0.8)       // la testa sta a destra (a sinistra se specchiato)
         let baseY = artTop + 2
         let letters: [(text: String, size: CGFloat, dx: CGFloat)] = [("z", 9, 0), ("Z", 12, 7), ("z", 9, 14)]
         let direction: CGFloat = mirrored ? -1 : 1
@@ -557,32 +579,27 @@ final class PetView: NSView {
 
         let target = imageRect
 
-        // Il giro guidato: fermo per metà del giro, poi qualche saltello che oscilla (come chi vuole farsi notare).
+        // Il giro guidato: fermo per metà del giro, poi si carica, salta, atterra e fa un saltino (CallHop). L'ombra resta a terra.
+        let pose = onCallClick != nil && hops ? CallHop.pose(at: Date().timeIntervalSince(callStart)) : nil
+        let air = pose.map { min($0.lift / 30, 0.6) } ?? 0
+        let groundY = target.minY + groundFraction * target.height
+
+        // Ombra centrata sulla linea di terra del disegno (si stringe quando lui è in aria).
+        let shadowWidth = box.width * shadowFraction * (1 - air)
+        NSColor.black.withAlphaComponent(0.16 * (1 - air * 0.8)).setFill()
+        NSBezierPath(ovalIn: NSRect(x: box.midX - shadowWidth / 2, y: groundY - 3.5 * (1 - air * 0.5), width: shadowWidth, height: 7 * (1 - air * 0.5))).fill()
+
         var wiggled = false
-        if onCallClick != nil {
-            let cycle = 1.1
-            let phase = Date().timeIntervalSince(callStart).truncatingRemainder(dividingBy: cycle) / cycle
-            if phase > 0.55 {
-                wiggled = true
-                let k = (phase - 0.55) / 0.45
-                let angle = sin(k * 2 * .pi * 2) * 5 * (1 - k * 0.4)
-                let hop = abs(sin(k * 2 * .pi * 1.5)) * 6 * (1 - k)
-                let pivot = NSPoint(x: target.midX, y: target.minY + groundFraction * target.height)
-                let wiggle = NSAffineTransform()
-                wiggle.translateX(by: pivot.x, yBy: pivot.y + CGFloat(hop))
-                wiggle.rotate(byDegrees: CGFloat(mirrored ? -angle : angle))
-                wiggle.translateX(by: -pivot.x, yBy: -pivot.y)
-                NSGraphicsContext.saveGraphicsState()
-                wiggle.concat()
-            }
+        if let pose {
+            wiggled = true
+            let hop = NSAffineTransform()
+            hop.translateX(by: box.midX, yBy: groundY + pose.lift)
+            hop.scaleX(by: pose.scaleX, yBy: pose.scaleY)
+            hop.translateX(by: -box.midX, yBy: -groundY)
+            NSGraphicsContext.saveGraphicsState()
+            hop.concat()
         }
         defer { if wiggled { NSGraphicsContext.restoreGraphicsState() } }
-
-        // Ombra centrata sulla linea di terra del disegno.
-        let shadowWidth = bounds.width * shadowFraction
-        let groundY = target.minY + groundFraction * target.height
-        NSColor.black.withAlphaComponent(0.16).setFill()
-        NSBezierPath(ovalIn: NSRect(x: bounds.midX - shadowWidth / 2, y: groundY - 3.5, width: shadowWidth, height: 7)).fill()
 
         if let from = fadingFrom, from < images.count {
             let t = min(1, Date().timeIntervalSince(fadeStart) / Self.fadeDuration)
@@ -591,5 +608,37 @@ final class PetView: NSView {
         } else {
             images[stage].draw(in: drawRect(forImageAt: stage), from: .zero, operation: .sourceOver, fraction: 1)
         }
+    }
+}
+
+/// Il compagno che chiama («Cliccami!!!», all'inizio del giro guidato): fermo per metà del giro, poi si carica schiacciandosi, salta
+/// allungandosi, atterra schiacciato e fa un secondo saltino più piccolo. Le stesse curve su Windows (`windows/src/core/callHop.ts`, con le prove).
+enum CallHop {
+    /// Quanto dura un giro, in secondi.
+    static let cycle = 1.8
+    /// I due salti: dove cominciano e finiscono nel giro (da 0 a 1) e quanto sono alti, in punti.
+    private static let hops: [(from: Double, to: Double, height: Double)] = [(0.58, 0.77, 18), (0.83, 0.95, 7)]
+    /// La forma (larghezza, altezza) nei momenti chiave; in mezzo si passa con dolcezza.
+    private static let shapes: [(at: Double, x: Double, y: Double)] = [
+        (0, 1, 1), (0.5, 1, 1), (0.58, 1.08, 0.9), (0.62, 0.95, 1.07), (0.68, 1, 1), (0.74, 0.96, 1.05), (0.77, 1.08, 0.9),
+        (0.81, 1.03, 0.96), (0.85, 0.98, 1.03), (0.89, 1, 1), (0.93, 0.98, 1.02), (0.95, 1.04, 0.95), (1, 1, 1),
+    ]
+
+    /// La posa dopo `seconds` da quando ha cominciato a chiamare: quanto è sollevato e quanto è largo e alto (attorno ai piedi).
+    static func pose(at seconds: TimeInterval) -> (lift: CGFloat, scaleX: CGFloat, scaleY: CGFloat) {
+        let phase = (seconds.truncatingRemainder(dividingBy: cycle) + cycle).truncatingRemainder(dividingBy: cycle) / cycle
+        var lift = 0.0
+        for hop in hops where phase > hop.from && phase < hop.to {
+            let u = (phase - hop.from) / (hop.to - hop.from)
+            lift = 4 * hop.height * u * (1 - u)
+        }
+        var scale = (x: 1.0, y: 1.0)
+        for i in 1..<shapes.count where phase <= shapes[i].at {
+            let a = shapes[i - 1], b = shapes[i]
+            let k = (1 - cos(Double.pi * (phase - a.at) / (b.at - a.at))) / 2
+            scale = (a.x + (b.x - a.x) * k, a.y + (b.y - a.y) * k)
+            break
+        }
+        return (CGFloat(lift), CGFloat(scale.x), CGFloat(scale.y))
     }
 }

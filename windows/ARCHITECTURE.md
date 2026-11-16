@@ -11,7 +11,7 @@
 > history) or **[inferred]** (deduced from the code).
 > UI strings and code comments are in Italian (as on the Mac); identifiers are English. UI strings quoted here are glossed.
 > **What was and was not exercised on a real Windows machine:** the code runs on macOS during development (Electron is
-> cross-platform); the Windows CI job runs the type check, the logic tests (379 now) and the build on a Windows runner, and the author
+> cross-platform); the Windows CI job runs the type check, the logic tests (381 now) and the build on a Windows runner, and the author
 > installed the released installer on a Windows computer for a brief check (see `PARITA.md`, "Prova su Windows"). The parts that
 > only exist on Windows (real click-through, task-bar sides, scale factors, two monitors, sleep, fullscreen apps, virtual
 > desktops) are listed in `PROVE_SU_WINDOWS.md` and have **not** been verified one by one.
@@ -49,7 +49,7 @@ HTTP client in the code **[inferred]**).
 cd windows
 npm install          # Electron, TypeScript, esbuild, electron-builder (devDependencies)
 npm run check        # tsc --noEmit
-npm test             # 379 tests, no dependencies needed
+npm test             # 381 tests, no dependencies needed
 npm start            # builds dist/ and opens the companion (on macOS: data in a test folder)
 npm run pacchetto    # build + stage resources + electron-builder --win → release/*.exe
 ```
@@ -81,7 +81,7 @@ windows/
 
 | Area | Files (lines) |
 |---|---|
-| `core/` | `log.ts` (637), `pomodoro.ts` (464), `todoList.ts` (229), `todo.ts` (178), `stats.ts` (289), `walker.ts` (275), `profile.ts` (221), `remarks.ts` (204), `yearStats.ts` (158), `settings.ts` (163), `rules.ts` (155), `time.ts` (151), `dashboard.ts` (191), `noise.ts` (146), `card.ts` (170), `pets.ts` (112), `phrases.ts` (92), `phraseChooser.ts` (69), `text.ts` (84), `displays.ts` (86), `audioPlan.ts` (72), `diagnostics.ts` (69), `points.ts` (57), `urls.ts` (21), `environment.ts` (20), `music.ts` (55), `files.ts` (53), `tracks.ts` (40), `rewards.ts` (95), `unlocks.ts` (33), `reflection.ts` (30), `csv.ts` (27), `colors.ts` (22) |
+| `core/` | `log.ts` (637), `pomodoro.ts` (464), `todoList.ts` (229), `todo.ts` (178), `stats.ts` (289), `walker.ts` (275), `profile.ts` (221), `remarks.ts` (204), `yearStats.ts` (158), `settings.ts` (163), `rules.ts` (155), `time.ts` (151), `dashboard.ts` (191), `noise.ts` (146), `card.ts` (170), `callHop.ts` (63), `pets.ts` (112), `phrases.ts` (92), `phraseChooser.ts` (69), `text.ts` (84), `displays.ts` (86), `audioPlan.ts` (72), `diagnostics.ts` (69), `points.ts` (57), `urls.ts` (21), `environment.ts` (20), `music.ts` (55), `files.ts` (53), `tracks.ts` (40), `rewards.ts` (95), `unlocks.ts` (33), `reflection.ts` (30), `csv.ts` (27), `colors.ts` (22) |
 | `main/` | `main.ts` (355), `card.ts` (233), `tray.ts` (229), `statsWindow.ts` (147), `protocol.ts` (69), `music.ts` (69), `stage.ts` (77), `timer.ts` (79), `remarks.ts` (113), `overlay.ts` (46), `security.ts` (39), `paths.ts` (33), `login.ts` (18) |
 | `renderer/` | `overlay.ts` (664, the page controller), `card/card.ts` (1015), `card/avatarStage.ts` (291), `dialogs/reflectionCard.ts` (145), `petView.ts` (380), `stats/stats.ts` (397), `clockView.ts` (255), `card/widgets.ts` (236), `audio/music.ts` (160), `audio/ambient.ts` (159), `speaker.ts` (168), `dialogs/*` (5 files, ≈ 300), `extendPrompt.ts` (71), `card/dom.ts` (60), `bubble.ts` (51), `audio/noiseWorklet.ts` (40), `avatar.ts` (26), `fonts.ts` (14), CSS and HTML |
 
@@ -301,7 +301,7 @@ Phrases that must not cover another one (unlock announcements, milestones, the w
 ### 4.10 Dialogs inside the overlay (`renderer/dialogs/*`)
 
 `ModalHost` shows a centred card on a backdrop (a click outside does **not** close it; Esc or the buttons do): "Cosa studi adesso?" (`subjectPrompt.ts`: free text, up to 6 recent subjects as chips,
-"Senza materia", back arrow, last-note hint, and a `prefill` when the focus starts from a to-do item), the welcome card (`introCard.ts`: name + first companion), the guided tour that follows it (`tour.ts`, like `GuidedTour.swift`: the companion holds a "Cliccami!!!" bubble and wiggles, its left click opens the card, the card is shaded but one `data-tour` section with a tip and, for garden/stats/album, an image from `assets/benvenuto/`; `MenuCard.pinned` keeps it open and the walker treats the companion as held; "Fai il giro" in the tray menu restarts it), the name dialog. `ReflectionCard` ("Com'è andata?", three faces + a 80-character note) sits beside the companion,
+"Senza materia", back arrow, last-note hint, and a `prefill` when the focus starts from a to-do item), the welcome card (`introCard.ts`: name + first companion), the guided tour that follows it (`tour.ts`, like `GuidedTour.swift`: the companion holds a "Cliccami!!!" bubble and hops (`core/callHop.ts`, the same curve as `CallHop` on the Mac: drawn by `PetView.setCalling`, whose canvas grows above and on the sides meanwhile, the shadow staying on the ground; still with reduced motion), its left click opens the card, the card is shaded but one `data-tour` section with a tip and, for garden/stats/album, an image from `assets/benvenuto/`; `MenuCard.pinned` keeps it open and the walker treats the companion as held; "Fai il giro" in the tray menu restarts it), the name dialog. `ReflectionCard` ("Com'è andata?", three faces + a 80-character note) sits beside the companion,
 **does not take the keyboard until its field is clicked**, and disappears on its own when the timer restarts or stops (`reset` event). Since 1.2.0 it can also ask "Hai finito «…»?" (`reflection-todo` box with *Non ancora* / *Fatta*) when the focus started from a to-do item, and with "Chiedi com'è andata" off it shows only that question (§4.16). All flow through `overlay:input-mode` (§4.3).
 
 ### 4.11 Sounds (`renderer/audio/*`, `core/audioPlan.ts`, `core/noise.ts`, `main/music.ts`)
@@ -514,7 +514,7 @@ displays, sleep and the packaged app; they **print what they observe** and take 
 
 ## 7. Tests (`test/`, `npm test`)
 
-379 tests in 29 files, no framework, no dependencies. They run unchanged in the main process's code paths because the logic is pure.
+381 tests in 29 files, no framework, no dependencies. They run unchanged in the main process's code paths because the logic is pure.
 
 | File(s) | What they cover |
 |---|---|

@@ -593,7 +593,7 @@ async function start(): Promise<void> {
   });
   tour = new GuidedTour({
     container: stage, card, speaker, urlOf, scene: sceneSize,
-    petCanvas: () => (view ? view.canvas : null),
+    setPetCalling: (on) => view?.setCalling(on, performance.now()),
     petBox: () => ({ ...view.position, ...view.size }),
     openCard: () => card.toggle({ anchor: null, toggle: false }),
   });

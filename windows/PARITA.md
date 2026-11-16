@@ -14,7 +14,7 @@ circa 200 MB e 0 % di processore. **Le sigle W qui sotto non sono state spuntate
 
 | Sigla | Significato |
 |---|---|
-| **P** | Prova automatica (`npm test`, 379 prove): la logica dà gli stessi risultati. Le prove «di contratto» confrontano con i risultati dell'app per Mac sugli stessi file. |
+| **P** | Prova automatica (`npm test`, 381 prove): la logica dà gli stessi risultati. Le prove «di contratto» confrontano con i risultati dell'app per Mac sugli stessi file. |
 | **S** | Prova dal vivo sul Mac con l'app vera di Electron: eventi del mouse e tastiera simulati, schermate e misure (`FF_SELFTEST`). I copioni sono in `test/vivo/`. |
 | **W** | **Solo su Windows**: non si può provare dal Mac. Il passo da fare è in `PROVE_SU_WINDOWS.md`. |
 | **C** | Scritto nel codice, **senza una prova dedicata**: l'ho letto, non l'ho visto funzionare. |
@@ -56,7 +56,7 @@ circa 200 MB e 0 % di processore. **Le sigle W qui sotto non sono state spuntate
 | Il file delle frasi è `~/Library/Application Support/FocusFriends/frasi_<pet>.txt` | `%APPDATA%\FocusFriends\frasi_<pet>.txt` | = |
 | Il compagno ricorda le scadenze di oggi (o di domani) di «Da fare», al posto di una frase a caso, al massimo ogni 3 ore, mai durante un focus | Uguale: lo decide il processo principale quando la pagina chiede la frase | P (le frasi, sugli stessi dati del Mac) S |
 | Saluti legati al momento (dalla 1.2): all'avvio, per fascia della giornata e con il nome («Buongiorno, Jacopo! Ieri hai studiato 2 h 40: si riparte?»), alla prima frase spontanea; il lunedì–mercoledì il riepilogo della settimana scorsa (una volta per settimana, `lastWeeklyRecap`); ogni tanto, al posto di una frase a caso, una frase «quando rendi meglio»; al risveglio dallo sleep dopo almeno un'ora «Rieccoti!…» | Uguale; `suspend` e `resume` di Windows al posto delle notifiche dello sleep del Mac; `lastWeeklyRecap` sta in `impostazioni.json` invece che in `UserDefaults` | P (saluti, risveglio, riepilogo e numeri: stessi testi del Mac su 9 cartelle di esempio, in 6 momenti fissi) S (`test/vivo/frasi-contesto.cjs`); il vero sleep: **W** |
-| Il giro guidato dopo la scheda di benvenuto (dalla 2.0): il compagno chiama «Cliccami!!!» e freme, il clic sinistro apre la scheda, otto passi con il velo, il fumetto e le immagini di giardino, statistiche e album, «Salta» o Esc; «Fai il giro» nel menu; le prime volte (la prima figurina a fine focus, il fumetto accanto a «Da mettere») | Uguale; il fumetto del giardino si ricorda in `localStorage` della finestra del giardino invece che in `UserDefaults` | P (le frasi della prima figurina) S (`test/vivo/giro.cjs`) |
+| Il giro guidato dopo la scheda di benvenuto (dalla 2.0): il compagno chiama «Cliccami!!!» e fa due saltelli (dalla 2.0.1; prima fremeva), il clic sinistro apre la scheda, otto passi con il velo, il fumetto e le immagini di giardino, statistiche e album, «Salta» o Esc; «Fai il giro» nel menu; le prime volte (la prima figurina a fine focus, il fumetto accanto a «Da mettere») | Uguale; il fumetto del giardino si ricorda in `localStorage` della finestra del giardino invece che in `UserDefaults` | P (le frasi della prima figurina) S (`test/vivo/giro.cjs`) |
 | Traguardi a voce dopo la frase di fine focus (giorni di fila 3/7/14/30/60/100, focus 10…1000, ore 10…500, «un mese / un anno insieme»), una sola frase, mai coperta né sopra un'altra (aspetta che il fumetto finisca) | Uguale | P (gli stessi traguardi del Mac mano a mano che il registro cresce, e 294 anniversari su date inventate) S |
 
 ## 4. Il focus

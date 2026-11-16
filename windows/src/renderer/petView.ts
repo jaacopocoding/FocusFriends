@@ -2,6 +2,7 @@
 // va a sinistra, la dissolvenza tra due stadi, gli «Zzz» e il disegno «sollevato» che trema. È il PetView di
 // PetWindow.swift. Il canvas si sposta con una trasformazione (non si ridisegna per camminare).
 
+import { callPose } from "../core/callHop.ts";
 import { restImageIndex } from "../core/pets.ts";
 import type { PetData, Size } from "../core/pets.ts";
 import { markerFamily } from "./fonts.ts";
@@ -63,6 +64,9 @@ export class PetView {
   private boxSize: Size;
   private left = 0;
   private top = 0;
+  /** Il giro guidato: da quando chiama (null = non chiama), e lo spazio in più attorno alla tela per i salti (in alto e ai lati). */
+  private callStart: number | null = null;
+  private room = { x: 0, top: 0 };
 
   /** Chiamata appena cambia il disegno mostrato (stadio o posa): il fumetto si risistema. */
   onArtChanged: (() => void) | null = null;
@@ -103,7 +107,15 @@ export class PetView {
   setPosition(left: number, top: number): void {
     this.left = left;
     this.top = top;
-    this.canvas.style.transform = `translate(${left}px, ${top}px)`;
+    this.canvas.style.transform = `translate(${left - this.room.x}px, ${top - this.room.top}px)`;
+  }
+
+  /** Chiama per il giro guidato: saltella finché non lo si clicca (`callPose`). Con «Riduci movimento» resta fermo. */
+  setCalling(on: boolean, now: number): void {
+    const calling = on && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (calling === (this.callStart !== null)) return;
+    this.callStart = calling ? now : null;
+    this.dirty = true;
   }
 
   /** Cambia la dimensione della scatola (il disegno «sollevato» è più grande): la posizione la decide chi chiama. */
@@ -274,22 +286,31 @@ export class PetView {
 
   /** Serve ridisegnare? (qualcosa è cambiato, o c'è un'animazione in corso) */
   needsRender(now: number): boolean {
-    return this.dirty || this.pickedUp || this.sleepMarks || (this.fadingFrom !== null && (now - this.fadeStart) / 1000 < FADE_SECONDS + 0.05);
+    return this.dirty || this.callStart !== null || this.pickedUp || this.sleepMarks || (this.fadingFrom !== null && (now - this.fadeStart) / 1000 < FADE_SECONDS + 0.05);
   }
 
   render(now: number): void {
     const { width, height } = this.boxSize;
     const ratio = window.devicePixelRatio || 1;
-    const pixelWidth = Math.round(width * ratio), pixelHeight = Math.round(height * ratio);
+    // Mentre chiama la tela è più grande (sopra e ai lati), così il salto e lo schiacciamento non escono dal bordo; il disegno resta dov'era.
+    const calling = this.callStart !== null && !this.pickedUp;
+    const room = calling ? { x: Math.ceil(width * 0.06), top: Math.ceil(24 + height * 0.08) } : { x: 0, top: 0 };
+    if (room.x !== this.room.x || room.top !== this.room.top) {
+      this.room = room;
+      this.setPosition(this.left, this.top);
+    }
+    const fullWidth = width + 2 * room.x, fullHeight = height + room.top;
+    const pixelWidth = Math.round(fullWidth * ratio), pixelHeight = Math.round(fullHeight * ratio);
     if (this.canvas.width !== pixelWidth || this.canvas.height !== pixelHeight) {
       this.canvas.width = pixelWidth;
       this.canvas.height = pixelHeight;
     }
-    this.canvas.style.width = `${width}px`;
-    this.canvas.style.height = `${height}px`;
+    this.canvas.style.width = `${fullWidth}px`;
+    this.canvas.style.height = `${fullHeight}px`;
     const context = this.context;
     context.setTransform(ratio, 0, 0, ratio, 0, 0);
-    context.clearRect(0, 0, width, height);
+    context.clearRect(0, 0, fullWidth, fullHeight);
+    context.translate(room.x, room.top);
     this.dirty = false;
 
     if (this.sleepMarks) this.drawSleepMarks(now);
@@ -307,12 +328,20 @@ export class PetView {
     }
     // Ombra centrata sulla linea di terra del disegno.
     const main = this.imageRect(this.boxSize);
-    const shadowWidth = width * this.pet.shadowWidthFraction;
     const groundY = main.y + main.height - this.pet.groundFraction * main.height;
-    context.fillStyle = "rgba(0, 0, 0, 0.16)";
+    // Il saltello del giro guidato: l'ombra resta a terra e si stringe quando lui è in aria.
+    const pose = calling ? callPose((now - this.callStart!) / 1000) : null;
+    const air = pose ? Math.min(pose.lift / 30, 0.6) : 0;
+    const shadowWidth = width * this.pet.shadowWidthFraction * (1 - air);
+    context.fillStyle = `rgba(0, 0, 0, ${0.16 * (1 - air * 0.8)})`;
     context.beginPath();
-    context.ellipse(width / 2, groundY, shadowWidth / 2, 3.5, 0, 0, Math.PI * 2);
+    context.ellipse(width / 2, groundY, shadowWidth / 2, 3.5 * (1 - air * 0.5), 0, 0, Math.PI * 2);
     context.fill();
+    if (pose) {
+      context.translate(width / 2, groundY - pose.lift);
+      context.scale(pose.scaleX, pose.scaleY);
+      context.translate(-width / 2, -groundY);
+    }
 
     const draw = (index: number, alpha: number): void => {
       const image = this.images[index];
