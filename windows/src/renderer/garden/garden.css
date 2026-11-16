@@ -3,6 +3,8 @@
 
 @font-face {
   font-family: "Chewy";
+  /* più grande del 12%, e (dove si usa --marker) un po' spaziato e con il tratto più spesso: così somiglia a Marker Felt Wide, più largo e più scuro */
+  size-adjust: 112%;
   font-style: normal;
   font-weight: 100 900;
   font-display: block;
@@ -21,6 +23,9 @@
   --silver: rgb(148, 168, 196);
   --gold: rgb(219, 168, 46);
   --marker: "Chewy", "Segoe Print", cursive;
+  --marker-spacing: 0.045em;
+  /* il tratto più spesso: un bordo sottile dello stesso colore, dietro al riempimento */
+  --marker-stroke: 0.035em;
   --ui: system-ui, "Segoe UI", sans-serif;
 }
 
@@ -81,7 +86,7 @@ html, body {
   align-items: center;
   white-space: nowrap;
 }
-.island-label .name { font: 17px/21px var(--marker); color: var(--ink); }
+.island-label .name { font: 17px/21px var(--marker); color: var(--ink); letter-spacing: var(--marker-spacing); -webkit-text-stroke: var(--marker-stroke) currentColor; paint-order: stroke fill; }
 .island-label.closed { background: rgba(51, 56, 77, 0.90); border-color: rgb(115, 122, 153); border-radius: 18px; }
 .island-label.closed .name { color: rgb(235, 235, 235); }
 .island-label .subtitle { font: 500 12px var(--ui); color: rgb(199, 199, 199); margin-top: 1px; }
@@ -105,7 +110,7 @@ html, body {
 .celebration .icon { color: rgb(226, 140, 28); fill: rgb(226, 140, 28); }
 .celebration-text { display: flex; flex-direction: column; }
 .celebration .caption { font: 500 12px var(--ui); color: var(--ink-light); }
-.celebration .title { font: 20px/24px var(--marker); color: var(--ink); }
+.celebration .title { font: 20px/24px var(--marker); color: var(--ink); letter-spacing: var(--marker-spacing); -webkit-text-stroke: var(--marker-stroke) currentColor; paint-order: stroke fill; }
 
 /* ---- le pastiglie */
 
@@ -152,7 +157,7 @@ button.chip:focus-visible, .zoom button:focus-visible { outline: 2px solid var(-
 .streak.frozen { background: rgba(217, 237, 252, 0.96); border-color: rgb(115, 168, 219); color: rgb(51, 97, 148); }
 .streak.frozen .icon { color: rgb(77, 140, 209); }
 .album { padding-left: 14px; }
-.album .number { font: 20px/26px var(--marker); color: var(--ink); }
+.album .number { font: 20px/26px var(--marker); color: var(--ink); letter-spacing: var(--marker-spacing); -webkit-text-stroke: var(--marker-stroke) currentColor; paint-order: stroke fill; }
 .album-button { width: 112px; justify-content: center; font: 600 13px var(--ui); margin-left: 2px; }
 .album-button .icon { color: var(--accent-pressed); }
 
@@ -189,7 +194,7 @@ button.chip:focus-visible, .zoom button:focus-visible { outline: 2px solid var(-
   border-top: 1.5px solid var(--edge);
 }
 
-.tray-title { position: absolute; left: 18px; top: 14px; font: 19px/26px var(--marker); color: var(--ink); }
+.tray-title { position: absolute; left: 18px; top: 14px; font: 19px/26px var(--marker); color: var(--ink); letter-spacing: var(--marker-spacing); -webkit-text-stroke: var(--marker-stroke) currentColor; paint-order: stroke fill; }
 .tray-subtitle { position: absolute; left: 18px; top: 44px; width: 100px; font: 11px var(--ui); color: var(--ink-light); }
 
 .tray-cells {
@@ -241,6 +246,7 @@ button.chip:focus-visible, .zoom button:focus-visible { outline: 2px solid var(-
   font: 18px/44px var(--marker);
   text-align: center;
   pointer-events: none !important;
+  letter-spacing: var(--marker-spacing); -webkit-text-stroke: var(--marker-stroke) currentColor; paint-order: stroke fill;
 }
 .remove-zone.hover { background: rgba(217, 120, 56, 0.30); border-width: 2.4px; line-height: 42px; }
 

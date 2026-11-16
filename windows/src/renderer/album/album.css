@@ -11,6 +11,8 @@
 
 @font-face {
   font-family: "Chewy";
+  /* più grande del 12%, e (dove si usa --marker) un po' spaziato e con il tratto più spesso: così somiglia a Marker Felt Wide, più largo e più scuro */
+  size-adjust: 112%;
   font-style: normal;
   font-weight: 100 900;
   font-display: block;

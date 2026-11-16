@@ -124,6 +124,7 @@ textarea:focus-visible {
   flex: 1;
   text-align: center;
   font: 20px/26px var(--marker);
+  letter-spacing: var(--marker-spacing); -webkit-text-stroke: var(--marker-stroke) currentColor; paint-order: stroke fill;
 }
 
 /* ---- la pagina che scorre */
@@ -139,6 +140,7 @@ textarea:focus-visible {
 .big {
   text-align: center;
   font: 58px/72px var(--marker);
+  letter-spacing: var(--marker-spacing); -webkit-text-stroke: var(--marker-stroke) currentColor; paint-order: stroke fill;
 }
 
 .big.empty {
@@ -348,6 +350,7 @@ textarea:focus-visible {
 
 .diary-day {
   font: 16px/24px var(--marker);
+  letter-spacing: var(--marker-spacing); -webkit-text-stroke: var(--marker-stroke) currentColor; paint-order: stroke fill;
 }
 
 .diary-total {
@@ -474,6 +477,7 @@ textarea:focus-visible {
 
 .edit-title {
   font: 20px/26px var(--marker);
+  letter-spacing: var(--marker-spacing); -webkit-text-stroke: var(--marker-stroke) currentColor; paint-order: stroke fill;
 }
 
 .edit-heading {
@@ -567,6 +571,7 @@ textarea:focus-visible {
   color: white;
   text-align: center !important;
   font: 16px var(--marker);
+  letter-spacing: var(--marker-spacing); -webkit-text-stroke: var(--marker-stroke) currentColor; paint-order: stroke fill;
 }
 
 .pill-action:active {
@@ -712,6 +717,7 @@ textarea:focus-visible {
 
 .year-tile-value {
   font: 19px/24px var(--marker);
+  letter-spacing: var(--marker-spacing); -webkit-text-stroke: var(--marker-stroke) currentColor; paint-order: stroke fill;
 }
 
 .year-tile-caption {

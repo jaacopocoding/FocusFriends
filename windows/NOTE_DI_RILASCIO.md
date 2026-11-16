@@ -15,6 +15,8 @@ leggere con l'una e con l'altra.
 - Il nome di un compagno bloccato non si legge più nemmeno nel menu dell'area di notifica: «??? · si sblocca a 20 focus».
 - **«Cliccami!!!»**: all'inizio del giro guidato il compagno non trema più. Ogni tanto si carica, fa un salto, atterra e fa un saltino più piccolo,
   con l'ombra che resta a terra (con «Riduci movimento» sta fermo).
+- **Il carattere «pennarello»** (titoli, numeri, fumetti) è più grande, più spaziato e con il tratto più spesso: assomiglia di più a quello della
+  versione per Mac, che è più largo e più scuro.
 
 Niente cambia nei dati.
 

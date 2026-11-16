@@ -4,6 +4,8 @@
    Ha un peso solo, già pesante come Marker Felt Wide: l'intervallo di pesi evita che il grassetto lo ingrossi ancora. */
 @font-face {
   font-family: "Chewy";
+  /* più grande del 12%, e (dove si usa --marker) un po' spaziato e con il tratto più spesso: così somiglia a Marker Felt Wide, più largo e più scuro */
+  size-adjust: 112%;
   font-style: normal;
   font-weight: 100 900;
   font-display: block;
@@ -26,6 +28,9 @@
   --danger-fill: rgb(255, 230, 222);
   --danger-edge: rgb(214, 150, 130);
   --marker: "Chewy", "Segoe Print", cursive;
+  --marker-spacing: 0.045em;
+  /* il tratto più spesso: un bordo sottile dello stesso colore, dietro al riempimento */
+  --marker-stroke: 0.035em;
   --ui: system-ui, "Segoe UI", sans-serif;
 }
 
@@ -140,6 +145,7 @@
 .greeting {
   font: 20px/26px var(--marker);
   text-align: center;
+  letter-spacing: var(--marker-spacing); -webkit-text-stroke: var(--marker-stroke) currentColor; paint-order: stroke fill;
 }
 
 .status {
@@ -264,6 +270,7 @@
   margin-top: 8px;
   font: 24px/30px var(--marker);
   text-align: center;
+  letter-spacing: var(--marker-spacing); -webkit-text-stroke: var(--marker-stroke) currentColor; paint-order: stroke fill;
 }
 
 .avatar-island {
@@ -435,6 +442,7 @@
 
 .duration-number {
   font: 22px/26px var(--marker);
+  letter-spacing: var(--marker-spacing); -webkit-text-stroke: var(--marker-stroke) currentColor; paint-order: stroke fill;
 }
 
 .duration-caption {
@@ -506,6 +514,7 @@
 
 .running-clock {
   font: 30px/36px var(--marker);
+  letter-spacing: var(--marker-spacing); -webkit-text-stroke: var(--marker-stroke) currentColor; paint-order: stroke fill;
 }
 
 .pill-button {
@@ -514,6 +523,7 @@
   border-radius: 18px;
   text-align: center;
   font: 16px var(--marker);
+  letter-spacing: var(--marker-spacing); -webkit-text-stroke: var(--marker-stroke) currentColor; paint-order: stroke fill;
 }
 
 .pill-button.primary {
@@ -556,6 +566,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  letter-spacing: var(--marker-spacing); -webkit-text-stroke: var(--marker-stroke) currentColor; paint-order: stroke fill;
 }
 
 .tile-caption {
@@ -798,6 +809,7 @@ input.volume::-webkit-slider-thumb {
 .page-title {
   font: 20px/26px var(--marker);
   margin-left: -6px;
+  letter-spacing: var(--marker-spacing); -webkit-text-stroke: var(--marker-stroke) currentColor; paint-order: stroke fill;
 }
 
 .segmented {
@@ -849,6 +861,7 @@ input.volume::-webkit-slider-thumb {
 .dial-minutes {
   font: 40px var(--marker);
   fill: var(--ink);
+  letter-spacing: var(--marker-spacing); -webkit-text-stroke: var(--marker-stroke) currentColor; paint-order: stroke fill;
 }
 
 .dial-unit {
@@ -924,6 +937,7 @@ input.volume::-webkit-slider-thumb {
   justify-content: center;
   gap: 8px;
   font: 18px var(--marker);
+  letter-spacing: var(--marker-spacing); -webkit-text-stroke: var(--marker-stroke) currentColor; paint-order: stroke fill;
 }
 
 .start:active {
@@ -990,6 +1004,7 @@ input.volume::-webkit-slider-thumb {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  letter-spacing: var(--marker-spacing); -webkit-text-stroke: var(--marker-stroke) currentColor; paint-order: stroke fill;
 }
 
 .notebook-detail {
@@ -1046,6 +1061,7 @@ input.volume::-webkit-slider-thumb {
 .tomato-big {
   font: 40px var(--marker);
   fill: var(--ink);
+  letter-spacing: var(--marker-spacing); -webkit-text-stroke: var(--marker-stroke) currentColor; paint-order: stroke fill;
 }
 
 .tomato-small {
@@ -1075,6 +1091,7 @@ input.volume::-webkit-slider-thumb {
   color: var(--ink);
   background: var(--paper);
   transition: transform 0.05s, box-shadow 0.05s;
+  letter-spacing: var(--marker-spacing); -webkit-text-stroke: var(--marker-stroke) currentColor; paint-order: stroke fill;
 }
 
 .sticker:hover {
@@ -1115,6 +1132,7 @@ input.volume::-webkit-slider-thumb {
 .section-title {
   margin-top: 16px;
   font: 19px/26px var(--marker);
+  letter-spacing: var(--marker-spacing); -webkit-text-stroke: var(--marker-stroke) currentColor; paint-order: stroke fill;
 }
 
 .background-chips {
@@ -1182,6 +1200,7 @@ input.volume::-webkit-slider-thumb {
   align-items: center;
   font: 17px/22px var(--marker);
   margin-bottom: 4px;
+  letter-spacing: var(--marker-spacing); -webkit-text-stroke: var(--marker-stroke) currentColor; paint-order: stroke fill;
 }
 
 .postit-more {
@@ -1389,6 +1408,7 @@ input.volume::-webkit-slider-thumb {
   align-items: center;
   justify-content: center;
   font: 18px var(--marker);
+  letter-spacing: var(--marker-spacing); -webkit-text-stroke: var(--marker-stroke) currentColor; paint-order: stroke fill;
 }
 
 .card-root .todo-save:hover {
@@ -1533,6 +1553,7 @@ input.volume::-webkit-slider-thumb {
 .todo-group {
   font: 15px/20px var(--marker);
   margin: 6px 0 2px 2px;
+  letter-spacing: var(--marker-spacing); -webkit-text-stroke: var(--marker-stroke) currentColor; paint-order: stroke fill;
 }
 
 .todo-group.overdue {
@@ -1685,6 +1706,7 @@ input.volume::-webkit-slider-thumb {
   font: 18px/24px var(--marker);
   color: var(--ink);
   margin-top: 6px;
+  letter-spacing: var(--marker-spacing); -webkit-text-stroke: var(--marker-stroke) currentColor; paint-order: stroke fill;
 }
 
 .todo-empty-text {

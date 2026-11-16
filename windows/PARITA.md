@@ -91,7 +91,7 @@ circa 200 MB e 0 % di processore. **Le sigle W qui sotto non sono state spuntate
 | Menu classico: Nascondi/Mostra, Fai parlare, Pomofocus, Statistiche, Il tuo nome, Chiedi com'è andata, Pausa lunga, Frequenza, Personaggio (chi è bloccato: «??? · si sblocca a 20 focus: ne hai 12»), Movimento, Avvia al login, Modifica le frasi, Esci | Tutte le voci, più **Schermo** (con più schermi) e i sottomenu di suono e musica; «???» al posto del nome di chi è bloccato dalla 2.0.1 | C (l'elenco); **W** (come si apre) |
 | Tutto leggibile ai lettori di schermo | Pulsanti veri con etichette; tastiera completa | C; con un lettore vero (Narrator): **W** |
 | Icona del compagno (la testa) | Stessa testa, 32 px | C; **W** |
-| Aspetto «carta»; carattere Marker Felt (Wide) | Stesso disegno in SVG; **Chewy al posto di Marker Felt** (il più vicino tra 44 caratteri liberi, misurato contro l'originale), icone Lucide al posto di SF Symbols | ≠ voluta: le lettere non sono identiche |
+| Aspetto «carta»; carattere Marker Felt (Wide) | Stesso disegno in SVG; **Chewy al posto di Marker Felt** (il più vicino tra 44 caratteri liberi, misurato contro l'originale; dalla 2.0.1 il 12% più grande, un po' spaziato e con il tratto più spesso, `size-adjust`, `--marker-spacing` e `--marker-stroke`, perché Marker Felt Wide è più largo e più scuro; scelto dall'utente su un confronto con la scheda vera), icone Lucide al posto di SF Symbols | ≠ voluta: le lettere non sono identiche |
 
 ## 6. Suoni
 

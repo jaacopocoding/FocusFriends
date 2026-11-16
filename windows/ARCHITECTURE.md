@@ -39,7 +39,7 @@ HTTP client in the code **[inferred]**).
 | Runtime dependencies | **none** (only `devDependencies`: electron, electron-builder 26.15.3, esbuild, typescript, @types/node, lucide-static 1.59.0). Everything is bundled | `package.json` |
 | Tests | Node's built-in runner (`node --test`) on `.ts` files via Node ≥ 24 type stripping; no test framework, no dependencies | `package.json` (`engines.node >= 24`) |
 | Packaging | electron-builder, NSIS one-click installer **per user** (no administrator rights), `x64` and `arm64`, `asar`, maximum compression | `electron-builder.yml` |
-| Font | **Chewy** (Apache 2.0), bundled as `resources/fonts/chewy-latin-400.woff2`; icons are Lucide (ISC), pre-rendered into `icons.generated.ts` | `card.css`, `tools/genera-icone.mjs` |
+| Font | **Chewy** (Apache 2.0), bundled as `resources/fonts/chewy-latin-400.woff2`, drawn 12% larger (`size-adjust: 112%` in each `@font-face`, so canvas text too), spaced and thickened (`letter-spacing: var(--marker-spacing)` 0.045em and `-webkit-text-stroke: var(--marker-stroke) currentColor` 0.035em with `paint-order: stroke fill`, on every rule that uses `--marker`) since 2.0.1, to come closer to the width and weight of Marker Felt Wide; icons are Lucide (ISC), pre-rendered into `icons.generated.ts` | `card.css`, `tools/genera-icone.mjs` |
 | Target OS | Windows 10 and 11 (x64, ARM64). It also runs on macOS for development, with a separate data folder (§4.12) | `PIANO_WINDOWS.md` §0 |
 | Size | ≈ 8,700 lines of TypeScript in `src/` (core ≈ 3,600, main ≈ 1,300, renderer ≈ 3,500, shared and preload ≈ 270), ≈ 3,000 in `test/` | `wc -l` |
 
