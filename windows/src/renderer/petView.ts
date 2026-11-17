@@ -265,6 +265,13 @@ export class PetView {
   /** Il punto (nelle coordinate della scatola, origine in alto a sinistra) è sopra un pixel del disegno? */
   hitTest(x: number, y: number): boolean {
     const box = this.boxSize;
+    // Mentre chiama («Cliccami!!!») salta e si allunga: vale tutto lo spazio in cui si muove, non solo i pixel di quando sta fermo.
+    // Così il clic non passa al desktop se arriva mentre è in aria, né se il cursore è fermo e lui ci salta sotto.
+    if (this.callStart !== null && !this.pickedUp) {
+      const rect = this.imageRect(box);
+      const top = rect.y - Math.ceil(24 + box.height * 0.08), side = Math.ceil(box.width * 0.06);
+      return x >= rect.x - side && x <= rect.x + rect.width + side && y >= top && y <= rect.y + rect.height;
+    }
     if (x < 0 || y < 0 || x >= box.width || y >= box.height) return false;
     const sx = this.mirrored && !this.pickedUp ? box.width - x : x;
     if (this.pickedUp && this.pickedImage) return this.opaqueAt(this.pickedImage, this.pickedRect(this.pickedImage), sx, y);

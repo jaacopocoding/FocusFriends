@@ -593,7 +593,8 @@ async function start(): Promise<void> {
   });
   tour = new GuidedTour({
     container: stage, card, speaker, urlOf, scene: sceneSize,
-    setPetCalling: (on) => view?.setCalling(on, performance.now()),
+    // il riquadro cliccabile cambia (si allarga mentre chiama): se il mouse è già lì, la finestra deve saperlo anche senza un movimento
+    setPetCalling: (on) => { view?.setCalling(on, performance.now()); refreshHover(); },
     petBox: () => ({ ...view.position, ...view.size }),
     openCard: () => card.toggle({ anchor: null, toggle: false }),
   });
