@@ -96,7 +96,11 @@ final class Garden {
     private let file: URL
     private let directory: URL
     /// Quello che si è trovato e i contatori delle garanzie.
-    private(set) var drops = GardenDropState.starting()
+    private(set) var drops = GardenDropState.starting() {
+        didSet { completedSpreadsCache = nil }
+    }
+    /// Le doppie pagine complete dell'album (la grandezza delle isole), finché non cambia quello che si è trovato.
+    private var completedSpreadsCache: (developer: Bool, count: Int)?
     /// L'ultimo focus che ha tirato: lo stesso focus non tira due volte.
     private(set) var lastRolled: String?
     /// Gli oggetti trovati e non ancora visti nell'album (portano il nastrino «NUOVA»).
@@ -174,7 +178,15 @@ final class Garden {
             report("Il file del giardino non si legge: non lo modifico.")
             return
         }
-        if let contents = try? JSONDecoder().decode(Contents.self, from: data) {
+        // Se non si legge tutto insieme, si prova senza le copie rovinate: le altre (e l'album) restano.
+        var dropped = 0
+        var decoded = try? JSONDecoder().decode(Contents.self, from: data)
+        if decoded == nil, let cleaned = DamagedList.dropUnreadable(GardenPlacement.self, inList: "placements", of: data, decoder: JSONDecoder()),
+           let retried = try? JSONDecoder().decode(Contents.self, from: cleaned.data) {
+            decoded = retried
+            dropped = cleaned.dropped
+        }
+        if let contents = decoded {
             if contents.version > Self.formatVersion {
                 isReadOnly = true
                 report("Il giardino è di una versione più nuova di questa app: lo leggo ma non lo modifico.")
@@ -233,6 +245,18 @@ final class Garden {
             scenes = contents.scenes ?? []
             settle(legacyCompanions: legacyCompanions)
             formedCorners = GardenCorners.formed(by: placements)
+            if dropped > 0 && !isReadOnly {
+                // Il file com'era si tiene da parte, poi si riscrive senza le copie rovinate. Se la copia non si riesce a fare, non si tocca niente.
+                let name = DamagedList.asideName("giardino")
+                if (try? data.write(to: directory.appendingPathComponent(name), options: .atomic)) != nil {
+                    let what = dropped == 1 ? "1 cosa del giardino non era leggibile" : "\(dropped) cose del giardino non erano leggibili"
+                    report("\(what): le altre sono a posto, e il file com'era è in \(name).")
+                    save()
+                } else {
+                    isReadOnly = true
+                    report("Alcune cose del giardino non si leggono e non riesco a tenerne una copia: non modifico il file.")
+                }
+            }
         } else {
             // Rovinato: lo metto da parte invece di sovrascriverlo alla prossima modifica.
             let aside = directory.appendingPathComponent("giardino.corrotto-\(Int(Date().timeIntervalSince1970)).json")
@@ -629,14 +653,23 @@ final class Garden {
     /// Quante tessere per lato: 8, e una in più per ogni doppia pagina dell'album completata, fino a 10 (e mai meno di quanto serve
     /// a quello che c'è già sopra). Vale per ogni isola, per ora.
     func islandSize(of island: String) -> Int {
-        let completed = GardenAlbum.completedSpreads(isFound: { isFound($0) })
-        var size = GardenIsland.size(completedSpreads: completed)
+        var size = GardenIsland.size(completedSpreads: completedSpreads)
         for placement in placements(on: island) {
             guard let item = GardenCatalog.item(withID: placement.item) else { continue }
             let footprint = item.footprint.applying(turned: placement.turned)
             size = max(size, placement.col + footprint.cols, placement.row + footprint.rows)
         }
         return min(size, GardenIsland.maxSize)
+    }
+
+    /// Le doppie pagine complete dell'album. Si ricalcolano solo quando cambia quello che si è trovato (o la modalità sviluppatore,
+    /// che fa contare tutto): `islandSize` si chiede a ogni passo del trascinamento.
+    private var completedSpreads: Int {
+        let developer = Profile.isDeveloper
+        if let cached = completedSpreadsCache, cached.developer == developer { return cached.count }
+        let count = GardenAlbum.completedSpreads(isFound: { isFound($0) })
+        completedSpreadsCache = (developer, count)
+        return count
     }
 
     /// La grandezza dell'isola mostrata.

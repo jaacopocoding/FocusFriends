@@ -120,12 +120,10 @@ enum FocusRating: String, Codable, CaseIterable {
     }
 }
 
-/// La riga facoltativa "cosa hai fatto" di un focus.
-enum SessionNote {
-    static let maxLength = 80
-
-    /// Spazi in eccesso e caratteri di controllo tolti, al massimo `maxLength` caratteri; vuota = nessuna nota.
-    static func clean(_ text: String?) -> String? {
+/// Un testo scritto da chi usa l'app (una nota, una voce di «Da fare»): spazi in eccesso e caratteri di controllo tolti,
+/// al massimo `maxLength` caratteri; vuoto = niente.
+enum WrittenText {
+    static func clean(_ text: String?, maxLength: Int) -> String? {
         guard let text else { return nil }
         let words = text.split(whereSeparator: { $0.isWhitespace || $0.isNewline }).map { word in
             String(String.UnicodeScalarView(word.unicodeScalars.filter { !CharacterSet.controlCharacters.contains($0) }))
@@ -136,6 +134,39 @@ enum SessionNote {
     }
 }
 
+/// I file con un elenco di voci (il giardino, le cose da fare) che non si leggono tutti insieme: si prova a togliere solo le voci rovinate,
+/// come per le sessioni, invece di mettere da parte tutto il file.
+enum DamagedList {
+    /// Toglie dall'elenco `key` dell'oggetto JSON le voci che, da sole, non si leggono come `Item`. Ritorna i dati senza quelle voci e quante erano;
+    /// nil se il file non è un oggetto con quell'elenco o se non c'è nessuna voce da togliere (allora il guasto è altrove).
+    static func dropUnreadable<Item: Decodable>(_ type: Item.Type, inList key: String, of data: Data, decoder: JSONDecoder) -> (data: Data, dropped: Int)? {
+        guard var object = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any], let list = object[key] as? [Any] else { return nil }
+        let kept = list.filter { entry in
+            guard JSONSerialization.isValidJSONObject(entry), let bytes = try? JSONSerialization.data(withJSONObject: entry) else { return false }
+            return (try? decoder.decode(Item.self, from: bytes)) != nil
+        }
+        guard kept.count < list.count else { return nil }
+        object[key] = kept
+        guard let cleaned = try? JSONSerialization.data(withJSONObject: object) else { return nil }
+        return (cleaned, list.count - kept.count)
+    }
+
+    /// Il nome della copia del file com'era: «giardino.corrotto-1760000000.json».
+    static func asideName(_ base: String, now: Date = Date()) -> String {
+        "\(base).corrotto-\(Int(now.timeIntervalSince1970)).json"
+    }
+}
+
+/// La riga facoltativa "cosa hai fatto" di un focus.
+enum SessionNote {
+    static let maxLength = 80
+
+    /// Spazi in eccesso e caratteri di controllo tolti, al massimo `maxLength` caratteri; vuota = nessuna nota.
+    static func clean(_ text: String?) -> String? {
+        WrittenText.clean(text, maxLength: maxLength)
+    }
+}
+
 /// Le note scritte durante un focus: una riga per nota, poche e brevi.
 enum FocusNotes {
     static let maxLength = 160
@@ -143,13 +174,7 @@ enum FocusNotes {
 
     /// Pulisce una nota (spazi, caratteri di controllo, lunghezza); vuota = nessuna.
     static func clean(_ text: String?) -> String? {
-        guard let text else { return nil }
-        let words = text.split(whereSeparator: { $0.isWhitespace || $0.isNewline }).map { word in
-            String(String.UnicodeScalarView(word.unicodeScalars.filter { !CharacterSet.controlCharacters.contains($0) }))
-        }
-        let joined = words.filter { !$0.isEmpty }.joined(separator: " ")
-        guard !joined.isEmpty else { return nil }
-        return String(joined.prefix(maxLength))
+        WrittenText.clean(text, maxLength: maxLength)
     }
 
     /// Una lista pulita: senza note vuote, al massimo `maxCount`. Vuota = nil (così il campo non c'è nel file).

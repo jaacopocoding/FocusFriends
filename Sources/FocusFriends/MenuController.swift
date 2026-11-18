@@ -166,6 +166,7 @@ final class MenuController: NSObject, NSMenuDelegate {
                         actions: cardActions())
         tour = GuidedTour(card: card, petWindow: window, speaker: speaker)
         dashboard.onBack = { [weak self] in self?.returnToMenu() }
+        dashboard.beforeDeleteAll = { [weak self] in self?.pomodoro.abandonForDeleteAll() }
         garden.onBack = { [weak self] in self?.returnToMenu() }
         garden.onShowAlbum = { [weak self] in self?.showAlbum() }
         album.onBack = { [weak self] in self?.returnToMenu() }

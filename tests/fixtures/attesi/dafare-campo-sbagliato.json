@@ -3,7 +3,7 @@
   "cartella" : "dafare-campo-sbagliato",
   "daFare" : {
     "avvisi" : [
-      "Il file delle cose da fare era rovinato: l'ho messo da parte come dafare.corrotto-<epoch>.json."
+      "1 voce di «Da fare» non era leggibile: le altre sono a posto, e il file com'era è in dafare.corrotto-<epoch>.json."
     ],
     "daFare" : 0,
     "fatte" : [
@@ -21,6 +21,7 @@
     "voci" : 0
   },
   "fileDopo" : [
-    "dafare.corrotto-<epoch>.json"
+    "dafare.corrotto-<epoch>.json",
+    "dafare.json"
   ]
 }

@@ -1091,6 +1091,26 @@ check(!FileManager.default.fileExists(atPath: brokenDir.appendingPathComponent("
       && (try? FileManager.default.contentsOfDirectory(atPath: brokenDir.path))?.contains { $0.hasPrefix("giardino.corrotto-") } == true,
       "la copia c'è")
 check(broken.foundCount == 3 && broken.placements.count == 3, "e si riparte dalla dotazione")
+// una copia sola non si legge: si scarta lei, il resto del giardino resta (e il file com'era si tiene da parte)
+let damagedGardenDir = tempDirectory()
+let damagedGardenText = """
+{"version": 4, "drops": {"found": {"margherite": 1, "trifoglio": 1, "lavanda": 1}, "nothingInARow": 0, "sinceRare": 0, "sinceLegendary": 0},
+ "home": "pianty", "bridges": [], "welcomed": ["pianty"], "islandRules": 1, "companions": {},
+ "placements": [{"id": "00000000-0000-4000-8000-0000000000D1", "item": "margherite", "col": 1, "row": 1, "turned": false, "island": ""},
+                {"id": "non è un id", "item": "trifoglio", "col": 3, "row": 1, "turned": false, "island": ""},
+                {"id": "00000000-0000-4000-8000-0000000000D3", "item": "lavanda", "col": 5, "row": 1, "turned": false, "island": ""}]}
+"""
+try? damagedGardenText.write(to: damagedGardenDir.appendingPathComponent("giardino.json"), atomically: true, encoding: .utf8)
+let damagedGarden = Garden(directory: damagedGardenDir)
+var damagedGardenProblems: [String] = []
+damagedGarden.onProblem = { damagedGardenProblems.append($0) }
+check(damagedGarden.allPlacements.map { $0.item } == ["margherite", "lavanda"] && damagedGarden.has("trifoglio"),
+      "una copia rovinata: si scarta lei sola, le altre e l'album restano")
+check(damagedGardenProblems.count == 1 && damagedGardenProblems[0].contains("1 cosa del giardino") && damagedGardenProblems[0].contains("giardino.corrotto-"),
+      "…con un avviso che dice dov'è il file com'era")
+check(((try? FileManager.default.contentsOfDirectory(atPath: damagedGardenDir.path)) ?? []).contains { $0.hasPrefix("giardino.corrotto-") }
+      && Garden(directory: damagedGardenDir).allPlacements.count == 2,
+      "la copia c'è e il file è già riscritto senza la copia rovinata")
 let newerGardenDir = tempDirectory()
 let newerGardenFile = newerGardenDir.appendingPathComponent("giardino.json")
 let newerGardenText = "{\"version\": 99, \"unlocked\": [\"rosaio\"], \"spent\": 3, \"placements\": [], \"companions\": {}}"
@@ -2186,6 +2206,25 @@ check(todoBroken.items.isEmpty && todoBrokenProblems.count == 1 && !FileManager.
       "file rovinato: messo da parte e si riparte da vuoto, con un avviso")
 _ = todoBroken.add(text: "di nuovo")
 check(ToDoList(directory: todoBrokenDir).items.count == 1, "dopo un file rovinato si scrive di nuovo")
+
+// una voce sola non si legge: si scarta lei, le altre restano (e il file com'era si tiene da parte)
+let todoDamagedDir = tempDirectory()
+try? """
+{ "version": 1, "items": [
+  { "id": "00000000-0000-4000-8000-000000000301", "text": "buona", "createdAt": "2026-10-14T07:00:00Z" },
+  { "id": "00000000-0000-4000-8000-000000000302", "text": "scadenza come numero", "due": 20261015, "createdAt": "2026-10-14T07:00:00Z" },
+  { "id": "00000000-0000-4000-8000-000000000303", "text": "anche questa", "createdAt": "2026-10-14T08:00:00Z" }
+] }
+""".write(to: todoDamagedDir.appendingPathComponent("dafare.json"), atomically: true, encoding: .utf8)
+var todoDamagedProblems: [String] = []
+let todoDamaged = ToDoList(directory: todoDamagedDir, now: { date(2026, 10, 20, 9, 0) })
+todoDamaged.onProblem = { todoDamagedProblems.append($0) }
+check(todoDamaged.items.map(\.text) == ["buona", "anche questa"] && !todoDamaged.isReadOnly, "una voce rovinata: si scarta lei sola, le altre restano")
+check(todoDamagedProblems.count == 1 && todoDamagedProblems[0].contains("1 voce") && todoDamagedProblems[0].contains("dafare.corrotto-"),
+      "…con un avviso che dice dov'è il file com'era")
+check(((try? FileManager.default.contentsOfDirectory(atPath: todoDamagedDir.path)) ?? []).contains { $0.hasPrefix("dafare.corrotto-") }
+      && ToDoList(directory: todoDamagedDir, now: { date(2026, 10, 20, 9, 0) }).items.count == 2,
+      "la copia c'è e il file è già riscritto senza la voce rovinata")
 
 section("Da fare: il compagno ricorda le scadenze")
 func reminderItem(_ text: String, due: String?, done: Bool = false, n: Int = 0) -> ToDoItem {

@@ -118,6 +118,8 @@ final class DashboardView: NSView {
     private let sessionsButton = NSButton()
     /// Chiamata dal pulsante «‹ Menu» in alto a sinistra: la finestra si chiude e si torna alla scheda del menu.
     var onBack: (() -> Void)?
+    /// Chiamata subito prima di «Cancella tutto»: un timer in corso va fermato, se no il suo focus finirebbe nei dati appena cancellati.
+    var beforeDeleteAll: (() -> Void)?
 
     init(log: SessionLog, now: @escaping () -> Date = Date.init) {
         self.log = log
@@ -630,6 +632,7 @@ final class DashboardView: NSView {
         confirm.hasDestructiveAction = true
         alert.addButton(withTitle: "Annulla")
         guard alert.runModal() == .alertFirstButtonReturn else { return }
+        beforeDeleteAll?()
         log.deleteAll()
         Profile.shared.reset()
         Garden.shared.reset()
@@ -1204,10 +1207,13 @@ final class DashboardController {
     private var view: DashboardView?
     /// Chiamata dal pulsante «‹ Menu» nella pagina: la finestra si chiude e si torna alla scheda del menu.
     var onBack: (() -> Void)?
+    /// Vedi `DashboardView.beforeDeleteAll`.
+    var beforeDeleteAll: (() -> Void)?
 
     func show(kind: PeriodKind = .day) {
         if window == nil {
             let view = DashboardView(log: .shared)
+            view.beforeDeleteAll = { [weak self] in self?.beforeDeleteAll?() }
             let window = NSWindow(
                 contentRect: NSRect(origin: .zero, size: DashboardView.size),
                 styleMask: [.titled, .closable, .miniaturizable],

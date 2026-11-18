@@ -84,13 +84,7 @@ enum ToDoText {
     static let maxLength = 120
 
     static func clean(_ text: String?) -> String? {
-        guard let text else { return nil }
-        let words = text.split(whereSeparator: { $0.isWhitespace || $0.isNewline }).map { word in
-            String(String.UnicodeScalarView(word.unicodeScalars.filter { !CharacterSet.controlCharacters.contains($0) }))
-        }
-        let joined = words.filter { !$0.isEmpty }.joined(separator: " ")
-        guard !joined.isEmpty else { return nil }
-        return String(joined.prefix(maxLength))
+        WrittenText.clean(text, maxLength: maxLength)
     }
 }
 
@@ -227,13 +221,33 @@ final class ToDoList {
         }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        if let contents = try? decoder.decode(Contents.self, from: data) {
+        // Se non si legge tutto insieme, si prova senza le voci rovinate: le altre restano.
+        var dropped = 0
+        var decoded = try? decoder.decode(Contents.self, from: data)
+        if decoded == nil, let cleaned = DamagedList.dropUnreadable(ToDoItem.self, inList: "items", of: data, decoder: decoder),
+           let retried = try? decoder.decode(Contents.self, from: cleaned.data) {
+            decoded = retried
+            dropped = cleaned.dropped
+        }
+        if let contents = decoded {
             if contents.version > Self.formatVersion {
                 isReadOnly = true
                 report("Il file delle cose da fare è di una versione più nuova dell'app: lo leggo ma non lo modifico.")
             }
             items = contents.items.compactMap(Self.sanitized)
             if !isReadOnly { purgeOldDone() }
+            if dropped > 0 && !isReadOnly {
+                // Il file com'era si tiene da parte, poi si riscrive senza le voci rovinate. Se la copia non si riesce a fare, non si tocca niente.
+                let name = DamagedList.asideName("dafare")
+                if (try? data.write(to: directory.appendingPathComponent(name), options: .atomic)) != nil {
+                    let what = dropped == 1 ? "1 voce di «Da fare» non era leggibile" : "\(dropped) voci di «Da fare» non erano leggibili"
+                    report("\(what): le altre sono a posto, e il file com'era è in \(name).")
+                    save()
+                } else {
+                    isReadOnly = true
+                    report("Alcune voci di «Da fare» non si leggono e non riesco a tenerne una copia: non modifico il file.")
+                }
+            }
         } else {
             let aside = directory.appendingPathComponent("dafare.corrotto-\(Int(Date().timeIntervalSince1970)).json")
             do {

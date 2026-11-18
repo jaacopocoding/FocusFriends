@@ -123,8 +123,8 @@ final class Pomodoro {
     // MARK: - Comandi
 
     func startFocus(minutes: Int, subject: String? = nil, todoID: UUID? = nil) {
+        closeCurrentFocus()     // se ce n'era uno in corso, finisce qui
         onTimerReset?()
-        recordFocus(completed: false)     // se ce n'era uno in corso, finisce qui
         endGrace()
         extensions = 0
         lastFocus = nil
@@ -144,7 +144,7 @@ final class Pomodoro {
 
     /// Avvia subito una pausa e ricorda la durata per quelle automatiche dopo il focus.
     func startBreak(minutes: Int) {
-        recordFocus(completed: false)
+        closeCurrentFocus()
         endGrace()
         extensions = 0
         lastFocus = nil
@@ -183,7 +183,7 @@ final class Pomodoro {
 
     func stop() {
         onTimerReset?()
-        recordFocus(completed: false)
+        closeCurrentFocus()
         endGrace()
         extensions = 0
         lastFocus = nil
@@ -297,10 +297,15 @@ final class Pomodoro {
 
     /// "09:00 – 09:50": da quando a quando dura la fase in corso.
     var phaseRangeText: String {
+        "\(Self.clockFormatter.string(from: phaseStart)) – \(Self.clockFormatter.string(from: endDate))"
+    }
+
+    /// «09:30»: uno solo, perché la schermata del focus chiede l'orario di continuo.
+    private static let clockFormatter: DateFormatter = {
         let f = DateFormatter()
         f.dateFormat = "HH:mm"
-        return "\(f.string(from: phaseStart)) – \(f.string(from: endDate))"
-    }
+        return f
+    }()
 
     /// I minuti previsti del focus in corso (con quelli aggiunti).
     var focusMinutes: Int { plannedFocusMinutes }
@@ -372,6 +377,15 @@ final class Pomodoro {
         speaker.say("Focus eliminato: non resta traccia.")
     }
 
+    /// Per «Cancella tutto»: il timer si ferma e il focus in corso non viene registrato (i dati stanno per sparire).
+    /// Senza frasi: l'ha chiesto chi usa l'app, e lo vede.
+    func abandonForDeleteAll() {
+        guard isRunning else { return }
+        discarding = true
+        stop()
+        discarding = false
+    }
+
     // MARK: - «+5 minuti»
 
     /// Il tempo è scaduto: suona, e per qualche secondo c'è il pulsante per aggiungere minuti.
@@ -419,37 +433,73 @@ final class Pomodoro {
 
         switch finished {
         case .focus:
-            let longBreak = BreakCycle.isEnabled && cycle.focusCompleted(at: Date())
-            if !BreakCycle.isEnabled { cycle.reset() }
-            let breakLength = longBreak ? max(BreakCycle.longBreakMinutes, breakMinutes) : breakMinutes
-            let studied = plannedFocusMinutes
-            let finishedSubject = subject
-            let finishedTodo = todoID
-            let recorded = recordFocus(completed: true)
-            lastFocus = (studied, finishedSubject, recorded?.id)
-            notes = []
-            subject = nil
-            todoID = nil
-            // Il regalo del giardino: un focus completato (con almeno 20 minuti) può far trovare una figurina per l'album.
-            var gift = GardenGift.notEligible
-            let firstFigurine = GardenDrops.noneFoundYet(Garden.shared.drops)
-            if let recorded {
-                let calendar = StudyPeriod.calendar()
-                let streak = StudyStreak.analyze(sessions: log.sessions, now: Date(), calendar: calendar)
-                let days = streak.perDay[calendar.startOfDay(for: recorded.startTime(in: calendar))] ?? 1
-                gift = Garden.shared.rollGift(for: recorded, streakDays: days)
-            }
-            begin(.rest, minutes: breakLength)
-            isLongBreak = longBreak
-            speaker.say(Self.focusFinishedMessage(subject: finishedSubject, studiedMinutes: studied, breakMinutes: breakLength,
-                                                  garden: GardenDrops.line(for: gift, minutesLeft: Garden.shared.minutesToNextGift, firstFigurine: firstFigurine),
-                                                  longBreak: longBreak))
-            onFocusCompleted?()
-            if let recorded { onFocusRecorded?(recorded, finishedTodo) }
-            onGift?(gift)
+            let done = closeCompletedFocus()
+            begin(.rest, minutes: done.breakLength)
+            isLongBreak = done.longBreak
+            speaker.say(Self.focusFinishedMessage(subject: done.subject, studiedMinutes: done.studiedMinutes, breakMinutes: done.breakLength,
+                                                  garden: GardenDrops.line(for: done.gift, minutesLeft: Garden.shared.minutesToNextGift, firstFigurine: done.firstFigurine),
+                                                  longBreak: done.longBreak))
+            announce(done)
         case .rest:
             stop()
             speaker.say("Pausa finita! Pronto per un altro giro?")
+        }
+    }
+
+    /// Un focus completato, chiuso: quello che serve per la frase di fine focus e per avvisare chi aspetta.
+    private struct CompletedFocus {
+        var longBreak: Bool
+        var breakLength: Int
+        var studiedMinutes: Int
+        var subject: String?
+        var todoID: UUID?
+        var recorded: StudySession?
+        var gift: GardenGift
+        var firstFigurine: Bool
+    }
+
+    /// Chiude il focus in corso come completato: conta nel ciclo, va nel registro e tira il regalo del giardino.
+    /// Non fa partire la pausa e non avvisa nessuno (vedi `announce`).
+    private func closeCompletedFocus() -> CompletedFocus {
+        let longBreak = BreakCycle.isEnabled && cycle.focusCompleted(at: Date())
+        if !BreakCycle.isEnabled { cycle.reset() }
+        let breakLength = longBreak ? max(BreakCycle.longBreakMinutes, breakMinutes) : breakMinutes
+        let studied = plannedFocusMinutes
+        let finishedSubject = subject
+        let finishedTodo = todoID
+        let recorded = recordFocus(completed: true)
+        lastFocus = (studied, finishedSubject, recorded?.id)
+        notes = []
+        subject = nil
+        todoID = nil
+        // Il regalo del giardino: un focus completato (con almeno 20 minuti) può far trovare una figurina per l'album.
+        var gift = GardenGift.notEligible
+        let firstFigurine = GardenDrops.noneFoundYet(Garden.shared.drops)
+        if let recorded {
+            let calendar = StudyPeriod.calendar()
+            let streak = StudyStreak.analyze(sessions: log.sessions, now: Date(), calendar: calendar)
+            let days = streak.perDay[calendar.startOfDay(for: recorded.startTime(in: calendar))] ?? 1
+            gift = Garden.shared.rollGift(for: recorded, streakDays: days)
+        }
+        return CompletedFocus(longBreak: longBreak, breakLength: breakLength, studiedMinutes: studied, subject: finishedSubject,
+                              todoID: finishedTodo, recorded: recorded, gift: gift, firstFigurine: firstFigurine)
+    }
+
+    /// Dice a chi aspetta che un focus è finito davvero: la carota, «com'è andata?» e la figurina.
+    private func announce(_ done: CompletedFocus) {
+        onFocusCompleted?()
+        if let recorded = done.recorded { onFocusRecorded?(recorded, done.todoID) }
+        onGift?(done.gift)
+    }
+
+    /// Prima di fermare il timer o farne partire un altro: se il tempo del focus era già scaduto (i secondi del «+5 minuti»)
+    /// il focus è completo e porta tutto quello che porta un focus finito (il ciclo, la figurina, «com'è andata?»);
+    /// altrimenti si registra come interrotto.
+    private func closeCurrentFocus() {
+        if phase == .focus, graceUntil != nil, !discarding {
+            announce(closeCompletedFocus())
+        } else {
+            recordFocus(completed: false)
         }
     }
 
@@ -483,11 +533,12 @@ final class Pomodoro {
     /// in tutti gli altri momenti sta allo stadio finale.
     private func updateStage() {
         let pet = petWindow.pet
+        // Dopo un «+5 minuti» resta allo stadio finale: la pianta (o la carota) non deve tornare indietro.
+        let total = activeTotal
+        let progress = total > 0 && extensions == 0 ? activeElapsed / total : 1
         // Chi ha le immagini di crescita del focus (Ciccio): durante il focus prendono il suo posto.
         if !pet.focusGrowthResources.isEmpty {
             if phase == .focus {
-                let total = activeTotal
-                let progress = total > 0 && extensions == 0 ? activeElapsed / total : 1
                 petWindow.showFocusGrowth(stage: pet.focusGrowthStage(forProgress: progress))
             } else {
                 petWindow.endFocusGrowth()
@@ -499,9 +550,6 @@ final class Pomodoro {
             petWindow.setStage(pet.finalStage)
             return
         }
-        let total = activeTotal
-        // Dopo un «+5 minuti» resta allo stadio finale: la pianta non deve tornare indietro.
-        let progress = total > 0 && extensions == 0 ? activeElapsed / total : 1
         petWindow.setStage(pet.stage(forProgress: progress))
     }
 
