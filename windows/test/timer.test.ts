@@ -254,6 +254,36 @@ describe("Pausa, sleep e chiusure", () => {
     assert.deepEqual([t.log.sessions[0]?.completed, t.log.sessions[0]?.seconds], [true, 25 * 60]);
   });
 
+  it("…e porta tutto quello che porta un focus finito: la figurina, «com'è andata?», il ciclo", () => {
+    let rolls = 0;
+    const t = setup({ gardenLine: () => { rolls += 1; return ""; } });
+    t.engine.startFocus(25);
+    t.advance(25 * MIN + 2000);
+    t.engine.toggleFocusPause();
+    assert.equal(rolls, 1);
+    assert.ok(t.types().includes("focusCompleted") && t.types().includes("focusRecorded"));
+    assert.equal(t.engine.snapshot().cycleDone, 1);
+  });
+
+  it("anche un nuovo timer avviato durante quei secondi chiude il focus come finito", () => {
+    let rolls = 0;
+    const t = setup({ gardenLine: () => { rolls += 1; return ""; } });
+    t.engine.startFocus(25);
+    t.advance(25 * MIN + 2000);
+    t.engine.startFocus(25);
+    assert.equal(rolls, 1);
+    assert.ok(t.types().includes("focusRecorded"));
+    assert.equal(t.log.sessions[0]?.completed, true);
+  });
+
+  it("una durata strana (NaN, 0, fuori misura) non fa partire il timer", () => {
+    const t = setup();
+    t.engine.startFocus(Number.NaN);
+    t.engine.startFocus(0);
+    t.engine.startBreak(500);
+    assert.equal(t.engine.phase, null);
+  });
+
   it("«Elimina questo focus» non lascia traccia", () => {
     const t = setup();
     t.engine.startFocus(25);

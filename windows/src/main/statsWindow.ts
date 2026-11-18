@@ -20,6 +20,8 @@ export interface StatsDeps {
   profile: Profile;
   /** «‹ Menu»: si torna alla scheda. */
   onBack(): void;
+  /** Subito prima di «Cancella tutto…»: un timer in corso va fermato, se no il suo focus finirebbe nei dati appena cancellati. */
+  beforeDeleteAll(): void;
   /** Dopo «Cancella tutto…»: altro da togliere oltre a sessioni e profilo (il giardino, nella seconda uscita). */
   onDeleteAll(): void;
 }
@@ -94,10 +96,11 @@ export function createStatsController(deps: StatsDeps): StatsController {
       const count = deps.log().sessions.length;
       const confirmed = testValue(process.env, "FF_SELFTEST_CONFIRM") === "1" || (await dialog.showMessageBox(window!, {
         type: "warning", message: "Cancellare tutti i dati?",
-        detail: `Verranno cancellate tutte le sessioni di studio (${count}), le copie di sicurezza e il tuo nome. Non si può annullare. Se vuoi tenerle, esportale prima con «Esporta CSV…».`,
+        detail: `Verranno cancellate tutte le sessioni di studio (${count}), il giardino, le copie di sicurezza e il tuo nome. Non si può annullare. Se vuoi tenerle, esportale prima con «Esporta CSV…».`,
         buttons: ["Cancella tutto", "Annulla"], defaultId: 1, cancelId: 1,
       })).response === 0;
       if (!confirmed) return;
+      deps.beforeDeleteAll();
       deps.log().deleteAll();
       deps.profile.reset();
       deps.onDeleteAll();

@@ -3,7 +3,8 @@
 // ogni 0,2 secondi con `tick()`. Il tempo passa sempre dall'orologio (`now`), così le prove lo comandano a piacere.
 
 import type { SessionLog, StudySession } from "./log.ts";
-import { BreakCycle, LONG_BREAK_MINUTES } from "./rules.ts";
+import { ALLOWED_TIMERS, BreakCycle, LONG_BREAK_MINUTES } from "./rules.ts";
+import type { TimerKind } from "./rules.ts";
 import { cleanFocusNote, cleanSubject, FOCUS_NOTES_COUNT } from "./text.ts";
 import { partsOf, wallOf } from "./time.ts";
 
@@ -119,6 +120,24 @@ export function focusFinishedMessage(
   ]);
 }
 
+/** Una durata che il timer accetta: minuti interi nei limiti dei timer (`ALLOWED_TIMERS`). Arriva dalla pagina: un valore strano
+ *  (NaN, 0, enorme) non deve far partire un timer che non finisce mai. */
+export function validMinutes(kind: TimerKind, minutes: unknown): minutes is number {
+  const range = ALLOWED_TIMERS[kind];
+  return typeof minutes === "number" && Number.isInteger(minutes) && minutes >= range.min && minutes <= range.max;
+}
+
+/** Un focus completato, chiuso: quello che serve per la frase di fine focus e per avvisare chi ascolta. */
+interface CompletedFocus {
+  longBreak: boolean;
+  breakLength: number;
+  studiedMinutes: number;
+  subject: string | null;
+  todoId: string | null;
+  recorded: StudySession | null;
+  garden: string;
+}
+
 export class PomodoroEngine {
   private readonly deps: PomodoroDeps;
   private readonly cycle: BreakCycle;
@@ -220,8 +239,9 @@ export class PomodoroEngine {
   // ---- comandi
 
   startFocus(minutes: number, subject: string | null = null, todoId: string | null = null): void {
+    if (!validMinutes("focus", minutes)) return;
+    this.closeCurrentFocus();       // se ce n'era uno in corso, finisce qui
     this.emit({ type: "reset" });
-    this.recordFocus(false);       // se ce n'era uno in corso, finisce qui
     this.endGrace();
     this.extensions = 0;
     this._lastFocus = null;
@@ -239,7 +259,8 @@ export class PomodoroEngine {
 
   /** Avvia subito una pausa e ricorda la durata per quelle automatiche dopo il focus. */
   startBreak(minutes: number): void {
-    this.recordFocus(false);
+    if (!validMinutes("rest", minutes)) return;
+    this.closeCurrentFocus();
     this.endGrace();
     this.extensions = 0;
     this._lastFocus = null;
@@ -276,7 +297,7 @@ export class PomodoroEngine {
 
   stop(): void {
     this.emit({ type: "reset" });
-    this.recordFocus(false);
+    this.closeCurrentFocus();
     this.endGrace();
     this.extensions = 0;
     this._lastFocus = null;
@@ -394,6 +415,14 @@ export class PomodoroEngine {
     this.say("Focus eliminato: non resta traccia.");
   }
 
+  /** Per «Cancella tutto»: il timer si ferma e il focus in corso non viene registrato (i dati stanno per sparire). Senza frasi. */
+  abandonForDeleteAll(): void {
+    if (this._phase === null) return;
+    this.discarding = true;
+    this.stop();
+    this.discarding = false;
+  }
+
   // ---- «+5 minuti»
 
   /** Il tempo è scaduto: suona, e per qualche secondo c'è il pulsante per aggiungere minuti. */
@@ -428,6 +457,38 @@ export class PomodoroEngine {
     this.say(variants[Math.floor(this.random() * variants.length)] ?? variants[0]!);
   }
 
+  /** Chiude il focus in corso come completato: conta nel ciclo, va nel registro e tira il regalo del giardino (`gardenLine`).
+   *  Non fa partire la pausa e non avvisa nessuno (vedi `announce`). Come `closeCompletedFocus` in Pomodoro.swift. */
+  private closeCompletedFocus(): CompletedFocus {
+    const enabled = this.deps.longBreakEnabled();
+    const longBreak = enabled && this.cycle.focusCompleted(this.deps.now());
+    if (!enabled) this.cycle.reset();
+    const breakLength = longBreak ? Math.max(LONG_BREAK_MINUTES, this._breakMinutes) : this._breakMinutes;
+    const studiedMinutes = this.plannedFocusMinutes;
+    const subject = this._subject;
+    const todoId = this._todoId;
+    const recorded = this.recordFocus(true);
+    this._lastFocus = { minutes: studiedMinutes, subject, sessionId: recorded?.id ?? null };
+    this._notes = [];
+    this._subject = null;
+    this._todoId = null;
+    const garden = recorded !== null && this.deps.gardenLine ? this.deps.gardenLine(recorded) : "";
+    return { longBreak, breakLength, studiedMinutes, subject, todoId, recorded, garden };
+  }
+
+  /** Dice a chi ascolta che un focus è finito davvero: la carota e «com'è andata?». */
+  private announce(done: CompletedFocus): void {
+    this.emit({ type: "focusCompleted" });
+    if (done.recorded !== null) this.emit({ type: "focusRecorded", session: done.recorded, todoId: done.todoId });
+  }
+
+  /** Prima di fermare il timer o farne partire un altro: se il tempo del focus era già scaduto (i secondi del «+5 minuti») il focus è
+   *  completo e porta tutto quello che porta un focus finito (il ciclo, la figurina, «com'è andata?»); altrimenti si registra come interrotto. */
+  private closeCurrentFocus(): void {
+    if (this._phase === "focus" && this.graceUntil !== null && !this.discarding) this.announce(this.closeCompletedFocus());
+    else this.recordFocus(false);
+  }
+
   private finish(): void {
     const finished = this._phase;
     if (finished === null) return;
@@ -436,26 +497,13 @@ export class PomodoroEngine {
     this.endGrace();
 
     if (finished === "focus") {
-      const enabled = this.deps.longBreakEnabled();
-      const now = this.deps.now();
-      const longBreak = enabled && this.cycle.focusCompleted(now);
-      if (!enabled) this.cycle.reset();
-      const breakLength = longBreak ? Math.max(LONG_BREAK_MINUTES, this._breakMinutes) : this._breakMinutes;
-      const studied = this.plannedFocusMinutes;
-      const finishedSubject = this._subject;
-      const finishedTodo = this._todoId;
-      const recorded = this.recordFocus(true);
-      this._lastFocus = { minutes: studied, subject: finishedSubject, sessionId: recorded?.id ?? null };
-      this._notes = [];
-      this._subject = null;
-      this._todoId = null;
-      const garden = recorded !== null && this.deps.gardenLine ? this.deps.gardenLine(recorded) : "";
-      this.begin("rest", breakLength);
-      this._isLongBreak = longBreak;
-      this.say(focusFinishedMessage({ subject: finishedSubject, studiedMinutes: studied, breakMinutes: breakLength, garden, longBreak },
-        () => this.random()));
-      this.emit({ type: "focusCompleted" });
-      if (recorded !== null) this.emit({ type: "focusRecorded", session: recorded, todoId: finishedTodo });
+      const done = this.closeCompletedFocus();
+      this.begin("rest", done.breakLength);
+      this._isLongBreak = done.longBreak;
+      this.say(focusFinishedMessage({
+        subject: done.subject, studiedMinutes: done.studiedMinutes, breakMinutes: done.breakLength, garden: done.garden, longBreak: done.longBreak,
+      }, () => this.random()));
+      this.announce(done);
     } else {
       this.stop();
       this.say("Pausa finita! Pronto per un altro giro?");

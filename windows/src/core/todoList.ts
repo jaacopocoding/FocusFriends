@@ -45,7 +45,8 @@ function decodeItem(raw: unknown): ToDoItem | null {
   return { id: id.toUpperCase(), text, due, subject, createdAt, doneAt };
 }
 
-function decode(raw: unknown): { version: number; items: ToDoItem[] } | null {
+/** Il file letto; una voce che non si legge si scarta da sola (`dropped` le conta): le altre restano, come per le sessioni (FORMATI.md §9). */
+function decode(raw: unknown): { version: number; items: ToDoItem[]; dropped: number } | null {
   if (typeof raw !== "object" || raw === null || Array.isArray(raw)) return null;
   const source = raw as Record<string, unknown>;
   const version = source["version"], items = source["items"];
@@ -53,10 +54,9 @@ function decode(raw: unknown): { version: number; items: ToDoItem[] } | null {
   const decoded: ToDoItem[] = [];
   for (const entry of items) {
     const item = decodeItem(entry);
-    if (item === null) return null;
-    decoded.push(item);
+    if (item !== null) decoded.push(item);
   }
-  return { version, items: decoded };
+  return { version, items: decoded, dropped: items.length - decoded.length };
 }
 
 /** Una voce letta dal file, ripulita: testo vuoto = si scarta, scadenza che non esiste = si toglie, materia pulita. */
@@ -130,6 +130,20 @@ export class ToDoList {
       }
       this._items = contents.items.flatMap((item) => { const clean = sanitized(item); return clean === null ? [] : [clean]; });
       if (!this._readOnly) this.purgeOldDone();
+      if (contents.dropped > 0 && !this._readOnly) {
+        // Il file com'era si tiene da parte, poi si riscrive senza le voci rovinate. Se la copia non si riesce a fare, non si tocca niente.
+        const copyName = `dafare.corrotto-${Math.floor(this.now() / 1000)}.json`;
+        try {
+          writeFileAtomic(join(this.directory, copyName), text);
+        } catch {
+          this._readOnly = true;
+          this.report("Alcune voci di «Da fare» non si leggono e non riesco a tenerne una copia: non modifico il file.");
+          return;
+        }
+        const what = contents.dropped === 1 ? "1 voce di «Da fare» non era leggibile" : `${contents.dropped} voci di «Da fare» non erano leggibili`;
+        this.report(`${what}: le altre sono a posto, e il file com'era è in ${copyName}.`);
+        this.save();
+      }
       return;
     }
     const asideName = `dafare.corrotto-${Math.floor(this.now() / 1000)}.json`;

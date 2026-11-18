@@ -115,6 +115,8 @@ async function start(): Promise<void> {
     while (reloads.length > 0 && now - reloads[0]! > 600_000) reloads.shift();
     if (details.reason === "clean-exit" || reloads.length >= 3 || win.isDestroyed()) return;
     reloads.push(now);
+    // Finché la pagina nuova non è pronta i messaggi aspettano: la frase di fine focus, la scheda o la figurina non vanno persi.
+    pageReady = false;
     win.webContents.reload();
   });
 
@@ -195,6 +197,7 @@ async function start(): Promise<void> {
   const stats: StatsController = statsRef = createStatsController({
     appPath: app.getAppPath(), log: () => service.log, profile,
     onBack: () => send(CHANNEL.cardReopen),
+    beforeDeleteAll: () => service.run(() => service.engine.abandonForDeleteAll()),
     onDeleteAll: () => garden.reset(),
   });
   const albumWindow: AlbumController = albumRef = createAlbumController({

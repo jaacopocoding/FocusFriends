@@ -95,6 +95,26 @@ describe("Giardino: il file", () => {
     new Garden(dir);
     assert.ok(readdirSync(dir).some((name) => name.startsWith("giardino.corrotto-")));
   });
+  it("una copia sola non si legge: si scarta lei, il resto resta e il file com'era si tiene da parte, come in Swift", () => {
+    const dir = tempDirectory();
+    writeFileSync(join(dir, "giardino.json"), JSON.stringify({
+      version: 4, drops: { found: { margherite: 1, trifoglio: 1, lavanda: 1 }, sinceRare: 0, sinceLegendary: 0 },
+      home: "pianty", bridges: [], welcomed: ["pianty"], islandRules: 1, companions: {},
+      placements: [
+        { id: "00000000-0000-4000-8000-0000000000D1", item: "margherite", col: 1, row: 1, turned: false, island: "" },
+        { id: "non è un id", item: "trifoglio", col: 3, row: 1, turned: false, island: "" },
+        { id: "00000000-0000-4000-8000-0000000000D3", item: "lavanda", col: 5, row: 1, turned: false, island: "" },
+      ],
+    }));
+    const problems: string[] = [];
+    const g = new Garden(dir, { now: () => 1_700_000_000_000 });
+    g.onProblem = (m) => problems.push(m);
+    assert.deepEqual(g.allPlacements.map((p) => p.item).sort(), ["lavanda", "margherite"]);
+    assert.ok(g.has("trifoglio"));
+    assert.deepEqual(problems, ["1 cosa del giardino non era leggibile: le altre sono a posto, e il file com'era è in giardino.corrotto-1700000000.json."]);
+    assert.ok(readdirSync(dir).includes("giardino.corrotto-1700000000.json"));
+    assert.equal(new Garden(dir).allPlacements.length, 2);
+  });
   it("un file di una versione più nuova si legge e non si riscrive", () => {
     const dir = tempDirectory();
     const text = JSON.stringify({ version: 9, placements: [], companions: {}, drops: { found: { lavanda: 1 }, sinceRare: 0, sinceLegendary: 0 } });

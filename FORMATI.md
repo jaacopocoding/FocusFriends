@@ -369,7 +369,7 @@ Versione 3 (Mac 0.10.0): il giardino non ha più punti né negozio né prato lib
 - **Qualche copia non si legge** (per esempio un `id` che non è un UUID): si leggono le copie di `placements` **una per una** e si tengono quelle
   buone, come per le sessioni. Il file com'era si salva come `giardino.corrotto-<epoch>.json`, si avvisa («N cose del giardino non erano leggibili: le
   altre sono a posto…») e si riscrive subito senza quelle copie (l'album non cambia). **Se la copia non si riesce a salvare, sola lettura.** Se il file
-  non si legge nemmeno senza le copie rovinate, vale la regola di sopra (tutto il file da parte). *Novembre 2026: per ora solo sul Mac, Windows è da allineare.*
+  non si legge nemmeno senza le copie rovinate, vale la regola di sopra (tutto il file da parte).
 - `version` maggiore di 4: si legge e si lavora in sola lettura (con un avviso). Illeggibile: sola lettura.
 - «Cancella tutto» toglie il file.
 
@@ -467,7 +467,7 @@ dell'altra è provato nei due versi: `tests/fixtures/dafare*` con i loro attesi,
 - **Si scrive** come gli altri file: tutto il file a ogni modifica, atomicamente, chiavi in ordine alfabetico, indentazione di 2 spazi.
 - **Qualche voce non si legge** (per esempio `due` scritta come numero): si leggono le voci **una per una** e si tengono quelle buone, come per le
   sessioni. Il file com'era si salva come `dafare.corrotto-<epoch>.json`, si avvisa («N voci di «Da fare» non erano leggibili: le altre sono a posto…»)
-  e si riscrive subito senza quelle voci. **Se la copia non si riesce a salvare, sola lettura.** *Novembre 2026: per ora solo sul Mac, Windows è da allineare.*
+  e si riscrive subito senza quelle voci. **Se la copia non si riesce a salvare, sola lettura.**
 - **Rovinato** (non si legge nemmeno senza le voci rovinate): si sposta in `dafare.corrotto-<epoch>.json`, si avvisa e si riparte da vuoto (se non si riesce a spostarlo: sola lettura).
   **Illeggibile**, o di una **versione più nuova** di 1: si legge (se si può) e non si riscrive, con un avviso.
 - **«Cancella tutto»** (statistiche) **non** tocca questo file: le cose da fare non sono dati di studio.

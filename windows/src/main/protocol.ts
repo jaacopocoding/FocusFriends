@@ -36,6 +36,7 @@ function serveAudio(file: string, request: Request): Response {
   }
   let start = match[1] === "" ? NaN : Number(match[1]);
   let end = match[2] === "" ? NaN : Number(match[2]);
+  if (Number.isNaN(start) && Number.isNaN(end)) return new Response("range", { status: 416, headers: { "Content-Range": `bytes */${size}` } });   // «bytes=-»
   if (Number.isNaN(start)) { start = Math.max(size - end, 0); end = size - 1; }       // «bytes=-N»: gli ultimi N
   else if (Number.isNaN(end) || end >= size) end = size - 1;
   if (start > end || start >= size) return new Response("range", { status: 416, headers: { "Content-Range": `bytes */${size}` } });

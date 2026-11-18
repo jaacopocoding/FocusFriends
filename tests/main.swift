@@ -1104,7 +1104,7 @@ try? damagedGardenText.write(to: damagedGardenDir.appendingPathComponent("giardi
 let damagedGarden = Garden(directory: damagedGardenDir)
 var damagedGardenProblems: [String] = []
 damagedGarden.onProblem = { damagedGardenProblems.append($0) }
-check(damagedGarden.allPlacements.map { $0.item } == ["margherite", "lavanda"] && damagedGarden.has("trifoglio"),
+check(damagedGarden.allPlacements.map { $0.item }.sorted() == ["lavanda", "margherite"] && damagedGarden.has("trifoglio"),
       "una copia rovinata: si scarta lei sola, le altre e l'album restano")
 check(damagedGardenProblems.count == 1 && damagedGardenProblems[0].contains("1 cosa del giardino") && damagedGardenProblems[0].contains("giardino.corrotto-"),
       "…con un avviso che dice dov'è il file com'era")

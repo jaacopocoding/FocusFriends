@@ -128,6 +128,8 @@ interface Contents {
   welcomed?: string[];
   islandRules?: number;
   rulesNotice?: GardenRulesReport;
+  /** Le copie scartate perché non si leggevano (non sta nel file). */
+  dropped: number;
 }
 
 function decodeContents(raw: unknown): Contents {
@@ -136,6 +138,16 @@ function decodeContents(raw: unknown): Contents {
   const companions = dict(source["companions"], (v): CompanionPlace => {
     const place = obj(v);
     return { col: opt(place, "col", int), row: opt(place, "row", int), x: opt(place, "x", num), y: opt(place, "y", num) };
+  });
+  // Una copia che non si legge si scarta da sola (e si conta): il resto del giardino resta, come per le sessioni (FORMATI.md §5).
+  const listed = source["placements"] as unknown[];
+  const placements = listed.flatMap((entry) => {
+    try {
+      return [decodePlacement(entry)];
+    } catch (error) {
+      if (error instanceof Corrupt) return [];
+      throw error;
+    }
   });
   return {
     version: int(source["version"]),
@@ -146,7 +158,8 @@ function decodeContents(raw: unknown): Contents {
     unseen: opt(source, "unseen", strings),
     pendingGifts: opt(source, "pendingGifts", int),
     legacySpent: opt(source, "legacySpent", int),
-    placements: (source["placements"] as unknown[]).map(decodePlacement),
+    placements,
+    dropped: listed.length - placements.length,
     companions,
     home: opt(source, "home", str),
     corners: opt(source, "corners", strings),
@@ -306,6 +319,20 @@ export class Garden {
     this._allPlacements = placements.map(({ legacy: _, ...rest }) => rest);
     this.settle(placements, legacyCompanions);
     this._formedCorners = formedCorners(this.placements);
+    if (contents.dropped > 0 && !this._readOnly) {
+      // Il file com'era si tiene da parte, poi si riscrive senza le copie rovinate. Se la copia non si riesce a fare, non si tocca niente.
+      const asideName = `giardino.corrotto-${Math.floor(this.now() / 1000)}.json`;
+      try {
+        writeFileAtomic(join(this.directory, asideName), text);
+      } catch {
+        this._readOnly = true;
+        this.report("Alcune cose del giardino non si leggono e non riesco a tenerne una copia: non modifico il file.");
+        return;
+      }
+      const what = contents.dropped === 1 ? "1 cosa del giardino non era leggibile" : `${contents.dropped} cose del giardino non erano leggibili`;
+      this.report(`${what}: le altre sono a posto, e il file com'era è in ${asideName}.`);
+      this.save();
+    }
   }
 
   /** Un giardino nuovo: l'album parte con gli oggetti della dotazione, già sull'isola. */
