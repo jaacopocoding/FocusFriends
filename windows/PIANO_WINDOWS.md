@@ -564,6 +564,13 @@ Installer: x64 175 MB, ARM64 178 MB (la 1.3.0: 158 e 152). 376 prove della logic
 **Pubblicata il 13 novembre 2026** come [`windows-v2.0.0`](https://github.com/jaacopocoding/FocusFriends/releases/tag/windows-v2.0.0) (non firmata, non «Latest»), e subito dopo
 la [`v2.0.0`](https://github.com/jaacopocoding/FocusFriends/releases/tag/v2.0.0) per Mac, che è la «Latest». I file pubblicati hanno gli SHA-256 dei file provati.
 
+## La 2.0.1 (insieme al Mac)
+
+**Preparata il 18 novembre 2026** come `2.0.1`, con il Mac 2.0.1 (build 16): la pagina **«Avatar»** come sul Mac (`962124d`), i **saltelli** di «Cliccami!!!»
+(`4943eea`, cliccabile anche in aria con `68ebfc7`), il carattere **«pennarello»** più vicino a Marker Felt (`4fd631b`) e le correzioni della revisione del
+codice, uguali sui due lati (`35e5a10` Mac, `4353c88` Windows): «Ferma» nei secondi del «+5 minuti» chiude il focus come finito, «Cancella tutto» ferma prima
+il timer, una voce rovinata del giardino o di «Da fare» si scarta da sola. 386 prove della logica.
+
 ## Cose che possono andare storte (e come si scoprono presto)
 
 | Rischio | Quando lo vediamo | Cosa faremo |

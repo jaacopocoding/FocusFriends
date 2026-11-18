@@ -1,9 +1,33 @@
-## FocusFriends 2.0.0
+## FocusFriends 2.0.1
+
+Un ritocco al giro guidato e tre correzioni. Esce insieme alla 2.0.1 per Windows.
+
+**Novità della 2.0.1**
+- **«Cliccami!!!»**: all'inizio del giro guidato il compagno non trema più. Ogni tanto si carica, fa un salto, atterra e fa un saltino più piccolo, con l'ombra che resta a terra (con «Riduci movimento» sta fermo).
+- **«Ferma» subito dopo un focus finito.** Se premevi «Ferma» (o facevi partire un altro timer) nei secondi in cui si può ancora chiedere «+5 minuti», il focus finito veniva contato come interrotto: niente figurina e niente «Com'è andata?». Adesso conta come finito.
+- **«Cancella tutto» con un timer in corso**: prima ferma il timer, così il focus in corso non ricompare nei dati appena cancellati.
+- **Il giardino e «Da fare» con una voce rovinata.** Se una sola cosa del giardino o una sola voce di «Da fare» non si leggeva, veniva messo da parte tutto il file e si ripartiva da capo. Adesso si scarta solo quella voce, il resto resta, e il file com'era viene tenuto da parte (`giardino.corrotto-….json` o `dafare.corrotto-….json`), come già succedeva per le sessioni.
+
+**Se aggiorni dalla 2.0.0**: niente cambia nei dati.
+
+Per macOS 13 o successivo (Apple Silicon e Intel).
+
+**Installazione**
+1. Decomprimi lo zip e trascina `FocusFriends` in *Applicazioni* (sostituisci la versione che hai: i dati restano).
+2. L'app non è firmata con un account sviluppatore Apple: la prima volta fai clic destro → **Apri** → **Apri**, oppure da Terminale:
+   `xattr -dr com.apple.quarantine /Applications/FocusFriends.app`
+
+Tutto resta sul tuo Mac: nessuna rete, nessun invio.
+
+SHA-256 di `FocusFriends-2.0.1-macOS.zip`:
+`ca2012f69787e9aeaf457283a824b1bee6768ae286933de015cf0248476a2315`
+
+### La 2.0
 
 La prima versione ufficiale: sei compagni, sei isole, l'album delle figurine e un giro guidato per chi apre l'app la prima volta.
 (Dopo la 0.11.0 il numero salta a 2.0, lo stesso della versione per Windows: da qui le due app escono insieme e con lo stesso numero.)
 
-**Novità**
+**Novità della 2.0**
 - **La Tartaruga**, la sesta compagna: cammina, mangia una fragola, dorme e ogni tanto si ritira nel guscio. **Durante un focus** avanza piano lungo un sentiero di sassi verso una bandierina, e a fine focus mangia la fragola che la aspetta lì. Ha trenta frasi sue («Piano piano si arriva») e si sblocca per ultima, a 200 focus pieni.
 - **La sua isola**, la sesta, a destra di quella di Porcellino e sopra quella del Riccio, con la casa dal tetto a guscio, il suo verde oliva e sette figurine nuove (il sasso al sole, il cespo di lattuga, l'aiuola di fragole, la bandierina del traguardo, la lanterna di carta, il laghetto, il rifugio di paglia). Due angoli nuovi, e il coniglio e la rana vengono anche per la lattuga e il laghetto.
 - **Il giro guidato.** Alla prima apertura, dopo il nome e il compagno, il compagno ti chiama («Cliccami!!!»): cliccandolo si apre la scheda e il giro ne spiega le parti una alla volta, il timer, il giardino, le statistiche, l'album e i compagni da sbloccare, con le immagini di come sono fatti. Si rifà da «Fai il giro» nel menu. La prima volta che serve, il compagno dice quanto manca alla prima figurina e dove trovarla, e il giardino mostra come si mettono le cose.
@@ -22,15 +46,3 @@ La prima versione ufficiale: sei compagni, sei isole, l'album delle figurine e u
 - Il giardino resta nello stesso file e nello stesso formato; le scene viste si aggiungono in `giardino.json` (`scenes`). **Non si perde niente.**
 - Le sessioni, le impostazioni e la lista Da fare non cambiano.
 - Lo zip passa da 53 a 79 MB (la Tartaruga, le scene e i brani nuovi).
-
-Per macOS 13 o successivo (Apple Silicon e Intel).
-
-**Installazione**
-1. Decomprimi lo zip e trascina `FocusFriends` in *Applicazioni* (sostituisci la versione che hai: i dati restano).
-2. L'app non è firmata con un account sviluppatore Apple: la prima volta fai clic destro → **Apri** → **Apri**, oppure da Terminale:
-   `xattr -dr com.apple.quarantine /Applications/FocusFriends.app`
-
-Tutto resta sul tuo Mac: nessuna rete, nessun invio.
-
-SHA-256 di `FocusFriends-2.0.0-macOS.zip`:
-`bc0d9b26429cb90caf578fe396447b521e861717ee007aa51ead2756eb3a2774`

@@ -1,11 +1,13 @@
-## FocusFriends per Windows 2.0.0
+## FocusFriends per Windows 2.0.1
 
 Il compagno che ti fa compagnia mentre studi, adesso anche su Windows 10 e 11 (Intel/AMD e ARM): un personaggio che cammina sul desktop,
 un timer Pomofocus con la sua schermata del focus, i suoni di sottofondo, le statistiche e i compagni da sbloccare studiando.
 Stessi dati, stesse regole e stesso aspetto dell'[app per Mac](https://github.com/jaacopocoding/FocusFriends#readme): i file di studio si possono
 leggere con l'una e con l'altra.
 
-### Novità della 2.0.1 (non ancora pubblicata)
+### Novità della 2.0.1
+
+Esce insieme alla 2.0.1 per Mac.
 
 - **La pagina «Avatar»**, come sul Mac. Nella scheda, al posto della fila dei nomi con i lucchetti, c'è una riga «Avatar» con le teste dei compagni
   che hai e il conto («2 con te · 4 da sbloccare»), e sotto quanto manca al prossimo, con la sua barra. Toccandola si apre una pagina a parte: i compagni
@@ -14,9 +16,19 @@ leggere con l'una e con l'altra.
   pieni, circa 15 h») e la promessa della sua isola; chi hai lo scegli con «Studia con …».
 - Il nome di un compagno bloccato non si legge più nemmeno nel menu dell'area di notifica: «??? · si sblocca a 20 focus».
 - **«Cliccami!!!»**: all'inizio del giro guidato il compagno non trema più. Ogni tanto si carica, fa un salto, atterra e fa un saltino più piccolo,
-  con l'ombra che resta a terra (con «Riduci movimento» sta fermo).
+  con l'ombra che resta a terra (con «Riduci movimento» sta fermo). Si può cliccare anche mentre è in aria.
 - **Il carattere «pennarello»** (titoli, numeri, fumetti) è più grande, più spaziato e con il tratto più spesso: assomiglia di più a quello della
   versione per Mac, che è più largo e più scuro.
+
+**Correzioni**
+- **«Ferma» subito dopo un focus finito.** Se premevi «Ferma» (o facevi partire un altro timer) nei secondi in cui si può ancora chiedere «+5 minuti»,
+  il focus finito veniva contato come interrotto: niente figurina e niente «Com'è andata?». Adesso conta come finito.
+- **«Cancella tutto» con un timer in corso**: prima ferma il timer, così il focus in corso non ricompare nei dati appena cancellati. L'avviso adesso
+  dice anche che si cancella il giardino.
+- **Il giardino e «Da fare» con una voce rovinata.** Se una sola cosa del giardino o una sola voce di «Da fare» non si leggeva, veniva messo da parte
+  tutto il file e si ripartiva da capo. Adesso si scarta solo quella voce, il resto resta, e il file com'era viene tenuto da parte
+  (`giardino.corrotto-….json` o `dafare.corrotto-….json`), come già succedeva per le sessioni. Uguale al Mac.
+- Se la finestra del compagno si chiude per un errore e si riapre da sola, non perde i messaggi arrivati intanto (il timer, le frasi).
 
 Niente cambia nei dati.
 
