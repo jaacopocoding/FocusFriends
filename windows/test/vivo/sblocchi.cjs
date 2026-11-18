@@ -3,15 +3,17 @@ const fs = require("fs"), path = require("path");
 module.exports = async ({ js, sleep, shot, mouse, timer, settings, card, stats }) => {
   const rect = async (selector) => JSON.parse(await js(`(() => { const e = document.querySelector(${JSON.stringify(selector)}); if (!e) return 'null'; const r = e.getBoundingClientRect(); return JSON.stringify({x: r.left + r.width / 2, y: r.top + r.height / 2}); })()`));
   const click = async (selector) => { const r = await rect(selector); if (!r) { console.log("non trovato:", selector); return; } mouse("mouseMove", r.x, r.y); await sleep(60); mouse("mouseDown", r.x, r.y); await sleep(40); mouse("mouseUp", r.x, r.y); await sleep(250); };
-  const data = async () => js("window.focusfriends.getCardData().then(d => JSON.stringify({ locks: d.companions.map(c => [c.id, c.lock]), name: d.userName }))").then(JSON.parse);
+  // dalla pagina «Avatar» (2.0.1) la scheda ha `avatars` al posto di `companions`: chi è bloccato ha `lock` e il nome «???»
+  const data = async () => js("window.focusfriends.getCardData().then(d => JSON.stringify({ locks: d.avatars.map(c => [c.id, c.lock]), names: d.avatars.map(c => c.name), name: d.userName }))").then(JSON.parse);
   const profilePath = path.join(process.env.FF_DATA_DIR, "profilo.json");
   const svc = timer();
   await sleep(1500);
   console.log("all'inizio:", JSON.stringify(await data()));
   await js("window.__ff.openCard()"); await sleep(700);
   await shot("bloccati");
-  await click('.companion[aria-label^="Porcellino, bloccato"]');
-  console.log("suggerimento:", await js("document.querySelector('.lock-hint').textContent"));
+  // la riga «Avatar» e quanto manca al prossimo (la fila dei nomi con i lucchetti non c'è più: la pagina la prova avatar.cjs)
+  console.log("riga:", await js("document.querySelector('.avatar-row')?.getAttribute('aria-label') ?? null"),
+    "· prossimo:", await js("document.querySelector('.avatar-next-text')?.textContent ?? null"));
   card.command({ name: "selectPet", id: "ciccio" });
   console.log("scelto Ciccio (bloccato): compagno ora", settings.pet);
   await js("window.__ff.closeCard()"); await sleep(300);
