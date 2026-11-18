@@ -3,7 +3,7 @@
 
 import { join } from "node:path";
 import { readText } from "./files.ts";
-import { petInfo } from "./pets.ts";
+import { PET_IDS, petInfo } from "./pets.ts";
 
 /** Il nome del file delle frasi di un compagno (sia quello incluso sia quello dell'utente). */
 export function phrasesFileName(petId: string): string {
@@ -27,6 +27,8 @@ export interface PhraseSources {
 
 /** Le frasi di un compagno: il file dell'utente, poi quello incluso; senza nessuna frase, quella di riserva. */
 export function loadPhrases(petId: string, sources: PhraseSources): string[] {
+  // solo i compagni veri: il nome finisce nel percorso del file, e «../» porterebbe fuori dalla cartella
+  if (!PET_IDS.includes(petId)) return [petInfo(petId).fallbackQuote];
   for (const directory of [sources.userDirectory, sources.bundledDirectory]) {
     const text = readText(join(directory, phrasesFileName(petId)));
     if (text === null) continue;

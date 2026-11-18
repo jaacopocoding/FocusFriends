@@ -2,7 +2,7 @@
 
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { PhraseDeck, loadPhrases, parsePhrases } from "../src/core/phrases.ts";
@@ -43,6 +43,16 @@ describe("File delle frasi", () => {
     const empty = tempDirectory();
     for (const pet of PETS) {
       assert.deepEqual(loadPhrases(pet.id, { userDirectory: empty, bundledDirectory: empty }), [pet.fallbackQuote]);
+    }
+  });
+
+  it("un nome che non è un compagno non legge nessun file (niente «../» fuori dalla cartella)", () => {
+    const root = tempDirectory(), user = join(root, "dati");
+    mkdirSync(user);
+    writeFileSync(join(root, "segreto.txt"), "non deve uscire\n");   // «frasi_x/../../segreto.txt» porterebbe qui
+    writeFileSync(join(user, "frasi_x.txt"), "neanche questa\n");
+    for (const id of ["x/../../segreto", "x\\..\\..\\segreto", "x", ""]) {
+      assert.deepEqual(loadPhrases(id, { userDirectory: user, bundledDirectory: user }), [PETS[0]!.fallbackQuote], id);
     }
   });
 

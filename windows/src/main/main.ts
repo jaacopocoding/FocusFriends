@@ -176,7 +176,7 @@ async function start(): Promise<void> {
     isVisible: () => visible, sayWhenQuiet,
   });
   ipcMain.handle(CHANNEL.nextPhrase, (_event, petId: unknown) => remarks.nextPhrase(() => {
-    const id = typeof petId === "string" ? petId : settings.pet;
+    const id = typeof petId === "string" && PET_IDS.includes(petId) ? petId : settings.pet;   // solo i compagni veri
     // Il file si rilegge a ogni frase: le modifiche valgono subito.
     const phrases = loadPhrases(id, { userDirectory: data, bundledDirectory: assets });
     let deck = decks.get(id);

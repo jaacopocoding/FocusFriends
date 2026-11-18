@@ -11,7 +11,7 @@
 > history) or **[inferred]** (deduced from the code).
 > UI strings and code comments are in Italian (as on the Mac); identifiers are English. UI strings quoted here are glossed.
 > **What was and was not exercised on a real Windows machine:** the code runs on macOS during development (Electron is
-> cross-platform); the Windows CI job runs the type check, the logic tests (381 now) and the build on a Windows runner, and the author
+> cross-platform); the Windows CI job runs the type check, the logic tests (382 now) and the build on a Windows runner, and the author
 > installed the released installer on a Windows computer for a brief check (see `PARITA.md`, "Prova su Windows"). The parts that
 > only exist on Windows (real click-through, task-bar sides, scale factors, two monitors, sleep, fullscreen apps, virtual
 > desktops) are listed in `PROVE_SU_WINDOWS.md` and have **not** been verified one by one.
@@ -49,7 +49,7 @@ HTTP client in the code **[inferred]**).
 cd windows
 npm install          # Electron, TypeScript, esbuild, electron-builder (devDependencies)
 npm run check        # tsc --noEmit
-npm test             # 381 tests, no dependencies needed
+npm test             # 382 tests, no dependencies needed
 npm start            # builds dist/ and opens the companion (on macOS: data in a test folder)
 npm run pacchetto    # build + stage resources + electron-builder --win → release/*.exe
 ```
@@ -253,7 +253,7 @@ First phrase 5 s after start (unless frequency is "never"), then every `chattine
 have their own ranges). The bubble is a DOM element: `bubble.png` scaled to the text; the text wrap width is chosen among 110…260 px so that the ellipse gets
 the image's proportions (`bubbleSize`, measured in a hidden `#measure` span). It follows the companion (`follow(now)`: it rises at once, descends at most 140 px/s), sits beside the pet when
 there is no room above, and stays `max(4.5, 2.5 + 0.06 × characters)` seconds. Phrases come from `loadPhrases`: the user's file in the data folder, else the bundled one, else the
-pet's fallback; a `PhraseDeck` per companion shuffles and never repeats until the deck is used (`FORMATI.md` §7). The main process answers `phrase:next` (so files are re-read for each phrase);
+pet's fallback; a `PhraseDeck` per companion shuffles and never repeats until the deck is used (`FORMATI.md` §7). The main process answers `phrase:next` (so files are re-read for each phrase; only ids in `PET_IDS` are accepted, both there and in `loadPhrases`, because the id is part of the file path);
 before drawing from the deck it may answer with something else: a queued context phrase (the launch greeting, the weekly recap), a to-do reminder (at most every 3 h, never during a focus, §4.16) or, once in six, a "when you do best" sentence (§4.17).
 Phrases that must not cover another one (unlock announcements, milestones, the wake-up greeting) come from the main process as `speech:when-quiet` (`QuietSpeech {text, after, only}`): `Speaker.sayWhenQuiet` waits `after` seconds, checks that the phrase is still wanted (`only`: always, outside a focus, or only in a break) and, if the companion is speaking, retries every 3 s up to four times. The bubble has `z-index: 16`, above "Com'è andata?" (15), so a phrase said while that card is open is readable (as on the Mac, where the later window is on top).
 
@@ -514,7 +514,7 @@ displays, sleep and the packaged app; they **print what they observe** and take 
 
 ## 7. Tests (`test/`, `npm test`)
 
-381 tests in 29 files, no framework, no dependencies. They run unchanged in the main process's code paths because the logic is pure.
+382 tests in 29 files, no framework, no dependencies. They run unchanged in the main process's code paths because the logic is pure.
 
 | File(s) | What they cover |
 |---|---|
