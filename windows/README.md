@@ -4,9 +4,10 @@ La versione per Windows di FocusFriends, scritta con **Electron** (TypeScript, H
 in [`PIANO_WINDOWS.md`](PIANO_WINDOWS.md) e i formati dei dati, comuni con l'app per Mac, in
 [`../FORMATI.md`](../FORMATI.md).
 
-**Stato:** l'ultima versione è la **2.0.0** (la Tartaruga, il giro guidato, i compagni che usano le cose, le scene nell'album, le statistiche rifatte), **pubblicata** il 13 novembre 2026
-insieme alla 2.0.0 per Mac: [release `windows-v2.0.0`](https://github.com/jaacopocoding/FocusFriends/releases/tag/windows-v2.0.0); l'installer è stato provato installato su Windows x64 e ARM.
-Prima, il 2 novembre, la 1.3.0 (il giardino, l'album e la vita sull'isola, il Riccio:
+**Stato:** l'ultima versione è la **2.0.1** (la pagina «Avatar», i saltelli di «Cliccami!!!», il carattere più vicino a quello del Mac e le correzioni della
+revisione del codice), **pubblicata** il 18 novembre 2026 insieme alla 2.0.1 per Mac: [release `windows-v2.0.1`](https://github.com/jaacopocoding/FocusFriends/releases/tag/windows-v2.0.1);
+l'installer è stato provato installato su Windows x64 e ARM. Prima, il 13 novembre, la 2.0.0 (la Tartaruga, il giro guidato, i compagni che usano le cose,
+le scene nell'album, le statistiche rifatte: [`windows-v2.0.0`](https://github.com/jaacopocoding/FocusFriends/releases/tag/windows-v2.0.0)); il 2 novembre la 1.3.0 (il giardino, l'album e la vita sull'isola, il Riccio:
 [`windows-v1.3.0`](https://github.com/jaacopocoding/FocusFriends/releases/tag/windows-v1.3.0)); il 26 ottobre la 1.2.0
 ([`windows-v1.2.0`](https://github.com/jaacopocoding/FocusFriends/releases/tag/windows-v1.2.0)); il 21 ottobre la 1.1.1
 ([`windows-v1.1.1`](https://github.com/jaacopocoding/FocusFriends/releases/tag/windows-v1.1.1)) e la 1.1.0

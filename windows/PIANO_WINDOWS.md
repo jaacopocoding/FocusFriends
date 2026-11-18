@@ -570,6 +570,10 @@ la [`v2.0.0`](https://github.com/jaacopocoding/FocusFriends/releases/tag/v2.0.0)
 (`4943eea`, cliccabile anche in aria con `68ebfc7`), il carattere **«pennarello»** più vicino a Marker Felt (`4fd631b`) e le correzioni della revisione del
 codice, uguali sui due lati (`35e5a10` Mac, `4353c88` Windows): «Ferma» nei secondi del «+5 minuti» chiude il focus come finito, «Cancella tutto» ferma prima
 il timer, una voce rovinata del giardino o di «Da fare» si scarta da sola. 386 prove della logica.
+La prima prova degli installer della bozza (`prova-installer.yml`) è fallita su x64 e ARM per il copione `sblocchi.cjs`, rimasto alla fila dei compagni
+di prima della pagina «Avatar»; corretto il copione (`8f3b5ac`), riprovati gli stessi installer: tutto passato.
+**Pubblicata il 18 novembre 2026** come [`windows-v2.0.1`](https://github.com/jaacopocoding/FocusFriends/releases/tag/windows-v2.0.1) (non «Latest»), e subito dopo
+la [`v2.0.1`](https://github.com/jaacopocoding/FocusFriends/releases/tag/v2.0.1) per Mac, che è la «Latest». Installer: x64 175 MB, ARM64 179 MB; lo zip del Mac 79 MB.
 
 ## Cose che possono andare storte (e come si scoprono presto)
 

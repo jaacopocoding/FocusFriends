@@ -92,13 +92,13 @@ Scrivi cosa devi studiare, con la scadenza e la materia, e fai partire un focus 
 
 ## Scarica
 
-L'ultima versione è la **2.0.0**, per Mac e per Windows: da qui le due app escono insieme, con lo stesso numero e le stesse funzioni.
+L'ultima versione è la **2.0.1**, per Mac e per Windows: da qui le due app escono insieme, con lo stesso numero e le stesse funzioni.
 
-**Mac** (macOS 13 o successivo, Apple Silicon e Intel) · [**scarica lo zip**](https://github.com/jaacopocoding/FocusFriends/releases/download/v2.0.0/FocusFriends-2.0.0-macOS.zip) (79 MB), decomprimilo, trascina l'app in *Applicazioni* e aprila. La prima volta: clic destro → **Apri**.
+**Mac** (macOS 13 o successivo, Apple Silicon e Intel) · [**scarica lo zip**](https://github.com/jaacopocoding/FocusFriends/releases/download/v2.0.1/FocusFriends-2.0.1-macOS.zip) (79 MB), decomprimilo, trascina l'app in *Applicazioni* e aprila. La prima volta: clic destro → **Apri**.
 
-**Windows** (10 e 11) · scarica l'installer: [**Intel e AMD**](https://github.com/jaacopocoding/FocusFriends/releases/download/windows-v2.0.0/FocusFriends-Windows-2.0.0-x64-Setup.exe) (175 MB) oppure [**ARM**](https://github.com/jaacopocoding/FocusFriends/releases/download/windows-v2.0.0/FocusFriends-Windows-2.0.0-arm64-Setup.exe) (178 MB, per esempio Surface Pro e i portatili Copilot+), e lancialo. La prima volta: *Ulteriori informazioni* → *Esegui comunque*.
+**Windows** (10 e 11) · scarica l'installer: [**Intel e AMD**](https://github.com/jaacopocoding/FocusFriends/releases/download/windows-v2.0.1/FocusFriends-Windows-2.0.1-x64-Setup.exe) (175 MB) oppure [**ARM**](https://github.com/jaacopocoding/FocusFriends/releases/download/windows-v2.0.1/FocusFriends-Windows-2.0.1-arm64-Setup.exe) (178 MB, per esempio Surface Pro e i portatili Copilot+), e lancialo. La prima volta: *Ulteriori informazioni* → *Esegui comunque*.
 
-Le novità e il checksum di ogni file sono nelle note: [Mac](https://github.com/jaacopocoding/FocusFriends/releases/tag/v2.0.0) · [Windows](https://github.com/jaacopocoding/FocusFriends/releases/tag/windows-v2.0.0) · [tutte le versioni](https://github.com/jaacopocoding/FocusFriends/releases).
+Le novità e il checksum di ogni file sono nelle note: [Mac](https://github.com/jaacopocoding/FocusFriends/releases/tag/v2.0.1) · [Windows](https://github.com/jaacopocoding/FocusFriends/releases/tag/windows-v2.0.1) · [tutte le versioni](https://github.com/jaacopocoding/FocusFriends/releases).
 
 L'app non è firmata con un account sviluppatore, per questo il sistema chiede conferma. Tutto il resto è nella [guida](docs/GUIDA.md).
 
